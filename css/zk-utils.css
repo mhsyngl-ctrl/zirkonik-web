@@ -286,3 +286,9 @@
   }
   #pl-main, #prices-list { column-count: 3; }
 }
+
+/* Diş şeması: hover + klavye odak halkası (masaüstü inceliği) */
+@media (hover: hover) and (pointer: fine) {
+  [data-tooth]:not(.zk-sel):hover [data-crown] { fill: #EAF3F5; }
+}
+[data-tooth]:focus-visible [data-crown] { stroke: var(--color-primary); stroke-width: 2.5; }

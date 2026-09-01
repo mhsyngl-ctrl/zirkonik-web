@@ -84,7 +84,7 @@
 
     body += teeth.map(function (t) {
       var lx = t.x + t.nx * 36, ly = t.y + t.ny * 36;
-      return '<g data-tooth="' + t.n + '" style="cursor:pointer">' +
+      return '<g data-tooth="' + t.n + '" role="checkbox" aria-checked="false" aria-label="Diş ' + t.n + '" tabindex="0" style="cursor:pointer;outline:none">' +
         '<g data-crown="' + t.n + '" transform="translate(' + t.x.toFixed(1) + ' ' + t.y.toFixed(1) + ') rotate(' + t.rot.toFixed(1) + ')"' +
           ' fill="var(--color-input)" stroke="#94a3b8" stroke-width="1.5">' +
           toothShapeSvg(t.type, t.pos, t.n) +
@@ -142,31 +142,45 @@
             '<textarea id="zk-wf-ozel" rows="3" class="w-full rounded-theme border border-border bg-input px-3.5 py-2.5 text-sm" placeholder="Laboratuvara not..."></textarea></label>' +
         '</div>';
 
+      function toggleTooth(group) {
+        var n = group.getAttribute('data-tooth');
+        var crown = el.querySelector('[data-crown="' + n + '"]');
+        var num = el.querySelector('[data-num="' + n + '"]');
+        var fis = el.querySelector('[data-fissure="' + n + '"]');
+        if (selected[n]) {
+          delete selected[n];
+          group.classList.remove('zk-sel');
+          group.setAttribute('aria-checked', 'false');
+          crown.setAttribute('fill', 'var(--color-input)');
+          crown.setAttribute('stroke', '#94a3b8');
+          num.setAttribute('fill', 'var(--color-foreground)');
+          if (fis) fis.setAttribute('stroke', '#94a3b8');
+        } else {
+          selected[n] = true;
+          group.classList.add('zk-sel');
+          group.setAttribute('aria-checked', 'true');
+          crown.setAttribute('fill', 'var(--color-primary)');
+          crown.setAttribute('stroke', 'var(--color-primary)');
+          num.setAttribute('fill', 'var(--color-primary)');
+          if (fis) fis.setAttribute('stroke', 'rgba(255,255,255,0.75)');
+        }
+        var teeth = ZkWorkForm.getTeeth();
+        document.getElementById('zk-wf-count').textContent = teeth.length;
+        var listEl = document.getElementById('zk-wf-teeth-list');
+        if (listEl) listEl.textContent = teeth.join(', ');
+        if (typeof ZkWorkForm.onTeethChange === 'function') ZkWorkForm.onTeethChange(teeth);
+      }
+
+      el.addEventListener('keydown', function (e) {
+        if (e.key !== ' ' && e.key !== 'Enter') return;
+        var t = e.target.closest ? e.target.closest('[data-tooth]') : null;
+        if (t) { e.preventDefault(); toggleTooth(t); }
+      });
+
       el.addEventListener('click', function (e) {
         var t = e.target.closest('[data-tooth]');
         if (t) {
-          var n = t.getAttribute('data-tooth');
-          var crown = el.querySelector('[data-crown="' + n + '"]');
-          var num = el.querySelector('[data-num="' + n + '"]');
-          var fis = el.querySelector('[data-fissure="' + n + '"]');
-          if (selected[n]) {
-            delete selected[n];
-            crown.setAttribute('fill', 'var(--color-input)');
-            crown.setAttribute('stroke', 'var(--color-border)');
-            num.setAttribute('fill', 'var(--color-foreground)');
-            if (fis) fis.setAttribute('stroke', 'var(--color-border)');
-          } else {
-            selected[n] = true;
-            crown.setAttribute('fill', 'var(--color-primary)');
-            crown.setAttribute('stroke', 'var(--color-primary)');
-            num.setAttribute('fill', 'var(--color-primary)');
-            if (fis) fis.setAttribute('stroke', 'rgba(255,255,255,0.75)');
-          }
-          var teeth = ZkWorkForm.getTeeth();
-          document.getElementById('zk-wf-count').textContent = teeth.length;
-          var listEl = document.getElementById('zk-wf-teeth-list');
-          if (listEl) listEl.textContent = teeth.join(', ');
-          if (typeof ZkWorkForm.onTeethChange === 'function') ZkWorkForm.onTeethChange(teeth);
+          toggleTooth(t);
           return;
         }
         var r = e.target.closest('[data-radio]');
