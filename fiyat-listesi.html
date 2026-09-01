@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <title>Fiyat Listesi — Zirkonik</title>
+
+  <link rel="stylesheet" href="css/tailwind.css">
+  <link rel="stylesheet" href="css/ipad.css">
+  <link rel="stylesheet" href="css/zk-utils.css">
+  <script src="https://code.iconify.design/iconify-icon/2.3.0/iconify-icon.min.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@100;200;300;400;500;600;700;800;900&family=Source+Sans+3:wght@100;200;300;400;500;600;700;800;900&display=swap">
+
+  <style>
+  :root {
+    --color-background: #F4F6F7;
+    --color-foreground: #17242C;
+    --color-primary: #123B4A;
+    --color-primary-foreground: #FFFFFF;
+    --color-secondary: #DCE8E8;
+    --color-secondary-foreground: #17333D;
+    --color-accent: #A14F22;
+    --color-accent-foreground: #FFFFFF;
+    --color-muted: #E7ECEE;
+    --color-muted-foreground: #5C6B73;
+    --color-card: #FFFFFF;
+    --color-card-foreground: #17242C;
+    --color-border: #CBD6D9;
+    --color-input: #FFFFFF;
+    --color-destructive: #B3262D;
+    --color-destructive-foreground: #FFFFFF;
+    --color-success: #176B5B;
+    --color-success-foreground: #FFFFFF;
+    --font-heading: 'Manrope', sans-serif;
+    --font-body: 'Source Sans 3', sans-serif;
+    --radius: 12px;
+  }
+  html { overflow-x: hidden; }
+  body { font-family: var(--font-body); -webkit-font-smoothing: antialiased; margin: 0; padding: 0; overflow-x: hidden; overscroll-behavior-x: none; }
+  </style>
+</head>
+<body class="bg-background text-foreground m-0 p-0">
+  <div class="h-screen w-screen overflow-y-auto">
+    <div class="min-h-screen w-full bg-background text-foreground font-body pb-32">
+      <header class="border-b border-border bg-card px-5 pb-5 pt-12" style="padding-top:max(3rem,calc(env(safe-area-inset-top) + 12px));">
+        <div class="flex items-center justify-between">
+          <button onclick="history.length > 1 ? history.back() : location.href='finans.html'" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-card text-card-foreground">
+            <iconify-icon icon="lucide:arrow-left" class="text-xl"></iconify-icon>
+          </button>
+          <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Fiyatlandırma</p>
+          <div class="h-10 w-10"></div>
+        </div>
+        <div class="mt-6">
+          <h1 class="font-heading text-2xl font-bold tracking-tight">Fiyat Listesi</h1>
+          <p class="mt-1 text-sm text-muted-foreground">Birim fiyatları düzenleyin, yeni kalem ekleyin. Yeni iş girişinde tutar bu listeden otomatik hesaplanır.</p>
+        </div>
+        <label class="mt-4 block">
+          <span class="mb-1.5 block text-xs font-bold">Fiyat kapsamı</span>
+          <select id="pl-scope" class="flex h-12 w-full items-center rounded-theme border border-border bg-input px-3.5 text-sm">
+            <option value="">Genel fiyat listesi</option>
+          </select>
+        </label>
+        <p id="pl-scope-hint" class="mt-2 hidden text-xs text-muted-foreground">Bu kapsamda girilen fiyat yalnız o doktor/lokasyon için geçerlidir; boş bırakılan kalemlerde genel liste fiyatı uygulanır. Alanı temizlemek özel fiyatı kaldırır.</p>
+      </header>
+
+      <main id="pl-main" class="px-5 pt-5"></main>
+
+      <div id="pl-add-bar" class="fixed bottom-0 left-0 z-30 hidden w-full border-t border-border bg-card/95 px-5 pb-6 pt-3 backdrop-blur-md">
+        <button onclick="zkOpenAdd()" class="flex h-12 w-full items-center justify-center gap-2 rounded-theme bg-primary font-heading text-sm font-bold text-primary-foreground shadow-lg">
+          <iconify-icon icon="lucide:plus-circle" class="text-lg"></iconify-icon>
+          Yeni kalem ekle
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Yeni kalem sheet -->
+  <div id="add-sheet" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkCloseAdd()"></div>
+    <div class="absolute bottom-0 left-0 w-full rounded-t-2xl bg-card p-5 pb-8">
+      <h2 class="font-heading text-lg font-bold">Yeni fiyat kalemi</h2>
+      <div class="mt-4 space-y-3">
+        <label class="block">
+          <span class="mb-1.5 block text-xs font-bold">Kategori (kart) *</span>
+          <select id="add-category-select" class="flex h-12 w-full items-center rounded-theme border border-border bg-input px-3.5 text-sm"></select>
+        </label>
+        <label id="add-category-new-wrap" class="hidden block">
+          <span class="mb-1.5 block text-xs font-bold">Yeni kategori adı *</span>
+          <input id="add-category" type="text" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="Örn. İmplant Üstyapıları">
+        </label>
+        <label class="block">
+          <span class="mb-1.5 block text-xs font-bold">Kalem adı *</span>
+          <input id="add-name" type="text" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="Örn. Zirkonyum Kron">
+        </label>
+        <div class="grid grid-cols-2 gap-3">
+          <label class="block">
+            <span class="mb-1.5 block text-xs font-bold">Birim fiyat</span>
+            <input id="add-price" type="number" min="0" step="0.01" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="Boş = fiyat sorunuz">
+          </label>
+          <label class="block">
+            <span class="mb-1.5 block text-xs font-bold">Para birimi</span>
+            <select id="add-currency" class="flex h-12 w-full items-center rounded-theme border border-border bg-input px-3.5 text-sm">
+              <option value="$">$</option>
+              <option value="₺">₺</option>
+              <option value="€">€</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <p id="add-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
+      <button id="add-btn" onclick="zkAddItem()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Ekle</button>
+    </div>
+  </div>
+
+  <!-- Üretim rotası sheet -->
+  <div id="route-sheet" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkCloseRoute()"></div>
+    <div class="absolute bottom-0 left-0 flex max-h-[80vh] w-full flex-col rounded-t-2xl bg-card p-5 pb-8">
+      <h2 class="font-heading text-lg font-bold">Üretim rotası</h2>
+      <p id="route-item-name" class="mt-0.5 text-xs text-muted-foreground"></p>
+      <p class="mt-2 text-xs text-muted-foreground">Odalara sırayla dokunun — iş bu sırayla odalardan geçer. Tekrar dokunmak rotadan çıkarır.</p>
+      <div id="route-rooms" class="mt-3 min-h-0 flex-1 space-y-4 overflow-y-auto"></div>
+      <p id="route-summary" class="mt-3 text-xs font-semibold text-primary"></p>
+      <button id="route-save-btn" onclick="zkSaveRoute()" class="mt-3 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Rotayı Kaydet</button>
+    </div>
+  </div>
+
+  <div id="zk-toast" style="position:fixed;left:50%;bottom:96px;transform:translate(-50%,16px);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;background:#17242C;color:#fff;font-family:'Source Sans 3',sans-serif;font-size:13px;font-weight:600;padding:10px 16px;border-radius:12px;z-index:9999;max-width:86%;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.18);"></div>
+  <script>
+    function zkToast(msg){
+      var el = document.getElementById('zk-toast');
+      if(!el) return;
+      el.textContent = msg;
+      el.style.opacity = '1';
+      el.style.transform = 'translate(-50%,0)';
+      clearTimeout(window.__zkToastTimer);
+      window.__zkToastTimer = setTimeout(function(){
+        el.style.opacity = '0';
+        el.style.transform = 'translate(-50%,16px)';
+      }, 2200);
+    }
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script src="supabase-client.js"></script>
+  <script src="js/zk-picker.js"></script>
+  <script>
+    var canEdit = false;
+    var orgId = null;
+    var items = [];
+    var overrides = [];
+    var scopeDoctorId = null;
+    var scopeLabId = null;
+
+    ZirkonikAuth.requireAuth().then(function (session) {
+      if (!session) return;
+      ZirkonikAuth.me().then(function (me) {
+        orgId = me.organization_id;
+        var perms = (me.user_permissions && me.user_permissions[0]) || me.user_permissions || {};
+        canEdit = me.role === 'yonetici' || !!perms.can_view_finance;
+        if (canEdit) document.getElementById('pl-add-bar').classList.remove('hidden');
+
+        var client = ZirkonikAuth.client();
+        var sel = document.getElementById('pl-scope');
+        client.from('doctors').select('id, full_name').eq('status', 'approved').order('full_name').then(function (r) {
+          if (!(r.data || []).length) return;
+          var og = document.createElement('optgroup');
+          og.label = 'Doktora özel';
+          r.data.forEach(function (d) {
+            var o = document.createElement('option');
+            o.value = 'doc:' + d.id; o.textContent = 'Dr. ' + d.full_name;
+            og.appendChild(o);
+          });
+          sel.appendChild(og);
+        });
+        client.from('laboratories').select('id, name').order('name').then(function (r) {
+          if (!(r.data || []).length) return;
+          var og = document.createElement('optgroup');
+          og.label = 'Lokasyona özel';
+          r.data.forEach(function (l) {
+            var o = document.createElement('option');
+            o.value = 'lab:' + l.id; o.textContent = l.name;
+            og.appendChild(o);
+          });
+          sel.appendChild(og);
+        });
+        sel.addEventListener('change', function () {
+          var v = sel.value;
+          scopeDoctorId = v.indexOf('doc:') === 0 ? v.slice(4) : null;
+          scopeLabId = v.indexOf('lab:') === 0 ? v.slice(4) : null;
+          document.getElementById('pl-scope-hint').classList.toggle('hidden', !v);
+          loadList();
+        });
+
+        loadList();
+      });
+    });
+
+    function scopeOverrideFor(itemId) {
+      return overrides.find(function (o) {
+        return o.price_item_id === itemId &&
+          (scopeDoctorId ? o.doctor_id === scopeDoctorId : o.doctor_id === null) &&
+          (scopeLabId ? o.laboratory_id === scopeLabId : o.laboratory_id === null);
+      }) || null;
+    }
+
+    function loadList() {
+      var inScope = !!(scopeDoctorId || scopeLabId);
+      Promise.all([
+        ZirkonikData.listPriceItems(),
+        inScope ? ZirkonikData.listPriceOverrides() : Promise.resolve({ data: [] })
+      ]).then(function (results) {
+        var r = results[0];
+        overrides = results[1].data || [];
+        items = r.data || [];
+        var main = document.getElementById('pl-main');
+        main.innerHTML = '';
+        var catSel = document.getElementById('add-category-select');
+        catSel.innerHTML = '';
+        var byCat = {};
+        items.forEach(function (p) {
+          (byCat[p.category] = byCat[p.category] || []).push(p);
+        });
+        Object.keys(byCat).forEach(function (cat) {
+          var opt = document.createElement('option');
+          opt.value = cat; opt.textContent = cat;
+          catSel.appendChild(opt);
+        });
+        var newOpt = document.createElement('option');
+        newOpt.value = '__new__'; newOpt.textContent = '+ Yeni kategori (kart) aç…';
+        catSel.appendChild(newOpt);
+        Object.keys(byCat).forEach(function (cat) {
+          var sec = document.createElement('section');
+          sec.className = 'mb-5 rounded-theme border border-border bg-card p-4';
+          var rows = byCat[cat].map(function (p) {
+            var inScope = !!(scopeDoctorId || scopeLabId);
+            var ov = inScope ? scopeOverrideFor(p.id) : null;
+            var shownVal = inScope ? (ov ? ov.unit_price : '') : (p.unit_price != null ? p.unit_price : '');
+            var ph = inScope ? ('Genel: ' + (p.unit_price != null ? p.unit_price : 'sorunuz')) : 'Sorunuz';
+            var priceCell = canEdit
+              ? '<input data-price-for="' + p.id + '" type="number" min="0" step="0.01" value="' + shownVal + '" placeholder="' + ph + '" class="h-10 w-24 rounded-theme border ' + (ov ? 'border-primary' : 'border-border') + ' bg-input px-2.5 text-right text-sm tabular-nums">'
+              : '<span class="text-sm font-bold tabular-nums">' + (p.unit_price != null ? p.unit_price : 'Sorunuz') + '</span>';
+            var hasRoute = p.route_room_ids && p.route_room_ids.length;
+            var routeBtn = (canEdit && !inScope)
+              ? '<button data-route-for="' + p.id + '" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border ' + (hasRoute ? 'bg-secondary text-primary' : 'bg-input text-muted-foreground') + '" aria-label="Üretim rotası" title="Üretim rotası"><iconify-icon icon="lucide:route" class="text-base"></iconify-icon></button>'
+              : '';
+            return '<div class="flex items-center justify-between gap-2 border-b border-border py-2.5 last:border-b-0">' +
+              '<p class="min-w-0 flex-1 text-sm font-semibold">' + p.name + '</p>' +
+              '<div class="flex items-center gap-1.5">' + routeBtn + priceCell +
+              '<span class="w-5 text-sm text-muted-foreground">' + (p.currency || '$') + '</span></div></div>';
+          }).join('');
+          sec.innerHTML = '<p class="mb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-primary">' + cat + '</p>' + rows;
+          main.appendChild(sec);
+        });
+        if (!items.length) {
+          main.innerHTML = '<p class="mt-8 text-center text-sm text-muted-foreground">Fiyat listesi boş.</p>';
+        }
+
+        if (canEdit) {
+          main.querySelectorAll('[data-price-for]').forEach(function (inp) {
+            inp.addEventListener('change', function () {
+              var id = inp.getAttribute('data-price-for');
+              var val = inp.value === '' ? null : Number(inp.value);
+              if (scopeDoctorId || scopeLabId) {
+                // Doktora/lokasyona özel fiyat — boş bırakmak genel listeye döndürür.
+                ZirkonikData.setPriceOverride(orgId, id, scopeDoctorId, scopeLabId, val).then(function (res) {
+                  if (res.error) { zkToast('Kaydedilemedi: ' + res.error.message); return; }
+                  zkToast(val == null ? 'Özel fiyat kaldırıldı, genel liste geçerli.' : 'Anlaşmalı fiyat kaydedildi.');
+                  loadList();
+                });
+                return;
+              }
+              ZirkonikData.updatePriceItem(id, { unit_price: val }).then(function (res) {
+                if (res.error) { zkToast('Kaydedilemedi: ' + res.error.message); return; }
+                var item = items.find(function (p) { return p.id === id; });
+                if (item) item.unit_price = val;
+                zkToast('Fiyat güncellendi.');
+              });
+            });
+          });
+          main.querySelectorAll('[data-route-for]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              zkOpenRoute(btn.getAttribute('data-route-for'));
+            });
+          });
+        }
+      });
+    }
+
+    // ---- Üretim rotası ----
+    var allRooms = null; // [{id, name, labName}]
+    var routeItemId = null;
+    var routeSeq = [];
+
+    function loadAllRooms() {
+      if (allRooms) return Promise.resolve(allRooms);
+      var client = ZirkonikAuth.client();
+      return client.from('rooms').select('id, name, sort_order, laboratories(id, name)').order('sort_order').then(function (r) {
+        allRooms = (r.data || []).map(function (rm) {
+          return { id: rm.id, name: rm.name, labName: rm.laboratories ? rm.laboratories.name : '—' };
+        });
+        return allRooms;
+      });
+    }
+
+    function zkOpenRoute(itemId) {
+      routeItemId = itemId;
+      var item = items.find(function (p) { return p.id === itemId; });
+      routeSeq = (item && item.route_room_ids) ? item.route_room_ids.slice() : [];
+      document.getElementById('route-item-name').textContent = item ? item.name : '';
+      loadAllRooms().then(function () {
+        renderRouteRooms();
+        document.getElementById('route-sheet').classList.remove('hidden');
+      });
+    }
+    function zkCloseRoute() { document.getElementById('route-sheet').classList.add('hidden'); }
+
+    function renderRouteRooms() {
+      var byLab = {};
+      allRooms.forEach(function (rm) {
+        (byLab[rm.labName] = byLab[rm.labName] || []).push(rm);
+      });
+      var html = Object.keys(byLab).map(function (labName) {
+        var chips = byLab[labName].map(function (rm) {
+          var idx = routeSeq.indexOf(rm.id);
+          var on = idx >= 0;
+          return '<button data-route-room="' + rm.id + '" class="flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold ' +
+            (on ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-input') + '">' +
+            (on ? '<span class="flex h-5 w-5 items-center justify-center rounded-full bg-white/20 text-[10px] font-bold">' + (idx + 1) + '</span>' : '') +
+            rm.name + '</button>';
+        }).join('');
+        return '<div><p class="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">' + labName + '</p>' +
+          '<div class="flex flex-wrap gap-1.5">' + chips + '</div></div>';
+      }).join('');
+      var el = document.getElementById('route-rooms');
+      el.innerHTML = html || '<p class="text-xs text-muted-foreground">Henüz oda tanımlı değil — önce Laboratuvarlar sekmesinden oda ekleyin.</p>';
+      el.querySelectorAll('[data-route-room]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var id = b.getAttribute('data-route-room');
+          var idx = routeSeq.indexOf(id);
+          if (idx >= 0) routeSeq.splice(idx, 1); else routeSeq.push(id);
+          renderRouteRooms();
+        });
+      });
+      var names = routeSeq.map(function (id) {
+        var rm = allRooms.find(function (r) { return r.id === id; });
+        return rm ? rm.name : '?';
+      });
+      document.getElementById('route-summary').textContent = names.length
+        ? 'Rota: ' + names.join(' → ')
+        : 'Rota boş — iş, laboratuvarın tüm odalarından sırayla geçer.';
+    }
+
+    function zkSaveRoute() {
+      var btn = document.getElementById('route-save-btn');
+      btn.disabled = true;
+      ZirkonikData.updatePriceItem(routeItemId, { route_room_ids: routeSeq.length ? routeSeq : null }).then(function (res) {
+        btn.disabled = false;
+        if (res.error) { zkToast('Kaydedilemedi: ' + res.error.message); return; }
+        var item = items.find(function (p) { return p.id === routeItemId; });
+        if (item) item.route_room_ids = routeSeq.length ? routeSeq.slice() : null;
+        zkCloseRoute();
+        zkToast('Rota kaydedildi.');
+        loadList();
+      });
+    }
+
+    function zkOpenAdd() { document.getElementById('add-sheet').classList.remove('hidden'); }
+    function zkCloseAdd() { document.getElementById('add-sheet').classList.add('hidden'); }
+
+    document.getElementById('add-category-select').addEventListener('change', function () {
+      document.getElementById('add-category-new-wrap').classList.toggle('hidden', this.value !== '__new__');
+    });
+
+    function zkAddItem() {
+      var errEl = document.getElementById('add-error');
+      errEl.classList.add('hidden');
+      var selVal = document.getElementById('add-category-select').value;
+      var category = selVal === '__new__'
+        ? document.getElementById('add-category').value.trim()
+        : selVal;
+      var name = document.getElementById('add-name').value.trim();
+      if (!category || !name) {
+        errEl.textContent = 'Kategori ve kalem adı zorunludur.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+      var priceVal = document.getElementById('add-price').value;
+      var maxSort = items.reduce(function (m, p) { return Math.max(m, p.sort_order || 0); }, 0);
+      var btn = document.getElementById('add-btn');
+      btn.disabled = true;
+      ZirkonikData.createPriceItem({
+        organization_id: orgId,
+        category: category,
+        name: name,
+        unit_price: priceVal === '' ? null : Number(priceVal),
+        currency: document.getElementById('add-currency').value,
+        sort_order: maxSort + 1
+      }).then(function (res) {
+        btn.disabled = false;
+        if (res.error) {
+          errEl.textContent = 'Eklenemedi: ' + res.error.message;
+          errEl.classList.remove('hidden');
+          return;
+        }
+        document.getElementById('add-category').value = '';
+        document.getElementById('add-name').value = '';
+        document.getElementById('add-price').value = '';
+        zkCloseAdd();
+        zkToast('Kalem eklendi.');
+        loadList();
+      });
+    }
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <title>Doktorlar — Zirkonik</title>
+
+  <link rel="stylesheet" href="css/tailwind.css">
+  <link rel="stylesheet" href="css/ipad.css">
+  <link rel="stylesheet" href="css/zk-utils.css">
+  <script src="https://code.iconify.design/iconify-icon/2.3.0/iconify-icon.min.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@100;200;300;400;500;600;700;800;900&family=Source+Sans+3:wght@100;200;300;400;500;600;700;800;900&display=swap">
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf-autotable.min.js"></script>
+
+  <style>
+  :root {
+    --color-background: #F4F6F7;
+    --color-foreground: #17242C;
+    --color-primary: #123B4A;
+    --color-primary-foreground: #FFFFFF;
+    --color-secondary: #DCE8E8;
+    --color-secondary-foreground: #17333D;
+    --color-accent: #A14F22;
+    --color-accent-foreground: #FFFFFF;
+    --color-muted: #E7ECEE;
+    --color-muted-foreground: #5C6B73;
+    --color-card: #FFFFFF;
+    --color-card-foreground: #17242C;
+    --color-border: #CBD6D9;
+    --color-input: #FFFFFF;
+    --color-destructive: #B3262D;
+    --color-destructive-foreground: #FFFFFF;
+    --color-success: #176B5B;
+    --color-success-foreground: #FFFFFF;
+    --font-heading: 'Manrope', sans-serif;
+    --font-body: 'Source Sans 3', sans-serif;
+    --radius: 12px;
+  }
+  html { overflow-x: hidden; }
+  body { font-family: var(--font-body); -webkit-font-smoothing: antialiased; margin: 0; padding: 0; overflow-x: hidden; overscroll-behavior-x: none; }
+  </style>
+</head>
+<body class="bg-background text-foreground m-0 p-0">
+  <div class="h-screen w-screen overflow-y-auto">
+    <div class="min-h-screen w-full bg-background text-foreground font-body pb-32">
+      <header class="border-b border-border bg-card px-5 pb-5 pt-12" style="padding-top:max(3rem,calc(env(safe-area-inset-top) + 12px));">
+        <div class="flex items-start justify-between">
+          <div>
+            <p class="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Üyelik yönetimi</p>
+            <h1 class="mt-1 font-heading text-2xl font-bold tracking-tight">Doktorlar</h1>
+            <p class="mt-1.5 max-w-[260px] text-xs leading-4 text-muted-foreground">Doktor/klinik kayıtları ve onay merkezi</p>
+          </div>
+          <button onclick="zkOpenAddDoctor()" class="flex h-10 w-10 items-center justify-center rounded-theme bg-primary text-primary-foreground">
+            <iconify-icon icon="lucide:plus" class="text-lg"></iconify-icon>
+          </button>
+        </div>
+
+        <div class="mt-5 grid grid-cols-2 gap-2.5">
+          <div class="rounded-theme border border-border bg-background p-3.5">
+            <span class="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Toplam kayıt</span>
+            <p id="stat-total" class="mt-2 font-heading text-2xl font-bold tabular-nums">—</p>
+          </div>
+          <div class="rounded-theme border border-accent/25 bg-accent/10 p-3.5">
+            <span class="text-[10px] font-semibold uppercase tracking-[0.1em] text-accent">Onay bekleyen</span>
+            <p id="stat-pending" class="mt-2 font-heading text-2xl font-bold tabular-nums text-accent">—</p>
+          </div>
+        </div>
+      </header>
+
+      <main class="px-5">
+        <section class="pt-5">
+          <h2 class="font-heading text-lg font-bold">İnceleme kuyruğu</h2>
+          <div id="pending-list" class="mt-3 space-y-3">
+            <p class="text-xs text-muted-foreground">Yükleniyor…</p>
+          </div>
+        </section>
+
+        <section class="mt-6">
+          <h2 class="font-heading text-lg font-bold">Onaylı doktorlar</h2>
+          <div id="approved-list" class="mt-3 space-y-2">
+            <p class="text-xs text-muted-foreground">Yükleniyor…</p>
+          </div>
+        </section>
+      </main>
+
+      <nav data-fv-tabbar class="fixed bottom-0 left-0 z-20 grid w-full grid-cols-6 border-t border-border bg-card/95 px-2 pb-5 pt-2 backdrop-blur-md">
+        <a data-fv-tab="Üretim" class="flex flex-col items-center gap-1 rounded-theme py-1.5 text-muted-foreground">
+          <iconify-icon icon="lucide:kanban" class="text-[19px]"></iconify-icon>
+          <span class="text-[10px] font-semibold">Üretim</span>
+        </a>
+        <a data-fv-tab="Stok" class="flex flex-col items-center gap-1 rounded-theme py-1.5 text-muted-foreground">
+          <iconify-icon icon="lucide:boxes" class="text-[19px]"></iconify-icon>
+          <span class="text-[10px] font-semibold">Stok</span>
+        </a>
+        <a data-fv-tab="Finans" class="flex flex-col items-center gap-1 rounded-theme py-1.5 text-muted-foreground">
+          <iconify-icon icon="lucide:wallet-minimal" class="text-[19px]"></iconify-icon>
+          <span class="text-[10px] font-semibold">Finans</span>
+        </a>
+        <a data-fv-tab="Laboratuvarlar" class="flex flex-col items-center gap-1 rounded-theme py-1.5 text-muted-foreground">
+          <iconify-icon icon="lucide:building-2" class="text-[19px]"></iconify-icon>
+          <span class="text-[10px] font-semibold">Laboratuvarlar</span>
+        </a>
+        <a data-fv-tab="Ekip" class="flex flex-col items-center gap-1 rounded-theme py-1.5 text-muted-foreground">
+          <iconify-icon icon="lucide:users-round" class="text-[19px]"></iconify-icon>
+          <span class="text-[10px] font-semibold">Ekip</span>
+        </a>
+        <a data-fv-tab="Doktorlar" data-fv-tab-active="true" class="flex flex-col items-center gap-1 rounded-theme bg-secondary py-1.5 text-primary">
+          <iconify-icon icon="lucide:stethoscope" class="text-[19px]"></iconify-icon>
+          <span class="text-[10px] font-bold">Doktorlar</span>
+        </a>
+      </nav>
+    </div>
+  </div>
+
+  <div id="statement-sheet" class="fixed inset-0 z-40 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkCloseStatement()"></div>
+    <div class="absolute bottom-0 left-0 w-full rounded-t-theme bg-card p-5 pb-8">
+      <p class="font-heading text-lg font-bold" id="statement-title">Ekstre Gönder</p>
+      <p class="mb-3 mt-1 text-xs font-semibold text-foreground">Format</p>
+      <div class="mb-4 grid grid-cols-2 gap-2">
+        <button data-format="pdf" class="statement-format-btn flex h-11 items-center justify-center gap-1.5 rounded-theme border-2 border-primary bg-primary/5 text-sm font-semibold text-primary">
+          <iconify-icon icon="lucide:file-text" class="text-base"></iconify-icon> PDF
+        </button>
+        <button data-format="excel" class="statement-format-btn flex h-11 items-center justify-center gap-1.5 rounded-theme border-2 border-border bg-card text-sm font-semibold text-muted-foreground">
+          <iconify-icon icon="lucide:sheet" class="text-base"></iconify-icon> Excel
+        </button>
+      </div>
+      <p id="statement-error" class="mb-2 hidden text-xs font-semibold text-destructive"></p>
+      <button id="statement-email-btn" class="flex h-12 w-full items-center justify-center gap-2 rounded-theme bg-primary text-sm font-semibold text-primary-foreground">
+        <iconify-icon icon="lucide:mail" class="text-base"></iconify-icon> E-posta ile Gönder
+      </button>
+    </div>
+  </div>
+
+  <div id="add-doctor-sheet" class="fixed inset-0 z-40 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkCloseAddDoctor()"></div>
+    <div class="absolute bottom-0 left-0 w-full rounded-t-theme bg-card p-5 pb-8">
+      <p class="font-heading text-lg font-bold">Doktor ekle</p>
+      <div class="mt-4 space-y-3">
+        <input id="nd-name" type="text" placeholder="Ad Soyad *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <input id="nd-clinic" type="text" placeholder="Klinik adı" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <input id="nd-phone" type="tel" placeholder="Telefon" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <input id="nd-email" type="email" placeholder="E-posta" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <select id="nd-lab" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+          <option value="">Sorumlu laboratuvar (opsiyonel)</option>
+        </select>
+      </div>
+      <p id="nd-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
+      <button onclick="zkSubmitAddDoctor()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      var els = document.querySelectorAll('iconify-icon');
+      for (var i = 0; i < els.length; i++) (function(el) {
+        var tries = 0;
+        (function check() {
+          var s = el.status;
+          if (s === 'failed') el.setAttribute('icon', 'lucide:circle');
+          else if (s !== 'rendered' && tries++ < 40) setTimeout(check, 250);
+        })();
+      })(els[i]);
+    })();
+  </script>
+
+  <!-- Doktor hesabı açma sheet -->
+  <div id="doctor-account-sheet" class="fixed inset-0 z-40 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkCloseDoctorAccount()"></div>
+    <div class="absolute bottom-0 left-0 w-full rounded-t-2xl bg-card p-5 pb-8">
+      <h2 id="da-title" class="font-heading text-lg font-bold">Doktor hesabı aç</h2>
+      <div id="da-form">
+        <p class="mt-1 text-xs text-muted-foreground">Doktor bu bilgilerle uygulamaya girip dijital çalışma formu ile sipariş gönderebilir.</p>
+        <div class="mt-4 space-y-3">
+          <input id="da-email" type="email" placeholder="E-posta *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+          <div class="flex gap-2">
+            <input id="da-password" type="text" placeholder="Şifre *" class="h-12 min-w-0 flex-1 rounded-theme border border-border bg-input px-3.5 text-sm">
+            <button type="button" onclick="document.getElementById('da-password').value = zkGenPassword()" class="flex h-12 w-12 items-center justify-center rounded-theme border border-border bg-background text-primary" aria-label="Şifre üret"><iconify-icon icon="lucide:refresh-cw" class="text-lg"></iconify-icon></button>
+          </div>
+        </div>
+        <p id="da-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
+        <button id="da-btn" onclick="zkSubmitDoctorAccount()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Hesabı Aç</button>
+      </div>
+      <div id="da-result" class="hidden">
+        <p class="mt-1 text-xs text-muted-foreground">Hesap oluşturuldu. Bu bilgileri doktora iletin — şifre yalnızca şimdi görünür.</p>
+        <div class="mt-4 rounded-theme border border-border bg-background p-4">
+          <p class="text-xs text-muted-foreground">E-posta</p>
+          <p id="da-cred-email" class="mt-0.5 text-sm font-bold"></p>
+          <p class="mt-3 text-xs text-muted-foreground">Şifre</p>
+          <p id="da-cred-pass" class="mt-0.5 font-mono text-sm font-bold"></p>
+        </div>
+        <button onclick="zkCloseDoctorAccount()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Tamam</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="zk-toast" style="position:fixed;left:50%;bottom:96px;transform:translate(-50%,16px);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;background:#17242C;color:#fff;font-family:'Source Sans 3',sans-serif;font-size:13px;font-weight:600;padding:10px 16px;border-radius:12px;z-index:9999;max-width:86%;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.18);"></div>
+  <script>
+    function zkToast(msg){
+      var el = document.getElementById('zk-toast');
+      if(!el) return;
+      el.textContent = msg;
+      el.style.opacity = '1';
+      el.style.transform = 'translate(-50%,0)';
+      clearTimeout(window.__zkToastTimer);
+      window.__zkToastTimer = setTimeout(function(){
+        el.style.opacity = '0';
+        el.style.transform = 'translate(-50%,16px)';
+      }, 2200);
+    }
+  </script>
+
+  <script>
+    (function() {
+      var routes = {"Üretim": "retim.html", "Stok": "stok.html", "Finans": "finans.html", "Laboratuvarlar": "laboratuvarlar.html", "Ekip": "ekip.html", "Doktorlar": "doktorlar.html"};
+      var bar = document.querySelector('[data-fv-tabbar]');
+      if (!bar) return;
+      bar.querySelectorAll('[data-fv-tab]').forEach(function(btn) {
+        var tab = btn.getAttribute('data-fv-tab');
+        var href = routes[tab];
+        if (!href) return;
+        if (btn.getAttribute('data-fv-tab-active') === 'true') return;
+        btn.style.cursor = 'pointer';
+        btn.addEventListener('click', function(e) {
+          e.preventDefault();
+          window.location.href = href;
+        });
+      });
+    })();
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script src="supabase-client.js"></script>
+  <script src="js/zk-picker.js"></script>
+  <script>
+    function escapeHtml(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+
+    function loadDoctors() {
+      ZirkonikData.listDoctors().then(function (r) {
+        if (r.error) { zkToast('Yüklenemedi: ' + r.error.message); return; }
+        var all = r.data || [];
+        var pending = all.filter(function (d) { return d.status === 'pending'; });
+        var approved = all.filter(function (d) { return d.status === 'approved'; });
+
+        document.getElementById('stat-total').textContent = all.length;
+        document.getElementById('stat-pending').textContent = pending.length;
+
+        var pEl = document.getElementById('pending-list');
+        pEl.innerHTML = pending.length ? pending.map(renderPendingCard).join('') :
+          '<p class="text-xs text-muted-foreground">Onay bekleyen doktor yok.</p>';
+
+        var aEl = document.getElementById('approved-list');
+        aEl.innerHTML = approved.length ? approved.map(renderApprovedRow).join('') :
+          '<p class="text-xs text-muted-foreground">Henüz onaylı doktor yok.</p>';
+      });
+    }
+
+    function renderPendingCard(d) {
+      return '<article class="rounded-theme border border-border bg-card p-4">' +
+        '<div class="flex items-start justify-between"><div class="flex items-start gap-3">' +
+        '<div class="flex h-10 w-10 items-center justify-center rounded-theme bg-secondary text-secondary-foreground"><iconify-icon icon="lucide:user-round" class="text-lg"></iconify-icon></div>' +
+        '<div><div class="flex items-center gap-2"><h3 class="font-heading text-sm font-bold">Dr. ' + escapeHtml(d.full_name) + '</h3>' +
+        '<span class="rounded-full bg-accent/10 px-2 py-1 text-[10px] font-bold text-accent">Onay bekliyor</span></div>' +
+        '<p class="mt-1 text-xs text-muted-foreground">' + escapeHtml(d.clinic_name || 'Klinik belirtilmedi') + (d.phone ? ' · ' + escapeHtml(d.phone) : '') + '</p></div></div></div>' +
+        '<div class="mt-3 grid grid-cols-2 gap-2">' +
+        '<button onclick="zkDecide(\'' + d.id + '\',\'approved\')" class="flex h-10 items-center justify-center gap-1.5 rounded-theme bg-primary text-xs font-bold text-primary-foreground"><iconify-icon icon="lucide:check" class="text-sm"></iconify-icon>Onayla</button>' +
+        '<button onclick="zkDecide(\'' + d.id + '\',\'rejected\')" class="flex h-10 items-center justify-center gap-1.5 rounded-theme border border-border bg-background text-xs font-bold text-destructive">Reddet</button>' +
+        '</div></article>';
+    }
+
+    function renderApprovedRow(d) {
+      var accountBtn = d.user_id
+        ? '<span class="flex h-8 w-8 items-center justify-center rounded-lg bg-success/10 text-success" title="Uygulama hesabı var"><iconify-icon icon="lucide:key-round" class="text-sm"></iconify-icon></span>'
+        : '<button onclick="zkOpenDoctorAccount(\'' + d.id + '\',\'' + escapeHtml(d.full_name).replace(/'/g, "\\'") + '\',\'' + escapeHtml(d.email || '') + '\')" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-accent" aria-label="Uygulama hesabı aç"><iconify-icon icon="lucide:key-round" class="text-sm"></iconify-icon></button>';
+      return '<div class="flex items-center gap-3 rounded-theme border border-border bg-card p-3">' +
+        '<div class="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground">' + escapeHtml((d.full_name || '?').charAt(0)) + '</div>' +
+        '<div class="min-w-0 flex-1"><p class="truncate text-sm font-bold">Dr. ' + escapeHtml(d.full_name) + '</p>' +
+        '<p class="truncate text-xs text-muted-foreground">' + escapeHtml(d.clinic_name || '—') + '</p></div>' +
+        accountBtn +
+        '<button onclick="zkOpenStatement(\'' + d.id + '\',\'' + escapeHtml(d.full_name).replace(/'/g, "\\'") + '\')" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-primary" aria-label="Ekstre gönder"><iconify-icon icon="lucide:send" class="text-sm"></iconify-icon></button>' +
+        '<span class="rounded-full bg-success/10 px-2 py-1 text-[10px] font-bold text-success">Onaylı</span></div>';
+    }
+
+    var daDoctorId = null;
+    function zkOpenDoctorAccount(id, name, email) {
+      daDoctorId = id;
+      document.getElementById('da-title').textContent = 'Dr. ' + name + ' için hesap aç';
+      document.getElementById('da-email').value = email || '';
+      document.getElementById('da-password').value = zkGenPassword();
+      document.getElementById('da-result').classList.add('hidden');
+      document.getElementById('da-form').classList.remove('hidden');
+      document.getElementById('doctor-account-sheet').classList.remove('hidden');
+    }
+    function zkCloseDoctorAccount() { document.getElementById('doctor-account-sheet').classList.add('hidden'); }
+    function zkGenPassword() {
+      var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+      var out = '';
+      var arr = new Uint32Array(10);
+      crypto.getRandomValues(arr);
+      for (var i = 0; i < 10; i++) out += chars[arr[i] % chars.length];
+      return out;
+    }
+    function zkSubmitDoctorAccount() {
+      var errEl = document.getElementById('da-error');
+      errEl.classList.add('hidden');
+      var email = document.getElementById('da-email').value.trim();
+      var password = document.getElementById('da-password').value;
+      if (!email || password.length < 6) {
+        errEl.textContent = 'Geçerli bir e-posta ve en az 6 karakterli şifre gerekli.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+      var btn = document.getElementById('da-btn');
+      btn.disabled = true;
+      ZirkonikData.createDoctorAccount({ doctor_id: daDoctorId, email: email, password: password }).then(function (res) {
+        btn.disabled = false;
+        var err = res.error || (res.data && res.data.error);
+        if (err) {
+          errEl.textContent = 'Hesap açılamadı: ' + (err.message || err);
+          errEl.classList.remove('hidden');
+          return;
+        }
+        document.getElementById('da-form').classList.add('hidden');
+        document.getElementById('da-cred-email').textContent = email;
+        document.getElementById('da-cred-pass').textContent = password;
+        document.getElementById('da-result').classList.remove('hidden');
+        loadDoctors();
+      });
+    }
+
+    function zkDecide(id, verdict) {
+      var action = verdict === 'approved' ? ZirkonikData.approveDoctor(id) : ZirkonikData.rejectDoctor(id);
+      action.then(function (r) {
+        if (r.error) { zkToast('İşlem başarısız: ' + r.error.message); return; }
+        zkToast(verdict === 'approved' ? 'Doktor onaylandı.' : 'Doktor reddedildi.');
+        loadDoctors();
+      });
+    }
+
+    function zkOpenAddDoctor() { document.getElementById('add-doctor-sheet').classList.remove('hidden'); }
+    function zkCloseAddDoctor() { document.getElementById('add-doctor-sheet').classList.add('hidden'); }
+
+    function zkSubmitAddDoctor() {
+      var errEl = document.getElementById('nd-error');
+      errEl.classList.add('hidden');
+      var name = document.getElementById('nd-name').value.trim();
+      if (!name) {
+        errEl.textContent = 'Ad Soyad zorunludur.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+      ZirkonikAuth.me().then(function (me) {
+        return ZirkonikData.createDoctor({
+          organization_id: me.organization_id,
+          full_name: name,
+          clinic_name: document.getElementById('nd-clinic').value.trim() || null,
+          phone: document.getElementById('nd-phone').value.trim() || null,
+          email: document.getElementById('nd-email').value.trim() || null,
+          primary_laboratory_id: document.getElementById('nd-lab').value || null
+        });
+      }).then(function (res) {
+        if (res.error) throw res.error;
+        zkCloseAddDoctor();
+        zkToast('Doktor eklendi, onay kuyruğunda.');
+        document.getElementById('nd-name').value = '';
+        document.getElementById('nd-clinic').value = '';
+        document.getElementById('nd-phone').value = '';
+        document.getElementById('nd-email').value = '';
+        loadDoctors();
+      }).catch(function (err) {
+        errEl.textContent = 'Kaydedilemedi: ' + err.message;
+        errEl.classList.remove('hidden');
+      });
+    }
+
+    ZirkonikAuth.requireAuth().then(function (session) {
+      if (!session) return;
+      loadDoctors();
+      ZirkonikAuth.client().from('laboratories').select('id, name').order('name').then(function (r) {
+        var sel = document.getElementById('nd-lab');
+        (r.data || []).forEach(function (l) {
+          var opt = document.createElement('option');
+          opt.value = l.id; opt.textContent = l.name;
+          sel.appendChild(opt);
+        });
+      });
+    });
+
+    // ---- Ekstre / Rapor Gönder ----
+    var TL = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 2 });
+    var selectedFormat = 'pdf';
+    var statementDoctorId = null;
+    var statementDoctorName = '';
+
+    document.querySelectorAll('.statement-format-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        selectedFormat = btn.getAttribute('data-format');
+        document.querySelectorAll('.statement-format-btn').forEach(function (b) {
+          var active = b === btn;
+          b.className = 'statement-format-btn flex h-11 items-center justify-center gap-1.5 rounded-theme border-2 text-sm font-semibold ' +
+            (active ? 'border-primary bg-primary/5 text-primary' : 'border-border bg-card text-muted-foreground');
+        });
+      });
+    });
+
+    function zkOpenStatement(doctorId, doctorName) {
+      statementDoctorId = doctorId;
+      statementDoctorName = doctorName;
+      document.getElementById('statement-title').textContent = 'Dr. ' + doctorName + ' — Ekstre Gönder';
+      document.getElementById('statement-error').classList.add('hidden');
+      document.getElementById('statement-sheet').classList.remove('hidden');
+    }
+    function zkCloseStatement() { document.getElementById('statement-sheet').classList.add('hidden'); }
+
+    function csvSafe(v) {
+      var s = String(v == null ? '' : v).replace(/,/g, ' ');
+      return /^[=+\-@]/.test(s) ? "'" + s : s;
+    }
+
+    function buildStatementCsv(name, invoices, payments) {
+      var header = 'Tür,Tarih,Açıklama,Tutar\n';
+      var invRows = invoices.map(function (inv) {
+        var title = inv.jobs ? (inv.jobs.job_number + ' - ' + (inv.jobs.restoration_type || '')) : 'İş kaydı';
+        return ['Fatura', (inv.issued_at || '').slice(0, 10), csvSafe(title), inv.amount].join(',');
+      }).join('\n');
+      var payRows = payments.map(function (p) {
+        return ['Tahsilat', (p.received_at || '').slice(0, 10), csvSafe(p.method || 'Tahsilat'), p.amount].join(',');
+      }).join('\n');
+      var blob = new Blob([header + invRows + (invRows && payRows ? '\n' : '') + payRows], { type: 'text/csv;charset=utf-8;' });
+      return { blob: blob, filename: name.replace(/[^a-zA-Z0-9-_]+/g, '-') + '-ekstre.csv' };
+    }
+
+    function buildStatementPdf(name, invoices, payments) {
+      var jsPDFCtor = window.jspdf.jsPDF;
+      var doc = new jsPDFCtor();
+      doc.setFontSize(14);
+      doc.text('Dr. ' + name + ' — Cari Hesap Ekstresi', 14, 16);
+      doc.setFontSize(9);
+      doc.setTextColor(120);
+      doc.text('Oluşturulma tarihi: ' + new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }), 14, 22);
+
+      var rows = invoices.map(function (inv) {
+        var title = inv.jobs ? (inv.jobs.job_number + ' — ' + (inv.jobs.restoration_type || '')) : 'İş kaydı';
+        return [(inv.issued_at || '').slice(0, 10), 'Fatura', title, '-' + TL.format(inv.amount)];
+      }).concat(payments.map(function (p) {
+        return [(p.received_at || '').slice(0, 10), 'Tahsilat', p.method || '', '+' + TL.format(p.amount)];
+      }));
+
+      doc.autoTable({
+        startY: 28,
+        head: [['Tarih', 'Tür', 'Açıklama', 'Tutar']],
+        body: rows.length ? rows : [['—', '—', 'Kayıt yok', '—']],
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [18, 59, 74] },
+      });
+
+      var blob = doc.output('blob');
+      return { blob: blob, filename: name.replace(/[^a-zA-Z0-9-_]+/g, '-') + '-ekstre.pdf' };
+    }
+
+    function blobToBase64(blob) {
+      return new Promise(function (resolve, reject) {
+        var reader = new FileReader();
+        reader.onloadend = function () {
+          var result = reader.result;
+          resolve(result.substring(result.indexOf(',') + 1));
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    document.getElementById('statement-email-btn').addEventListener('click', function () {
+      var errEl = document.getElementById('statement-error');
+      errEl.classList.add('hidden');
+      var btn = this;
+      var client = ZirkonikAuth.client();
+
+      Promise.all([
+        client.from('invoices').select('amount, issued_at, jobs(job_number, restoration_type)').eq('doctor_id', statementDoctorId).order('issued_at'),
+        client.from('payments').select('amount, method, received_at').eq('doctor_id', statementDoctorId).order('received_at'),
+        client.from('doctors').select('email').eq('id', statementDoctorId).single()
+      ]).then(function (results) {
+        var invoices = results[0].data || [];
+        var payments = results[1].data || [];
+        var doctor = results[2].data;
+
+        if (!doctor || !doctor.email) {
+          throw new Error('Bu doktorun e-posta adresi kayıtlı değil. Doktor kaydını düzenleyip e-posta ekleyin.');
+        }
+
+        var file = selectedFormat === 'pdf' ? buildStatementPdf(statementDoctorName, invoices, payments) : buildStatementCsv(statementDoctorName, invoices, payments);
+        btn.disabled = true;
+        var originalHtml = btn.innerHTML;
+        btn.innerHTML = '<iconify-icon icon="lucide:loader-2" class="text-sm animate-spin"></iconify-icon> Gönderiliyor...';
+
+        return blobToBase64(file.blob).then(function (base64) {
+          return client.functions.invoke('send-doctor-statement', {
+            body: { doctor_id: statementDoctorId, attachment_base64: base64, attachment_filename: file.filename }
+          });
+        }).then(function (res) {
+          if (res.error) throw res.error;
+          if (res.data && res.data.error) throw new Error(res.data.error);
+          zkCloseStatement();
+          zkToast('Ekstre ' + doctor.email + ' adresine gönderildi.');
+        }).finally(function () {
+          btn.disabled = false;
+          btn.innerHTML = originalHtml;
+        });
+      }).catch(function (err) {
+        errEl.textContent = 'Gönderilemedi: ' + err.message;
+        errEl.classList.remove('hidden');
+        btn.disabled = false;
+        btn.innerHTML = '<iconify-icon icon="lucide:mail" class="text-base"></iconify-icon> E-posta ile Gönder';
+      });
+    });
+  </script>
+
+</body>
+</html>

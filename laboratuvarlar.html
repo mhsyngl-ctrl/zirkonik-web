@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <title>Laboratuvarlar — Zirkonik</title>
+
+  <link rel="stylesheet" href="css/tailwind.css">
+  <link rel="stylesheet" href="css/ipad.css">
+  <link rel="stylesheet" href="css/zk-utils.css">
+  <script src="https://code.iconify.design/iconify-icon/2.3.0/iconify-icon.min.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@100;200;300;400;500;600;700;800;900&family=Source+Sans+3:wght@100;200;300;400;500;600;700;800;900&display=swap">
+
+  <style>
+  :root {
+    --color-background: #F4F6F7;
+    --color-foreground: #17242C;
+    --color-primary: #123B4A;
+    --color-primary-foreground: #FFFFFF;
+    --color-secondary: #DCE8E8;
+    --color-secondary-foreground: #17333D;
+    --color-accent: #A14F22;
+    --color-accent-foreground: #FFFFFF;
+    --color-muted: #E7ECEE;
+    --color-muted-foreground: #5C6B73;
+    --color-card: #FFFFFF;
+    --color-card-foreground: #17242C;
+    --color-border: #CBD6D9;
+    --color-input: #FFFFFF;
+    --color-destructive: #B3262D;
+    --color-destructive-foreground: #FFFFFF;
+    --color-success: #176B5B;
+    --color-success-foreground: #FFFFFF;
+    --font-heading: 'Manrope', sans-serif;
+    --font-body: 'Source Sans 3', sans-serif;
+    --radius: 12px;
+  }
+  html { overflow-x: hidden; }
+  body { font-family: var(--font-body); -webkit-font-smoothing: antialiased; margin: 0; padding: 0; overflow-x: hidden; overscroll-behavior-x: none; }
+  </style>
+</head>
+<body class="bg-background text-foreground m-0 p-0">
+  <div class="h-screen w-screen overflow-y-auto">
+    <div class="min-h-screen w-full bg-background text-foreground font-body pb-32">
+      <header class="bg-primary px-5 pb-6 pt-12 text-primary-foreground" style="padding-top:max(3rem,calc(env(safe-area-inset-top) + 12px));">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.16em] text-white/55">Operasyon ağı</p>
+            <h1 class="mt-1 font-heading text-2xl font-bold tracking-tight">Laboratuvarlar</h1>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <section class="px-5 pt-6">
+          <div class="flex items-end justify-between">
+            <div>
+              <h2 class="font-heading text-lg font-bold">Laboratuvar ağı</h2>
+              <p class="mt-0.5 text-xs text-muted-foreground">Üretim noktalarını tek görünümden yönetin</p>
+            </div>
+            <button onclick="zkOpenAddLab()" class="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground">
+              <iconify-icon icon="lucide:plus" class="text-sm"></iconify-icon>
+              Laboratuvar ekle
+            </button>
+          </div>
+
+          <div id="labs-list" class="mt-4 space-y-3">
+            <p class="text-xs text-muted-foreground">Yükleniyor…</p>
+          </div>
+        </section>
+
+        <section id="rooms-section" class="px-5 pt-6"></section>
+      </main>
+
+      <nav data-fv-tabbar class="fixed bottom-0 left-0 z-30 flex h-[72px] w-full items-center justify-around border-t border-border bg-card px-1">
+        <button data-fv-tab="Üretim" class="flex min-w-[50px] flex-col items-center gap-1 px-1.5 py-1.5 text-muted-foreground">
+          <iconify-icon icon="lucide:columns-3" class="text-xl"></iconify-icon>
+          <span class="text-[9px] font-semibold">Üretim</span>
+        </button>
+        <button data-fv-tab="Stok" class="flex min-w-[45px] flex-col items-center gap-1 px-1.5 py-1.5 text-muted-foreground">
+          <iconify-icon icon="lucide:boxes" class="text-xl"></iconify-icon>
+          <span class="text-[9px] font-semibold">Stok</span>
+        </button>
+        <button data-fv-tab="Finans" class="flex min-w-[48px] flex-col items-center gap-1 px-1.5 py-1.5 text-muted-foreground">
+          <iconify-icon icon="lucide:chart-no-axes-combined" class="text-xl"></iconify-icon>
+          <span class="text-[9px] font-semibold">Finans</span>
+        </button>
+        <button data-fv-tab="Laboratuvarlar" data-fv-tab-active="true" class="flex min-w-[68px] flex-col items-center gap-1 rounded-theme bg-secondary px-1 py-1.5 text-primary">
+          <iconify-icon icon="lucide:building-2" class="text-xl"></iconify-icon>
+          <span class="text-[9px] font-bold">Laboratuvarlar</span>
+        </button>
+        <button data-fv-tab="Ekip" class="flex min-w-[48px] flex-col items-center gap-1 px-1.5 py-1.5 text-muted-foreground">
+          <iconify-icon icon="lucide:users-round" class="text-xl"></iconify-icon>
+          <span class="text-[9px] font-semibold">Ekip</span>
+        </button>
+        <button data-fv-tab="Doktorlar" class="flex min-w-[55px] flex-col items-center gap-1 px-1.5 py-1.5 text-muted-foreground">
+          <iconify-icon icon="lucide:stethoscope" class="text-xl"></iconify-icon>
+          <span class="text-[9px] font-semibold">Doktorlar</span>
+        </button>
+      </nav>
+    </div>
+  </div>
+
+  <div id="add-lab-sheet" class="fixed inset-0 z-40 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkCloseAddLab()"></div>
+    <div class="absolute bottom-0 left-0 w-full rounded-t-theme bg-card p-5 pb-8">
+      <p class="font-heading text-lg font-bold">Laboratuvar ekle</p>
+      <div class="mt-4 space-y-3">
+        <input id="nl-name" type="text" placeholder="Laboratuvar adı *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <input id="nl-city" type="text" placeholder="Şehir" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <input id="nl-address" type="text" placeholder="Adres" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+      </div>
+      <p id="nl-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
+      <button onclick="zkSubmitAddLab()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
+    </div>
+  </div>
+
+  <div id="add-room-sheet" class="fixed inset-0 z-40 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkCloseAddRoom()"></div>
+    <div class="absolute bottom-0 left-0 w-full rounded-t-theme bg-card p-5 pb-8">
+      <p class="font-heading text-lg font-bold">Oda ekle</p>
+      <div class="mt-4 space-y-3">
+        <input id="nr-name" type="text" placeholder="Oda adı * (Örn. Tasarım, Freze)" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <label class="flex items-center gap-2 text-xs font-semibold"><input id="nr-qc" type="checkbox"> Kalite kontrol aşaması</label>
+        <label class="flex items-center gap-2 text-xs font-semibold"><input id="nr-delivery" type="checkbox"> Teslimat aşaması</label>
+      </div>
+      <p id="nr-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
+      <button onclick="zkSubmitAddRoom()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
+    </div>
+  </div>
+
+  <div id="edit-room-sheet" class="fixed inset-0 z-40 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkCloseEditRoom()"></div>
+    <div class="absolute bottom-0 left-0 w-full rounded-t-theme bg-card p-5 pb-8">
+      <p class="font-heading text-lg font-bold">Odayı düzenle</p>
+      <div class="mt-4 space-y-3">
+        <input id="er-name" type="text" placeholder="Oda adı *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <label class="flex items-center gap-2 text-xs font-semibold"><input id="er-qc" type="checkbox"> Kalite kontrol aşaması</label>
+        <label class="flex items-center gap-2 text-xs font-semibold"><input id="er-delivery" type="checkbox"> Teslimat aşaması</label>
+      </div>
+      <p id="er-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
+      <button onclick="zkSubmitEditRoom()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      var els = document.querySelectorAll('iconify-icon');
+      for (var i = 0; i < els.length; i++) (function(el) {
+        var tries = 0;
+        (function check() {
+          var s = el.status;
+          if (s === 'failed') el.setAttribute('icon', 'lucide:circle');
+          else if (s !== 'rendered' && tries++ < 40) setTimeout(check, 250);
+        })();
+      })(els[i]);
+    })();
+  </script>
+
+  <div id="zk-toast" style="position:fixed;left:50%;bottom:96px;transform:translate(-50%,16px);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;background:#17242C;color:#fff;font-family:'Source Sans 3',sans-serif;font-size:13px;font-weight:600;padding:10px 16px;border-radius:12px;z-index:9999;max-width:86%;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.18);"></div>
+  <script>
+    function zkToast(msg){
+      var el = document.getElementById('zk-toast');
+      if(!el) return;
+      el.textContent = msg;
+      el.style.opacity = '1';
+      el.style.transform = 'translate(-50%,0)';
+      clearTimeout(window.__zkToastTimer);
+      window.__zkToastTimer = setTimeout(function(){
+        el.style.opacity = '0';
+        el.style.transform = 'translate(-50%,16px)';
+      }, 2200);
+    }
+  </script>
+
+  <script>
+    (function() {
+      var routes = {"Üretim": "retim.html", "Stok": "stok.html", "Finans": "finans.html", "Laboratuvarlar": "laboratuvarlar.html", "Ekip": "ekip.html", "Doktorlar": "doktorlar.html"};
+      var bar = document.querySelector('[data-fv-tabbar]');
+      if (!bar) return;
+      bar.querySelectorAll('[data-fv-tab]').forEach(function(btn) {
+        var tab = btn.getAttribute('data-fv-tab');
+        var href = routes[tab];
+        if (!href) return;
+        if (btn.getAttribute('data-fv-tab-active') === 'true') return;
+        btn.style.cursor = 'pointer';
+        btn.addEventListener('click', function(e) {
+          e.preventDefault();
+          window.location.href = href;
+        });
+      });
+    })();
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script src="supabase-client.js"></script>
+  <script src="js/zk-picker.js"></script>
+  <script>
+    function escapeHtml(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+
+    var activeLabForRoom = null;
+    var allLabsForRoom = [];
+
+    function loadLabs() {
+      var client = ZirkonikAuth.client();
+      ZirkonikData.listLabs().then(function (r) {
+        if (r.error) { zkToast('Yüklenemedi: ' + r.error.message); return; }
+        var labs = r.data || [];
+        allLabsForRoom = labs;
+        if (!labs.length) {
+          document.getElementById('labs-list').innerHTML = '<p class="text-xs text-muted-foreground">Henüz laboratuvar yok. Yukarıdan ekleyin.</p>';
+          document.getElementById('rooms-section').innerHTML = '';
+          return;
+        }
+        Promise.all(labs.map(function (lab) {
+          return Promise.all([
+            client.from('rooms').select('id', { count: 'exact', head: true }).eq('laboratory_id', lab.id),
+            client.from('jobs').select('id', { count: 'exact', head: true }).eq('laboratory_id', lab.id).eq('status', 'active')
+          ]).then(function (res) {
+            return { lab: lab, roomCount: res[0].count || 0, activeJobs: res[1].count || 0 };
+          });
+        })).then(function (rows) {
+          document.getElementById('labs-list').innerHTML = rows.map(renderLabCard).join('');
+          var current = (activeLabForRoom && labs.filter(function (l) { return l.id === activeLabForRoom.id; })[0]) || labs[0];
+          loadRooms(current);
+        });
+      });
+    }
+
+    document.getElementById('rooms-section').addEventListener('change', function (e) {
+      if (!e.target || e.target.id !== 'room-lab-switch') return;
+      var labId = e.target.value;
+      var lab = null;
+      for (var i = 0; i < allLabsForRoom.length; i++) { if (allLabsForRoom[i].id === labId) { lab = allLabsForRoom[i]; break; } }
+      if (lab) loadRooms(lab);
+    });
+
+    function renderLabCard(row) {
+      var l = row.lab;
+      var badgeClass = l.is_active ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground';
+      return '<article class="rounded-theme border border-border bg-card p-4">' +
+        '<div class="flex items-start justify-between gap-3"><div>' +
+        '<h3 class="font-heading text-base font-bold">' + escapeHtml(l.name) + '</h3>' +
+        '<p class="mt-1 text-xs text-muted-foreground">' + escapeHtml(l.city || 'Şehir belirtilmedi') + '</p></div>' +
+        '<span class="rounded-full ' + badgeClass + ' px-2.5 py-1 text-[10px] font-bold">' + (l.is_active ? 'Aktif' : 'Pasif') + '</span></div>' +
+        '<div class="mt-4 grid grid-cols-2 border-y border-border py-3">' +
+        '<div><p class="font-heading text-lg font-bold tabular-nums">' + row.activeJobs + '</p><p class="text-[10px] text-muted-foreground">Aktif iş</p></div>' +
+        '<div><p class="font-heading text-lg font-bold tabular-nums">' + row.roomCount + '</p><p class="text-[10px] text-muted-foreground">Oda</p></div>' +
+        '</div></article>';
+    }
+
+    var currentRooms = [];
+
+    function loadRooms(lab) {
+      activeLabForRoom = lab;
+      var client = ZirkonikAuth.client();
+      client.from('rooms').select('id, name, sort_order, is_quality_control, is_delivery').eq('laboratory_id', lab.id).order('sort_order').then(function (roomsRes) {
+        var rooms = roomsRes.data || [];
+        currentRooms = rooms;
+        client.from('jobs').select('current_room_id').eq('status', 'active').eq('laboratory_id', lab.id).then(function (jobsRes) {
+          var counts = {};
+          (jobsRes.data || []).forEach(function (j) { if (j.current_room_id) counts[j.current_room_id] = (counts[j.current_room_id] || 0) + 1; });
+          var labSwitchHtml = '';
+          if (allLabsForRoom.length > 1) {
+            labSwitchHtml = '<select id="room-lab-switch" aria-label="Laboratuvar seç" class="mt-3 h-11 w-full rounded-theme border border-border bg-input px-3.5 text-sm">' +
+              allLabsForRoom.map(function (l) { return '<option value="' + l.id + '"' + (l.id === lab.id ? ' selected' : '') + '>' + escapeHtml(l.name) + '</option>'; }).join('') +
+              '</select>';
+          }
+          var html = labSwitchHtml + '<div class="mt-3 flex items-end justify-between"><div>' +
+            '<h2 class="font-heading text-lg font-bold">' + escapeHtml(lab.name) + ' odaları</h2>' +
+            '<p class="mt-0.5 text-xs text-muted-foreground">Üretim akışı sırasına göre</p></div>' +
+            '<button onclick="zkOpenAddRoom()" class="text-xs font-bold text-primary">Oda ekle</button></div>';
+          if (!rooms.length) {
+            html += '<p class="mt-3 text-xs text-muted-foreground">Bu laboratuvarda henüz oda tanımlanmamış.</p>';
+          } else {
+            html += '<div class="mt-3 grid grid-cols-2 gap-2.5">' + rooms.map(function (r) {
+              return '<button onclick="zkOpenEditRoom(\'' + r.id + '\')" class="rounded-theme border border-border bg-card p-3 text-left">' +
+                '<p class="font-heading text-sm font-bold">' + escapeHtml(r.name) + '</p>' +
+                '<p class="mt-1 text-[11px] text-muted-foreground">' + (counts[r.id] || 0) + ' aktif iş</p></button>';
+            }).join('') + '</div>';
+          }
+          document.getElementById('rooms-section').innerHTML = html;
+        });
+      });
+    }
+
+    function zkOpenAddLab() { document.getElementById('add-lab-sheet').classList.remove('hidden'); }
+    function zkCloseAddLab() { document.getElementById('add-lab-sheet').classList.add('hidden'); }
+
+    function zkSubmitAddLab() {
+      var errEl = document.getElementById('nl-error');
+      errEl.classList.add('hidden');
+      var name = document.getElementById('nl-name').value.trim();
+      if (!name) { errEl.textContent = 'Laboratuvar adı zorunludur.'; errEl.classList.remove('hidden'); return; }
+      ZirkonikAuth.me().then(function (me) {
+        return ZirkonikData.createLab(me.organization_id, name, document.getElementById('nl-city').value.trim() || null, document.getElementById('nl-address').value.trim() || null);
+      }).then(function (res) {
+          if (res.error) throw res.error;
+          zkCloseAddLab();
+          document.getElementById('nl-name').value = ''; document.getElementById('nl-city').value = ''; document.getElementById('nl-address').value = '';
+          zkToast('Laboratuvar eklendi.');
+          loadLabs();
+        }).catch(function (err) {
+          errEl.textContent = err.message.indexOf('Standart pakette') >= 0 ? err.message : 'Eklenemedi: ' + err.message;
+          errEl.classList.remove('hidden');
+        });
+    }
+
+    function zkOpenAddRoom() {
+      if (!activeLabForRoom) { zkToast('Önce bir laboratuvar ekleyin.'); return; }
+      document.getElementById('add-room-sheet').classList.remove('hidden');
+    }
+    function zkCloseAddRoom() { document.getElementById('add-room-sheet').classList.add('hidden'); }
+
+    function zkSubmitAddRoom() {
+      var errEl = document.getElementById('nr-error');
+      errEl.classList.add('hidden');
+      var name = document.getElementById('nr-name').value.trim();
+      if (!name) { errEl.textContent = 'Oda adı zorunludur.'; errEl.classList.remove('hidden'); return; }
+      var client = ZirkonikAuth.client();
+      client.from('rooms').select('id', { count: 'exact', head: true }).eq('laboratory_id', activeLabForRoom.id).then(function (r) {
+        var nextOrder = (r.count || 0) + 1;
+        return ZirkonikData.createRoom(activeLabForRoom.id, name, nextOrder, {
+          isQualityControl: document.getElementById('nr-qc').checked,
+          isDelivery: document.getElementById('nr-delivery').checked
+        });
+      }).then(function (res) {
+        if (res.error) throw res.error;
+        zkCloseAddRoom();
+        document.getElementById('nr-name').value = '';
+        document.getElementById('nr-qc').checked = false;
+        document.getElementById('nr-delivery').checked = false;
+        zkToast('Oda eklendi.');
+        loadRooms(activeLabForRoom);
+      }).catch(function (err) {
+        errEl.textContent = 'Eklenemedi: ' + err.message;
+        errEl.classList.remove('hidden');
+      });
+    }
+
+    var editingRoomId = null;
+
+    function zkOpenEditRoom(roomId) {
+      var room = null;
+      for (var i = 0; i < currentRooms.length; i++) { if (currentRooms[i].id === roomId) { room = currentRooms[i]; break; } }
+      if (!room) return;
+      editingRoomId = roomId;
+      document.getElementById('er-name').value = room.name;
+      document.getElementById('er-qc').checked = !!room.is_quality_control;
+      document.getElementById('er-delivery').checked = !!room.is_delivery;
+      document.getElementById('er-error').classList.add('hidden');
+      document.getElementById('edit-room-sheet').classList.remove('hidden');
+    }
+    function zkCloseEditRoom() { document.getElementById('edit-room-sheet').classList.add('hidden'); }
+
+    function zkSubmitEditRoom() {
+      var errEl = document.getElementById('er-error');
+      errEl.classList.add('hidden');
+      var name = document.getElementById('er-name').value.trim();
+      if (!name) { errEl.textContent = 'Oda adı zorunludur.'; errEl.classList.remove('hidden'); return; }
+      ZirkonikData.updateRoom(editingRoomId, {
+        name: name,
+        is_quality_control: document.getElementById('er-qc').checked,
+        is_delivery: document.getElementById('er-delivery').checked
+      }).then(function (res) {
+        if (res.error) throw res.error;
+        zkCloseEditRoom();
+        zkToast('Oda güncellendi.');
+        loadRooms(activeLabForRoom);
+      }).catch(function (err) {
+        errEl.textContent = 'Güncellenemedi: ' + err.message;
+        errEl.classList.remove('hidden');
+      });
+    }
+
+    ZirkonikAuth.requireAuth().then(function (session) {
+      if (!session) return;
+      loadLabs();
+    });
+  </script>
+
+</body>
+</html>

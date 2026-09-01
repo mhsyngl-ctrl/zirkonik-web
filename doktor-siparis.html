@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <title>Sipariş — Zirkonik</title>
+
+  <link rel="stylesheet" href="css/tailwind.css">
+  <link rel="stylesheet" href="css/ipad.css">
+  <link rel="stylesheet" href="css/zk-utils.css">
+  <script src="https://code.iconify.design/iconify-icon/2.3.0/iconify-icon.min.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@100;200;300;400;500;600;700;800;900&family=Source+Sans+3:wght@100;200;300;400;500;600;700;800;900&display=swap">
+
+  <style>
+  :root {
+    --color-background: #F4F6F7;
+    --color-foreground: #17242C;
+    --color-primary: #123B4A;
+    --color-primary-foreground: #FFFFFF;
+    --color-secondary: #DCE8E8;
+    --color-secondary-foreground: #17333D;
+    --color-accent: #A14F22;
+    --color-accent-foreground: #FFFFFF;
+    --color-muted: #E7ECEE;
+    --color-muted-foreground: #5C6B73;
+    --color-card: #FFFFFF;
+    --color-card-foreground: #17242C;
+    --color-border: #CBD6D9;
+    --color-input: #FFFFFF;
+    --color-destructive: #B3262D;
+    --color-destructive-foreground: #FFFFFF;
+    --color-success: #176B5B;
+    --color-success-foreground: #FFFFFF;
+    --font-heading: 'Manrope', sans-serif;
+    --font-body: 'Source Sans 3', sans-serif;
+    --radius: 12px;
+  }
+  html { overflow-x: hidden; }
+  body { font-family: var(--font-body); -webkit-font-smoothing: antialiased; margin: 0; padding: 0; overflow-x: hidden; overscroll-behavior-x: none; }
+  select { appearance: none; -webkit-appearance: none; background-image: none; }
+  </style>
+</head>
+<body class="bg-background text-foreground m-0 p-0">
+  <div class="h-screen w-screen overflow-y-auto">
+    <div class="min-h-screen w-full bg-background text-foreground font-body pb-32">
+      <header class="border-b border-border bg-card px-5 pb-5 pt-12" style="padding-top:max(3rem,calc(env(safe-area-inset-top) + 12px));">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="flex h-10 w-10 items-center justify-center rounded-theme bg-primary text-primary-foreground">
+              <iconify-icon icon="lucide:activity" class="text-xl"></iconify-icon>
+            </div>
+            <div>
+              <p class="font-heading text-[17px] font-extrabold tracking-tight text-primary">Zirkonik</p>
+              <p id="hdr-doctor" class="mt-0.5 text-[11px] font-medium text-muted-foreground">Doktor paneli</p>
+            </div>
+          </div>
+          <button onclick="ZirkonikAuth.signOut()" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-background text-primary" aria-label="Çıkış">
+            <iconify-icon icon="lucide:log-out" class="text-xl"></iconify-icon>
+          </button>
+        </div>
+
+        <div class="mt-5 grid grid-cols-3 gap-2 rounded-theme border border-border bg-background p-1">
+          <button id="tab-new" onclick="zkSetTab('new')" class="flex h-10 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground">Yeni Sipariş</button>
+          <button id="tab-list" onclick="zkSetTab('list')" class="flex h-10 items-center justify-center rounded-lg text-xs font-bold text-muted-foreground">Siparişlerim</button>
+          <button id="tab-prices" onclick="zkSetTab('prices')" class="flex h-10 items-center justify-center rounded-lg text-xs font-bold text-muted-foreground">Anlaşmalı Fiyatlar</button>
+        </div>
+      </header>
+
+      <main class="px-5 pt-5">
+        <div id="no-doctor" class="hidden rounded-theme border border-border bg-card p-5 text-center">
+          <p class="text-sm font-semibold">Hesabınız bir doktor kaydına bağlı değil.</p>
+          <p class="mt-1 text-xs text-muted-foreground">Lütfen laboratuvarınızla iletişime geçin.</p>
+        </div>
+
+        <!-- Yeni sipariş -->
+        <section id="panel-new" class="hidden">
+          <label class="block">
+            <span class="mb-1.5 block text-xs font-bold">Çalışma türü *</span>
+            <select id="o-type" class="flex h-12 w-full items-center rounded-theme border border-border bg-input px-3.5 text-sm">
+              <option value="">Seçin</option>
+            </select>
+          </label>
+
+          <div class="mt-4" id="wf-container"></div>
+
+          <label class="mt-3 block">
+            <span class="mb-1.5 block text-xs font-bold">Diş sayısı *</span>
+            <input id="o-count" type="number" min="1" step="1" value="1" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+          </label>
+
+          <label class="mt-3 block">
+            <span class="mb-1.5 block text-xs font-bold">Hasta referansı / not</span>
+            <input id="o-note" type="text" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="Örn. Hasta A. Y. — üst çene">
+          </label>
+
+          <p id="o-error" class="mt-3 hidden text-xs font-semibold text-destructive"></p>
+        </section>
+
+        <!-- Siparişlerim -->
+        <section id="panel-list" class="hidden">
+          <div id="orders-list" class="space-y-3"></div>
+        </section>
+
+        <!-- Anlaşmalı fiyatlar -->
+        <section id="panel-prices" class="hidden">
+          <p class="mb-3 text-xs text-muted-foreground">Laboratuvar ile anlaştığınız güncel birim fiyatlar. Sipariş tutarınız bu fiyatlar üzerinden faturalandırılır.</p>
+          <div id="prices-list"></div>
+        </section>
+      </main>
+
+      <div id="submit-bar" class="fixed bottom-0 left-0 z-30 hidden w-full border-t border-border bg-card/95 px-5 pb-6 pt-3 backdrop-blur-md">
+        <button id="o-submit" class="flex h-12 w-full items-center justify-center gap-2 rounded-theme bg-primary font-heading text-sm font-bold text-primary-foreground shadow-lg">
+          <iconify-icon icon="lucide:send" class="text-lg"></iconify-icon>
+          Siparişi Gönder
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="zk-toast" style="position:fixed;left:50%;bottom:96px;transform:translate(-50%,16px);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;background:#17242C;color:#fff;font-family:'Source Sans 3',sans-serif;font-size:13px;font-weight:600;padding:10px 16px;border-radius:12px;z-index:9999;max-width:86%;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.18);"></div>
+  <script>
+    function zkToast(msg){
+      var el = document.getElementById('zk-toast');
+      if(!el) return;
+      el.textContent = msg;
+      el.style.opacity = '1';
+      el.style.transform = 'translate(-50%,0)';
+      clearTimeout(window.__zkToastTimer);
+      window.__zkToastTimer = setTimeout(function(){
+        el.style.opacity = '0';
+        el.style.transform = 'translate(-50%,16px)';
+      }, 2200);
+    }
+    function escapeHtml(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script src="supabase-client.js"></script>
+  <script src="js/zk-picker.js"></script>
+  <script src="js/work-form.js"></script>
+  <script>
+    var doctor = null;
+    var priceItems = [];
+
+    ZkWorkForm.render(document.getElementById('wf-container'));
+    ZkWorkForm.onTeethChange = function (teeth) {
+      if (teeth.length) document.getElementById('o-count').value = teeth.length;
+    };
+
+    function zkSetTab(tab) {
+      var isNew = tab === 'new';
+      document.getElementById('panel-new').classList.toggle('hidden', tab !== 'new');
+      document.getElementById('submit-bar').classList.toggle('hidden', tab !== 'new' || !doctor);
+      document.getElementById('panel-list').classList.toggle('hidden', tab !== 'list');
+      document.getElementById('panel-prices').classList.toggle('hidden', tab !== 'prices');
+      ['new', 'list', 'prices'].forEach(function (t) {
+        document.getElementById('tab-' + t).className = (t === tab)
+          ? 'flex h-10 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground'
+          : 'flex h-10 items-center justify-center rounded-lg text-xs font-bold text-muted-foreground';
+      });
+      if (tab === 'list') loadOrders();
+      if (tab === 'prices') loadMyPrices();
+    }
+
+    ZirkonikAuth.requireAuth().then(function (session) {
+      if (!session) return;
+      ZirkonikData.myDoctorRecord().then(function (r) {
+        doctor = r.data || null;
+        if (!doctor) {
+          document.getElementById('no-doctor').classList.remove('hidden');
+          return;
+        }
+        document.getElementById('hdr-doctor').textContent = 'Dr. ' + doctor.full_name;
+        zkSetTab('new');
+        ZirkonikData.listPriceItems().then(function (pr) {
+          priceItems = pr.data || [];
+          var sel = document.getElementById('o-type');
+          var groups = {};
+          priceItems.forEach(function (p) {
+            if (!groups[p.category]) {
+              groups[p.category] = document.createElement('optgroup');
+              groups[p.category].label = p.category;
+              sel.appendChild(groups[p.category]);
+            }
+            var opt = document.createElement('option');
+            opt.value = p.id;
+            opt.textContent = p.name;
+            groups[p.category].appendChild(opt);
+          });
+        });
+      });
+    });
+
+    document.getElementById('o-submit').addEventListener('click', function () {
+      var errEl = document.getElementById('o-error');
+      errEl.classList.add('hidden');
+      var item = priceItems.find(function (p) { return p.id === document.getElementById('o-type').value; });
+      if (!item) {
+        errEl.textContent = 'Çalışma türü seçin.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+      var btn = document.getElementById('o-submit');
+      btn.disabled = true;
+      var teeth = ZkWorkForm.getTeeth();
+      ZirkonikData.createOrder({
+        organization_id: doctor.organization_id,
+        doctor_id: doctor.id,
+        price_item_id: item.id,
+        restoration_type: item.name,
+        teeth_numbers: teeth.length ? teeth.join(', ') : null,
+        unit_count: Math.max(1, Number(document.getElementById('o-count').value) || 1),
+        work_form: ZkWorkForm.getData(),
+        note: document.getElementById('o-note').value.trim() || null
+      }).then(function (res) {
+        btn.disabled = false;
+        if (res.error) {
+          errEl.textContent = 'Gönderilemedi: ' + res.error.message;
+          errEl.classList.remove('hidden');
+          return;
+        }
+        zkToast('Siparişiniz laboratuvara iletildi.');
+        ZkWorkForm.render(document.getElementById('wf-container'));
+        ZkWorkForm.onTeethChange = function (teeth) {
+          if (teeth.length) document.getElementById('o-count').value = teeth.length;
+          zkRecalc();
+        };
+        document.getElementById('o-count').value = 1;
+        document.getElementById('o-note').value = '';
+        document.getElementById('o-type').value = '';
+        zkRecalc();
+        zkSetTab('list');
+      });
+    });
+
+    function loadMyPrices() {
+      Promise.all([ZirkonikData.listPriceItems(), ZirkonikData.listPriceOverrides()]).then(function (results) {
+        var itemsR = results[0].data || [];
+        var ovs = results[1].data || [];
+        var el = document.getElementById('prices-list');
+        var byCat = {};
+        itemsR.forEach(function (p) { (byCat[p.category] = byCat[p.category] || []).push(p); });
+        el.innerHTML = Object.keys(byCat).map(function (cat) {
+          var rows = byCat[cat].map(function (p) {
+            var unit = ZirkonikData.resolveUnitPrice(p, ovs, doctor.id, null);
+            var special = unit != null && (p.unit_price == null || unit !== Number(p.unit_price));
+            return '<div class="flex items-center justify-between gap-2 border-b border-border py-2.5 last:border-b-0">' +
+              '<p class="min-w-0 flex-1 text-sm font-semibold">' + escapeHtml(p.name) + '</p>' +
+              '<span class="text-sm font-bold tabular-nums ' + (special ? 'text-primary' : '') + '">' +
+                (unit != null ? unit + ' ' + (p.currency || '$') : 'Fiyat sorunuz') +
+              (special ? ' <span class="text-[10px] font-bold text-primary">· anlaşmalı</span>' : '') + '</span></div>';
+          }).join('');
+          return '<section class="mb-5 rounded-theme border border-border bg-card p-4">' +
+            '<p class="mb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-primary">' + escapeHtml(cat) + '</p>' + rows + '</section>';
+        }).join('') || '<p class="mt-8 text-center text-sm text-muted-foreground">Fiyat listesi boş.</p>';
+      });
+    }
+
+    var STATUS_BADGES = {
+      pending: '<span class="rounded-full bg-accent/10 px-2 py-1 text-[10px] font-bold text-accent">Bekliyor</span>',
+      approved: '<span class="rounded-full bg-success/10 px-2 py-1 text-[10px] font-bold text-success">Onaylandı</span>',
+      rejected: '<span class="rounded-full bg-destructive/10 px-2 py-1 text-[10px] font-bold text-destructive">Reddedildi</span>'
+    };
+
+    function loadOrders() {
+      ZirkonikData.listOrders({ doctorId: doctor.id }).then(function (r) {
+        var list = r.data || [];
+        var el = document.getElementById('orders-list');
+        if (!list.length) {
+          el.innerHTML = '<p class="mt-8 text-center text-sm text-muted-foreground">Henüz sipariş yok.</p>';
+          return;
+        }
+        el.innerHTML = list.map(function (o) {
+          var d = new Date(o.created_at);
+          return '<article class="rounded-theme border border-border bg-card p-4">' +
+            '<div class="flex items-start justify-between gap-2">' +
+            '<div><p class="text-sm font-bold">' + escapeHtml(o.restoration_type) + '</p>' +
+            '<p class="mt-0.5 text-xs text-muted-foreground">' + o.unit_count + ' diş' + (o.teeth_numbers ? ' · ' + escapeHtml(o.teeth_numbers) : '') + '</p>' +
+            '<p class="mt-0.5 text-[11px] text-muted-foreground">' + d.toLocaleDateString('tr-TR') + '</p></div>' +
+            (STATUS_BADGES[o.status] || '') + '</div>' +
+            (o.note ? '<p class="mt-2 text-xs text-muted-foreground">' + escapeHtml(o.note) + '</p>' : '') +
+            '</article>';
+        }).join('');
+      });
+    }
+  </script>
+
+</body>
+</html>

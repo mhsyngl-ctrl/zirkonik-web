@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <title>Üretim — Zirkonik</title>
+
+  <!-- Tailwind CSS (pinned — matches the renderer/screenshot surfaces) -->
+  <link rel="stylesheet" href="css/tailwind.css">
+  <link rel="stylesheet" href="css/ipad.css">
+  <link rel="stylesheet" href="css/zk-utils.css">
+
+  <!-- Iconify Web Component -->
+  <script src="https://code.iconify.design/iconify-icon/2.3.0/iconify-icon.min.js"></script>
+
+  <!-- Google Fonts -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@100;200;300;400;500;600;700;800;900&family=Source+Sans+3:wght@100;200;300;400;500;600;700;800;900&display=swap">
+
+  <!-- Design Tokens + Custom Classes -->
+  <style>
+  :root {
+    --color-background: #F4F6F7;
+    --color-foreground: #17242C;
+    --color-primary: #123B4A;
+    --color-primary-foreground: #FFFFFF;
+    --color-secondary: #DCE8E8;
+    --color-secondary-foreground: #17333D;
+    --color-accent: #A14F22;
+    --color-accent-foreground: #FFFFFF;
+    --color-muted: #E7ECEE;
+    --color-muted-foreground: #5C6B73;
+    --color-card: #FFFFFF;
+    --color-card-foreground: #17242C;
+    --color-border: #CBD6D9;
+    --color-input: #FFFFFF;
+    --color-destructive: #B3262D;
+    --color-destructive-foreground: #FFFFFF;
+    --color-success: #176B5B;
+    --color-success-foreground: #FFFFFF;
+    --color-chart1: #123B4A;
+    --color-chart2: #176B5B;
+    --color-chart3: #A14F22;
+    --color-chart4: #566E91;
+    --color-chart5: #7B6953;
+    --font-heading: 'Manrope', sans-serif;
+    --font-body: 'Source Sans 3', sans-serif;
+    --radius: 12px;
+  }
+
+  html { overflow-x: hidden; }
+  body {
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    margin: 0;
+    padding: 0; overflow-x: hidden; overscroll-behavior-x: none; }
+  </style>
+</head>
+<body class="bg-background text-foreground m-0 p-0">
+  <div class="h-screen w-screen overflow-y-auto">
+    <div class="min-h-screen w-full bg-background text-foreground font-body pb-44">
+      <header class="border-b border-border bg-card px-5 pb-5 pt-12" style="padding-top:max(3rem,calc(env(safe-area-inset-top) + 12px));">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="flex h-10 w-10 items-center justify-center rounded-theme bg-primary text-primary-foreground">
+              <iconify-icon icon="lucide:activity" class="text-xl"></iconify-icon>
+            </div>
+            <div>
+              <p class="font-heading text-[17px] font-extrabold tracking-tight text-primary">Zirkonik</p>
+              <p class="mt-0.5 text-[11px] font-medium text-muted-foreground">Yönetici komuta merkezi</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="location.href='profil.html'" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-background text-primary" aria-label="Profil">
+              <iconify-icon icon="lucide:settings" class="text-xl"></iconify-icon>
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-6 flex items-end justify-between gap-3">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Operasyon özeti</p>
+            <h1 id="greeting" class="mt-1 font-heading text-[25px] font-extrabold tracking-tight">Günaydın</h1>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <section class="px-5 pt-5">
+          <div class="flex items-end justify-between">
+            <div>
+              <h2 class="font-heading text-lg font-extrabold">Bugünün görünümü</h2>
+              <p id="today-label" class="mt-0.5 text-xs text-muted-foreground"></p>
+            </div>
+            <button id="refresh-btn" onclick="zkRefreshDashboard()" class="flex items-center gap-1 text-[11px] font-bold text-success">
+              <iconify-icon id="refresh-icon" icon="lucide:refresh-cw" class="text-sm"></iconify-icon>
+              Canlı
+            </button>
+          </div>
+
+          <div class="zk-stats-deck"><div class="zk-stats-grid">
+            <button onclick="location.href='isler.html?status=active'" class="zk-stat zk-stat-teal"><span class="zk-stat-icon"><iconify-icon icon="lucide:briefcase-business"></iconify-icon></span><p id="stat-active-jobs" class="zk-stat-value">—</p><p class="zk-stat-label">Toplam aktif iş</p><iconify-icon class="zk-stat-ghost" icon="lucide:briefcase-business"></iconify-icon></button>
+
+            <button onclick="location.href='isler.html?status=completed'" class="zk-stat zk-stat-green"><span class="zk-stat-icon"><iconify-icon icon="lucide:check-circle-2"></iconify-icon></span><p id="stat-completed-jobs" class="zk-stat-value">—</p><p class="zk-stat-label">Tamamlanan iş</p><iconify-icon class="zk-stat-ghost" icon="lucide:check-circle-2"></iconify-icon></button>
+
+            <div class="zk-stat zk-stat-teal"><span class="zk-stat-icon"><iconify-icon icon="lucide:truck"></iconify-icon></span><p id="stat-due-today" class="zk-stat-value">—</p><p class="zk-stat-label">Bugün teslim</p><iconify-icon class="zk-stat-ghost" icon="lucide:truck"></iconify-icon></div>
+
+            <button onclick="location.href='isler.html?status=active'" class="zk-stat zk-stat-amber"><span class="zk-stat-icon"><iconify-icon icon="lucide:triangle-alert"></iconify-icon></span><p id="stat-overdue" class="zk-stat-value">—</p><p class="zk-stat-label">Geciken işler</p><iconify-icon class="zk-stat-ghost" icon="lucide:triangle-alert"></iconify-icon></button>
+
+            <div class="zk-stat zk-stat-teal"><span class="zk-stat-icon"><iconify-icon icon="lucide:scan-search"></iconify-icon></span><p id="stat-qc" class="zk-stat-value">—</p><p class="zk-stat-label">Kalite kontrolde</p><iconify-icon class="zk-stat-ghost" icon="lucide:scan-search"></iconify-icon></div>
+
+            <button onclick="location.href='finans.html'" class="zk-stat zk-stat-amber"><span class="zk-stat-icon"><iconify-icon icon="lucide:wallet-cards"></iconify-icon></span><p id="stat-receivables" class="zk-stat-value zk-stat-value-sm">—</p><p class="zk-stat-label">Bekleyen tahsilat</p><iconify-icon class="zk-stat-ghost" icon="lucide:wallet-cards"></iconify-icon></button>
+
+            <button onclick="location.href='stok.html'" class="zk-stat zk-stat-amber"><span class="zk-stat-icon"><iconify-icon icon="lucide:boxes"></iconify-icon></span><p id="stat-critical-stock" class="zk-stat-value">—</p><p class="zk-stat-label">Kritik stok uyarısı</p><iconify-icon class="zk-stat-ghost" icon="lucide:boxes"></iconify-icon></button>
+
+            <button onclick="location.href='siparisler.html'" class="zk-stat zk-stat-teal"><span class="zk-stat-icon"><iconify-icon icon="lucide:inbox"></iconify-icon></span><p id="stat-pending-orders" class="zk-stat-value">—</p><p class="zk-stat-label">Bekleyen sipariş</p><iconify-icon class="zk-stat-ghost" icon="lucide:inbox"></iconify-icon></button>
+          </div></div>
+        </section>
+
+        <section id="production-board-section" class="pt-7">
+          <div class="flex items-end justify-between px-5">
+            <div>
+              <h2 class="font-heading text-lg font-extrabold">Üretim panosu</h2>
+              <p id="board-subtitle" class="mt-0.5 text-xs text-muted-foreground">Odalara göre aktif işler — bir işe dokunarak aşamasını ilerletin</p>
+            </div>
+          </div>
+
+          <div class="mt-3 flex gap-1 px-5">
+            <button id="board-tab-active" onclick="zkSetBoardMode('active')" class="rounded-lg bg-secondary px-3 py-1.5 text-xs font-bold text-secondary-foreground">Aktif</button>
+            <button id="board-tab-completed" onclick="zkSetBoardMode('completed')" class="rounded-lg px-3 py-1.5 text-xs font-semibold text-muted-foreground">Tamamlanan</button>
+          </div>
+
+          <div id="board-lab-switch-wrap" class="mt-3 hidden px-5">
+            <select id="board-lab-switch" aria-label="Laboratuvar seç" class="h-10 w-full rounded-theme border border-border bg-input px-3.5 text-sm"></select>
+          </div>
+          <div id="production-board" class="mt-3 px-5 pb-1">
+            <p class="text-xs text-muted-foreground">Yükleniyor…</p>
+          </div>
+        </section>
+
+        <section class="px-5 pt-7">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="font-heading text-lg font-extrabold">Haftalık dağılım</h2>
+              <p class="mt-0.5 text-xs text-muted-foreground">Bu hafta günlere göre tamamlanan iş sayısı</p>
+            </div>
+          </div>
+
+          <div id="weekly-distribution" class="mt-3 rounded-theme border border-border bg-card p-4">
+            <p class="text-xs text-muted-foreground">Yükleniyor…</p>
+          </div>
+        </section>
+
+        <section class="px-5 pt-7">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="font-heading text-lg font-extrabold">Çalışanların iş dağılımı</h2>
+              <p class="mt-0.5 text-xs text-muted-foreground">Şu an kimde kaç aktif iş var</p>
+            </div>
+          </div>
+
+          <div id="staff-distribution" class="mt-3 rounded-theme border border-border bg-card p-4">
+            <p class="text-xs text-muted-foreground">Yükleniyor…</p>
+          </div>
+        </section>
+
+        <section class="px-5 pt-7">
+          <div class="flex items-end justify-between">
+            <div>
+              <h2 class="font-heading text-lg font-extrabold">Aksiyon gerektirenler</h2>
+              <p class="mt-0.5 text-xs text-muted-foreground">Bugün karar bekleyen kayıtlar</p>
+            </div>
+          </div>
+
+          <div id="action-items" class="mt-3 overflow-hidden rounded-theme border border-border bg-card">
+            <p class="p-4 text-xs text-muted-foreground">Yükleniyor…</p>
+          </div>
+        </section>
+      </main>
+
+      <div class="fixed bottom-[76px] left-0 z-20 w-full px-5">
+        <button onclick="location.href='yeni-giri-i.html'" class="flex h-13 w-full items-center justify-center gap-2 rounded-theme bg-primary px-5 py-3.5 font-heading text-sm font-bold text-primary-foreground shadow-lg">
+          <iconify-icon icon="lucide:plus" class="text-xl"></iconify-icon>
+          Yeni iş oluştur
+        </button>
+      </div>
+
+      <nav data-fv-tabbar class="fixed bottom-0 left-0 z-30 flex h-[72px] w-full items-center justify-around border-t border-border bg-card px-2">
+        <button data-fv-tab="Üretim" data-fv-tab-active="true" class="flex min-w-[62px] flex-col items-center gap-1 rounded-theme bg-secondary px-2.5 py-1.5 text-primary">
+          <iconify-icon icon="lucide:columns-3" class="text-xl"></iconify-icon>
+          <span class="text-[10px] font-bold">Üretim</span>
+        </button>
+        <button data-fv-tab="Stok" class="flex min-w-[54px] flex-col items-center gap-1 px-2 py-1.5 text-muted-foreground">
+          <iconify-icon icon="lucide:boxes" class="text-xl"></iconify-icon>
+          <span class="text-[10px] font-semibold">Stok</span>
+        </button>
+        <button data-fv-tab="Finans" class="flex min-w-[54px] flex-col items-center gap-1 px-2 py-1.5 text-muted-foreground">
+          <iconify-icon icon="lucide:chart-no-axes-combined" class="text-xl"></iconify-icon>
+          <span class="text-[10px] font-semibold">Finans</span>
+        </button>
+        <button data-fv-tab="Laboratuvarlar" class="flex min-w-[74px] flex-col items-center gap-1 px-1 py-1.5 text-muted-foreground">
+          <iconify-icon icon="lucide:building-2" class="text-xl"></iconify-icon>
+          <span class="text-[10px] font-semibold">Laboratuvarlar</span>
+        </button>
+        <button data-fv-tab="Ekip" class="flex min-w-[54px] flex-col items-center gap-1 px-2 py-1.5 text-muted-foreground">
+          <iconify-icon icon="lucide:users-round" class="text-xl"></iconify-icon>
+          <span class="text-[10px] font-semibold">Ekip</span>
+        </button>
+        <button data-fv-tab="Doktorlar" class="flex min-w-[62px] flex-col items-center gap-1 px-2.5 py-1.5 text-muted-foreground">
+          <iconify-icon icon="lucide:stethoscope" class="text-xl"></iconify-icon>
+          <span class="text-[10px] font-semibold">Doktorlar</span>
+        </button>
+      </nav>
+    </div>
+  </div>
+  <script>
+    (function() {
+      var els = document.querySelectorAll('iconify-icon');
+      for (var i = 0; i < els.length; i++) (function(el) {
+        var tries = 0;
+        (function check() {
+          var s = el.status;
+          if (s === 'failed') el.setAttribute('icon', 'lucide:circle');
+          else if (s !== 'rendered' && tries++ < 40) setTimeout(check, 250);
+        })();
+      })(els[i]);
+    })();
+  </script>
+
+  <div id="zk-toast" style="position:fixed;left:50%;bottom:96px;transform:translate(-50%,16px);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;background:#17242C;color:#fff;font-family:'Source Sans 3',sans-serif;font-size:13px;font-weight:600;padding:10px 16px;border-radius:12px;z-index:9999;max-width:86%;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.18);"></div>
+  <script>
+    function zkToast(msg){
+      var el = document.getElementById('zk-toast');
+      if(!el) return;
+      el.textContent = msg;
+      el.style.opacity = '1';
+      el.style.transform = 'translate(-50%,0)';
+      clearTimeout(window.__zkToastTimer);
+      window.__zkToastTimer = setTimeout(function(){
+        el.style.opacity = '0';
+        el.style.transform = 'translate(-50%,16px)';
+      }, 2200);
+    }
+  </script>
+
+  <script>
+    (function() {
+      var routes = {"Üretim": "retim.html", "Stok": "stok.html", "Finans": "finans.html", "Laboratuvarlar": "laboratuvarlar.html", "Ekip": "ekip.html", "Doktorlar": "doktorlar.html"};
+      var bar = document.querySelector('[data-fv-tabbar]');
+      if (!bar) return;
+      bar.querySelectorAll('[data-fv-tab]').forEach(function(btn) {
+        var tab = btn.getAttribute('data-fv-tab');
+        var href = routes[tab];
+        if (!href) return;
+        if (btn.getAttribute('data-fv-tab-active') === 'true') return;
+        btn.style.cursor = 'pointer';
+        btn.addEventListener('click', function(e) {
+          e.preventDefault();
+          window.location.href = href;
+        });
+      });
+    })();
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script src="supabase-client.js"></script>
+  <script src="js/zk-picker.js"></script>
+  <script>
+    function zkGoToBoard() {
+      var el = document.getElementById('production-board-section');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    var TL = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 });
+
+    function escapeHtml(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+
+    function loadDashboard() {
+      ZirkonikAuth.me().then(function (me) {
+        document.getElementById('greeting').textContent = 'Günaydın, ' + (me ? me.full_name : '');
+      });
+
+      var todayStart = new Date(); todayStart.setHours(0,0,0,0);
+      var todayEnd = new Date(); todayEnd.setHours(23,59,59,999);
+      document.getElementById('today-label').textContent = new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) + ' itibarıyla';
+
+      var client = ZirkonikAuth.client();
+
+      loadBoard();
+
+      client.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'active')
+        .then(function (r) { document.getElementById('stat-active-jobs').textContent = r.count || 0; });
+
+      client.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'completed')
+        .then(function (r) { document.getElementById('stat-completed-jobs').textContent = r.count || 0; });
+
+      client.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'active')
+        .gte('requested_delivery_at', todayStart.toISOString()).lte('requested_delivery_at', todayEnd.toISOString())
+        .then(function (r) { document.getElementById('stat-due-today').textContent = r.count || 0; });
+
+      client.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'active')
+        .lt('requested_delivery_at', todayStart.toISOString())
+        .then(function (r) { document.getElementById('stat-overdue').textContent = r.count || 0; });
+
+      client.from('rooms').select('id').eq('is_quality_control', true).then(function (rr) {
+        var ids = (rr.data || []).map(function (x) { return x.id; });
+        if (!ids.length) { document.getElementById('stat-qc').textContent = 0; return; }
+        client.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'active').in('current_room_id', ids)
+          .then(function (r) { document.getElementById('stat-qc').textContent = r.count || 0; });
+      });
+
+      client.from('invoices').select('id, amount').in('status', ['unpaid', 'partial', 'overdue']).then(function (r) {
+        var invoices = r.data || [];
+        if (!invoices.length) { document.getElementById('stat-receivables').textContent = TL.format(0); return; }
+        var ids = invoices.map(function (x) { return x.id; });
+        // Kısmi ödemeler düşülmeden tam fatura tutarı gösteriliyordu — kalan
+        // bakiyeyi hesaplamak için o faturalara ait tahsilatları da çekiyoruz.
+        client.from('payments').select('invoice_id, amount').in('invoice_id', ids).then(function (pr) {
+          var paidByInvoice = {};
+          (pr.data || []).forEach(function (p) { paidByInvoice[p.invoice_id] = (paidByInvoice[p.invoice_id] || 0) + Number(p.amount); });
+          var total = invoices.reduce(function (s, x) { return s + Math.max(0, Number(x.amount || 0) - (paidByInvoice[x.id] || 0)); }, 0);
+          document.getElementById('stat-receivables').textContent = TL.format(total);
+        });
+      });
+
+      client.from('material_stock').select('quantity_on_hand, min_threshold').then(function (r) {
+        var n = (r.data || []).filter(function (x) { return Number(x.quantity_on_hand) <= Number(x.min_threshold); }).length;
+        document.getElementById('stat-critical-stock').textContent = n;
+      });
+
+      client.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'pending').then(function (r) {
+        document.getElementById('stat-pending-orders').textContent = r.count || 0;
+      });
+
+      // Haftalık dağılım: bu haftanın (Pzt-Paz) her gününde tamamlanan iş sayısı.
+      (function () {
+        var d = new Date();
+        var day = d.getDay();
+        var diff = (day === 0 ? -6 : 1) - day;
+        var weekStart = new Date(d); weekStart.setDate(d.getDate() + diff); weekStart.setHours(0, 0, 0, 0);
+        var weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 7);
+        var dayNames = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+
+        client.from('jobs').select('completed_at').eq('status', 'completed')
+          .gte('completed_at', weekStart.toISOString()).lt('completed_at', weekEnd.toISOString())
+          .then(function (r) {
+            var counts = [0, 0, 0, 0, 0, 0, 0];
+            (r.data || []).forEach(function (j) {
+              var idx = Math.floor((new Date(j.completed_at) - weekStart) / 86400000);
+              if (idx >= 0 && idx < 7) counts[idx]++;
+            });
+            var maxCount = Math.max(1, Math.max.apply(null, counts));
+            var todayIdx = Math.floor((new Date().setHours(0, 0, 0, 0) - weekStart) / 86400000);
+            // Sütun grafik: bugünün sütunu vurgulu; sıfır günler kısa çizgi.
+            var colsHtml = '<div class="zk-cols">' + dayNames.map(function (name, i) {
+              var c = counts[i];
+              var pct = Math.round((c / maxCount) * 100);
+              var cls = 'zk-col' + (c === 0 ? ' zk-col-zero' : '') + (i === todayIdx ? ' zk-col-today' : '');
+              return '<div class="' + cls + '">' +
+                (c > 0 ? '<span class="zk-col-val">' + c + '</span>' : '') +
+                '<div class="zk-col-bar" style="height:' + Math.max(3, pct) + '%"></div></div>';
+            }).join('') + '</div>' +
+            '<div class="zk-cols-labels">' + dayNames.map(function (name, i) {
+              return '<span class="' + (i === todayIdx ? 'zk-col-today-label' : '') + '">' + name + '</span>';
+            }).join('') + '</div>';
+            document.getElementById('weekly-distribution').innerHTML = colsHtml;
+          });
+      })();
+
+      // Çalışanların iş dağılımı: şu an kimin üzerinde kaç aktif (teslim
+      // alınmış, henüz çıkışı yapılmamış) iş var.
+      client.from('job_stage_history').select('handled_by, jobs!inner(status)')
+        .is('exited_at', null).not('handled_by', 'is', null).eq('jobs.status', 'active')
+        .then(function (r) {
+          var counts = {};
+          (r.data || []).forEach(function (row) { counts[row.handled_by] = (counts[row.handled_by] || 0) + 1; });
+          var staffIds = Object.keys(counts);
+          if (!staffIds.length) {
+            document.getElementById('staff-distribution').innerHTML = '<p class="text-xs text-muted-foreground">Şu an kimsede aktif iş yok.</p>';
+            return;
+          }
+          client.from('app_users').select('id, full_name').in('id', staffIds).then(function (usersRes) {
+            var nameMap = {};
+            (usersRes.data || []).forEach(function (u) { nameMap[u.id] = u.full_name; });
+            var rows = staffIds.map(function (id) { return { name: nameMap[id] || '—', count: counts[id] }; })
+              .sort(function (a, b) { return b.count - a.count; });
+            var maxCount = Math.max(1, rows[0].count);
+            var html = rows.map(function (row) {
+              var pct = Math.round((row.count / maxCount) * 100);
+              return '<div class="zk-staff-row">' +
+                '<span class="zk-staff-avatar">' + escapeHtml((row.name || '?').charAt(0).toUpperCase()) + '</span>' +
+                '<div class="zk-staff-main">' +
+                '<div class="zk-staff-top"><span class="truncate">' + escapeHtml(row.name) + '</span><span class="zk-staff-count">' + row.count + ' iş</span></div>' +
+                '<div class="zk-staff-bar"><div class="zk-staff-fill" style="width:' + pct + '%"></div></div>' +
+                '</div></div>';
+            }).join('');
+            document.getElementById('staff-distribution').innerHTML = html;
+          });
+        });
+
+      Promise.all([
+        client.from('jobs').select('id, job_number, requested_delivery_at, doctors(full_name)').eq('status', 'active').lt('requested_delivery_at', todayStart.toISOString()).limit(3),
+        client.from('material_stock').select('materials(name), quantity_on_hand, min_threshold').limit(50),
+        client.from('doctors').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+        client.from('invoices').select('id', { count: 'exact', head: true }).eq('status', 'overdue')
+      ]).then(function (results) {
+        var overdueJobs = results[0].data || [];
+        var criticalStock = (results[1].data || []).filter(function (x) { return Number(x.quantity_on_hand) <= Number(x.min_threshold); });
+        var pendingDoctors = results[2].count || 0;
+        var overdueInvoices = results[3].count || 0;
+
+        var rows = [];
+        if (overdueJobs.length) {
+          rows.push({ href: 'isler.html?status=active', icon: 'lucide:clock-3', title: 'Geciken işler', sub: overdueJobs.map(function(j){return j.job_number;}).join(', '), badge: overdueJobs.length });
+        }
+        if (criticalStock.length) {
+          rows.push({ href: 'stok.html', icon: 'lucide:package-x', title: 'Kritik stok', sub: criticalStock.slice(0,3).map(function(x){return x.materials ? x.materials.name : '';}).join(', '), badge: criticalStock.length });
+        }
+        if (pendingDoctors) {
+          rows.push({ href: 'doktorlar.html', icon: 'lucide:stethoscope', title: 'Onay bekleyen doktor', sub: 'İnceleme kuyruğunda', badge: pendingDoctors });
+        }
+        if (overdueInvoices) {
+          rows.push({ href: 'finans.html', icon: 'lucide:badge-turkish-lira', title: 'Gecikmiş tahsilat', sub: 'Ödeme vadesi geçmiş faturalar', badge: overdueInvoices });
+        }
+
+        var el = document.getElementById('action-items');
+        if (!rows.length) {
+          el.innerHTML = '<p class="p-4 text-xs text-muted-foreground">Şu an aksiyon bekleyen bir kayıt yok.</p>';
+          return;
+        }
+        el.innerHTML = rows.map(function (r, i) {
+          var action = r.href ? ("location.href='" + r.href + "'") : 'zkGoToBoard()';
+          return '<button onclick="' + action + '" class="flex w-full items-center gap-3 px-4 py-3.5 text-left' + (i < rows.length - 1 ? ' border-b border-border' : '') + '">' +
+            '<span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-theme bg-accent/10 text-accent"><iconify-icon icon="' + r.icon + '" class="text-lg"></iconify-icon></span>' +
+            '<span class="min-w-0 flex-1"><span class="block text-sm font-bold">' + escapeHtml(r.title) + '</span><span class="mt-0.5 block truncate text-xs text-muted-foreground">' + escapeHtml(r.sub) + '</span></span>' +
+            '<span class="font-heading text-sm font-extrabold tabular-nums text-accent">' + r.badge + '</span>' +
+            '<iconify-icon icon="lucide:chevron-right" class="text-base text-muted-foreground"></iconify-icon></button>';
+        }).join('');
+      });
+    }
+
+    ZirkonikAuth.requireAuth().then(function (session) {
+      if (!session) return;
+      loadDashboard();
+    });
+
+    function zkRefreshDashboard() {
+      var icon = document.getElementById('refresh-icon');
+      icon.classList.add('animate-spin');
+      loadDashboard();
+      setTimeout(function () { icon.classList.remove('animate-spin'); }, 700);
+    }
+
+    // ---- Üretim panosu (oda sütunlu) ----
+    var boardLabs = [];
+    var boardActiveLab = null;
+    var boardMode = 'active';
+
+    function zkSetBoardMode(mode) {
+      boardMode = mode;
+      var activeTab = document.getElementById('board-tab-active');
+      var completedTab = document.getElementById('board-tab-completed');
+      activeTab.className = mode === 'active' ? 'rounded-lg bg-secondary px-3 py-1.5 text-xs font-bold text-secondary-foreground' : 'rounded-lg px-3 py-1.5 text-xs font-semibold text-muted-foreground';
+      completedTab.className = mode === 'completed' ? 'rounded-lg bg-secondary px-3 py-1.5 text-xs font-bold text-secondary-foreground' : 'rounded-lg px-3 py-1.5 text-xs font-semibold text-muted-foreground';
+      document.getElementById('board-subtitle').textContent = mode === 'active'
+        ? 'Odalara göre aktif işler — bir işe dokunarak aşamasını ilerletin'
+        : 'Son tamamlanan işler';
+      if (boardActiveLab) loadBoardForLab(boardActiveLab);
+    }
+
+    function loadBoard() {
+      var client = ZirkonikAuth.client();
+      client.from('laboratories').select('id, name').order('created_at').then(function (r) {
+        boardLabs = r.data || [];
+        if (!boardLabs.length) {
+          document.getElementById('board-lab-switch-wrap').classList.add('hidden');
+          document.getElementById('production-board').innerHTML = '<p class="text-xs text-muted-foreground">Önce Laboratuvarlar sekmesinden bir laboratuvar ekleyin.</p>';
+          return;
+        }
+        var wrap = document.getElementById('board-lab-switch-wrap');
+        var sel = document.getElementById('board-lab-switch');
+        if (boardLabs.length > 1) {
+          sel.innerHTML = boardLabs.map(function (l) { return '<option value="' + l.id + '">' + escapeHtml(l.name) + '</option>'; }).join('');
+          sel.value = (boardActiveLab && boardLabs.some(function (l) { return l.id === boardActiveLab.id; })) ? boardActiveLab.id : boardLabs[0].id;
+          wrap.classList.remove('hidden');
+        } else {
+          wrap.classList.add('hidden');
+        }
+        var selected = boardLabs[0];
+        for (var i = 0; i < boardLabs.length; i++) { if (boardLabs[i].id === sel.value) { selected = boardLabs[i]; break; } }
+        loadBoardForLab(selected);
+      });
+    }
+
+    function loadBoardForLab(lab) {
+      boardActiveLab = lab;
+      var el = document.getElementById('production-board');
+      el.innerHTML = '<p class="text-xs text-muted-foreground">Yükleniyor…</p>';
+      if (boardMode === 'completed') {
+        loadCompletedList(lab, el);
+      } else {
+        loadActiveBoard(lab, el);
+      }
+    }
+
+    function loadActiveBoard(lab, el) {
+      Promise.all([
+        ZirkonikData.listRooms(lab.id),
+        ZirkonikData.listJobs({ status: 'active', laboratoryId: lab.id })
+      ]).then(function (results) {
+        var rooms = results[0].data || [];
+        var jobs = results[1].data || [];
+        if (!rooms.length) {
+          el.innerHTML = '<p class="text-xs text-muted-foreground">Bu laboratuvarda henüz oda tanımlanmamış.</p>';
+          return;
+        }
+
+        var jobIds = jobs.map(function (j) { return j.id; });
+        var stagesPromise = jobIds.length
+          ? ZirkonikAuth.client().from('job_stage_history').select('job_id, confirmed_at').in('job_id', jobIds).is('exited_at', null)
+          : Promise.resolve({ data: [] });
+
+        stagesPromise.then(function (stageRes) {
+          var confirmedMap = {};
+          (stageRes.data || []).forEach(function (s) { confirmedMap[s.job_id] = !!s.confirmed_at; });
+
+          // Arı kovanı görünümü: her istasyon (oda) bir altıgen petek;
+          // dokununca o istasyonun işleri peteğin altında listelenir.
+          hiveSections = [{ id: null, name: 'Bekleyen' }].concat(rooms.map(function (r) { return { id: r.id, name: r.name }; }));
+          hiveJobs = jobs;
+          hiveConfirmedMap = confirmedMap;
+          // Gelen iş baskısı: her işin rotasındaki BİR SONRAKİ durağı bul,
+          // istasyon başına "buraya gelmekte olan iş" sayısını çıkar.
+          var defaultRoute = rooms.map(function (r) { return r.id; });
+          hiveIncomingMap = {};
+          jobs.forEach(function (j) {
+            var route = (j.planned_route && j.planned_route.length) ? j.planned_route : defaultRoute;
+            var nextId;
+            if (!j.current_room_id) nextId = route[0];
+            else {
+              var idx = route.indexOf(j.current_room_id);
+              nextId = idx >= 0 ? route[idx + 1] : null;
+            }
+            if (nextId) hiveIncomingMap[nextId] = (hiveIncomingMap[nextId] || 0) + 1;
+          });
+          // Varsayılan seçim: işi olan ilk istasyon.
+          hiveSelectedIdx = 0;
+          for (var i = 0; i < hiveSections.length; i++) {
+            if (jobs.some(function (j) { return j.current_room_id === hiveSections[i].id; })) { hiveSelectedIdx = i; break; }
+          }
+          hiveContainer = el;
+          renderHive();
+        });
+      });
+    }
+
+    var hiveSections = [], hiveJobs = [], hiveConfirmedMap = {}, hiveIncomingMap = {}, hiveSelectedIdx = 0, hiveContainer = null;
+
+    function zkHexSelect(idx) {
+      hiveSelectedIdx = idx;
+      renderHive();
+    }
+
+    function renderHive() {
+      var el = hiveContainer;
+      if (!el) return;
+      // Petek dizilimi: 3'lü ve 2'li sıralar dönüşümlü (arı kovanı kilidi).
+      var rows = [];
+      var i = 0, rowLen = 3;
+      while (i < hiveSections.length) {
+        rows.push(hiveSections.slice(i, i + rowLen).map(function (sec) { return hiveSections.indexOf(sec); }));
+        i += rowLen;
+        rowLen = rowLen === 3 ? 2 : 3;
+      }
+      var hiveHtml = '<div class="zk-hive-deck">' +
+        '<p class="zk-hive-deck-title"><span class="zk-live-dot"></span>İstasyon ağı</p>' +
+        '<div class="zk-hive">' + rows.map(function (rowIdxs) {
+          return '<div class="zk-hive-row">' + rowIdxs.map(function (idx) {
+            var sec = hiveSections[idx];
+            var secJobs = hiveJobs.filter(function (j) { return j.current_room_id === sec.id; });
+            var pendingCount = secJobs.filter(function (j) { return sec.id !== null && hiveConfirmedMap[j.id] === false; }).length;
+            var incoming = sec.id ? (hiveIncomingMap[sec.id] || 0) : 0;
+            // Yük = mevcut + gelmekte olan; eşik aşılırsa istasyon "ısınır".
+            var load = secJobs.length + incoming;
+            var hot = load >= 3;
+            var cls = 'zk-hex';
+            if (idx === hiveSelectedIdx) cls += ' zk-hex-selected';
+            else if (hot) cls += ' zk-hex-hot';
+            else if (secJobs.length) cls += ' zk-hex-busy';
+            else cls += ' zk-hex-empty';
+            if (pendingCount) cls += ' zk-hex-alert';
+            var sub = hot ? 'Destek gerekebilir'
+              : (pendingCount ? 'Teslim bekliyor' : (secJobs.length ? 'aktif iş' : 'boş'));
+            return '<button type="button" class="' + cls + '" onclick="zkHexSelect(' + idx + ')">' +
+              '<span class="zk-hex-inner">' +
+              (incoming ? '<span class="zk-hex-in">↓ +' + incoming + '</span>' : '') +
+              '<span class="zk-hex-name">' + escapeHtml(sec.name) + '</span>' +
+              '<span class="zk-hex-count">' + secJobs.length + '</span>' +
+              '<span class="zk-hex-sub">' + sub + '</span>' +
+              '</span></button>';
+          }).join('') + '</div>';
+        }).join('') + '</div>' +
+        '<div class="zk-hive-legend">' +
+          '<span><i class="zk-lg zk-lg-cyan"></i>Aktif</span>' +
+          '<span><i class="zk-lg zk-lg-amber"></i>↓ +N gelen iş</span>' +
+          '<span><i class="zk-lg zk-lg-hot"></i>Yoğun — destek gerekebilir</span>' +
+        '</div></div>';
+
+      // Seçili istasyonun işleri
+      var sel = hiveSections[hiveSelectedIdx];
+      var selJobs = hiveJobs.filter(function (j) { return j.current_room_id === sel.id; });
+      var jobsHtml;
+      if (!selJobs.length) {
+        jobsHtml = '<p class="mt-3 rounded-theme border border-border bg-card p-3.5 text-center text-xs text-muted-foreground">' + escapeHtml(sel.name) + ' istasyonunda aktif iş yok.</p>';
+      } else {
+        jobsHtml = '<div class="mt-3 rounded-theme border border-border bg-card">' +
+          '<div class="flex items-center justify-between border-b border-border px-3.5 py-2.5">' +
+          '<p class="text-sm font-bold">' + escapeHtml(sel.name) + '</p>' +
+          '<span class="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-secondary-foreground">' + selJobs.length + '</span></div>' +
+          '<div class="max-h-64 space-y-2 overflow-y-auto p-2.5" style="-webkit-overflow-scrolling:touch;">' +
+          selJobs.map(function (j) {
+            // Oda değişince teslim onaylanana kadar "Teslim bekliyor"
+            // rozeti — iki taraflı iş teslimi (bkz. detay.html).
+            var pending = sel.id !== null && hiveConfirmedMap[j.id] === false;
+            return '<button onclick="location.href=\'detay.html?id=' + j.id + '\'" class="flex w-full items-center justify-between gap-3 rounded-theme border ' + (pending ? 'border-accent/40' : 'border-border') + ' bg-background p-2.5 text-left">' +
+              '<div class="min-w-0">' +
+              '<p class="text-xs font-bold">' + escapeHtml(j.job_number) + (j.is_priority ? ' <span class="text-accent">●</span>' : '') + '</p>' +
+              '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + escapeHtml(j.doctors ? j.doctors.full_name : '') + '</p>' +
+              '</div>' +
+              '<div class="shrink-0 text-right">' +
+              (pending ? '<p class="text-[10px] font-bold text-accent">Teslim bekliyor</p>' : '') +
+              (j.requested_delivery_at ? '<p class="mt-0.5 text-[10px] text-muted-foreground">' + new Date(j.requested_delivery_at).toLocaleDateString('tr-TR') + '</p>' : '') +
+              '</div></button>';
+          }).join('') +
+          '</div></div>';
+      }
+
+      el.innerHTML = hiveHtml + jobsHtml;
+    }
+
+    function loadCompletedList(lab, el) {
+      var client = ZirkonikAuth.client();
+      client.from('jobs').select('id, job_number, restoration_type, completed_at, doctors(full_name)')
+        .eq('laboratory_id', lab.id).eq('status', 'completed')
+        .order('completed_at', { ascending: false }).limit(50)
+        .then(function (r) {
+          var jobs = r.data || [];
+          if (!jobs.length) {
+            el.innerHTML = '<p class="text-xs text-muted-foreground">Henüz tamamlanmış iş yok.</p>';
+            return;
+          }
+          el.innerHTML = '<div class="divide-y divide-border rounded-theme border border-border bg-card">' + jobs.map(function (j) {
+            return '<button onclick="location.href=\'detay.html?id=' + j.id + '\'" class="flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left">' +
+              '<div class="min-w-0"><p class="text-xs font-bold">' + escapeHtml(j.job_number) + '</p>' +
+              '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + escapeHtml(j.restoration_type || '') + (j.doctors ? ' · ' + escapeHtml(j.doctors.full_name) : '') + '</p></div>' +
+              '<span class="shrink-0 text-[10px] font-semibold text-success">' + (j.completed_at ? new Date(j.completed_at).toLocaleDateString('tr-TR') : '') + '</span>' +
+              '</button>';
+          }).join('') + '</div>' +
+          (jobs.length === 50 ? '<p class="mt-2 px-1 text-[11px] text-muted-foreground">Son 50 iş gösteriliyor.</p>' : '');
+        });
+    }
+
+    document.getElementById('board-lab-switch').addEventListener('change', function () {
+      var lab = null;
+      for (var i = 0; i < boardLabs.length; i++) { if (boardLabs[i].id === this.value) { lab = boardLabs[i]; break; } }
+      if (lab) loadBoardForLab(lab);
+    });
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <title>Finans — Zirkonik</title>
+
+  <link rel="stylesheet" href="css/tailwind.css">
+  <link rel="stylesheet" href="css/ipad.css">
+  <link rel="stylesheet" href="css/zk-utils.css">
+  <script src="https://code.iconify.design/iconify-icon/2.3.0/iconify-icon.min.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@100;200;300;400;500;600;700;800;900&family=Source+Sans+3:wght@100;200;300;400;500;600;700;800;900&display=swap">
+
+  <style>
+  :root {
+    --color-background: #F4F6F7;
+    --color-foreground: #17242C;
+    --color-primary: #123B4A;
+    --color-primary-foreground: #FFFFFF;
+    --color-secondary: #DCE8E8;
+    --color-secondary-foreground: #17333D;
+    --color-accent: #A14F22;
+    --color-accent-foreground: #FFFFFF;
+    --color-muted: #E7ECEE;
+    --color-muted-foreground: #5C6B73;
+    --color-card: #FFFFFF;
+    --color-card-foreground: #17242C;
+    --color-border: #CBD6D9;
+    --color-input: #FFFFFF;
+    --color-destructive: #B3262D;
+    --color-destructive-foreground: #FFFFFF;
+    --color-success: #176B5B;
+    --color-success-foreground: #FFFFFF;
+    --font-heading: 'Manrope', sans-serif;
+    --font-body: 'Source Sans 3', sans-serif;
+    --radius: 12px;
+  }
+  html { overflow-x: hidden; }
+  body { font-family: var(--font-body); -webkit-font-smoothing: antialiased; margin: 0; padding: 0; overflow-x: hidden; overscroll-behavior-x: none; }
+  </style>
+</head>
+<body class="bg-background text-foreground m-0 p-0">
+  <div class="h-screen w-screen overflow-y-auto">
+    <div class="min-h-screen w-full bg-background text-foreground font-body pb-32">
+      <header class="bg-primary px-5 pb-6 pt-12 text-primary-foreground" style="padding-top:max(3rem,calc(env(safe-area-inset-top) + 12px));">
+        <div class="flex items-start justify-between">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.16em] text-white/55">Yönetici görünümü</p>
+            <h1 class="mt-1 font-heading text-2xl font-bold tracking-tight">Finans</h1>
+            <p class="mt-1 text-sm text-white/70">Operasyon ağının finansal özeti</p>
+          </div>
+          <button onclick="location.href='fiyat-listesi.html'" class="flex h-10 items-center gap-1.5 rounded-theme border border-white/25 bg-white/10 px-3 text-xs font-bold text-white" aria-label="Fiyat listesi">
+            <iconify-icon icon="lucide:receipt-text" class="text-base"></iconify-icon>
+            Fiyat Listesi
+          </button>
+        </div>
+
+        <div class="mt-6 flex items-end justify-between">
+          <div>
+            <p class="text-xs text-white/65">Net tahsilat</p>
+            <p id="stat-net" class="mt-1 font-heading text-3xl font-bold tabular-nums">—</p>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <section class="px-5 pt-5">
+          <div class="grid grid-cols-2 gap-3">
+            <article class="rounded-theme border border-border bg-card p-4">
+              <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary text-primary"><iconify-icon icon="lucide:arrow-down-left" class="text-base"></iconify-icon></span>
+              <p id="stat-invoiced" class="mt-4 font-heading text-xl font-bold tabular-nums">—</p>
+              <p class="mt-1 text-xs text-muted-foreground">Toplam faturalanan</p>
+            </article>
+            <article class="rounded-theme border border-border bg-card p-4">
+              <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-success/10 text-success"><iconify-icon icon="lucide:check-circle-2" class="text-base"></iconify-icon></span>
+              <p id="stat-received" class="mt-4 font-heading text-xl font-bold tabular-nums">—</p>
+              <p class="mt-1 text-xs text-muted-foreground">Tahsil edilen</p>
+            </article>
+            <article class="rounded-theme border border-accent/30 bg-card p-4">
+              <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10 text-accent"><iconify-icon icon="lucide:clock-3" class="text-base"></iconify-icon></span>
+              <p id="stat-outstanding" class="mt-4 font-heading text-xl font-bold tabular-nums">—</p>
+              <p class="mt-1 text-xs text-muted-foreground">Bekleyen tahsilat</p>
+            </article>
+            <article class="rounded-theme border border-destructive/25 bg-card p-4">
+              <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive"><iconify-icon icon="lucide:triangle-alert" class="text-base"></iconify-icon></span>
+              <p id="stat-overdue" class="mt-4 font-heading text-xl font-bold tabular-nums">—</p>
+              <p class="mt-1 text-xs text-muted-foreground">Gecikmiş alacak</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="px-5 pt-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="font-heading text-lg font-bold">Laboratuvar bazında ciro</h2>
+              <p class="mt-1 text-xs text-muted-foreground">Fatura tutarlarının toplamı</p>
+            </div>
+            <button onclick="location.href='laboratuvarlar.html'" class="text-xs font-bold text-primary">Tümü</button>
+          </div>
+          <div id="lab-revenue" class="mt-3 space-y-2.5">
+            <p class="text-xs text-muted-foreground">Yükleniyor…</p>
+          </div>
+        </section>
+
+        <section class="mt-6 border-y border-border bg-card px-5 py-5">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="font-heading text-lg font-bold">Bekleyen tahsilatlar</h2>
+              <p class="mt-1 text-xs text-muted-foreground">Ödenmemiş / gecikmiş faturalar</p>
+            </div>
+          </div>
+          <div id="receivables-list" class="mt-3 divide-y divide-border">
+            <p class="text-xs text-muted-foreground">Yükleniyor…</p>
+          </div>
+        </section>
+
+        <section class="px-5 pt-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="font-heading text-lg font-bold">Kasa teslimleri</h2>
+              <p class="mt-1 text-xs text-muted-foreground">Sahada toplanan nakdin teslimi</p>
+            </div>
+            <button onclick="zkOpenHandover()" class="text-xs font-bold text-primary">Kasa teslimi yap</button>
+          </div>
+          <div id="handovers-list" class="mt-3 rounded-theme border border-border bg-card">
+            <p class="p-4 text-xs text-muted-foreground">Yükleniyor…</p>
+          </div>
+        </section>
+
+        <section class="px-5 pt-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="font-heading text-lg font-bold">Personel hakedişleri</h2>
+              <p class="mt-1 text-xs text-muted-foreground">Toplam kaydedilmiş hakediş</p>
+            </div>
+            <span id="stat-earnings-total" class="font-heading text-lg font-bold tabular-nums">—</span>
+          </div>
+          <div id="earnings-list" class="mt-3 rounded-theme border border-border bg-card">
+            <p class="p-4 text-xs text-muted-foreground">Yükleniyor…</p>
+          </div>
+        </section>
+
+        <section class="px-5 pb-8 pt-6">
+          <div class="flex gap-2">
+            <button onclick="zkOpenPayment()" class="flex flex-1 items-center justify-center gap-2 rounded-theme bg-primary px-3 py-3 text-xs font-bold text-primary-foreground">
+              <iconify-icon icon="lucide:plus" class="text-base"></iconify-icon>
+              Tahsilat ekle
+            </button>
+          </div>
+        </section>
+      </main>
+
+      <nav data-fv-tabbar class="fixed bottom-0 left-0 z-30 flex h-[72px] w-full items-center justify-around border-t border-border bg-card px-2">
+        <button data-fv-tab="Üretim" class="flex min-w-[62px] flex-col items-center gap-1 rounded-theme px-2.5 py-1.5 text-muted-foreground">
+          <iconify-icon icon="lucide:columns-3" class="text-xl"></iconify-icon>
+          <span class="text-[10px] font-semibold">Üretim</span>
+        </button>
+        <button data-fv-tab="Stok" class="flex min-w-[54px] flex-col items-center gap-1 px-2 py-1.5 text-muted-foreground">
+          <iconify-icon icon="lucide:boxes" class="text-xl"></iconify-icon>
+          <span class="text-[10px] font-semibold">Stok</span>
+        </button>
+        <button data-fv-tab="Finans" data-fv-tab-active="true" class="flex min-w-[54px] flex-col items-center gap-1 rounded-theme bg-secondary px-2 py-1.5 text-primary">
+          <iconify-icon icon="lucide:chart-no-axes-combined" class="text-xl"></iconify-icon>
+          <span class="text-[10px] font-bold">Finans</span>
+        </button>
+        <button data-fv-tab="Laboratuvarlar" class="flex min-w-[74px] flex-col items-center gap-1 px-1 py-1.5 text-muted-foreground">
+          <iconify-icon icon="lucide:building-2" class="text-xl"></iconify-icon>
+          <span class="text-[10px] font-semibold">Laboratuvarlar</span>
+        </button>
+        <button data-fv-tab="Ekip" class="flex min-w-[54px] flex-col items-center gap-1 px-2 py-1.5 text-muted-foreground">
+          <iconify-icon icon="lucide:users-round" class="text-xl"></iconify-icon>
+          <span class="text-[10px] font-semibold">Ekip</span>
+        </button>
+        <button data-fv-tab="Doktorlar" class="flex min-w-[62px] flex-col items-center gap-1 rounded-theme px-2.5 py-1.5 text-muted-foreground">
+          <iconify-icon icon="lucide:stethoscope" class="text-xl"></iconify-icon>
+          <span class="text-[10px] font-semibold">Doktorlar</span>
+        </button>
+      </nav>
+    </div>
+  </div>
+
+  <div id="payment-sheet" class="fixed inset-0 z-40 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkClosePayment()"></div>
+    <div class="absolute bottom-0 left-0 w-full rounded-t-theme bg-card p-5 pb-8">
+      <p class="font-heading text-lg font-bold">Tahsilat ekle</p>
+      <div class="mt-4 space-y-3">
+        <select id="pay-invoice" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+          <option value="">Fatura seçin</option>
+        </select>
+        <input id="pay-amount" type="number" min="0" step="0.01" placeholder="Tutar (₺) *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <select id="pay-method" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+          <option value="havale">Havale</option>
+          <option value="nakit">Nakit</option>
+          <option value="kart">Kart</option>
+        </select>
+      </div>
+      <p id="pay-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
+      <button onclick="zkSubmitPayment()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
+    </div>
+  </div>
+
+  <div id="handover-sheet" class="fixed inset-0 z-40 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkCloseHandover()"></div>
+    <div class="absolute bottom-0 left-0 max-h-[85vh] w-full overflow-y-auto rounded-t-theme bg-card p-5 pb-8">
+      <p class="font-heading text-lg font-bold">Kasa teslimi yap</p>
+      <p class="mt-1 text-xs text-muted-foreground">Henüz teslim etmediğiniz nakit tahsilatlar</p>
+      <div id="handover-cash-list" class="mt-4 space-y-2">
+        <p class="text-xs text-muted-foreground">Yükleniyor…</p>
+      </div>
+      <div class="mt-4 flex items-center justify-between rounded-theme border border-border bg-background px-3.5 py-3">
+        <span class="text-xs font-semibold text-muted-foreground">Toplam</span>
+        <span id="handover-total" class="font-heading text-lg font-bold tabular-nums">—</span>
+      </div>
+      <input id="handover-note" type="text" placeholder="Not (opsiyonel)" class="mt-3 h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+      <p id="handover-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
+      <button id="handover-submit" onclick="zkSubmitHandover()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Teslim talebi oluştur</button>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      var els = document.querySelectorAll('iconify-icon');
+      for (var i = 0; i < els.length; i++) (function(el) {
+        var tries = 0;
+        (function check() {
+          var s = el.status;
+          if (s === 'failed') el.setAttribute('icon', 'lucide:circle');
+          else if (s !== 'rendered' && tries++ < 40) setTimeout(check, 250);
+        })();
+      })(els[i]);
+    })();
+  </script>
+
+  <div id="zk-toast" style="position:fixed;left:50%;bottom:96px;transform:translate(-50%,16px);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;background:#17242C;color:#fff;font-family:'Source Sans 3',sans-serif;font-size:13px;font-weight:600;padding:10px 16px;border-radius:12px;z-index:9999;max-width:86%;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.18);"></div>
+  <script>
+    function zkToast(msg){
+      var el = document.getElementById('zk-toast');
+      if(!el) return;
+      el.textContent = msg;
+      el.style.opacity = '1';
+      el.style.transform = 'translate(-50%,0)';
+      clearTimeout(window.__zkToastTimer);
+      window.__zkToastTimer = setTimeout(function(){
+        el.style.opacity = '0';
+        el.style.transform = 'translate(-50%,16px)';
+      }, 2200);
+    }
+  </script>
+
+  <script>
+    (function() {
+      var routes = {"Üretim": "retim.html", "Stok": "stok.html", "Finans": "finans.html", "Laboratuvarlar": "laboratuvarlar.html", "Ekip": "ekip.html", "Doktorlar": "doktorlar.html"};
+      var bar = document.querySelector('[data-fv-tabbar]');
+      if (!bar) return;
+      bar.querySelectorAll('[data-fv-tab]').forEach(function(btn) {
+        var tab = btn.getAttribute('data-fv-tab');
+        var href = routes[tab];
+        if (!href) return;
+        if (btn.getAttribute('data-fv-tab-active') === 'true') return;
+        btn.style.cursor = 'pointer';
+        btn.addEventListener('click', function(e) {
+          e.preventDefault();
+          window.location.href = href;
+        });
+      });
+    })();
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script src="supabase-client.js"></script>
+  <script src="js/zk-picker.js"></script>
+  <script>
+    var TL = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 });
+    function escapeHtml(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+
+    ZirkonikAuth.requireAuth().then(function (session) {
+      if (!session) return;
+      var client = ZirkonikAuth.client();
+
+      // Faturaya ait kısmi ödemeler düşülmeden "bekleyen tahsilat" tam fatura
+      // tutarını gösteriyordu — payments'ı fatura bazında toplayıp kalan
+      // bakiyeyi hesaplıyoruz, tüm "bekleyen tahsilat" görünümlerinde
+      // (üstteki istatistikler, liste, tahsilat ekle dropdown'ı) bunu kullanıyoruz.
+      var paidByInvoice = {};
+
+      client.from('payments').select('invoice_id, amount').then(function (r) {
+        var payments = r.data || [];
+        var received = payments.reduce(function (s, x) { return s + Number(x.amount); }, 0);
+        document.getElementById('stat-received').textContent = TL.format(received);
+        document.getElementById('stat-net').textContent = TL.format(received);
+
+        payments.forEach(function (p) {
+          if (!p.invoice_id) return;
+          paidByInvoice[p.invoice_id] = (paidByInvoice[p.invoice_id] || 0) + Number(p.amount);
+        });
+
+        client.from('invoices').select('id, amount, status').then(function (ir) {
+          var rows = ir.data || [];
+          function remaining(inv) { return Math.max(0, Number(inv.amount) - (paidByInvoice[inv.id] || 0)); }
+          var invoiced = rows.reduce(function (s, x) { return s + Number(x.amount); }, 0);
+          var outstanding = rows.filter(function (x) { return x.status !== 'paid'; }).reduce(function (s, x) { return s + remaining(x); }, 0);
+          var overdue = rows.filter(function (x) { return x.status === 'overdue'; }).reduce(function (s, x) { return s + remaining(x); }, 0);
+          document.getElementById('stat-invoiced').textContent = TL.format(invoiced);
+          document.getElementById('stat-outstanding').textContent = TL.format(outstanding);
+          document.getElementById('stat-overdue').textContent = TL.format(overdue);
+        });
+
+        loadReceivablesList();
+      });
+
+      client.from('laboratories').select('id, name').then(function (labsRes) {
+        var labs = labsRes.data || [];
+        if (!labs.length) { document.getElementById('lab-revenue').innerHTML = '<p class="text-xs text-muted-foreground">Henüz laboratuvar yok.</p>'; return; }
+        Promise.all(labs.map(function (lab) {
+          return client.from('jobs').select('price').eq('laboratory_id', lab.id).then(function (r) {
+            var revenue = (r.data || []).reduce(function (s, x) { return s + Number(x.price || 0); }, 0);
+            return { lab: lab, revenue: revenue };
+          });
+        })).then(function (rows) {
+          document.getElementById('lab-revenue').innerHTML = rows.map(function (row) {
+            return '<div class="rounded-theme border border-border bg-card p-3.5"><div class="flex items-center justify-between">' +
+              '<p class="text-sm font-bold">' + escapeHtml(row.lab.name) + '</p>' +
+              '<p class="font-heading text-base font-bold tabular-nums">' + TL.format(row.revenue) + '</p></div></div>';
+          }).join('');
+        });
+      });
+
+      function loadReceivablesList() {
+        ZirkonikData.listInvoices().then(function (r) {
+          var rows = (r.data || []).filter(function (x) { return x.status !== 'paid'; }).slice(0, 10);
+          var el = document.getElementById('receivables-list');
+          var sel = document.getElementById('pay-invoice');
+          if (!rows.length) {
+            el.innerHTML = '<p class="py-3 text-xs text-muted-foreground">Bekleyen tahsilat yok.</p>';
+            sel.innerHTML = '<option value="">Fatura seçin</option>';
+            return;
+          }
+          var STATUS_LABELS = { unpaid: 'Bekliyor', partial: 'Kısmi ödendi', overdue: 'Gecikti' };
+          el.innerHTML = rows.map(function (inv) {
+            var isOverdue = inv.status === 'overdue';
+            var remaining = Math.max(0, Number(inv.amount) - (paidByInvoice[inv.id] || 0));
+            return '<div class="flex items-center gap-3 py-3">' +
+              '<div class="flex h-9 w-9 items-center justify-center rounded-lg ' + (isOverdue ? 'bg-destructive/10 text-destructive' : 'bg-accent/10 text-accent') + '"><iconify-icon icon="lucide:receipt-text" class="text-lg"></iconify-icon></div>' +
+              '<div class="min-w-0 flex-1"><p class="truncate text-sm font-bold">' + escapeHtml(inv.doctors ? inv.doctors.full_name : '') + '</p>' +
+              '<p class="truncate text-xs text-muted-foreground">' + escapeHtml(inv.doctors ? inv.doctors.clinic_name || '' : '') + '</p></div>' +
+              '<div class="text-right"><p class="text-sm font-bold tabular-nums">' + TL.format(remaining) + '</p>' +
+              '<span class="text-[10px] font-bold ' + (isOverdue ? 'text-destructive' : 'text-accent') + '">' + (STATUS_LABELS[inv.status] || inv.status) + '</span></div></div>';
+          }).join('');
+          sel.innerHTML = '<option value="">Fatura seçin</option>' + rows.map(function (inv) {
+            var remaining = Math.max(0, Number(inv.amount) - (paidByInvoice[inv.id] || 0));
+            return '<option value="' + inv.id + '">' + escapeHtml(inv.doctors ? inv.doctors.full_name : '') + ' — ' + TL.format(remaining) + ' kaldı</option>';
+          }).join('');
+        });
+      }
+
+      ZirkonikData.listStaffEarnings().then(function (r) {
+        var rows = r.data || [];
+        var total = rows.reduce(function (s, x) { return s + Number(x.amount); }, 0);
+        document.getElementById('stat-earnings-total').textContent = TL.format(total);
+        var el = document.getElementById('earnings-list');
+        if (!rows.length) { el.innerHTML = '<p class="p-4 text-xs text-muted-foreground">Henüz hakediş kaydı yok.</p>'; return; }
+        el.innerHTML = rows.slice(0, 10).map(function (e, i) {
+          return '<div class="flex items-center justify-between px-4 py-3' + (i < Math.min(rows.length,10) - 1 ? ' border-b border-border' : '') + '">' +
+            '<span class="text-xs font-semibold text-muted-foreground">' + escapeHtml(e.app_users ? e.app_users.full_name : '') + '</span>' +
+            '<span class="text-xs font-bold tabular-nums">' + TL.format(e.amount) + '</span></div>';
+        }).join('');
+      });
+
+      loadHandovers();
+    });
+
+    function zkOpenPayment() { document.getElementById('payment-sheet').classList.remove('hidden'); }
+    function zkClosePayment() { document.getElementById('payment-sheet').classList.add('hidden'); }
+
+    function zkSubmitPayment() {
+      var errEl = document.getElementById('pay-error');
+      errEl.classList.add('hidden');
+      var invoiceId = document.getElementById('pay-invoice').value;
+      var amount = document.getElementById('pay-amount').value;
+      if (!invoiceId || !amount) { errEl.textContent = 'Fatura ve tutar zorunludur.'; errEl.classList.remove('hidden'); return; }
+
+      var client = ZirkonikAuth.client();
+      var invoiceAmount = 0;
+
+      client.from('invoices').select('doctor_id, amount').eq('id', invoiceId).single().then(function (r) {
+        if (r.error) throw r.error;
+        invoiceAmount = Number(r.data.amount);
+        return ZirkonikAuth.me().then(function (me) {
+          return ZirkonikData.recordPayment({
+            doctor_id: r.data.doctor_id,
+            invoice_id: invoiceId,
+            amount: Number(amount),
+            method: document.getElementById('pay-method').value,
+            received_by: me.id
+          });
+        });
+      }).then(function (res) {
+        if (res.error) throw res.error;
+        // Kısmi ödemeleri desteklemek için faturaya ait tüm tahsilatların
+        // toplamına bakıyoruz — tek ödemenin tutarına değil.
+        return client.from('payments').select('amount').eq('invoice_id', invoiceId);
+      }).then(function (payRes) {
+        if (payRes.error) throw payRes.error;
+        var totalPaid = (payRes.data || []).reduce(function (s, x) { return s + Number(x.amount); }, 0);
+        var newStatus = totalPaid >= invoiceAmount ? 'paid' : 'partial';
+        return client.from('invoices').update({ status: newStatus }).eq('id', invoiceId);
+      }).then(function () {
+        zkClosePayment();
+        zkToast('Tahsilat kaydedildi.');
+        setTimeout(function () { location.reload(); }, 600);
+      }).catch(function (err) {
+        errEl.textContent = 'Kaydedilemedi: ' + err.message;
+        errEl.classList.remove('hidden');
+      });
+    }
+
+    // ---- Kasa teslimi ----
+    var handoverCashRows = [];
+
+    function loadHandovers() {
+      ZirkonikAuth.me().then(function (me) {
+        var perms = me.user_permissions;
+        perms = (perms && perms[0]) || perms || {};
+        var canConfirm = me.role === 'yonetici' || !!perms.can_view_finance;
+
+        ZirkonikData.listCashHandovers().then(function (r) {
+          var rows = (r.data || []).slice(0, 20);
+          var el = document.getElementById('handovers-list');
+          if (!rows.length) { el.innerHTML = '<p class="p-4 text-xs text-muted-foreground">Henüz kasa teslimi yok.</p>'; return; }
+          el.innerHTML = rows.map(function (h, i) {
+            var staffName = h.app_users ? h.app_users.full_name : '—';
+            var isPending = h.status === 'pending';
+            return '<div class="flex items-center justify-between px-4 py-3' + (i < rows.length - 1 ? ' border-b border-border' : '') + '">' +
+              '<div class="min-w-0"><p class="text-sm font-bold">' + escapeHtml(staffName) + '</p>' +
+              '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + new Date(h.created_at).toLocaleDateString('tr-TR') + (h.note ? ' · ' + escapeHtml(h.note) : '') + '</p></div>' +
+              '<div class="shrink-0 text-right">' +
+              '<p class="text-sm font-bold tabular-nums">' + TL.format(h.amount) + '</p>' +
+              (isPending && canConfirm
+                ? '<button onclick="zkConfirmHandover(\'' + h.id + '\')" class="mt-1 text-[10px] font-bold text-primary">Teslim alındı işaretle</button>'
+                : '<span class="text-[10px] font-bold ' + (isPending ? 'text-accent' : 'text-success') + '">' + (isPending ? 'Onay bekliyor' : 'Teslim alındı') + '</span>') +
+              '</div></div>';
+          }).join('');
+        });
+      });
+    }
+
+    function zkOpenHandover() {
+      document.getElementById('handover-error').classList.add('hidden');
+      document.getElementById('handover-note').value = '';
+      document.getElementById('handover-sheet').classList.remove('hidden');
+      var listEl = document.getElementById('handover-cash-list');
+      listEl.innerHTML = '<p class="text-xs text-muted-foreground">Yükleniyor…</p>';
+      ZirkonikAuth.me().then(function (me) {
+        ZirkonikData.listMyPendingCash(me.id).then(function (r) {
+          handoverCashRows = r.data || [];
+          if (!handoverCashRows.length) {
+            listEl.innerHTML = '<p class="text-xs text-muted-foreground">Teslim edilecek nakit tahsilatınız yok.</p>';
+            document.getElementById('handover-total').textContent = TL.format(0);
+            return;
+          }
+          listEl.innerHTML = handoverCashRows.map(function (p) {
+            return '<label class="flex items-center justify-between gap-2 rounded-theme border border-border bg-background px-3 py-2.5">' +
+              '<span class="flex items-center gap-2 text-xs"><input type="checkbox" class="ho-cash-cb" value="' + p.id + '" checked onchange="zkRecalcHandoverTotal()">' +
+              escapeHtml(p.doctors ? p.doctors.full_name : '') + '</span>' +
+              '<span class="text-xs font-bold tabular-nums">' + TL.format(p.amount) + '</span></label>';
+          }).join('');
+          zkRecalcHandoverTotal();
+        });
+      });
+    }
+    function zkCloseHandover() { document.getElementById('handover-sheet').classList.add('hidden'); }
+
+    function zkRecalcHandoverTotal() {
+      var checked = Array.prototype.slice.call(document.querySelectorAll('.ho-cash-cb:checked')).map(function (cb) { return cb.value; });
+      var total = handoverCashRows.filter(function (p) { return checked.indexOf(p.id) >= 0; }).reduce(function (s, p) { return s + Number(p.amount); }, 0);
+      document.getElementById('handover-total').textContent = TL.format(total);
+    }
+
+    function zkSubmitHandover() {
+      var errEl = document.getElementById('handover-error');
+      errEl.classList.add('hidden');
+      var checked = Array.prototype.slice.call(document.querySelectorAll('.ho-cash-cb:checked')).map(function (cb) { return cb.value; });
+      if (!checked.length) { errEl.textContent = 'En az bir tahsilat seçmelisiniz.'; errEl.classList.remove('hidden'); return; }
+      var total = handoverCashRows.filter(function (p) { return checked.indexOf(p.id) >= 0; }).reduce(function (s, p) { return s + Number(p.amount); }, 0);
+      var note = document.getElementById('handover-note').value.trim();
+
+      var btn = document.getElementById('handover-submit');
+      btn.disabled = true;
+      ZirkonikAuth.me().then(function (me) {
+        return ZirkonikData.createCashHandover(me.organization_id, me.id, checked, total, note);
+      }).then(function (res) {
+        btn.disabled = false;
+        if (res.error) throw res.error;
+        zkCloseHandover();
+        zkToast('Kasa teslim talebi oluşturuldu.');
+        loadHandovers();
+      }).catch(function (err) {
+        btn.disabled = false;
+        errEl.textContent = 'Oluşturulamadı: ' + err.message;
+        errEl.classList.remove('hidden');
+      });
+    }
+
+    function zkConfirmHandover(id) {
+      ZirkonikAuth.me().then(function (me) {
+        return ZirkonikData.confirmCashHandover(id, me.id);
+      }).then(function (res) {
+        if (res.error) { zkToast('Onaylanamadı: ' + res.error.message); return; }
+        zkToast('Kasa teslimi onaylandı.');
+        loadHandovers();
+      });
+    }
+  </script>
+
+</body>
+</html>

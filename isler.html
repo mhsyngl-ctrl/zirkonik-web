@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <title>İşler — Zirkonik</title>
+
+  <link rel="stylesheet" href="css/tailwind.css">
+  <link rel="stylesheet" href="css/ipad.css">
+  <link rel="stylesheet" href="css/zk-utils.css">
+  <script src="https://code.iconify.design/iconify-icon/2.3.0/iconify-icon.min.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@100;200;300;400;500;600;700;800;900&family=Source+Sans+3:wght@100;200;300;400;500;600;700;800;900&display=swap">
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf-autotable.min.js"></script>
+
+  <style>
+  :root {
+    --color-background: #F4F6F7;
+    --color-foreground: #17242C;
+    --color-primary: #123B4A;
+    --color-primary-foreground: #FFFFFF;
+    --color-secondary: #DCE8E8;
+    --color-secondary-foreground: #17333D;
+    --color-accent: #A14F22;
+    --color-accent-foreground: #FFFFFF;
+    --color-muted: #E7ECEE;
+    --color-muted-foreground: #5C6B73;
+    --color-card: #FFFFFF;
+    --color-card-foreground: #17242C;
+    --color-border: #CBD6D9;
+    --color-input: #FFFFFF;
+    --color-destructive: #B3262D;
+    --color-destructive-foreground: #FFFFFF;
+    --color-success: #176B5B;
+    --color-success-foreground: #FFFFFF;
+    --font-heading: 'Manrope', sans-serif;
+    --font-body: 'Source Sans 3', sans-serif;
+    --radius: 12px;
+  }
+  html { overflow-x: hidden; }
+  body { font-family: var(--font-body); -webkit-font-smoothing: antialiased; margin: 0; padding: 0; overflow-x: hidden; overscroll-behavior-x: none; }
+  select { appearance: none; -webkit-appearance: none; background-image: none; }
+  </style>
+</head>
+<body class="bg-background text-foreground m-0 p-0">
+  <div class="h-screen w-screen overflow-y-auto">
+    <div class="min-h-screen w-full bg-background text-foreground font-body pb-28">
+      <header class="border-b border-border bg-card px-5 pb-5 pt-12" style="padding-top:max(3rem,calc(env(safe-area-inset-top) + 12px));">
+        <div class="flex items-center justify-between">
+          <button onclick="location.href='retim.html'" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-card text-card-foreground">
+            <iconify-icon icon="lucide:arrow-left" class="text-xl"></iconify-icon>
+          </button>
+          <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Kayıtlar</p>
+          <div class="h-10 w-10"></div>
+        </div>
+        <h1 class="mt-4 font-heading text-2xl font-bold tracking-tight">İşler</h1>
+
+        <div class="mt-4 flex gap-1">
+          <button id="tab-active" onclick="zkSetTab('active')" class="rounded-lg bg-secondary px-3 py-1.5 text-xs font-bold text-secondary-foreground">Aktif</button>
+          <button id="tab-completed" onclick="zkSetTab('completed')" class="rounded-lg px-3 py-1.5 text-xs font-semibold text-muted-foreground">Tamamlanan</button>
+        </div>
+      </header>
+
+      <main class="px-5 pt-4">
+        <section class="space-y-2.5">
+          <select id="f-lab" onchange="loadJobs()" class="h-11 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+            <option value="">Tüm laboratuvarlar</option>
+          </select>
+          <div class="grid grid-cols-2 gap-2.5">
+            <select id="f-doctor" onchange="loadJobs()" class="h-11 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+              <option value="">Tüm doktorlar</option>
+            </select>
+            <select id="f-staff" onchange="loadJobs()" class="h-11 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+              <option value="">Tüm çalışanlar</option>
+            </select>
+          </div>
+        </section>
+
+        <section class="mt-4 flex items-center justify-between rounded-theme border border-border bg-card px-4 py-3">
+          <div>
+            <p id="results-summary" class="text-xs font-semibold text-muted-foreground">Yükleniyor…</p>
+          </div>
+          <button id="report-btn" onclick="zkGenerateReport()" class="flex items-center gap-1.5 rounded-theme border border-border bg-background px-3 py-2 text-xs font-bold text-primary">
+            <iconify-icon icon="lucide:file-down" class="text-sm"></iconify-icon>
+            Rapor
+          </button>
+        </section>
+
+        <section id="jobs-list" class="mt-3 space-y-2">
+          <p class="text-xs text-muted-foreground">Yükleniyor…</p>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      var els = document.querySelectorAll('iconify-icon');
+      for (var i = 0; i < els.length; i++) (function(el) {
+        var tries = 0;
+        (function check() {
+          var s = el.status;
+          if (s === 'failed') el.setAttribute('icon', 'lucide:circle');
+          else if (s !== 'rendered' && tries++ < 40) setTimeout(check, 250);
+        })();
+      })(els[i]);
+    })();
+  </script>
+
+  <div id="zk-toast" style="position:fixed;left:50%;bottom:96px;transform:translate(-50%,16px);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;background:#17242C;color:#fff;font-family:'Source Sans 3',sans-serif;font-size:13px;font-weight:600;padding:10px 16px;border-radius:12px;z-index:9999;max-width:86%;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.18);"></div>
+  <script>
+    function zkToast(msg){
+      var el = document.getElementById('zk-toast');
+      if(!el) return;
+      el.textContent = msg;
+      el.style.opacity = '1';
+      el.style.transform = 'translate(-50%,0)';
+      clearTimeout(window.__zkToastTimer);
+      window.__zkToastTimer = setTimeout(function(){
+        el.style.opacity = '0';
+        el.style.transform = 'translate(-50%,16px)';
+      }, 2200);
+    }
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script src="supabase-client.js"></script>
+  <script src="js/zk-picker.js"></script>
+  <script>
+    function escapeHtml(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+
+    var currentTab = new URLSearchParams(location.search).get('status') === 'completed' ? 'completed' : 'active';
+    var currentJobs = [];
+
+    function zkSetTab(tab) {
+      currentTab = tab;
+      document.getElementById('tab-active').className = tab === 'active' ? 'rounded-lg bg-secondary px-3 py-1.5 text-xs font-bold text-secondary-foreground' : 'rounded-lg px-3 py-1.5 text-xs font-semibold text-muted-foreground';
+      document.getElementById('tab-completed').className = tab === 'completed' ? 'rounded-lg bg-secondary px-3 py-1.5 text-xs font-bold text-secondary-foreground' : 'rounded-lg px-3 py-1.5 text-xs font-semibold text-muted-foreground';
+      loadJobs();
+    }
+
+    function loadFilters() {
+      var client = ZirkonikAuth.client();
+      client.from('laboratories').select('id, name').order('name').then(function (r) {
+        var sel = document.getElementById('f-lab');
+        (r.data || []).forEach(function (l) {
+          var opt = document.createElement('option');
+          opt.value = l.id; opt.textContent = l.name;
+          sel.appendChild(opt);
+        });
+      });
+      client.from('doctors').select('id, full_name, clinic_name').eq('status', 'approved').order('full_name').then(function (r) {
+        var sel = document.getElementById('f-doctor');
+        (r.data || []).forEach(function (d) {
+          var opt = document.createElement('option');
+          opt.value = d.id; opt.textContent = d.full_name + (d.clinic_name ? ' — ' + d.clinic_name : '');
+          sel.appendChild(opt);
+        });
+      });
+      ZirkonikData.listStaff().then(function (r) {
+        var staff = (r.data || []).filter(function (s) { return s.status === 'approved' && s.role !== 'doktor'; });
+        var sel = document.getElementById('f-staff');
+        staff.forEach(function (s) {
+          var opt = document.createElement('option');
+          opt.value = s.id; opt.textContent = s.full_name;
+          sel.appendChild(opt);
+        });
+      });
+    }
+
+    function loadJobs() {
+      var el = document.getElementById('jobs-list');
+      el.innerHTML = '<p class="text-xs text-muted-foreground">Yükleniyor…</p>';
+      var client = ZirkonikAuth.client();
+
+      var labId = document.getElementById('f-lab').value;
+      var doctorId = document.getElementById('f-doctor').value;
+      var staffId = document.getElementById('f-staff').value;
+
+      var staffJobIdsPromise = staffId
+        ? client.from('job_stage_history').select('job_id').eq('handled_by', staffId).then(function (r) {
+            var ids = {};
+            (r.data || []).forEach(function (row) { ids[row.job_id] = true; });
+            return Object.keys(ids);
+          })
+        : Promise.resolve(null);
+
+      staffJobIdsPromise.then(function (staffJobIds) {
+        if (staffId && (!staffJobIds || !staffJobIds.length)) {
+          currentJobs = [];
+          renderJobs();
+          return;
+        }
+        var q = client.from('jobs')
+          .select('id, job_number, restoration_type, unit_count, status, created_at, completed_at, requested_delivery_at, doctors(full_name, clinic_name), laboratories(name)')
+          .eq('status', currentTab);
+        if (labId) q = q.eq('laboratory_id', labId);
+        if (doctorId) q = q.eq('doctor_id', doctorId);
+        if (staffJobIds) q = q.in('id', staffJobIds);
+        q = q.order(currentTab === 'completed' ? 'completed_at' : 'created_at', { ascending: false }).limit(200);
+
+        q.then(function (r) {
+          currentJobs = r.data || [];
+          renderJobs();
+        });
+      });
+    }
+
+    function renderJobs() {
+      var el = document.getElementById('jobs-list');
+      var totalTeeth = currentJobs.reduce(function (s, j) { return s + Number(j.unit_count || 0); }, 0);
+      document.getElementById('results-summary').textContent = currentJobs.length + ' iş · ' + totalTeeth + ' diş';
+
+      if (!currentJobs.length) {
+        el.innerHTML = '<p class="p-4 text-center text-xs text-muted-foreground">Bu filtrelerle eşleşen iş yok.</p>';
+        return;
+      }
+      el.innerHTML = currentJobs.map(function (j) {
+        var dateLabel = currentTab === 'completed'
+          ? (j.completed_at ? new Date(j.completed_at).toLocaleDateString('tr-TR') : '—')
+          : (j.requested_delivery_at ? new Date(j.requested_delivery_at).toLocaleDateString('tr-TR') : 'Teslim tarihi yok');
+        return '<button onclick="location.href=\'detay.html?id=' + j.id + '\'" class="flex w-full items-center justify-between gap-3 rounded-theme border border-border bg-card px-3.5 py-3 text-left">' +
+          '<div class="min-w-0"><p class="text-sm font-bold">' + escapeHtml(j.job_number) + '</p>' +
+          '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + escapeHtml(j.doctors ? j.doctors.full_name : '') + ' · ' + escapeHtml(j.restoration_type || '') + (j.unit_count ? ' · ' + j.unit_count + ' diş' : '') + '</p></div>' +
+          '<span class="shrink-0 text-[10px] font-semibold text-muted-foreground">' + escapeHtml(dateLabel) + '</span>' +
+          '</button>';
+      }).join('');
+    }
+
+    function zkGenerateReport() {
+      if (!currentJobs.length) { zkToast('Rapor oluşturulacak iş yok.'); return; }
+      var jsPDFCtor = window.jspdf.jsPDF;
+      var doc = new jsPDFCtor();
+      var title = currentTab === 'active' ? 'Aktif İşler Raporu' : 'Tamamlanan İşler Raporu';
+      var docLabel = document.getElementById('f-doctor').selectedOptions[0].textContent;
+      var staffLabel = document.getElementById('f-staff').selectedOptions[0].textContent;
+
+      doc.setFontSize(14);
+      doc.text(title, 14, 16);
+      doc.setFontSize(9);
+      doc.setTextColor(120);
+      doc.text('Oluşturulma: ' + new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
+        + (docLabel !== 'Tüm doktorlar' ? ' · Doktor: ' + docLabel : '')
+        + (staffLabel !== 'Tüm çalışanlar' ? ' · Çalışan: ' + staffLabel : ''), 14, 22);
+
+      var totalTeeth = currentJobs.reduce(function (s, j) { return s + Number(j.unit_count || 0); }, 0);
+      var rows = currentJobs.map(function (j) {
+        var dateVal = currentTab === 'completed' ? j.completed_at : j.requested_delivery_at;
+        return [
+          j.job_number,
+          j.doctors ? j.doctors.full_name : '—',
+          j.restoration_type || '—',
+          String(j.unit_count || '—'),
+          dateVal ? new Date(dateVal).toLocaleDateString('tr-TR') : '—'
+        ];
+      });
+
+      doc.autoTable({
+        startY: 28,
+        head: [['İş No', 'Doktor', 'Restorasyon', 'Diş', currentTab === 'completed' ? 'Tamamlanma' : 'Teslim']],
+        body: rows,
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [18, 59, 74] },
+        foot: [['Toplam', '', '', String(totalTeeth) + ' diş', String(currentJobs.length) + ' iş']],
+        footStyles: { fillColor: [231, 236, 238], textColor: [23, 36, 44], fontStyle: 'bold' }
+      });
+
+      var blob = doc.output('blob');
+      var filename = (currentTab === 'active' ? 'aktif-isler' : 'tamamlanan-isler') + '-' + new Date().toISOString().slice(0, 10) + '.pdf';
+
+      var reader = new FileReader();
+      reader.onloadend = function () {
+        var base64 = reader.result.substring(reader.result.indexOf(',') + 1);
+        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.nativeShare) {
+          window.webkit.messageHandlers.nativeShare.postMessage({ filename: filename, base64: base64, mimeType: 'application/pdf' });
+        } else {
+          zkToast('Rapor paylaşımı yalnızca iOS uygulamasında çalışır.');
+        }
+      };
+      reader.readAsDataURL(blob);
+    }
+
+    ZirkonikAuth.requireAuth().then(function (session) {
+      if (!session) return;
+      zkSetTab(currentTab);
+      loadFilters();
+    });
+  </script>
+
+</body>
+</html>

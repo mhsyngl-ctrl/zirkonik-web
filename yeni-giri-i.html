@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <title>Yeni İş Girişi — Zirkonik</title>
+
+  <link rel="stylesheet" href="css/tailwind.css">
+  <link rel="stylesheet" href="css/ipad.css">
+  <link rel="stylesheet" href="css/zk-utils.css">
+  <script src="https://code.iconify.design/iconify-icon/2.3.0/iconify-icon.min.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@100;200;300;400;500;600;700;800;900&family=Source+Sans+3:wght@100;200;300;400;500;600;700;800;900&display=swap">
+
+  <style>
+  :root {
+    --color-background: #F4F6F7;
+    --color-foreground: #17242C;
+    --color-primary: #123B4A;
+    --color-primary-foreground: #FFFFFF;
+    --color-secondary: #DCE8E8;
+    --color-secondary-foreground: #17333D;
+    --color-accent: #A14F22;
+    --color-accent-foreground: #FFFFFF;
+    --color-muted: #E7ECEE;
+    --color-muted-foreground: #5C6B73;
+    --color-card: #FFFFFF;
+    --color-card-foreground: #17242C;
+    --color-border: #CBD6D9;
+    --color-input: #FFFFFF;
+    --color-destructive: #B3262D;
+    --color-destructive-foreground: #FFFFFF;
+    --color-success: #176B5B;
+    --color-success-foreground: #FFFFFF;
+    --font-heading: 'Manrope', sans-serif;
+    --font-body: 'Source Sans 3', sans-serif;
+    --radius: 12px;
+  }
+  html { overflow-x: hidden; }
+  body { font-family: var(--font-body); -webkit-font-smoothing: antialiased; margin: 0; padding: 0; overflow-x: hidden; overscroll-behavior-x: none; }
+  select { appearance: none; -webkit-appearance: none; background-image: none; }
+  </style>
+</head>
+<body class="bg-background text-foreground m-0 p-0">
+  <div class="h-screen w-screen overflow-y-auto">
+    <div class="min-h-screen w-full bg-background text-foreground font-body pb-32">
+      <header class="border-b border-border bg-card">
+        <div class="px-5 pt-12 pb-5" style="padding-top:max(3rem,calc(env(safe-area-inset-top) + 12px));">
+          <div class="flex items-center justify-between">
+            <button onclick="location.href='retim.html'" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-card text-card-foreground">
+              <iconify-icon icon="lucide:arrow-left" class="text-xl"></iconify-icon>
+            </button>
+            <div class="text-center">
+              <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">İş akışı</p>
+            </div>
+            <div class="h-10 w-10"></div>
+          </div>
+
+          <div class="mt-7 flex items-start justify-between">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Yeni iş girişi</p>
+              <h1 class="mt-1 font-heading text-2xl font-bold tracking-tight">Yeni iş oluştur</h1>
+              <p class="mt-1.5 max-w-[290px] text-sm leading-5 text-muted-foreground">İş bilgilerini ve üretim akışını kontrollü şekilde tanımlayın.</p>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main class="px-5 pt-5">
+        <form id="job-form">
+          <section class="mt-2">
+            <div class="mb-3 flex items-end justify-between">
+              <div>
+                <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">01 · İş sahibi</p>
+                <h2 class="mt-1 font-heading text-lg font-bold">Klinik bağlantısı</h2>
+              </div>
+              <span class="text-[10px] font-semibold text-destructive">Zorunlu alanlar *</span>
+            </div>
+
+            <div class="space-y-3">
+              <label class="block">
+                <span class="mb-1.5 block text-xs font-bold text-card-foreground">Doktor *</span>
+                <select id="f-doctor" required class="flex h-12 w-full items-center gap-3 rounded-theme border border-border bg-input px-3.5 text-sm">
+                  <option value="">Doktor seçin</option>
+                </select>
+              </label>
+
+              <label class="block">
+                <span class="mb-1.5 block text-xs font-bold text-card-foreground">Sorumlu laboratuvar *</span>
+                <select id="f-lab" required class="flex h-12 w-full items-center gap-3 rounded-theme border border-border bg-input px-3.5 text-sm">
+                  <option value="">Laboratuvar seçin</option>
+                </select>
+              </label>
+            </div>
+          </section>
+
+          <section class="mt-7 border-t border-border pt-6">
+            <div class="mb-3">
+              <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">02 · İş bilgileri</p>
+              <h2 class="mt-1 font-heading text-lg font-bold">İş tanımı</h2>
+            </div>
+
+            <div class="space-y-3">
+              <label class="block">
+                <span class="mb-1.5 block text-xs font-bold">Çalışma türü *</span>
+                <select id="f-type" required class="flex h-12 w-full items-center rounded-theme border border-border bg-input px-3.5 text-sm">
+                  <option value="">Seçin</option>
+                </select>
+              </label>
+
+              <label class="block">
+                <span class="mb-1.5 block text-xs font-bold">İç referans / hasta notu</span>
+                <input id="f-reference" type="text" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="Örn. Üst çene restorasyonu">
+              </label>
+
+              <label class="block">
+                <span class="mb-1.5 block text-xs font-bold">Öncelik</span>
+                <select id="f-priority" class="flex h-12 w-full items-center rounded-theme border border-border bg-input px-3.5 text-sm">
+                  <option value="0">Standart</option>
+                  <option value="1">Öncelikli</option>
+                </select>
+              </label>
+            </div>
+          </section>
+
+          <section class="mt-7 border-t border-border pt-6">
+            <div class="mb-3">
+              <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">03 · Çalışma formu</p>
+              <h2 class="mt-1 font-heading text-lg font-bold">Diş yerleşimi ve klinik talepler</h2>
+            </div>
+            <div id="wf-container"></div>
+            <div class="mt-3 grid grid-cols-2 gap-3">
+              <label class="block">
+                <span class="mb-1.5 block text-xs font-bold">Diş sayısı *</span>
+                <input id="f-tooth-count" type="number" min="1" step="1" value="1" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+              </label>
+              <label class="block">
+                <span class="mb-1.5 block text-xs font-bold">Diş numaraları</span>
+                <input id="f-teeth" type="text" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="Şablondan otomatik">
+              </label>
+            </div>
+          </section>
+
+          <section class="mt-7 border-t border-border pt-6">
+            <div class="mb-3">
+              <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">04 · Üretim planı</p>
+              <h2 class="mt-1 font-heading text-lg font-bold">Teslimat</h2>
+            </div>
+            <label class="block">
+              <span class="mb-1.5 block text-xs font-bold">Tahmini teslim tarihi</span>
+              <input id="f-delivery" type="date" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+            </label>
+          </section>
+
+          <section class="mt-7 border-t border-border pt-6">
+            <div class="mb-3">
+              <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">05 · Fiyat</p>
+              <h2 class="mt-1 font-heading text-lg font-bold">Doktor fiyatı</h2>
+            </div>
+            <p id="f-price-hint" class="mb-2 hidden text-xs font-semibold text-success"></p>
+            <label class="block">
+              <span class="mb-1.5 block text-xs font-bold">Tutar</span>
+              <input id="f-price" type="number" min="0" step="0.01" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="0">
+            </label>
+          </section>
+
+          <p id="form-error" class="mt-4 hidden text-xs font-semibold text-destructive"></p>
+        </form>
+      </main>
+
+      <div class="fixed bottom-0 left-0 z-30 w-full border-t border-border bg-card/95 px-5 pb-6 pt-3 backdrop-blur-md">
+        <div class="mb-2 flex items-center justify-between">
+          <p class="text-[11px] text-muted-foreground">İş numarası oluşturulduğunda atanır</p>
+        </div>
+        <button id="submit-btn" class="flex h-12 w-full items-center justify-center gap-2 rounded-theme bg-primary font-heading text-sm font-bold text-primary-foreground shadow-lg">
+          <iconify-icon icon="lucide:plus-circle" class="text-lg"></iconify-icon>
+          İşi oluştur
+        </button>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function() {
+      var els = document.querySelectorAll('iconify-icon');
+      for (var i = 0; i < els.length; i++) (function(el) {
+        var tries = 0;
+        (function check() {
+          var s = el.status;
+          if (s === 'failed') el.setAttribute('icon', 'lucide:circle');
+          else if (s !== 'rendered' && tries++ < 40) setTimeout(check, 250);
+        })();
+      })(els[i]);
+    })();
+  </script>
+
+  <div id="zk-toast" style="position:fixed;left:50%;bottom:96px;transform:translate(-50%,16px);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;background:#17242C;color:#fff;font-family:'Source Sans 3',sans-serif;font-size:13px;font-weight:600;padding:10px 16px;border-radius:12px;z-index:9999;max-width:86%;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.18);"></div>
+  <script>
+    function zkToast(msg){
+      var el = document.getElementById('zk-toast');
+      if(!el) return;
+      el.textContent = msg;
+      el.style.opacity = '1';
+      el.style.transform = 'translate(-50%,0)';
+      clearTimeout(window.__zkToastTimer);
+      window.__zkToastTimer = setTimeout(function(){
+        el.style.opacity = '0';
+        el.style.transform = 'translate(-50%,16px)';
+      }, 2200);
+    }
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script src="supabase-client.js"></script>
+  <script src="js/zk-picker.js"></script>
+  <script src="js/work-form.js"></script>
+  <script>
+    var labs = [];
+    var doctors = [];
+    var priceItems = [];
+    var priceOverrides = [];
+
+    ZkWorkForm.render(document.getElementById('wf-container'));
+    ZkWorkForm.onTeethChange = function (teeth) {
+      document.getElementById('f-teeth').value = teeth.join(', ');
+      if (teeth.length) document.getElementById('f-tooth-count').value = teeth.length;
+      zkRecalcPrice();
+    };
+    document.getElementById('f-tooth-count').addEventListener('input', zkRecalcPrice);
+
+    function zkRecalcPrice() {
+      var itemId = document.getElementById('f-type').value;
+      var item = priceItems.find(function (p) { return p.id === itemId; });
+      var hint = document.getElementById('f-price-hint');
+      if (!item) { hint.classList.add('hidden'); return; }
+      var count = Math.max(1, Number(document.getElementById('f-tooth-count').value) || 1);
+      var doctorId = document.getElementById('f-doctor').value || null;
+      var labId = document.getElementById('f-lab').value || null;
+      var unit = ZirkonikData.resolveUnitPrice(item, priceOverrides, doctorId, labId);
+      if (unit == null) {
+        hint.textContent = 'Bu kalem için birim fiyat tanımlı değil — tutarı elle girin.';
+        hint.classList.remove('hidden');
+        return;
+      }
+      var isSpecial = item.unit_price == null || unit !== Number(item.unit_price);
+      var total = unit * count;
+      document.getElementById('f-price').value = total;
+      hint.textContent = unit + ' ' + (item.currency || '$') + ' × ' + count + ' diş = ' + total + ' ' + (item.currency || '$') + (isSpecial ? ' · anlaşmalı fiyat' : '');
+      hint.classList.remove('hidden');
+    }
+
+    ZirkonikAuth.requireAuth().then(function (session) {
+      if (!session) return;
+      var client = ZirkonikAuth.client();
+
+      ZirkonikData.listPriceOverrides().then(function (r) {
+        priceOverrides = r.data || [];
+        zkRecalcPrice();
+      });
+      document.getElementById('f-doctor').addEventListener('change', zkRecalcPrice);
+      document.getElementById('f-lab').addEventListener('change', zkRecalcPrice);
+
+      ZirkonikData.listPriceItems().then(function (r) {
+        priceItems = r.data || [];
+        var sel = document.getElementById('f-type');
+        var groups = {};
+        priceItems.forEach(function (p) {
+          if (!groups[p.category]) {
+            groups[p.category] = document.createElement('optgroup');
+            groups[p.category].label = p.category;
+            sel.appendChild(groups[p.category]);
+          }
+          var opt = document.createElement('option');
+          opt.value = p.id;
+          opt.textContent = p.name;
+          groups[p.category].appendChild(opt);
+        });
+        sel.addEventListener('change', zkRecalcPrice);
+      });
+
+      client.from('laboratories').select('id, name').order('name').then(function (r) {
+        labs = r.data || [];
+        var sel = document.getElementById('f-lab');
+        labs.forEach(function (l) {
+          var opt = document.createElement('option');
+          opt.value = l.id; opt.textContent = l.name;
+          sel.appendChild(opt);
+        });
+        if (labs.length === 1) sel.value = labs[0].id;
+      });
+
+      client.from('doctors').select('id, full_name, clinic_name').eq('status', 'approved').order('full_name').then(function (r) {
+        doctors = r.data || [];
+        var sel = document.getElementById('f-doctor');
+        doctors.forEach(function (d) {
+          var opt = document.createElement('option');
+          opt.value = d.id; opt.textContent = d.full_name + (d.clinic_name ? ' — ' + d.clinic_name : '');
+          sel.appendChild(opt);
+        });
+        if (!doctors.length) {
+          var opt = document.createElement('option');
+          opt.value = ''; opt.textContent = 'Onaylı doktor yok — önce Doktorlar sekmesinden ekleyin';
+          sel.innerHTML = ''; sel.appendChild(opt);
+        }
+      });
+    });
+
+    document.getElementById('submit-btn').addEventListener('click', function () {
+      var errEl = document.getElementById('form-error');
+      errEl.classList.add('hidden');
+
+      var doctorId = document.getElementById('f-doctor').value;
+      var labId = document.getElementById('f-lab').value;
+      var priceItemId = document.getElementById('f-type').value;
+      var priceItem = priceItems.find(function (p) { return p.id === priceItemId; });
+
+      if (!doctorId || !labId || !priceItem) {
+        errEl.textContent = 'Doktor, laboratuvar ve çalışma türü zorunludur.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      var client = ZirkonikAuth.client();
+      var btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+
+      ZirkonikAuth.me().then(function (me) {
+        // Çalışma türünün rotasını bu laboratuvarın odalarına indirger —
+        // rota başka labın odalarını da içerebilir, iş tek labda yürür.
+        var routePromise = (priceItem.route_room_ids && priceItem.route_room_ids.length)
+          ? client.from('rooms').select('id').eq('laboratory_id', labId).then(function (rr) {
+              var labRoomIds = (rr.data || []).map(function (r) { return r.id; });
+              var filtered = priceItem.route_room_ids.filter(function (id) { return labRoomIds.indexOf(id) >= 0; });
+              return filtered.length ? filtered : null;
+            })
+          : Promise.resolve(null);
+        return routePromise.then(function (plannedRoute) {
+        return ZirkonikData.nextJobNumber(labId).then(function (jobNumber) {
+          var deliveryVal = document.getElementById('f-delivery').value;
+          return ZirkonikData.createJob({
+            planned_route: plannedRoute,
+            organization_id: me.organization_id,
+            laboratory_id: labId,
+            job_number: jobNumber,
+            doctor_id: doctorId,
+            restoration_type: priceItem.name,
+            price_item_id: priceItem.id,
+            work_form: ZkWorkForm.getData(),
+            patient_reference: document.getElementById('f-reference').value.trim() || null,
+            teeth_numbers: document.getElementById('f-teeth').value.trim() || null,
+            unit_count: Math.max(1, Number(document.getElementById('f-tooth-count').value) || 1),
+            is_priority: document.getElementById('f-priority').value === '1',
+            requested_delivery_at: deliveryVal ? new Date(deliveryVal).toISOString() : null,
+            price: document.getElementById('f-price').value ? Number(document.getElementById('f-price').value) : null,
+            created_by: me.id
+          });
+        });
+        });
+      }).then(function (res) {
+        if (res.error) throw res.error;
+        var job = res.data;
+        if (job.price) {
+          // İş kaydı burada zaten oluştu — fatura eklenirken bir hata olursa
+          // (ör. finans yetkisi olmayan personel) bunu iş oluşturma hatasıymış
+          // gibi göstermemek için ayrı yakalıyoruz; iş yine de kaydedilmiş olur.
+          return client.from('doctors').select('payment_terms_days').eq('id', job.doctor_id).single().then(function (docRes) {
+            var days = (docRes.data && docRes.data.payment_terms_days) || 30;
+            var due = new Date(); due.setDate(due.getDate() + days);
+            return client.from('invoices').insert({
+              organization_id: job.organization_id, doctor_id: job.doctor_id, job_id: job.id,
+              amount: job.price, due_date: due.toISOString().slice(0, 10), status: 'unpaid'
+            });
+          }).then(function (invRes) {
+            if (invRes.error) zkToast('İş oluşturuldu ama fatura eklenemedi: ' + invRes.error.message);
+            return job;
+          });
+        }
+        return job;
+      }).then(function (job) {
+        window.location.href = 'detay.html?id=' + job.id;
+      }).catch(function (err) {
+        errEl.textContent = 'İş oluşturulamadı: ' + err.message;
+        errEl.classList.remove('hidden');
+        btn.disabled = false;
+      });
+    });
+  </script>
+
+</body>
+</html>

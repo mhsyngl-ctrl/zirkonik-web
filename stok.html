@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <title>Stok — Zirkonik</title>
+
+  <link rel="stylesheet" href="css/tailwind.css">
+  <link rel="stylesheet" href="css/ipad.css">
+  <link rel="stylesheet" href="css/zk-utils.css">
+  <script src="https://code.iconify.design/iconify-icon/2.3.0/iconify-icon.min.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@100;200;300;400;500;600;700;800;900&family=Source+Sans+3:wght@100;200;300;400;500;600;700;800;900&display=swap">
+
+  <style>
+  :root {
+    --color-background: #F4F6F7;
+    --color-foreground: #17242C;
+    --color-primary: #123B4A;
+    --color-primary-foreground: #FFFFFF;
+    --color-secondary: #DCE8E8;
+    --color-secondary-foreground: #17333D;
+    --color-accent: #A14F22;
+    --color-accent-foreground: #FFFFFF;
+    --color-muted: #E7ECEE;
+    --color-muted-foreground: #5C6B73;
+    --color-card: #FFFFFF;
+    --color-card-foreground: #17242C;
+    --color-border: #CBD6D9;
+    --color-input: #FFFFFF;
+    --color-destructive: #B3262D;
+    --color-destructive-foreground: #FFFFFF;
+    --color-success: #176B5B;
+    --color-success-foreground: #FFFFFF;
+    --font-heading: 'Manrope', sans-serif;
+    --font-body: 'Source Sans 3', sans-serif;
+    --radius: 12px;
+  }
+  html { overflow-x: hidden; }
+  body { font-family: var(--font-body); -webkit-font-smoothing: antialiased; margin: 0; padding: 0; overflow-x: hidden; overscroll-behavior-x: none; }
+  </style>
+</head>
+<body class="bg-background text-foreground m-0 p-0">
+  <div class="h-screen w-screen overflow-y-auto">
+    <div class="min-h-screen w-full bg-background text-foreground font-body pb-32">
+      <header class="bg-primary text-primary-foreground px-5 pt-12 pb-6" style="padding-top:max(3rem,calc(env(safe-area-inset-top) + 12px));">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.16em] text-white/55">Operasyon merkezi</p>
+            <h1 class="mt-1 font-heading text-2xl font-bold tracking-tight">Stok</h1>
+          </div>
+          <button onclick="zkOpenAddMaterial()" class="flex h-10 w-10 items-center justify-center rounded-theme bg-white/10">
+            <iconify-icon icon="lucide:plus" class="text-xl"></iconify-icon>
+          </button>
+        </div>
+        <div id="lab-switch-wrap" class="mt-3 hidden">
+          <select id="lab-switch" aria-label="Laboratuvar seç" class="h-10 w-full rounded-theme border border-white/20 bg-white/10 px-3 text-xs font-semibold text-primary-foreground"></select>
+        </div>
+      </header>
+
+      <main>
+        <section class="px-5 pt-5">
+          <div class="grid grid-cols-2 gap-3">
+            <div class="rounded-theme border border-border bg-card p-4">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Stok değeri</p>
+              <p id="stat-value" class="mt-3 font-heading text-[23px] font-bold tracking-tight tabular-nums">—</p>
+              <p id="stat-item-count" class="mt-1 text-[11px] text-muted-foreground">—</p>
+            </div>
+            <div class="rounded-theme border border-accent/30 bg-accent/5 p-4">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Kritik kalem</p>
+              <p id="stat-critical" class="mt-3 font-heading text-[23px] font-bold tracking-tight text-accent tabular-nums">—</p>
+              <p class="mt-1 text-[11px] text-accent">Acil aksiyon gerekli</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="px-5 pt-6">
+          <div class="flex items-end justify-between">
+            <div>
+              <h2 class="font-heading text-lg font-bold">Kritik stok</h2>
+              <p class="mt-0.5 text-xs text-muted-foreground">Minimum eşiğin altındaki kalemler</p>
+            </div>
+          </div>
+          <div id="critical-list" class="mt-3 overflow-hidden rounded-theme border border-border bg-card">
+            <p class="p-4 text-xs text-muted-foreground">Yükleniyor…</p>
+          </div>
+        </section>
+
+        <section class="px-5 pt-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="font-heading text-lg font-bold">Son hareketler</h2>
+            </div>
+            <button onclick="zkOpenTxn()" class="text-xs font-semibold text-primary">Hareket ekle</button>
+          </div>
+          <div id="txn-list" class="mt-3 rounded-theme border border-border bg-card">
+            <p class="p-4 text-xs text-muted-foreground">Yükleniyor…</p>
+          </div>
+        </section>
+
+        <section class="px-5 pb-8 pt-6">
+          <div class="flex items-center justify-between">
+            <h2 class="font-heading text-lg font-bold">Malzeme kategorileri</h2>
+          </div>
+          <div id="category-breakdown" class="mt-3 grid grid-cols-2 gap-3">
+            <p class="text-xs text-muted-foreground">Yükleniyor…</p>
+          </div>
+        </section>
+      </main>
+
+      <nav data-fv-tabbar class="fixed bottom-0 left-0 z-30 flex h-[72px] w-full items-center justify-around border-t border-border bg-card px-2">
+        <button data-fv-tab="Üretim" class="flex min-w-[62px] flex-col items-center gap-1 rounded-theme px-2.5 py-1.5 text-muted-foreground">
+          <iconify-icon icon="lucide:columns-3" class="text-xl"></iconify-icon>
+          <span class="text-[10px] font-semibold">Üretim</span>
+        </button>
+        <button data-fv-tab="Stok" data-fv-tab-active="true" class="flex min-w-[54px] flex-col items-center gap-1 rounded-theme bg-secondary px-2 py-1.5 text-primary">
+          <iconify-icon icon="lucide:boxes" class="text-xl"></iconify-icon>
+          <span class="text-[10px] font-bold">Stok</span>
+        </button>
+        <button data-fv-tab="Finans" class="flex min-w-[54px] flex-col items-center gap-1 px-2 py-1.5 text-muted-foreground">
+          <iconify-icon icon="lucide:chart-no-axes-combined" class="text-xl"></iconify-icon>
+          <span class="text-[10px] font-semibold">Finans</span>
+        </button>
+        <button data-fv-tab="Laboratuvarlar" class="flex min-w-[74px] flex-col items-center gap-1 px-1 py-1.5 text-muted-foreground">
+          <iconify-icon icon="lucide:building-2" class="text-xl"></iconify-icon>
+          <span class="text-[10px] font-semibold">Laboratuvarlar</span>
+        </button>
+        <button data-fv-tab="Ekip" class="flex min-w-[54px] flex-col items-center gap-1 px-2 py-1.5 text-muted-foreground">
+          <iconify-icon icon="lucide:users-round" class="text-xl"></iconify-icon>
+          <span class="text-[10px] font-semibold">Ekip</span>
+        </button>
+        <button data-fv-tab="Doktorlar" class="flex min-w-[62px] flex-col items-center gap-1 rounded-theme px-2.5 py-1.5 text-muted-foreground">
+          <iconify-icon icon="lucide:stethoscope" class="text-xl"></iconify-icon>
+          <span class="text-[10px] font-semibold">Doktorlar</span>
+        </button>
+      </nav>
+    </div>
+  </div>
+
+  <div id="add-material-sheet" class="fixed inset-0 z-40 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkCloseAddMaterial()"></div>
+    <div class="absolute bottom-0 left-0 w-full rounded-t-theme bg-card p-5 pb-8">
+      <p class="font-heading text-lg font-bold">Malzeme ekle</p>
+      <div class="mt-4 space-y-3">
+        <input id="nm-name" type="text" placeholder="Malzeme adı *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <input id="nm-category" type="text" placeholder="Kategori (Örn. CAD/CAM)" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <div class="grid grid-cols-2 gap-2">
+          <input id="nm-unit" type="text" placeholder="Birim (adet, ml...)" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+          <input id="nm-cost" type="number" min="0" step="0.01" placeholder="Birim maliyet (₺)" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        </div>
+        <input id="nm-threshold" type="number" min="0" step="0.01" placeholder="Kritik eşik (min. miktar)" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+      </div>
+      <p id="nm-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
+      <button onclick="zkSubmitAddMaterial()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
+    </div>
+  </div>
+
+  <div id="txn-sheet" class="fixed inset-0 z-40 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkCloseTxn()"></div>
+    <div class="absolute bottom-0 left-0 w-full rounded-t-theme bg-card p-5 pb-8">
+      <p class="font-heading text-lg font-bold">Stok hareketi</p>
+      <div class="mt-4 space-y-3">
+        <select id="tx-material" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"><option value="">Malzeme seçin</option></select>
+        <select id="tx-type" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+          <option value="giris">Giriş (stok artışı)</option>
+          <option value="cikis">Çıkış (stok düşümü)</option>
+        </select>
+        <input id="tx-qty" type="number" min="0" step="0.01" placeholder="Miktar *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+      </div>
+      <p id="tx-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
+      <button onclick="zkSubmitTxn()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      var els = document.querySelectorAll('iconify-icon');
+      for (var i = 0; i < els.length; i++) (function(el) {
+        var tries = 0;
+        (function check() {
+          var s = el.status;
+          if (s === 'failed') el.setAttribute('icon', 'lucide:circle');
+          else if (s !== 'rendered' && tries++ < 40) setTimeout(check, 250);
+        })();
+      })(els[i]);
+    })();
+  </script>
+
+  <div id="zk-toast" style="position:fixed;left:50%;bottom:96px;transform:translate(-50%,16px);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;background:#17242C;color:#fff;font-family:'Source Sans 3',sans-serif;font-size:13px;font-weight:600;padding:10px 16px;border-radius:12px;z-index:9999;max-width:86%;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.18);"></div>
+  <script>
+    function zkToast(msg){
+      var el = document.getElementById('zk-toast');
+      if(!el) return;
+      el.textContent = msg;
+      el.style.opacity = '1';
+      el.style.transform = 'translate(-50%,0)';
+      clearTimeout(window.__zkToastTimer);
+      window.__zkToastTimer = setTimeout(function(){
+        el.style.opacity = '0';
+        el.style.transform = 'translate(-50%,16px)';
+      }, 2200);
+    }
+  </script>
+
+  <script>
+    (function() {
+      var routes = {"Üretim": "retim.html", "Stok": "stok.html", "Finans": "finans.html", "Laboratuvarlar": "laboratuvarlar.html", "Ekip": "ekip.html", "Doktorlar": "doktorlar.html"};
+      var bar = document.querySelector('[data-fv-tabbar]');
+      if (!bar) return;
+      bar.querySelectorAll('[data-fv-tab]').forEach(function(btn) {
+        var tab = btn.getAttribute('data-fv-tab');
+        var href = routes[tab];
+        if (!href) return;
+        if (btn.getAttribute('data-fv-tab-active') === 'true') return;
+        btn.style.cursor = 'pointer';
+        btn.addEventListener('click', function(e) {
+          e.preventDefault();
+          window.location.href = href;
+        });
+      });
+    })();
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script src="supabase-client.js"></script>
+  <script src="js/zk-picker.js"></script>
+  <script>
+    var TL = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 });
+    function escapeHtml(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+
+    var primaryLab = null;
+    var allLabs = [];
+
+    function loadStock() {
+      var client = ZirkonikAuth.client();
+      client.from('laboratories').select('id, name').order('created_at').then(function (r) {
+        allLabs = r.data || [];
+        if (!allLabs.length) {
+          document.getElementById('lab-switch-wrap').classList.add('hidden');
+          document.getElementById('critical-list').innerHTML = '<p class="p-4 text-xs text-muted-foreground">Önce Laboratuvarlar sekmesinden bir laboratuvar ekleyin.</p>';
+          document.getElementById('stat-value').textContent = TL.format(0);
+          document.getElementById('stat-critical').textContent = 0;
+          document.getElementById('stat-item-count').textContent = '0 aktif kalem';
+          return;
+        }
+
+        var wrap = document.getElementById('lab-switch-wrap');
+        var sel = document.getElementById('lab-switch');
+        if (allLabs.length > 1) {
+          sel.innerHTML = allLabs.map(function (l) { return '<option value="' + l.id + '">' + escapeHtml(l.name) + '</option>'; }).join('');
+          sel.value = (primaryLab && allLabs.some(function (l) { return l.id === primaryLab.id; })) ? primaryLab.id : allLabs[0].id;
+          wrap.classList.remove('hidden');
+        } else {
+          wrap.classList.add('hidden');
+        }
+
+        var selectedLab = allLabs[0];
+        for (var i = 0; i < allLabs.length; i++) { if (allLabs[i].id === sel.value) { selectedLab = allLabs[i]; break; } }
+        loadStockForLab(selectedLab);
+      });
+    }
+
+    function loadStockForLab(lab) {
+      primaryLab = lab;
+      var client = ZirkonikAuth.client();
+
+      ZirkonikData.listStock(primaryLab.id).then(function (stockRes) {
+          var rows = stockRes.data || [];
+          var totalValue = rows.reduce(function (s, x) { return s + Number(x.quantity_on_hand) * Number(x.materials ? x.materials.unit_cost || 0 : 0); }, 0);
+          var critical = rows.filter(function (x) { return Number(x.quantity_on_hand) <= Number(x.min_threshold); });
+          document.getElementById('stat-value').textContent = TL.format(totalValue);
+          document.getElementById('stat-item-count').textContent = rows.length + ' aktif kalem';
+          document.getElementById('stat-critical').textContent = critical.length;
+
+          document.getElementById('critical-list').innerHTML = critical.length ? critical.map(function (row, i) {
+            var pct = Math.min(100, Math.round((Number(row.quantity_on_hand) / Math.max(1, Number(row.min_threshold))) * 100));
+            return '<div class="' + (i < critical.length - 1 ? 'border-b border-border ' : '') + 'px-3 py-3.5">' +
+              '<div class="flex items-center justify-between"><p class="font-heading text-xs font-bold">' + escapeHtml(row.materials.name) + '</p>' +
+              '<p class="text-[10px] font-bold text-accent">' + row.quantity_on_hand + ' / ' + row.min_threshold + ' ' + escapeHtml(row.materials.unit) + '</p></div>' +
+              '<div class="mt-2 h-1.5 rounded-full bg-muted"><div class="h-1.5 rounded-full bg-accent" style="width:' + pct + '%"></div></div></div>';
+          }).join('') : '<p class="p-4 text-xs text-muted-foreground">Kritik seviyede malzeme yok.</p>';
+
+          var catMap = {};
+          rows.forEach(function (row) {
+            var cat = (row.materials && row.materials.category) || 'Diğer';
+            var val = Number(row.quantity_on_hand) * Number(row.materials ? row.materials.unit_cost || 0 : 0);
+            if (!catMap[cat]) catMap[cat] = { value: 0, count: 0 };
+            catMap[cat].value += val;
+            catMap[cat].count += 1;
+          });
+          var catKeys = Object.keys(catMap);
+          document.getElementById('category-breakdown').innerHTML = catKeys.length ? catKeys.map(function (cat) {
+            return '<div class="rounded-theme border border-border bg-card p-3.5"><p class="text-xs font-semibold">' + escapeHtml(cat) + '</p>' +
+              '<p class="mt-3 font-heading text-lg font-bold tabular-nums">' + TL.format(catMap[cat].value) + '</p>' +
+              '<p class="mt-1 text-[10px] text-muted-foreground">' + catMap[cat].count + ' malzeme</p></div>';
+          }).join('') : '<p class="text-xs text-muted-foreground">Henüz malzeme yok.</p>';
+        });
+
+        ZirkonikData.listStockTransactions(primaryLab.id, 10).then(function (txRes) {
+          var txs = txRes.data || [];
+          var el = document.getElementById('txn-list');
+          el.innerHTML = txs.length ? txs.map(function (t, i) {
+            var isIn = t.type === 'giris';
+            return '<div class="flex items-center justify-between' + (i < txs.length - 1 ? ' border-b border-border' : '') + ' px-4 py-3.5">' +
+              '<div class="flex items-center gap-3"><span class="flex h-8 w-8 items-center justify-center rounded-lg ' + (isIn ? 'bg-success/10 text-success' : 'bg-accent/10 text-accent') + '"><iconify-icon icon="' + (isIn ? 'lucide:arrow-down-to-line' : 'lucide:arrow-up-from-line') + '" class="text-base"></iconify-icon></span>' +
+              '<div><p class="font-heading text-xs font-bold">' + escapeHtml(t.materials ? t.materials.name : '') + '</p>' +
+              '<p class="mt-1 text-[10px] text-muted-foreground">' + new Date(t.created_at).toLocaleString('tr-TR') + '</p></div></div>' +
+              '<p class="font-heading text-xs font-bold tabular-nums ' + (isIn ? 'text-success' : 'text-accent') + '">' + (isIn ? '+' : '−') + t.quantity + ' ' + escapeHtml(t.materials ? t.materials.unit : '') + '</p></div>';
+          }).join('') : '<p class="p-4 text-xs text-muted-foreground">Henüz hareket yok.</p>';
+        });
+
+      ZirkonikData.listMaterials().then(function (matRes) {
+        var sel = document.getElementById('tx-material');
+        sel.innerHTML = '<option value="">Malzeme seçin</option>';
+        (matRes.data || []).forEach(function (m) {
+          var opt = document.createElement('option');
+          opt.value = m.id; opt.textContent = m.name;
+          sel.appendChild(opt);
+        });
+      });
+    }
+
+    document.getElementById('lab-switch').addEventListener('change', function () {
+      var labId = this.value;
+      var lab = null;
+      for (var i = 0; i < allLabs.length; i++) { if (allLabs[i].id === labId) { lab = allLabs[i]; break; } }
+      if (lab) loadStockForLab(lab);
+    });
+
+    ZirkonikAuth.requireAuth().then(function (session) {
+      if (!session) return;
+      loadStock();
+    });
+
+    function zkOpenAddMaterial() { document.getElementById('add-material-sheet').classList.remove('hidden'); }
+    function zkCloseAddMaterial() { document.getElementById('add-material-sheet').classList.add('hidden'); }
+
+    function zkSubmitAddMaterial() {
+      var errEl = document.getElementById('nm-error');
+      errEl.classList.add('hidden');
+      var name = document.getElementById('nm-name').value.trim();
+      if (!name) { errEl.textContent = 'Malzeme adı zorunludur.'; errEl.classList.remove('hidden'); return; }
+      ZirkonikAuth.me().then(function (me) {
+        return ZirkonikData.createMaterial({
+          organization_id: me.organization_id,
+          name: name,
+          category: document.getElementById('nm-category').value.trim() || null,
+          unit: document.getElementById('nm-unit').value.trim() || 'adet',
+          unit_cost: document.getElementById('nm-cost').value ? Number(document.getElementById('nm-cost').value) : null
+        });
+      }).then(function (res) {
+        if (res.error) throw res.error;
+        var threshold = document.getElementById('nm-threshold').value;
+        if (threshold && primaryLab) {
+          return ZirkonikAuth.client().from('material_stock').insert({
+            material_id: res.data.id, laboratory_id: primaryLab.id, quantity_on_hand: 0, min_threshold: Number(threshold)
+          });
+        }
+      }).then(function () {
+        zkCloseAddMaterial();
+        zkToast('Malzeme eklendi.');
+        document.getElementById('nm-name').value = ''; document.getElementById('nm-category').value = '';
+        document.getElementById('nm-unit').value = ''; document.getElementById('nm-cost').value = ''; document.getElementById('nm-threshold').value = '';
+        loadStock();
+      }).catch(function (err) {
+        errEl.textContent = 'Eklenemedi: ' + err.message;
+        errEl.classList.remove('hidden');
+      });
+    }
+
+    function zkOpenTxn() { document.getElementById('txn-sheet').classList.remove('hidden'); }
+    function zkCloseTxn() { document.getElementById('txn-sheet').classList.add('hidden'); }
+
+    function zkSubmitTxn() {
+      var errEl = document.getElementById('tx-error');
+      errEl.classList.add('hidden');
+      var materialId = document.getElementById('tx-material').value;
+      var qty = document.getElementById('tx-qty').value;
+      if (!materialId || !qty) { errEl.textContent = 'Malzeme ve miktar zorunludur.'; errEl.classList.remove('hidden'); return; }
+      if (!primaryLab) { errEl.textContent = 'Önce bir laboratuvar ekleyin.'; errEl.classList.remove('hidden'); return; }
+
+      ZirkonikAuth.me().then(function (me) {
+        return ZirkonikData.createStockTransaction({
+          material_id: materialId,
+          laboratory_id: primaryLab.id,
+          type: document.getElementById('tx-type').value,
+          quantity: Number(qty),
+          performed_by: me.id
+        });
+      }).then(function (res) {
+        if (res.error) throw res.error;
+        zkCloseTxn();
+        zkToast('Stok hareketi kaydedildi.');
+        document.getElementById('tx-qty').value = '';
+        loadStock();
+      }).catch(function (err) {
+        errEl.textContent = 'Kaydedilemedi: ' + err.message;
+        errEl.classList.remove('hidden');
+      });
+    }
+  </script>
+
+</body>
+</html>

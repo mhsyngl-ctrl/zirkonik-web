@@ -1,0 +1,38 @@
+/* Zirkonik — iPad/geniş ekran optimizasyonu
+ * (2026-09-01 revizyonu: eski 480px dar kolon kullanıcı tarafından
+ * beğenilmedi — "dar dar duruyor". İçerik artık geniş bir okunabilir
+ * sütunda yayılıyor, ızgaralar geniş ekranda çok sütuna çıkıyor.)
+ * Elle yazılmış, Tailwind derlemesinin (css/tailwind.css) parçası değil.
+ */
+@media (min-width: 640px) {
+  body {
+    background: #E7ECEE;
+  }
+
+  body > div.h-screen.w-screen {
+    max-width: min(92vw, 900px);
+    margin: 0 auto;
+    box-shadow: 0 0 48px rgba(23, 36, 44, 0.10);
+  }
+
+  /* Alt sabit nav bar'lar ve aksiyon butonları (fixed + left-0 + w-full)
+   * içerik sütunuyla aynı genişlikte ortalanır, tüm ekrana yayılmaz. */
+  .fixed.left-0.w-full {
+    left: 0;
+    right: 0;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: min(92vw, 900px);
+  }
+
+}
+
+/* Büyük iPad (13") — ekstra ferahlık. */
+@media (min-width: 1000px) {
+  body > div.h-screen.w-screen {
+    max-width: 960px;
+  }
+  .fixed.left-0.w-full {
+    max-width: 960px;
+  }
+}
