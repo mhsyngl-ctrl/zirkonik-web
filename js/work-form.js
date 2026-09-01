@@ -14,108 +14,90 @@
   var selected = {};
   var container = null;
 
-  // Diş tipi başına elle çizilmiş anatomik kron path'leri (yerel koordinat,
-  // -y = kesici/oklüzal uç dışa bakar). Radyal olarak uzun, parlak kronlar;
-  // azılarda dikey dalgalı fissür çizgisi.
-  function toothShape(n) {
-    var pos = n % 10;
-    if (pos <= 2) { // kesici: uzun, kürek formlu
-      return {
-        path: 'M-9,-16 Q0,-18 9,-16 L7.4,10.5 Q6,15 0,15 Q-6,15 -7.4,10.5 Z',
-        fissure: ''
-      };
-    }
-    if (pos === 3) { // kanin: uzun, ucu sivri
-      return {
-        path: 'M0,-17.5 Q7,-13 9,-5 L7.2,10.5 Q5.8,15 0,15 Q-5.8,15 -7.2,10.5 L-9,-5 Q-7,-13 0,-17.5 Z',
-        fissure: ''
-      };
-    }
-    if (pos <= 5) { // küçük azı: oval, kısa fissürlü
-      return {
-        path: 'M0,-14 Q10.5,-14 10.5,0 Q10.5,14 0,14 Q-10.5,14 -10.5,0 Q-10.5,-14 0,-14 Z',
-        fissure: 'M-1,-6 q2.5,3 0,6 q-2.5,3 0,6'
-      };
-    }
-    // büyük azı: geniş, dikey dalgalı fissürlü
-    return {
-      path: 'M-10,-13.5 Q-12.5,-13.5 -12.5,-10 L-12.5,10 Q-12.5,13.5 -10,13.5 L10,13.5 Q12.5,13.5 12.5,10 L12.5,-10 Q12.5,-13.5 10,-13.5 Z',
-      fissure: 'M-1,-8 q3,4 0,8 q-3,4 0,8 M-6,-2 q3,2.5 5,1 M6,3 q-3,-2.5 -5,-1'
-    };
+  // Kullanıcının sağladığı React ToothChart tasarımından uyarlanan
+  // geometri: 440x560 tek SVG, yarım elips çeneler, kesikli çeyrek
+  // çizgileri, FDI numaraları normal vektör boyunca dışarıda.
+  var CW = 440, CH = 560, RX = 140, RY = 170;
+  var UPPER_C = { x: 220, y: 248 };
+  var LOWER_C = { x: 220, y: 312 };
+
+  function toothType(n) {
+    var p = n % 10;
+    if (p <= 2) return 'incisor';
+    if (p === 3) return 'canine';
+    if (p <= 5) return 'premolar';
+    return 'molar';
   }
 
-  // Referans şema oranlarında at nalı çene: dar-uzun süperelips kavis,
-  // dişler bitişik dizilir, üst çenede dolgulu damak, altta içi boş bant.
-  function archSvg(nums, isUpper) {
-    var W = 340, RX = 88, RY = 130, EXP = 1;
-    var cx = 170;
-    var cy = isUpper ? 162 : 80;
-    var vh = isUpper ? 246 : 248;
-    var sgn = isUpper ? -1 : 1;
-    var svgId = isUpper ? 'u' : 'l';
-    function pt(thDeg, scale) {
-      var th = thDeg * Math.PI / 180;
-      var c = Math.cos(th), si = Math.sin(th);
-      var xx = RX * (scale || 1) * (c < 0 ? -1 : 1) * Math.pow(Math.abs(c), EXP);
-      var yy = RY * (scale || 1) * (si < 0 ? -1 : 1) * Math.pow(Math.abs(si), EXP);
-      return { x: cx + xx, y: cy + sgn * yy };
-    }
-    function fmt(p) { return p.x.toFixed(1) + ' ' + p.y.toFixed(1); }
+  function layoutArch(numbers, center, mirror) {
+    return numbers.map(function (n, i) {
+      var t = Math.PI + ((i + 0.5) * Math.PI) / 16;
+      var sgn = mirror ? -1 : 1;
+      var x = center.x + RX * Math.cos(t);
+      var y = center.y + sgn * RY * Math.sin(t);
+      var nx = Math.cos(t) / RX;
+      var ny = (sgn * Math.sin(t)) / RY;
+      var len = Math.sqrt(nx * nx + ny * ny);
+      nx /= len; ny /= len;
+      var rot = (Math.atan2(ny, nx) * 180) / Math.PI + 90;
+      return { n: n, x: x, y: y, nx: nx, ny: ny, rot: rot, type: toothType(n), pos: n % 10 };
+    });
+  }
 
-    var SWEEP_A = 206, SWEEP_B = -26;
-    var pts = [];
-    for (var i = 0; i < 16; i++) {
-      var thDeg = SWEEP_A - (i + 0.5) * ((SWEEP_A - SWEEP_B) / 16);
-      var p = pt(thDeg);
-      p.n = nums[i];
-      pts.push(p);
+  function toothShapeSvg(type, pos, n) {
+    var fiss = ' fill="none" stroke="#94a3b8" stroke-width="1.2" stroke-linecap="round" data-fissure="' + n + '" style="pointer-events:none"';
+    if (type === 'incisor') {
+      return '<rect x="-9" y="-13" width="18" height="26" rx="7"></rect>' +
+        '<path d="M-5 6 Q0 9 5 6"' + fiss + '></path>';
     }
-    var center = 'M' + pts.map(fmt).join(' L ');
-    var densePts = [];
-    for (var d = SWEEP_A; d >= SWEEP_B; d -= 6) densePts.push(fmt(pt(d)));
-    var denseLine = 'M' + densePts.join(' L ');
-
-    var backdrop;
-    if (isUpper) {
-      // İçi dolu damak: bant + iç dolgu açık pembe, ortada koyu damak kubesi.
-      var palPts = [];
-      for (var d2 = 190; d2 >= -10; d2 -= 8) palPts.push(fmt(pt(d2, 0.52)));
-      var dipOuter = pt(90, 0.1); dipOuter = (cx) + ' ' + (cy + RY * 0.34).toFixed(1);
-      var firstDense = fmt(pt(SWEEP_A));
-      backdrop =
-        '<path d="' + denseLine + ' Q ' + dipOuter + ' ' + firstDense + ' Z" fill="#F0C9C6"></path>' +
-        '<path d="' + denseLine + '" fill="none" stroke="#F0C9C6" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"></path>' +
-        '<path d="M' + palPts.join(' L ') + ' Z" fill="#E2A39F" stroke="#E2A39F" stroke-width="16" stroke-linejoin="round"></path>';
-    } else {
-      backdrop =
-        '<path d="' + denseLine + '" fill="none" stroke="#F0C9C6" stroke-width="42" stroke-linecap="round" stroke-linejoin="round"></path>';
+    if (type === 'canine') {
+      return '<path d="M-9 4 L-9 -6 Q-9 -14 0 -15 Q9 -14 9 -6 L9 4 Q9 13 0 14 Q-9 13 -9 4 Z"></path>' +
+        '<path d="M0 -6 L0 6"' + fiss + '></path>';
     }
+    if (type === 'premolar') {
+      return '<rect x="-11" y="-12" width="22" height="24" rx="9"></rect>' +
+        '<path d="M-6 0 L6 0 M0 -4 L0 4"' + fiss + '></path>';
+    }
+    var w = pos === 8 ? 26 : 28, h = pos === 8 ? 28 : 30;
+    return '<rect x="' + (-w / 2) + '" y="' + (-h / 2) + '" width="' + w + '" height="' + h + '" rx="9"></rect>' +
+      '<path d="M' + (-w / 2 + 6) + ' 0 L' + (w / 2 - 6) + ' 0 M-5 -6 L-5 6 M5 -6 L5 6"' + fiss + '></path>';
+  }
 
-    var teeth = pts.map(function (p) {
-      var dx = p.x - cx, dy = p.y - cy;
-      var len = Math.sqrt(dx * dx + dy * dy);
-      var a = Math.atan2(dy, dx) * 180 / Math.PI;
-      var s = toothShape(p.n);
-      var nx = p.x + dx / len * 30;
-      var ny = p.y + dy / len * 30;
-      var fissure = s.fissure
-        ? '<path d="' + s.fissure + '" fill="none" stroke="#B9C6CB" stroke-width="1.2" stroke-linecap="round" data-fissure="' + p.n + '"></path>'
-        : '';
-      return '<g data-tooth="' + p.n + '">' +
-        '<g transform="translate(' + p.x.toFixed(1) + ',' + p.y.toFixed(1) + ') rotate(' + (a - 90).toFixed(1) + ')">' +
-          '<path data-crown="' + p.n + '" d="' + s.path + '"' +
-            ' fill="url(#zkTG' + svgId + ')" stroke="#AFC0C6" stroke-width="1.3"></path>' + fissure +
+  function chartSvg() {
+    var teeth = layoutArch(UPPER, UPPER_C, false).concat(layoutArch(LOWER, LOWER_C, true));
+    var gum = 'fill="none" stroke="#f3a5b1" stroke-width="58" stroke-linecap="round"';
+
+    var body =
+      // Damak (üst) + dişeti bantları
+      '<path d="M80 ' + UPPER_C.y + ' A' + RX + ' ' + RY + ' 0 0 1 360 ' + UPPER_C.y + ' Z" fill="#f7c4cc"></path>' +
+      '<path d="M80 ' + UPPER_C.y + ' A' + RX + ' ' + RY + ' 0 0 1 360 ' + UPPER_C.y + '" ' + gum + '></path>' +
+      '<path d="M80 ' + LOWER_C.y + ' A' + RX + ' ' + RY + ' 0 0 0 360 ' + LOWER_C.y + '" ' + gum + '></path>' +
+      // Kesikli çeyrek çizgileri
+      '<line x1="' + (CW / 2) + '" y1="20" x2="' + (CW / 2) + '" y2="' + (CH - 20) + '" stroke="#94a3b8" stroke-dasharray="4 4"></line>' +
+      '<line x1="20" y1="' + (CH / 2) + '" x2="' + (CW - 20) + '" y2="' + (CH / 2) + '" stroke="#94a3b8" stroke-dasharray="4 4"></line>' +
+      // Çeyrek etiketleri
+      '<g fill="#64748b" font-size="13" font-weight="600">' +
+      '<text x="22" y="110">Üst sağ</text>' +
+      '<text x="' + (CW - 22) + '" y="110" text-anchor="end">Üst sol</text>' +
+      '<text x="22" y="' + (CH - 96) + '">Alt sağ</text>' +
+      '<text x="' + (CW - 22) + '" y="' + (CH - 96) + '" text-anchor="end">Alt sol</text></g>';
+
+    body += teeth.map(function (t) {
+      var lx = t.x + t.nx * 36, ly = t.y + t.ny * 36;
+      return '<g data-tooth="' + t.n + '" style="cursor:pointer">' +
+        '<g data-crown="' + t.n + '" transform="translate(' + t.x.toFixed(1) + ' ' + t.y.toFixed(1) + ') rotate(' + t.rot.toFixed(1) + ')"' +
+          ' fill="var(--color-input)" stroke="#94a3b8" stroke-width="1.5">' +
+          toothShapeSvg(t.type, t.pos, t.n) +
         '</g>' +
-        '<text data-num="' + p.n + '" x="' + nx.toFixed(1) + '" y="' + ny.toFixed(1) + '" text-anchor="middle" dominant-baseline="central"' +
-          ' font-size="13" font-weight="700" fill="var(--color-foreground)" font-family="inherit">' + p.n + '</text>' +
-        '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="16" fill="transparent"></circle>' +
+        '<text data-num="' + t.n + '" x="' + lx.toFixed(1) + '" y="' + (ly + 5).toFixed(1) + '" text-anchor="middle"' +
+          ' font-size="14" font-weight="600" fill="var(--color-foreground)" font-family="inherit">' + t.n + '</text>' +
+        '<circle cx="' + t.x.toFixed(1) + '" cy="' + t.y.toFixed(1) + '" r="17" fill="transparent"></circle>' +
         '</g>';
     }).join('');
 
-    return '<svg viewBox="0 0 ' + W + ' ' + vh + '" style="width:100%;height:auto;display:block;touch-action:manipulation;">' +
-      '<defs><linearGradient id="zkTG' + svgId + '" x1="0" y1="0" x2="0" y2="1">' +
-      '<stop offset="0" stop-color="#FFFFFF"></stop><stop offset="1" stop-color="#E7EDEF"></stop></linearGradient></defs>' +
-      backdrop + teeth + '</svg>';
+    return '<svg viewBox="0 0 ' + CW + ' ' + CH + '" role="group" aria-label="Diş şeması"' +
+      ' style="width:100%;max-width:440px;height:auto;display:block;margin:0 auto;touch-action:manipulation;user-select:none;-webkit-user-select:none;">' +
+      body + '</svg>';
   }
 
   function radioRow(name, opts) {
@@ -139,10 +121,7 @@
       el.innerHTML =
         '<div class="rounded-theme border border-border bg-card p-4">' +
           '<p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Diş yerleşimi</p>' +
-          '<p class="mt-2 mb-1.5 text-center text-[11px] font-bold text-muted-foreground">ÜST ÇENE</p>' +
-          archSvg(UPPER, true) +
-          '<p class="mt-3 mb-1.5 text-center text-[11px] font-bold text-muted-foreground">ALT ÇENE</p>' +
-          archSvg(LOWER, false) +
+          '<div class="mt-2">' + chartSvg() + '</div>' +
           '<p class="mt-3 text-xs text-muted-foreground">Seçilen diş: <span id="zk-wf-count" class="font-bold text-foreground">0</span> · <span id="zk-wf-teeth-list"></span></p>' +
         '</div>' +
 
