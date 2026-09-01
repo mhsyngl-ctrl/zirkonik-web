@@ -232,3 +232,40 @@
   .zk-cal-day:hover { background: var(--color-secondary); }
   .zk-staff-row:hover .zk-staff-avatar { background: var(--color-primary); color: #fff; }
 }
+
+/* ============ Masaüstü: sayfa bazlı yerleşimler ============ */
+@media (min-width: 1200px) {
+  /* Ayrı-kart listeleri iki sütun (space-y marjları sıfırlanır) */
+  #jobs-list, #approved-list, #pending-list, #staff-list, #labs-list,
+  [data-page="siparisler"] #orders-list {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start;
+  }
+  #jobs-list > *, #approved-list > *, #pending-list > *, #staff-list > *,
+  #labs-list > *, [data-page="siparisler"] #orders-list > * {
+    margin-top: 0 !important;
+  }
+
+  /* Üretim panosu: solda istasyon ağı, sağda seçili istasyonun işleri */
+  [data-page="retim"] #production-board {
+    display: grid; grid-template-columns: 1.15fr 1fr; gap: 20px; align-items: start;
+  }
+  [data-page="retim"] #production-board > * { margin-top: 0 !important; }
+
+  /* İş detayı: aşama şeridi tam genişlik, alt kartlar iki sütun */
+  [data-page="detay"] main {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start;
+  }
+  [data-page="detay"] main > * { margin-top: 0 !important; }
+  [data-page="detay"] main > section:first-child { grid-column: 1 / -1; }
+
+  /* Finans üst istatistikleri tek sırada */
+  [data-page="finans"] main > section:first-child .grid.grid-cols-2 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  /* Dar içerikli sayfalar ortalanmış okunur sütunda */
+  [data-page="profil"] main,
+  [data-page="rol-ve-yetki-detay"] main {
+    max-width: 760px; margin-left: auto; margin-right: auto;
+  }
+}
