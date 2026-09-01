@@ -269,3 +269,11 @@
     max-width: 760px; margin-left: auto; margin-right: auto;
   }
 }
+
+/* ============ Mobil tarayıcı: dinamik viewport yüksekliği ============
+ * Safari/Chrome'da 100vh, gizlenen adres çubuğunu da sayar; içerik alt
+ * bar arkasında kalır. dvh destekleyen tarayıcılarda gerçek görünür
+ * yükseklik kullanılır (iOS uygulaması WKWebView'de fark yaratmaz). */
+@supports (height: 100dvh) {
+  .h-screen { height: 100dvh; }
+}
