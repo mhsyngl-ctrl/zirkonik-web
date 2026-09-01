@@ -200,3 +200,35 @@
   .zk-cols { height: 160px; }
   .grid.grid-cols-2 { gap: 14px; }
 }
+
+/* ============ Masaüstü (web) optimizasyonu ============ */
+/* Mobil/tablet'te sarmalayıcı yokmuş gibi davranır. */
+.zk-charts-row { display: contents; }
+
+@media (min-width: 1200px) {
+  /* İki grafik yan yana */
+  .zk-charts-row { display: grid; grid-template-columns: 1fr 1fr; align-items: start; }
+
+  /* Formlar devasa genişlemesin — okunur sütunda ortalansın */
+  #job-form, #panel-new, #panel-list, #panel-prices, #orders-list {
+    max-width: 840px; margin-left: auto; margin-right: auto;
+  }
+
+  /* Fiyat listeleri iki sütun (kartlar bölünmez) */
+  #pl-main, #prices-list { column-count: 2; column-gap: 20px; }
+  #pl-main > section, #prices-list > section { break-inside: avoid; }
+}
+
+/* Fare olan cihazlarda (masaüstü) tıklanabilirlik hissi */
+@media (hover: hover) and (pointer: fine) {
+  button, select, input[type="date"], [onclick] { cursor: pointer; }
+  .zk-stat { transition: transform .15s ease, box-shadow .15s ease; }
+  .zk-stat:hover { transform: translateY(-3px);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 18px 32px -14px rgba(13,47,62,.65); }
+  .zk-hex { transition: filter .15s ease, transform .15s ease; }
+  .zk-hex:hover { transform: translateY(-3px);
+    filter: drop-shadow(0 12px 16px rgba(13,47,62,.40)); }
+  .zk-picker-row:hover { background: var(--color-muted); }
+  .zk-cal-day:hover { background: var(--color-secondary); }
+  .zk-staff-row:hover .zk-staff-avatar { background: var(--color-primary); color: #fff; }
+}

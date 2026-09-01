@@ -36,3 +36,13 @@
     max-width: 960px;
   }
 }
+
+/* Masaüstü (web) — daha geniş çalışma alanı. */
+@media (min-width: 1200px) {
+  body > div.h-screen.w-screen {
+    max-width: 1140px;
+  }
+  .fixed.left-0.w-full {
+    max-width: 1140px;
+  }
+}
