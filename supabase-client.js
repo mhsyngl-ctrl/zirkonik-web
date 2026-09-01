@@ -19,13 +19,27 @@
       if (typeof supabase === 'undefined') {
         throw new Error('supabase-js yüklenmedi — CDN script etiketini kontrol et.');
       }
-      _client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      // "Beni hatırla": varsayılan açık (localStorage — kalıcı oturum).
+      // Kapalıysa oturum yalnız sekme ömrünce yaşar (sessionStorage).
+      var remember = true;
+      try { remember = localStorage.getItem('zk-remember') !== '0'; } catch (e) {}
+      _client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: { storage: remember ? window.localStorage : window.sessionStorage }
+      });
     }
     return _client;
   }
 
   var Auth = {
     client: client,
+
+    /** Giriş formundaki "Beni hatırla" kutusundan çağrılır — tercihi
+     *  kaydeder ve istemciyi doğru depolamayla yeniden kurdurur. */
+    setRemember: function (flag) {
+      try { localStorage.setItem('zk-remember', flag ? '1' : '0'); } catch (e) {}
+      _client = null;
+      _meCache = null;
+    },
 
     signUp: function (email, password, meta) {
       return client().auth.signUp({
