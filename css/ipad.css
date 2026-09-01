@@ -37,12 +37,12 @@
   }
 }
 
-/* Masaüstü (web) — daha geniş çalışma alanı. */
+/* Masaüstü (web) — neredeyse tam genişlik, yanlarda dar nefes payı. */
 @media (min-width: 1200px) {
   body > div.h-screen.w-screen {
-    max-width: 1140px;
+    max-width: min(97vw, 1720px);
   }
   .fixed.left-0.w-full {
-    max-width: 1140px;
+    max-width: min(97vw, 1720px);
   }
 }

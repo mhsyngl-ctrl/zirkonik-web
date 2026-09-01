@@ -277,3 +277,12 @@
 @supports (height: 100dvh) {
   .h-screen { height: 100dvh; }
 }
+
+/* Çok geniş ekranlar: listeler üç kolon */
+@media (min-width: 1500px) {
+  #jobs-list, #approved-list, #pending-list, #staff-list, #labs-list,
+  [data-page="siparisler"] #orders-list {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  #pl-main, #prices-list { column-count: 3; }
+}
