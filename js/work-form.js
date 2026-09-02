@@ -168,6 +168,12 @@
         document.getElementById('zk-wf-count').textContent = teeth.length;
         var listEl = document.getElementById('zk-wf-teeth-list');
         if (listEl) listEl.textContent = teeth.join(', ');
+        // iOS uygulamasında diş seçiminde hafif dokunsal titreşim (web'de sessizce atlanır).
+        try {
+          if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.nativeHaptic) {
+            window.webkit.messageHandlers.nativeHaptic.postMessage('light');
+          }
+        } catch (e) {}
         if (typeof ZkWorkForm.onTeethChange === 'function') ZkWorkForm.onTeethChange(teeth);
       }
 
