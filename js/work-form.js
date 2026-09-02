@@ -86,7 +86,7 @@
       var lx = t.x + t.nx * 36, ly = t.y + t.ny * 36;
       return '<g data-tooth="' + t.n + '" role="checkbox" aria-checked="false" aria-label="Diş ' + t.n + '" tabindex="0" style="cursor:pointer;outline:none">' +
         '<g data-crown="' + t.n + '" transform="translate(' + t.x.toFixed(1) + ' ' + t.y.toFixed(1) + ') rotate(' + t.rot.toFixed(1) + ')"' +
-          ' fill="var(--color-input)" stroke="#94a3b8" stroke-width="1.5">' +
+          ' fill="#FFFFFF" stroke="#94a3b8" stroke-width="1.5">' +
           toothShapeSvg(t.type, t.pos, t.n) +
         '</g>' +
         '<text data-num="' + t.n + '" x="' + lx.toFixed(1) + '" y="' + (ly + 5).toFixed(1) + '" text-anchor="middle"' +
@@ -151,7 +151,7 @@
           delete selected[n];
           group.classList.remove('zk-sel');
           group.setAttribute('aria-checked', 'false');
-          crown.setAttribute('fill', 'var(--color-input)');
+          crown.setAttribute('fill', '#FFFFFF');
           crown.setAttribute('stroke', '#94a3b8');
           num.setAttribute('fill', 'var(--color-foreground)');
           if (fis) fis.setAttribute('stroke', '#94a3b8');

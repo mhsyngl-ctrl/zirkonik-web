@@ -6,13 +6,13 @@
  */
 @media (min-width: 640px) {
   body {
-    background: #E7ECEE;
+    background: #0A0C0F;
   }
 
   body > div.h-screen.w-screen {
     max-width: min(92vw, 900px);
     margin: 0 auto;
-    box-shadow: 0 0 48px rgba(23, 36, 44, 0.10);
+    box-shadow: 0 0 48px rgba(0, 0, 0, 0.55);
   }
 
   /* Alt sabit nav bar'lar ve aksiyon butonları (fixed + left-0 + w-full)
