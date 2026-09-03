@@ -133,6 +133,11 @@
 
   <div id="zk-toast" style="position:fixed;left:50%;bottom:96px;transform:translate(-50%,16px);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;background:#17242C;color:#fff;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;padding:10px 16px;border-radius:12px;z-index:9999;max-width:86%;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.18);"></div>
   <script>
+    function escapeHtml(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
     function zkToast(msg){
       var el = document.getElementById('zk-toast');
       if(!el) return;
@@ -252,11 +257,11 @@
               ? '<button data-route-for="' + p.id + '" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border ' + (hasRoute ? 'bg-secondary text-primary' : 'bg-input text-muted-foreground') + '" aria-label="Üretim rotası" title="Üretim rotası"><iconify-icon icon="lucide:route" class="text-base"></iconify-icon></button>'
               : '';
             return '<div class="flex items-center justify-between gap-2 border-b border-border py-2.5 last:border-b-0">' +
-              '<p class="min-w-0 flex-1 text-sm font-semibold">' + p.name + '</p>' +
+              '<p class="min-w-0 flex-1 text-sm font-semibold">' + escapeHtml(p.name) + '</p>' +
               '<div class="flex items-center gap-1.5">' + routeBtn + priceCell +
               '<span class="w-5 text-sm text-muted-foreground">' + (p.currency || '$') + '</span></div></div>';
           }).join('');
-          sec.innerHTML = '<p class="mb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-primary">' + cat + '</p>' + rows;
+          sec.innerHTML = '<p class="mb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-primary">' + escapeHtml(cat) + '</p>' + rows;
           main.appendChild(sec);
         });
         if (!items.length) {
@@ -334,9 +339,9 @@
           return '<button data-route-room="' + rm.id + '" class="flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold ' +
             (on ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-input') + '">' +
             (on ? '<span class="flex h-5 w-5 items-center justify-center rounded-full bg-white/20 text-[10px] font-bold">' + (idx + 1) + '</span>' : '') +
-            rm.name + '</button>';
+            escapeHtml(rm.name) + '</button>';
         }).join('');
-        return '<div><p class="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">' + labName + '</p>' +
+        return '<div><p class="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">' + escapeHtml(labName) + '</p>' +
           '<div class="flex flex-wrap gap-1.5">' + chips + '</div></div>';
       }).join('');
       var el = document.getElementById('route-rooms');
