@@ -108,6 +108,7 @@
 
         <!-- Siparişlerim -->
         <section id="panel-list" class="hidden">
+          <div id="doctor-hive" class="mb-5"></div>
           <div id="orders-list" class="space-y-3"></div>
         </section>
 
@@ -311,7 +312,95 @@
       rejected: '<span class="rounded-full bg-destructive/10 px-2 py-1 text-[10px] font-bold text-destructive">Reddedildi</span>'
     };
 
+    // ---- İşlerim arı kovanında (üretim takibi) ----
+    // Doktor yalnızca KENDİ işlerini görür (RLS); odalar salt-okunur ad listesi.
+    var dhSections = [], dhJobs = [], dhSelIdx = 0, dhRoomName = {};
+
+    function zkDocHexSelect(i) { dhSelIdx = i; renderDoctorHive(); }
+
+    function loadDoctorHive() {
+      var client = ZirkonikAuth.client();
+      Promise.all([
+        client.from('jobs').select('id, job_number, restoration_type, current_room_id, planned_route, laboratory_id')
+          .eq('doctor_id', doctor.id).eq('status', 'active'),
+        client.from('rooms').select('id, name, laboratory_id, sort_order').order('sort_order')
+      ]).then(function (res) {
+        dhJobs = res[0].data || [];
+        var rooms = res[1].data || [];
+        var el = document.getElementById('doctor-hive');
+        if (!dhJobs.length || !rooms.length) { el.innerHTML = ''; return; }
+        dhRoomName = {};
+        rooms.forEach(function (r) { dhRoomName[r.id] = r.name; });
+        // Yalnızca işlerin bulunduğu laboratuvar(lar)ın odaları
+        var labIds = {};
+        dhJobs.forEach(function (j) { labIds[j.laboratory_id] = true; });
+        var labRooms = rooms.filter(function (r) { return labIds[r.laboratory_id]; });
+        // Odasız iş: gerçek "Bekleyen" odası varsa oraya, yoksa sanal peteğe
+        var waitRoom = null;
+        labRooms.forEach(function (r) { if (!waitRoom && r.name.trim().toLowerCase() === 'bekleyen') waitRoom = r; });
+        dhSections = labRooms.map(function (r) { return { id: r.id, name: r.name, wait: !!(waitRoom && r.id === waitRoom.id) }; });
+        if (!waitRoom) dhSections.unshift({ id: null, name: 'Bekleyen', wait: true });
+        dhSelIdx = 0;
+        for (var i = 0; i < dhSections.length; i++) {
+          if (dhJobs.some(function (j) { return dhJobInSection(j, dhSections[i]); })) { dhSelIdx = i; break; }
+        }
+        renderDoctorHive();
+      });
+    }
+
+    function dhJobInSection(j, sec) {
+      return j.current_room_id === sec.id || (sec.wait && !j.current_room_id);
+    }
+
+    function renderDoctorHive() {
+      var el = document.getElementById('doctor-hive');
+      var rows = [];
+      var i = 0, rowLen = 3;
+      while (i < dhSections.length) {
+        rows.push(dhSections.slice(i, i + rowLen));
+        i += rowLen;
+        rowLen = rowLen === 3 ? 2 : 3;
+      }
+      var idxOf = function (sec) { return dhSections.indexOf(sec); };
+      var html = '<div class="zk-hive-deck">' +
+        '<p class="zk-hive-deck-title"><span class="zk-live-dot"></span>İşlerim istasyon ağında</p>' +
+        '<div class="zk-hive">' + rows.map(function (row) {
+          return '<div class="zk-hive-row">' + row.map(function (sec) {
+            var idx = idxOf(sec);
+            var secJobs = dhJobs.filter(function (j) { return dhJobInSection(j, sec); });
+            var cls = 'zk-hex';
+            if (idx === dhSelIdx) cls += ' zk-hex-selected';
+            else if (secJobs.length) cls += ' zk-hex-busy';
+            else cls += ' zk-hex-empty';
+            return '<button type="button" class="' + cls + '" onclick="zkDocHexSelect(' + idx + ')">' +
+              '<span class="zk-hex-inner">' +
+              '<span class="zk-hex-name">' + escapeHtml(sec.name) + '</span>' +
+              '<span class="zk-hex-count">' + secJobs.length + '</span>' +
+              '<span class="zk-hex-sub">' + (secJobs.length ? 'işiniz burada' : '—') + '</span>' +
+              '</span></button>';
+          }).join('') + '</div>';
+        }).join('') + '</div></div>';
+
+      var sel = dhSections[dhSelIdx];
+      var selJobs = dhJobs.filter(function (j) { return dhJobInSection(j, sel); });
+      if (selJobs.length) {
+        html += '<div class="mt-3 rounded-theme border border-border bg-card p-3.5">' +
+          selJobs.map(function (j) {
+            var route = j.planned_route || [];
+            var pos = j.current_room_id ? route.indexOf(j.current_room_id) : 0;
+            var nextName = (pos >= 0 && route[pos + 1]) ? dhRoomName[route[pos + 1]] : null;
+            return '<div class="flex items-center justify-between gap-3 py-1.5">' +
+              '<div><p class="text-xs font-bold">' + escapeHtml(j.job_number || '') + '</p>' +
+              '<p class="mt-0.5 text-[11px] text-muted-foreground">' + escapeHtml(j.restoration_type || '') + '</p></div>' +
+              (nextName ? '<p class="shrink-0 text-[10px] font-semibold text-primary">Sıradaki: ' + escapeHtml(nextName) + '</p>' : '') +
+              '</div>';
+          }).join('') + '</div>';
+      }
+      el.innerHTML = html;
+    }
+
     function loadOrders() {
+      loadDoctorHive();
       ZirkonikData.listOrders({ doctorId: doctor.id }).then(function (r) {
         var list = r.data || [];
         var el = document.getElementById('orders-list');
