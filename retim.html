@@ -456,6 +456,12 @@
       setTimeout(function () { icon.classList.remove('animate-spin'); }, 700);
     }
 
+    // Otomatik canlı yenileme: 10 saniyede bir (ekran görünürken).
+    // Seçili petek hiveUserSelId ile korunur, kaydırma tetiklenmez.
+    setInterval(function () {
+      if (!document.hidden) zkRefreshDashboard();
+    }, 10000);
+
     // ---- Üretim panosu (oda sütunlu) ----
     var boardLabs = [];
     var boardActiveLab = null;
@@ -558,10 +564,20 @@
             }
             if (nextId) hiveIncomingMap[nextId] = (hiveIncomingMap[nextId] || 0) + 1;
           });
-          // Varsayılan seçim: işi olan ilk istasyon.
-          hiveSelectedIdx = 0;
-          for (var i = 0; i < hiveSections.length; i++) {
-            if (jobs.some(function (j) { return hiveJobInSection(j, hiveSections[i]); })) { hiveSelectedIdx = i; break; }
+          // Kullanıcının seçtiği petek otomatik yenilemede korunur;
+          // seçim yoksa varsayılan: işi olan ilk istasyon.
+          var kept = -1;
+          if (hiveUserSelId !== undefined) {
+            for (var k = 0; k < hiveSections.length; k++) {
+              if (hiveSections[k].id === hiveUserSelId) { kept = k; break; }
+            }
+          }
+          if (kept >= 0) hiveSelectedIdx = kept;
+          else {
+            hiveSelectedIdx = 0;
+            for (var i = 0; i < hiveSections.length; i++) {
+              if (jobs.some(function (j) { return hiveJobInSection(j, hiveSections[i]); })) { hiveSelectedIdx = i; break; }
+            }
           }
           hiveContainer = el;
           renderHive();
@@ -569,7 +585,7 @@
       });
     }
 
-    var hiveSections = [], hiveJobs = [], hiveConfirmedMap = {}, hiveIncomingMap = {}, hiveSelectedIdx = 0, hiveContainer = null, hiveWaitRoomId = null;
+    var hiveSections = [], hiveJobs = [], hiveConfirmedMap = {}, hiveIncomingMap = {}, hiveSelectedIdx = 0, hiveContainer = null, hiveWaitRoomId = null, hiveUserSelId;
 
     // İş bu peteğe mi ait? Bekleyen peteği odasız işleri de kapsar.
     function hiveJobInSection(j, sec) {
@@ -578,6 +594,7 @@
 
     function zkHexSelect(idx) {
       hiveSelectedIdx = idx;
+      hiveUserSelId = hiveSections[idx] ? hiveSections[idx].id : undefined;
       renderHive();
       // Seçilen istasyonun iş listesi kovanın altında — görünür alana kaydır.
       var lst = document.getElementById('hive-sel-jobs');
