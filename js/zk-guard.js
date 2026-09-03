@@ -16,7 +16,7 @@
   if (PUBLIC[page] || !window.ZirkonikAuth || !window.ZirkonikAuth.me) return;
 
   var ADMIN_PAGES = {
-    ekip: 1, doktorlar: 1, laboratuvarlar: 1, 'fiyat-listesi': 1,
+    ekip: 1, laboratuvarlar: 1, 'fiyat-listesi': 1,
     siparisler: 1, 'rol-ve-yetki-detay': 1, 'yeni-giri-i': 1
   };
 
@@ -38,6 +38,7 @@
     if (ADMIN_PAGES[page]) { location.replace('retim.html'); return; }
     if (page === 'stok' && !p.can_manage_stock) { location.replace('retim.html'); return; }
     if (page === 'finans' && !p.can_view_finance) { location.replace('retim.html'); return; }
+    if (page === 'doktorlar' && !p.can_view_doctors) { location.replace('retim.html'); return; }
 
     function hideUi() {
       // Alt menü sekmeleri
@@ -46,7 +47,7 @@
         'Finans': !!p.can_view_finance,
         'Laboratuvarlar': false,
         'Ekip': false,
-        'Doktorlar': false
+        'Doktorlar': !!p.can_view_doctors
       };
       var tabs = document.querySelectorAll('[data-fv-tab]');
       for (var i = 0; i < tabs.length; i++) {
@@ -58,10 +59,10 @@
                 'a[href*="siparisler"],[onclick*="siparisler"],' +
                 'a[href*="fiyat-listesi"],[onclick*="fiyat-listesi"],' +
                 'a[href*="laboratuvarlar"],[onclick*="laboratuvarlar"],' +
-                'a[href*="doktorlar"],[onclick*="doktorlar"],' +
                 'a[href*="ekip"],[onclick*="ekip.html"]';
       if (!p.can_view_finance) sel += ',a[href*="finans"],[onclick*="finans"]';
       if (!p.can_manage_stock) sel += ',a[href*="stok"],[onclick*="stok"]';
+      if (!p.can_view_doctors) sel += ',a[href*="doktorlar"],[onclick*="doktorlar"]';
       var links = document.querySelectorAll(sel);
       for (var k = 0; k < links.length; k++) links[k].style.display = 'none';
     }

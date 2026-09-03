@@ -145,6 +145,12 @@
       <p class="mt-1 text-xs text-muted-foreground">Giriş bilgilerini siz belirlersiniz, personele iletirsiniz.</p>
       <div class="mt-4 space-y-3">
         <input id="ns-name" type="text" placeholder="Ad Soyad *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <select id="ns-position" aria-label="Pozisyon" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+          <option value="Teknisyen">Teknisyen</option>
+          <option value="Yardımcı Teknisyen">Yardımcı Teknisyen</option>
+          <option value="Yönetici">Yönetici (tam yetki)</option>
+          <option value="İşveren">İşveren (tam yetki)</option>
+        </select>
         <input id="ns-email" type="email" placeholder="E-posta *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         <div class="flex gap-2">
           <input id="ns-password" type="text" placeholder="Şifre * (en az 6 karakter)" class="h-12 flex-1 rounded-theme border border-border bg-input px-3.5 text-sm">
@@ -245,7 +251,7 @@
               '<div class="flex items-center justify-between"><div class="flex items-center gap-3">' +
               '<div class="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">' + escapeHtml(initials) + '</div>' +
               '<div><p class="font-heading text-sm font-bold">' + escapeHtml(s.full_name) + '</p>' +
-              '<p class="mt-0.5 text-xs text-primary">' + (ROLE_LABELS[s.role] || s.role) + '</p>' +
+              '<p class="mt-0.5 text-xs text-primary">' + escapeHtml(s.position || ROLE_LABELS[s.role] || s.role) + '</p>' +
               ((s.phone || s.email) ? '<p class="mt-0.5 text-[11px] text-muted-foreground">' + escapeHtml([s.phone, s.email].filter(Boolean).join(' · ')) + '</p>' : '') +
               '</div></div>' +
               '<span class="flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-1 text-[10px] font-bold text-success"><span class="h-1.5 w-1.5 rounded-full bg-success"></span>Aktif</span></div>' +
@@ -349,6 +355,7 @@
       btn.disabled = true;
       ZirkonikData.createStaffAccount({
         full_name: name, email: email, password: password, phone: phone || null,
+        position: document.getElementById('ns-position').value,
         lab_ids: labIds, room_ids: roomIds
       }).then(function (res) {
         btn.disabled = false;

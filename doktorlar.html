@@ -302,6 +302,17 @@
     }
 
     function renderApprovedRow(d) {
+      if (docReadOnly) {
+        var contact = [d.phone, d.email].filter(Boolean);
+        return '<div class="flex items-center gap-3 rounded-theme border border-border bg-card p-3">' +
+          '<div class="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground">' + escapeHtml((d.full_name || '?').charAt(0)) + '</div>' +
+          '<div class="min-w-0 flex-1"><p class="truncate text-sm font-bold">Dr. ' + escapeHtml(d.full_name) + '</p>' +
+          '<p class="truncate text-xs text-muted-foreground">' + escapeHtml(d.clinic_name || '—') + '</p>' +
+          (contact.length ? '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + escapeHtml(contact.join(' · ')) + '</p>' : '') +
+          '</div>' +
+          (d.phone ? '<a href="tel:' + encodeURIComponent(d.phone) + '" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-primary" aria-label="Ara"><iconify-icon icon="lucide:phone" class="text-sm"></iconify-icon></a>' : '') +
+          '</div>';
+      }
       var accountBtn = d.user_id
         ? '<span class="flex h-8 w-8 items-center justify-center rounded-lg bg-success/10 text-success" title="Uygulama hesabı var"><iconify-icon icon="lucide:key-round" class="text-sm"></iconify-icon></span>'
         : '<button onclick="zkOpenDoctorAccount(\'' + d.id + '\',\'' + escapeHtml(d.full_name).replace(/'/g, "\\'") + '\',\'' + escapeHtml(d.email || '') + '\')" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-accent" aria-label="Uygulama hesabı aç"><iconify-icon icon="lucide:key-round" class="text-sm"></iconify-icon></button>';
@@ -442,9 +453,23 @@
       });
     }
 
+    // Salt-görüntüleme: "Doktorları görme" izinli personel liste + iletişimi
+    // görür; ekleme/onay/hesap/düzenleme/ekstre yalnız yönetici.
+    var docReadOnly = false;
+
     ZirkonikAuth.requireAuth().then(function (session) {
       if (!session) return;
-      loadDoctors();
+      return ZirkonikAuth.me().then(function (me) {
+        docReadOnly = !me || me.role !== 'yonetici';
+        if (docReadOnly) {
+          var addBtn = document.querySelector('[onclick="zkOpenAddDoctor()"]');
+          if (addBtn) addBtn.style.display = 'none';
+          var pendingSection = document.getElementById('pending-list');
+          if (pendingSection && pendingSection.parentElement) pendingSection.parentElement.style.display = 'none';
+        }
+        loadDoctors();
+      });
+    }).then(function () {
       ZirkonikAuth.client().from('laboratories').select('id, name').order('name').then(function (r) {
         var sel = document.getElementById('nd-lab');
         (r.data || []).forEach(function (l) {

@@ -121,6 +121,16 @@
               <input id="pi-name" type="text" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
             </label>
             <label class="block">
+              <span class="mb-1.5 block text-xs font-bold text-card-foreground">Pozisyon</span>
+              <select id="pi-position" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+                <option value="Teknisyen">Teknisyen</option>
+                <option value="Yardımcı Teknisyen">Yardımcı Teknisyen</option>
+                <option value="Yönetici">Yönetici (tam yetki)</option>
+                <option value="İşveren">İşveren (tam yetki)</option>
+              </select>
+              <span class="mt-1 block text-[11px] text-muted-foreground">Yönetici/İşveren her şeyi görür; Teknisyen ve Yardımcı Teknisyen aşağıdaki izin ve oda kapsamına tabidir.</span>
+            </label>
+            <label class="block">
               <span class="mb-1.5 block text-xs font-bold text-card-foreground">Telefon</span>
               <input id="pi-phone" type="tel" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
             </label>
@@ -216,6 +226,7 @@
       { key: 'can_change_job_status', icon: 'lucide:forward', title: 'Durum ilerletme', desc: 'İşi bir sonraki aşamaya taşıma' },
       { key: 'can_manage_stock', icon: 'lucide:package-check', title: 'Stok işlemleri', desc: 'Malzeme ve stok hareketleri' },
       { key: 'can_view_finance', icon: 'lucide:wallet-cards', title: 'Finans görünürlüğü', desc: 'Tahsilat, ödeme ve raporlar' },
+      { key: 'can_view_doctors', icon: 'lucide:stethoscope', title: 'Doktorları görme', desc: 'Doktor listesi ve iletişim (salt-okunur)' },
       { key: 'can_approve_delivery', icon: 'lucide:badge-check', title: 'Teslimat onayı', desc: 'Kalite kontrol sonrası teslimat' },
       { key: 'can_view_payroll', icon: 'lucide:coins', title: 'Hakediş görünürlüğü', desc: 'Personel hakedişlerini görme' },
       { key: 'can_approve_users', icon: 'lucide:user-round-check', title: 'Kullanıcı onayı', desc: 'Yeni personel/doktor onayı' }
@@ -251,6 +262,7 @@
         if (u.role !== 'doktor') {
           document.getElementById('personal-info-section').classList.remove('hidden');
           document.getElementById('pi-name').value = u.full_name || '';
+          document.getElementById('pi-position').value = u.position || (u.role === 'yonetici' ? 'Yönetici' : 'Teknisyen');
           document.getElementById('pi-phone').value = u.phone || '';
           document.getElementById('pi-email').value = u.email || '';
 
@@ -359,9 +371,13 @@
       var chain = Promise.resolve();
       if (infoVisible) {
         chain = chain.then(function () {
+          var pos = document.getElementById('pi-position').value;
           return ZirkonikAuth.client().from('app_users').update({
             full_name: document.getElementById('pi-name').value.trim(),
-            phone: document.getElementById('pi-phone').value.trim() || null
+            phone: document.getElementById('pi-phone').value.trim() || null,
+            position: pos,
+            // İşveren/Yönetici tam yetkili roldür; diğer pozisyonlar personel.
+            role: (pos === 'Yönetici' || pos === 'İşveren') ? 'yonetici' : 'personel'
           }).eq('id', userId);
         }).then(function (res) { if (res.error) throw res.error; });
       }
