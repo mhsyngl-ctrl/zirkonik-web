@@ -483,20 +483,32 @@
       });
     });
 
-    // ---- Teslim alınmayı bekleyen işler ----
-    // Görülebilen odalar RLS ile zaten kişiye göre daralır: teknisyen yalnız
-    // yetkili odalarını, yönetici hepsini görür — liste otomatik kişiselleşir.
+    // ---- Teslim alınmayı bekleyen işler (YALNIZ ilgili teknisyen görür) ----
+    // Oda adları rota gereği lab-geneli okunabildiğinden süzme AÇIKÇA kişinin
+    // yetkili odalarıyla yapılır (user_room_access — RLS'te herkes yalnız
+    // kendi satırlarını okur). İşveren/yönetici bu uyarıyı GÖRMEZ — teslim
+    // alma işi odanın teknisyenine aittir; yönetici durumu kovandan izler.
     function loadAcceptAlerts() {
       var client = ZirkonikAuth.client();
-      Promise.all([
-        client.from('rooms').select('id, name'),
-        client.from('job_stage_history')
-          .select('job_id, room_id, entered_at, jobs(job_number, restoration_type)')
-          .is('confirmed_at', null).is('exited_at', null)
-      ]).then(function (res) {
+      ZirkonikAuth.me().then(function (me) {
+        if (!me || me.role !== 'personel') {
+          document.getElementById('accept-section').classList.add('hidden');
+          return;
+        }
+        return Promise.all([
+          client.from('rooms').select('id, name'),
+          client.from('job_stage_history')
+            .select('job_id, room_id, entered_at, jobs(job_number, restoration_type)')
+            .is('confirmed_at', null).is('exited_at', null),
+          client.from('user_room_access').select('room_id')
+        ]).then(function (res) {
         var roomName = {};
         (res[0].data || []).forEach(function (r) { roomName[r.id] = r.name; });
-        var rows = (res[1].data || []).filter(function (s) { return roomName[s.room_id] && s.jobs; });
+        var myRooms = {};
+        ((res[2] && res[2].data) || []).forEach(function (x) { myRooms[x.room_id] = true; });
+        var rows = (res[1].data || []).filter(function (s) {
+          return roomName[s.room_id] && s.jobs && myRooms[s.room_id];
+        });
         var section = document.getElementById('accept-section');
         if (!rows.length) { section.classList.add('hidden'); return; }
         section.classList.remove('hidden');
@@ -507,6 +519,7 @@
             '<span class="flex shrink-0 items-center gap-1 rounded-lg bg-accent px-2.5 py-1.5 text-[11px] font-bold text-accent-foreground"><iconify-icon icon="lucide:hand" class="text-xs"></iconify-icon>Teslim Al</span>' +
             '</button>';
         }).join('');
+        });
       });
     }
 
