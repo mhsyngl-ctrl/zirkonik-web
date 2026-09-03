@@ -142,7 +142,7 @@
           </div>
         </section>
 
-        <section class="px-5 pt-7">
+        <section id="permissions-section" class="px-5 pt-7">
           <div class="flex items-end justify-between">
             <div>
               <h2 class="font-heading text-lg font-extrabold">Yetki kapsamı</h2>
@@ -285,13 +285,26 @@
 
         if (u.role === 'yonetici') {
           document.getElementById('admin-notice').classList.remove('hidden');
+        } else if (u.role === 'doktor') {
+          // Doktor yalnız kendi siparişlerini/işlerini takip eder —
+          // izin matrisi ve laboratuvar/oda erişimi ona uygulanmaz.
+          document.getElementById('permissions-section').style.display = 'none';
+          document.getElementById('access-section').style.display = 'none';
+          var dn = document.createElement('p');
+          dn.className = 'mx-5 mt-5 rounded-theme border border-border bg-card p-4 text-xs text-muted-foreground';
+          dn.textContent = 'Doktor hesabı: yalnız kendi siparişlerini ve işlerinin üretim durumunu takip eder. Yetki ve oda ayarı gerektirmez.';
+          document.querySelector('main').insertBefore(dn, document.querySelector('main').firstChild);
+          var saveBtn = document.getElementById('save-btn');
+          if (saveBtn && saveBtn.parentElement) saveBtn.parentElement.style.display = 'none';
         } else {
           document.getElementById('access-section').classList.remove('hidden');
           loadAccess();
         }
 
-        currentPerms = (u.user_permissions && u.user_permissions[0]) || {};
-        renderPermissions();
+        if (u.role !== 'doktor') {
+          currentPerms = (u.user_permissions && u.user_permissions[0]) || {};
+          renderPermissions();
+        }
       });
     }
 

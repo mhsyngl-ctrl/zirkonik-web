@@ -413,6 +413,31 @@
     // (create-staff-account edge function, service_role ile auth.users +
     // app_users + user_permissions + user_lab_access/user_room_access'i
     // tek seferde oluşturur — client'ın bu tabloları INSERT etme izni yok).
+    // ---- İzin talepleri ----
+    myLeaveRequests: function () {
+      return client().auth.getUser().then(function (r) {
+        var uid = r.data && r.data.user ? r.data.user.id : null;
+        return client().from('leave_requests').select('*').eq('user_id', uid).order('created_at', { ascending: false });
+      });
+    },
+    createLeaveRequest: function (fields) {
+      return client().from('leave_requests').insert(fields);
+    },
+    cancelLeaveRequest: function (id) {
+      return client().from('leave_requests').delete().eq('id', id).eq('status', 'pending');
+    },
+    listLeaveRequests: function (status) {
+      var q = client().from('leave_requests').select('*, app_users!leave_requests_user_id_fkey(full_name, position)').order('created_at', { ascending: false });
+      if (status) q = q.eq('status', status);
+      return q;
+    },
+    decideLeaveRequest: function (id, status, deciderId, note) {
+      return client().from('leave_requests').update({
+        status: status, decided_by: deciderId,
+        decided_at: new Date().toISOString(), decision_note: note || null
+      }).eq('id', id);
+    },
+
     // ---- Bildirimler (kayıtları DB tetikleyicileri yazar, istemci okur) ----
     listNotifications: function () {
       return client().from('notifications').select('*').order('created_at', { ascending: false }).limit(100);

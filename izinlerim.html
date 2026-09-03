@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://code.iconify.design; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://cuujupeindodpsdjcivm.supabase.co wss://cuujupeindodpsdjcivm.supabase.co https://api.iconify.design https://api.simplesvg.com https://api.unisvg.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <title>İzinlerim — Zirkonik</title>
+
+  <link rel="stylesheet" href="css/tailwind.css">
+  <link rel="stylesheet" href="css/ipad.css">
+  <link rel="stylesheet" href="css/zk-utils.css">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0E1013">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <script src="https://code.iconify.design/iconify-icon/2.3.0/iconify-icon.min.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap">
+
+  <style>
+  :root {
+    --color-background: #0E1013;
+    --color-foreground: #F2F4F7;
+    --color-primary: #3D7CDC;
+    --color-primary-foreground: #FFFFFF;
+    --color-secondary: #232732;
+    --color-secondary-foreground: #C6CBD6;
+    --color-accent: #F0A03C;
+    --color-accent-foreground: #FFFFFF;
+    --color-muted: #1B1E24;
+    --color-muted-foreground: #98A0AD;
+    --color-card: #15171C;
+    --color-card-foreground: #F2F4F7;
+    --color-border: #262A32;
+    --color-input: #1B1E24;
+    --color-destructive: #EF5350;
+    --color-destructive-foreground: #FFFFFF;
+    --color-success: #10B981;
+    --color-success-foreground: #FFFFFF;
+    --font-heading: 'Plus Jakarta Sans', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --radius: 12px;
+  }
+  html { overflow-x: hidden; }
+  body { font-family: var(--font-body); -webkit-font-smoothing: antialiased; margin: 0; padding: 0; overflow-x: hidden; overscroll-behavior-x: none; }
+  </style>
+</head>
+<body data-page="izinlerim" class="bg-background text-foreground m-0 p-0">
+  <div class="h-screen w-screen overflow-y-auto">
+    <div class="min-h-screen w-full bg-background text-foreground font-body pb-16">
+      <header class="border-b border-border bg-card px-5 pb-5 pt-12" style="padding-top:max(3rem,calc(env(safe-area-inset-top) + 12px));">
+        <div class="flex items-center gap-3">
+          <button onclick="history.length > 1 ? history.back() : (location.href='profil.html')" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-background text-primary" aria-label="Geri">
+            <iconify-icon icon="lucide:arrow-left" class="text-xl"></iconify-icon>
+          </button>
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Zirkonik</p>
+            <h1 class="mt-0.5 font-heading text-[22px] font-extrabold tracking-tight">İzinlerim</h1>
+          </div>
+        </div>
+      </header>
+
+      <main class="px-5 pt-5">
+        <section>
+          <h2 class="font-heading text-lg font-bold">Yeni izin talebi</h2>
+          <div class="mt-3 space-y-3 rounded-theme border border-border bg-card p-4">
+            <label class="block">
+              <span class="mb-1.5 block text-xs font-bold text-card-foreground">İzin türü *</span>
+              <select id="lv-type" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+                <option value="yillik">Yıllık izin</option>
+                <option value="mazeret">Mazeret izni</option>
+                <option value="raporlu">Raporlu (sağlık)</option>
+                <option value="ucretsiz">Ücretsiz izin</option>
+              </select>
+            </label>
+            <div class="grid grid-cols-2 gap-2.5">
+              <label class="block">
+                <span class="mb-1.5 block text-xs font-bold text-card-foreground">Başlangıç *</span>
+                <input id="lv-start" type="date" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+              </label>
+              <label class="block">
+                <span class="mb-1.5 block text-xs font-bold text-card-foreground">Bitiş *</span>
+                <input id="lv-end" type="date" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+              </label>
+            </div>
+            <p id="lv-days" class="text-xs font-semibold text-primary hidden"></p>
+            <label class="block">
+              <span class="mb-1.5 block text-xs font-bold text-card-foreground">Açıklama</span>
+              <input id="lv-note" type="text" placeholder="Örn. rapor detayı, mazeret" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+            </label>
+            <p id="lv-error" class="hidden text-xs font-semibold text-destructive"></p>
+            <button onclick="zkSubmitLeave()" id="lv-submit" class="flex h-12 w-full items-center justify-center gap-2 rounded-theme bg-primary text-sm font-bold text-primary-foreground">
+              <iconify-icon icon="lucide:send" class="text-base"></iconify-icon>
+              Talebi Gönder
+            </button>
+          </div>
+        </section>
+
+        <section class="mt-6">
+          <h2 class="font-heading text-lg font-bold">Taleplerim</h2>
+          <div id="leave-list" class="mt-3 space-y-2">
+            <p class="text-xs text-muted-foreground">Yükleniyor…</p>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div id="zk-toast" style="position:fixed;left:50%;bottom:40px;transform:translate(-50%,16px);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;background:#17242C;color:#fff;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;padding:10px 16px;border-radius:12px;z-index:9999;max-width:86%;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.18);"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script src="supabase-client.js"></script>
+  <script src="js/zk-guard.js"></script>
+  <script src="js/zk-picker.js"></script>
+  <script>
+    function zkToast(msg){
+      var el = document.getElementById('zk-toast');
+      el.textContent = msg;
+      el.style.opacity = '1';
+      el.style.transform = 'translate(-50%,0)';
+      clearTimeout(window.__zkToastTimer);
+      window.__zkToastTimer = setTimeout(function(){
+        el.style.opacity = '0';
+        el.style.transform = 'translate(-50%,16px)';
+      }, 2200);
+    }
+    function escapeHtml(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+
+    var TYPE_NAMES = { yillik: 'Yıllık izin', mazeret: 'Mazeret izni', raporlu: 'Raporlu (sağlık)', ucretsiz: 'Ücretsiz izin' };
+    var STATUS_BADGES = {
+      pending: '<span class="rounded-full bg-accent/10 px-2 py-1 text-[10px] font-bold text-accent">Bekliyor</span>',
+      approved: '<span class="rounded-full bg-success/10 px-2 py-1 text-[10px] font-bold text-success">Onaylandı</span>',
+      rejected: '<span class="rounded-full bg-destructive/10 px-2 py-1 text-[10px] font-bold text-destructive">Reddedildi</span>'
+    };
+    var currentMe = null;
+
+    function dayCount() {
+      var s = document.getElementById('lv-start').value;
+      var e = document.getElementById('lv-end').value;
+      if (!s || !e) return null;
+      var d = Math.round((new Date(e) - new Date(s)) / 86400000) + 1;
+      return d > 0 ? d : null;
+    }
+
+    function refreshDays() {
+      var d = dayCount();
+      var el = document.getElementById('lv-days');
+      el.classList.toggle('hidden', !d);
+      if (d) el.textContent = d + ' gün izin talep ediyorsunuz.';
+    }
+    document.getElementById('lv-start').addEventListener('change', refreshDays);
+    document.getElementById('lv-end').addEventListener('change', refreshDays);
+
+    function trDate(iso) { return new Date(iso + 'T00:00:00').toLocaleDateString('tr-TR'); }
+
+    function loadLeaves() {
+      ZirkonikData.myLeaveRequests().then(function (r) {
+        var el = document.getElementById('leave-list');
+        if (r.error) { el.innerHTML = '<p class="text-xs text-destructive">Yüklenemedi: ' + escapeHtml(r.error.message) + '</p>'; return; }
+        var list = r.data || [];
+        if (!list.length) {
+          el.innerHTML = '<p class="text-xs text-muted-foreground">Henüz izin talebiniz yok.</p>';
+          return;
+        }
+        el.innerHTML = list.map(function (l) {
+          return '<div class="rounded-theme border border-border bg-card p-3.5">' +
+            '<div class="flex items-center justify-between gap-2">' +
+            '<p class="text-sm font-bold">' + (TYPE_NAMES[l.leave_type] || l.leave_type) + '</p>' +
+            (STATUS_BADGES[l.status] || '') + '</div>' +
+            '<p class="mt-1 text-xs text-muted-foreground">' + trDate(l.start_date) + ' — ' + trDate(l.end_date) + ' · ' + l.day_count + ' gün</p>' +
+            (l.note ? '<p class="mt-1 text-xs text-muted-foreground">' + escapeHtml(l.note) + '</p>' : '') +
+            (l.decision_note ? '<p class="mt-1 text-xs font-semibold text-accent">Yönetici notu: ' + escapeHtml(l.decision_note) + '</p>' : '') +
+            (l.status === 'pending'
+              ? '<button onclick="zkCancelLeave(\'' + l.id + '\')" class="mt-2.5 text-[11px] font-bold text-destructive">Talebi geri çek</button>'
+              : '') +
+            '</div>';
+        }).join('');
+      });
+    }
+
+    function zkSubmitLeave() {
+      var errEl = document.getElementById('lv-error');
+      errEl.classList.add('hidden');
+      var d = dayCount();
+      if (!document.getElementById('lv-start').value || !document.getElementById('lv-end').value) {
+        errEl.textContent = 'Başlangıç ve bitiş tarihi zorunludur.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+      if (!d) {
+        errEl.textContent = 'Bitiş tarihi başlangıçtan önce olamaz.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+      var btn = document.getElementById('lv-submit');
+      btn.disabled = true;
+      ZirkonikData.createLeaveRequest({
+        organization_id: currentMe.organization_id,
+        user_id: currentMe.id,
+        leave_type: document.getElementById('lv-type').value,
+        start_date: document.getElementById('lv-start').value,
+        end_date: document.getElementById('lv-end').value,
+        day_count: d,
+        note: document.getElementById('lv-note').value.trim() || null
+      }).then(function (res) {
+        btn.disabled = false;
+        if (res.error) {
+          errEl.textContent = 'Gönderilemedi: ' + res.error.message;
+          errEl.classList.remove('hidden');
+          return;
+        }
+        zkToast('İzin talebiniz iletildi.');
+        document.getElementById('lv-start').value = '';
+        document.getElementById('lv-end').value = '';
+        document.getElementById('lv-note').value = '';
+        refreshDays();
+        loadLeaves();
+      });
+    }
+
+    function zkCancelLeave(id) {
+      ZirkonikData.cancelLeaveRequest(id).then(function (res) {
+        if (res.error) { zkToast('Olmadı: ' + res.error.message); return; }
+        zkToast('Talep geri çekildi.');
+        loadLeaves();
+      });
+    }
+
+    ZirkonikAuth.requireAuth().then(function (session) {
+      if (!session) return;
+      ZirkonikAuth.me().then(function (me) {
+        currentMe = me;
+        loadLeaves();
+      });
+    });
+  </script>
+</body>
+</html>
