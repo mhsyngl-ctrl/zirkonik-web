@@ -80,6 +80,7 @@
 
     signOut: function () {
       _meCache = null;
+      try { localStorage.removeItem('zk-guard'); } catch (e) {}
       return client().auth.signOut().then(function () {
         window.location.href = 'giris.html';
       });
@@ -414,6 +415,10 @@
     // app_users + user_permissions + user_lab_access/user_room_access'i
     // tek seferde oluşturur — client'ın bu tabloları INSERT etme izni yok).
     // ---- İzin talepleri ----
+    annualLeaveSummary: function (userId) {
+      // İK prosedürü: İş Kanunu md.53 (hesap DB fonksiyonunda; kendisi + yönetici)
+      return client().rpc('calc_annual_leave_days', { p_user_id: userId });
+    },
     myLeaveRequests: function () {
       return client().auth.getUser().then(function (r) {
         var uid = r.data && r.data.user ? r.data.user.id : null;
@@ -481,4 +486,27 @@
 
   window.ZirkonikAuth = Auth;
   window.ZirkonikData = Data;
+
+  // ---- APNs cihaz token kaydı ----
+  // Native kabuk token'ı window.zkNativePushToken'a yazar ve 'zk-push-token'
+  // olayını atar (bkz. iOS/Zirkonik/ZirkonikApp.swift). Oturum açıksa token
+  // bu kullanıcıya kaydedilir; push bildirimleri bu tabloya göre gönderilir.
+  function zkRegisterPushToken() {
+    var tok = window.zkNativePushToken;
+    if (!tok) return;
+    try {
+      client().auth.getSession().then(function (r) {
+        var s = r.data && r.data.session;
+        if (!s || !s.user) return;
+        client().from('device_tokens').upsert({
+          token: tok,
+          user_id: s.user.id,
+          platform: 'ios',
+          updated_at: new Date().toISOString()
+        }).then(function () {});
+      });
+    } catch (e) {}
+  }
+  window.addEventListener('zk-push-token', zkRegisterPushToken);
+  setTimeout(zkRegisterPushToken, 2500);
 })();

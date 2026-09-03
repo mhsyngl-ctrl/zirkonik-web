@@ -7,7 +7,7 @@
  *    Laboratuvarlar, Fiyat Listesi, Siparişler ve Yeni İş yönetici işidir.
  *  - doktor: yalnız kendi paneli (+ bildirimler, profil).
  *
- * Menü gizleme iki aşamalı: son bilinen yetkiler sessionStorage'da tutulur
+ * Menü gizleme iki aşamalı: son bilinen yetkiler localStorage'da tutulur (girişte de yazılır)
  * ve sayfa açılır açılmaz SENKRON uygulanır (geri tuşunda menü "gelip
  * gitmesin"); ardından sunucudan taze yetki gelince yeniden uygulanır.
  * Asıl güvenlik RLS'tedir (personel işleri oda bazlı görür, iş ekleyemez).
@@ -75,7 +75,7 @@
 
   // 1) SENKRON: son bilinen yetkilerle anında uygula (titreme olmasın)
   var cached = null;
-  try { cached = JSON.parse(sessionStorage.getItem('zk-guard') || 'null'); } catch (e) {}
+  try { cached = JSON.parse(localStorage.getItem('zk-guard') || 'null'); } catch (e) {}
   if (cached) {
     if (enforce(cached.role, cached)) return;
     if (cached.role === 'personel') applyStaff(cached);
@@ -92,7 +92,7 @@
       can_view_finance: !!p.can_view_finance,
       can_view_doctors: !!p.can_view_doctors
     };
-    try { sessionStorage.setItem('zk-guard', JSON.stringify(snap)); } catch (e) {}
+    try { localStorage.setItem('zk-guard', JSON.stringify(snap)); } catch (e) {}
     if (enforce(snap.role, snap)) return;
     if (snap.role === 'personel') applyStaff(snap);
   }).catch(function () {});

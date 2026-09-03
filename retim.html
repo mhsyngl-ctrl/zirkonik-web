@@ -180,6 +180,15 @@
             <p class="p-4 text-xs text-muted-foreground">Yükleniyor…</p>
           </div>
         </section>
+
+        <!-- İzin talepleri (yalnız yönetici/işveren görür) -->
+        <section id="leave-admin-section" class="hidden px-5 pt-7">
+          <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">İnsan kaynakları</p>
+          <h2 class="mt-1 font-heading text-lg font-bold">İzin talepleri</h2>
+          <div id="leave-queue" class="mt-3 space-y-3">
+            <p class="text-xs text-muted-foreground">Yükleniyor…</p>
+          </div>
+        </section>
       </main>
 
       <div class="fixed bottom-[76px] left-0 z-20 w-full px-5">
@@ -453,6 +462,13 @@
       if (!session) return;
       loadDashboard();
       zkLoadNotifBadge();
+      ZirkonikAuth.me().then(function (me) {
+        zkIsAdmin = !!(me && me.role === 'yonetici');
+        if (zkIsAdmin) {
+          document.getElementById('leave-admin-section').classList.remove('hidden');
+          loadLeaveQueue();
+        }
+      });
     });
 
     function zkLoadNotifBadge() {
@@ -470,7 +486,49 @@
       icon.classList.add('animate-spin');
       loadDashboard();
       zkLoadNotifBadge();
+      if (zkIsAdmin) loadLeaveQueue();
       setTimeout(function () { icon.classList.remove('animate-spin'); }, 700);
+    }
+
+    // ---- İzin talepleri onay kuyruğu (yalnız yönetici/işveren) ----
+    var zkIsAdmin = false;
+    var LEAVE_TYPE_NAMES = { yillik: 'Yıllık izin', mazeret: 'Mazeret izni', raporlu: 'Raporlu (sağlık)', ucretsiz: 'Ücretsiz izin' };
+
+    function loadLeaveQueue() {
+      ZirkonikData.listLeaveRequests('pending').then(function (r) {
+        var el = document.getElementById('leave-queue');
+        if (!el || r.error) return;
+        var list = r.data || [];
+        if (!list.length) {
+          el.innerHTML = '<p class="text-xs text-muted-foreground">Bekleyen izin talebi yok.</p>';
+          return;
+        }
+        el.innerHTML = list.map(function (l) {
+          var who = l.app_users || {};
+          var trS = new Date(l.start_date + 'T00:00:00').toLocaleDateString('tr-TR');
+          var trE = new Date(l.end_date + 'T00:00:00').toLocaleDateString('tr-TR');
+          return '<article class="rounded-theme border border-border bg-card p-4">' +
+            '<div class="flex items-start justify-between gap-2"><div>' +
+            '<p class="text-sm font-bold">' + escapeHtml(who.full_name || 'Personel') + (who.position ? ' <span class="text-[11px] font-semibold text-muted-foreground">· ' + escapeHtml(who.position) + '</span>' : '') + '</p>' +
+            '<p class="mt-1 text-xs text-muted-foreground">' + (LEAVE_TYPE_NAMES[l.leave_type] || l.leave_type) + ' · ' + trS + ' — ' + trE + ' · ' + l.day_count + ' gün</p>' +
+            (l.note ? '<p class="mt-1 text-xs text-muted-foreground">' + escapeHtml(l.note) + '</p>' : '') +
+            '</div><span class="rounded-full bg-accent/10 px-2.5 py-1 text-[10px] font-bold text-accent">Bekliyor</span></div>' +
+            '<div class="mt-3 grid grid-cols-2 gap-2">' +
+            '<button onclick="zkDecideLeave(\'' + l.id + '\',\'approved\')" class="flex h-10 items-center justify-center gap-1.5 rounded-theme bg-primary text-xs font-bold text-primary-foreground"><iconify-icon icon="lucide:check" class="text-sm"></iconify-icon>Onayla</button>' +
+            '<button onclick="zkDecideLeave(\'' + l.id + '\',\'rejected\')" class="flex h-10 items-center justify-center gap-1.5 rounded-theme border border-border bg-background text-xs font-bold text-destructive">Reddet</button>' +
+            '</div></article>';
+        }).join('');
+      });
+    }
+
+    function zkDecideLeave(id, verdict) {
+      ZirkonikAuth.me().then(function (me) {
+        return ZirkonikData.decideLeaveRequest(id, verdict, me.id, null);
+      }).then(function (res) {
+        if (res.error) { zkToast('Olmadı: ' + res.error.message); return; }
+        zkToast(verdict === 'approved' ? 'İzin onaylandı.' : 'İzin reddedildi.');
+        loadLeaveQueue();
+      });
     }
 
     // Otomatik canlı yenileme: 10 saniyede bir (ekran görünürken).

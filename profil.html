@@ -171,8 +171,12 @@
         document.getElementById('pf-phone').value = me.phone || '';
         document.getElementById('pf-email').value = session.user.email || '';
 
-        if (me.role !== 'doktor') {
+        // İzin talebi yalnız çalışan (personel) içindir — işveren/yönetici
+        // talepleri ana ekrandaki kuyruktan yönetir, kendisi talep açmaz.
+        if (me.role === 'personel') {
           document.getElementById('pf-leave-section').classList.remove('hidden');
+        }
+        if (me.role !== 'doktor') {
           document.getElementById('pf-work-stats').classList.remove('hidden');
           ZirkonikData.getStaffJobStats(me.id).then(function (r) {
             var stats = (r && r.data) || { jobCount: 0, teethCount: 0 };

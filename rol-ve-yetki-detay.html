@@ -130,6 +130,17 @@
               </select>
               <span class="mt-1 block text-[11px] text-muted-foreground">Yönetici/İşveren her şeyi görür; Teknisyen ve Yardımcı Teknisyen aşağıdaki izin ve oda kapsamına tabidir.</span>
             </label>
+            <div class="grid grid-cols-2 gap-2.5">
+              <label class="block">
+                <span class="mb-1.5 block text-xs font-bold text-card-foreground">İşe giriş tarihi</span>
+                <input id="pi-hire" type="date" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+              </label>
+              <label class="block">
+                <span class="mb-1.5 block text-xs font-bold text-card-foreground">Doğum tarihi</span>
+                <input id="pi-birth" type="date" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+              </label>
+            </div>
+            <p class="text-[11px] text-muted-foreground">Yıllık izin hakkı işe giriş tarihine göre hesaplanır (1-5 yıl: 14, 5-15: 20, 15+: 26 gün; 18 yaş altı / 50 üstü en az 20).</p>
             <label class="block">
               <span class="mb-1.5 block text-xs font-bold text-card-foreground">Telefon</span>
               <input id="pi-phone" type="tel" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
@@ -264,6 +275,8 @@
           document.getElementById('pi-name').value = u.full_name || '';
           document.getElementById('pi-position').value = u.position || (u.role === 'yonetici' ? 'Yönetici' : 'Teknisyen');
           document.getElementById('pi-phone').value = u.phone || '';
+          document.getElementById('pi-hire').value = u.hire_date || '';
+          document.getElementById('pi-birth').value = u.birth_date || '';
           document.getElementById('pi-email').value = u.email || '';
 
           // job_stage_history RLS'i laboratuvar erişimine göre çalışır, tek
@@ -388,6 +401,8 @@
           return ZirkonikAuth.client().from('app_users').update({
             full_name: document.getElementById('pi-name').value.trim(),
             phone: document.getElementById('pi-phone').value.trim() || null,
+            hire_date: document.getElementById('pi-hire').value || null,
+            birth_date: document.getElementById('pi-birth').value || null,
             position: pos,
             // İşveren/Yönetici tam yetkili roldür; diğer pozisyonlar personel.
             role: (pos === 'Yönetici' || pos === 'İşveren') ? 'yonetici' : 'personel'

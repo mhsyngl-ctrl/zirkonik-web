@@ -48,66 +48,96 @@
 </head>
 <body data-page="izinlerim" class="bg-background text-foreground m-0 p-0">
   <div class="h-screen w-screen overflow-y-auto">
-    <div class="min-h-screen w-full bg-background text-foreground font-body pb-16">
+    <div class="min-h-screen w-full bg-background text-foreground font-body pb-28">
       <header class="border-b border-border bg-card px-5 pb-5 pt-12" style="padding-top:max(3rem,calc(env(safe-area-inset-top) + 12px));">
-        <div class="flex items-center gap-3">
-          <button onclick="history.length > 1 ? history.back() : (location.href='profil.html')" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-background text-primary" aria-label="Geri">
-            <iconify-icon icon="lucide:arrow-left" class="text-xl"></iconify-icon>
-          </button>
-          <div>
-            <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Zirkonik</p>
-            <h1 class="mt-0.5 font-heading text-[22px] font-extrabold tracking-tight">İzinlerim</h1>
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <button onclick="history.length > 1 ? history.back() : (location.href='profil.html')" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-background text-primary" aria-label="Geri">
+              <iconify-icon icon="lucide:arrow-left" class="text-xl"></iconify-icon>
+            </button>
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Zirkonik</p>
+              <h1 class="mt-0.5 font-heading text-[22px] font-extrabold tracking-tight">İzinlerim</h1>
+            </div>
           </div>
+          <button onclick="zkOpenLeaveSheet()" class="flex h-10 w-10 items-center justify-center rounded-theme bg-primary text-primary-foreground" aria-label="Yeni izin talebi">
+            <iconify-icon icon="lucide:plus" class="text-lg"></iconify-icon>
+          </button>
         </div>
       </header>
 
       <main class="px-5 pt-5">
-        <section>
-          <h2 class="font-heading text-lg font-bold">Yeni izin talebi</h2>
-          <div class="mt-3 space-y-3 rounded-theme border border-border bg-card p-4">
-            <label class="block">
-              <span class="mb-1.5 block text-xs font-bold text-card-foreground">İzin türü *</span>
-              <select id="lv-type" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
-                <option value="yillik">Yıllık izin</option>
-                <option value="mazeret">Mazeret izni</option>
-                <option value="raporlu">Raporlu (sağlık)</option>
-                <option value="ucretsiz">Ücretsiz izin</option>
-              </select>
-            </label>
-            <div class="grid grid-cols-2 gap-2.5">
-              <label class="block">
-                <span class="mb-1.5 block text-xs font-bold text-card-foreground">Başlangıç *</span>
-                <input id="lv-start" type="date" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
-              </label>
-              <label class="block">
-                <span class="mb-1.5 block text-xs font-bold text-card-foreground">Bitiş *</span>
-                <input id="lv-end" type="date" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
-              </label>
+        <!-- Yıllık izin hakkı (İş Kanunu md.53 hesabı) -->
+        <section class="rounded-theme border border-border bg-card p-4">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Yıllık izin hakkı</p>
+              <p id="al-summary" class="mt-2 font-heading text-2xl font-bold tabular-nums">—</p>
+              <p id="al-note" class="mt-1 text-[11px] text-muted-foreground"></p>
             </div>
-            <p id="lv-days" class="text-xs font-semibold text-primary hidden"></p>
-            <label class="block">
-              <span class="mb-1.5 block text-xs font-bold text-card-foreground">Açıklama</span>
-              <input id="lv-note" type="text" placeholder="Örn. rapor detayı, mazeret" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
-            </label>
-            <p id="lv-error" class="hidden text-xs font-semibold text-destructive"></p>
-            <button onclick="zkSubmitLeave()" id="lv-submit" class="flex h-12 w-full items-center justify-center gap-2 rounded-theme bg-primary text-sm font-bold text-primary-foreground">
-              <iconify-icon icon="lucide:send" class="text-base"></iconify-icon>
-              Talebi Gönder
-            </button>
+            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-secondary text-primary">
+              <iconify-icon icon="lucide:calendar-days" class="text-xl"></iconify-icon>
+            </div>
+          </div>
+          <div class="mt-3 grid grid-cols-2 gap-2 border-t border-border pt-3">
+            <div><p class="text-[11px] text-muted-foreground">Hak edilen</p><p id="al-entitled" class="mt-1 text-sm font-bold tabular-nums">—</p></div>
+            <div><p class="text-[11px] text-muted-foreground">Bu yıl kullanılan</p><p id="al-used" class="mt-1 text-sm font-bold tabular-nums text-accent">—</p></div>
           </div>
         </section>
 
         <section class="mt-6">
-          <h2 class="font-heading text-lg font-bold">Taleplerim</h2>
+          <div class="flex items-end justify-between">
+            <h2 class="font-heading text-lg font-bold">Taleplerim</h2>
+          </div>
           <div id="leave-list" class="mt-3 space-y-2">
             <p class="text-xs text-muted-foreground">Yükleniyor…</p>
           </div>
         </section>
       </main>
+
+      <div class="fixed bottom-0 left-0 z-30 w-full border-t border-border bg-card/95 px-5 pb-6 pt-3 backdrop-blur-md">
+        <button onclick="zkOpenLeaveSheet()" class="flex h-12 w-full items-center justify-center gap-2 rounded-theme bg-primary font-heading text-sm font-bold text-primary-foreground">
+          <iconify-icon icon="lucide:plus" class="text-lg"></iconify-icon>
+          Yeni İzin Talebi
+        </button>
+      </div>
     </div>
   </div>
 
-  <div id="zk-toast" style="position:fixed;left:50%;bottom:40px;transform:translate(-50%,16px);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;background:#17242C;color:#fff;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;padding:10px 16px;border-radius:12px;z-index:9999;max-width:86%;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.18);"></div>
+  <!-- Yeni izin talebi sheet -->
+  <div id="leave-sheet" class="fixed inset-0 z-40 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkCloseLeaveSheet()"></div>
+    <div class="absolute bottom-0 left-0 w-full rounded-t-theme bg-card p-5 pb-8">
+      <p class="font-heading text-lg font-bold">Yeni izin talebi</p>
+      <div class="mt-4 space-y-3">
+        <select id="lv-type" aria-label="İzin türü" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+          <option value="yillik">Yıllık izin</option>
+          <option value="mazeret">Mazeret izni</option>
+          <option value="raporlu">Raporlu (sağlık)</option>
+          <option value="ucretsiz">Ücretsiz izin</option>
+        </select>
+        <div class="grid grid-cols-2 gap-2.5">
+          <label class="block">
+            <span class="mb-1.5 block text-xs font-bold text-card-foreground">Başlangıç *</span>
+            <input id="lv-start" type="date" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+          </label>
+          <label class="block">
+            <span class="mb-1.5 block text-xs font-bold text-card-foreground">Bitiş *</span>
+            <input id="lv-end" type="date" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+          </label>
+        </div>
+        <p id="lv-days" class="hidden text-xs font-semibold text-primary"></p>
+        <input id="lv-note" type="text" placeholder="Açıklama (örn. rapor detayı)" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+      </div>
+      <p id="lv-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
+      <button onclick="zkSubmitLeave()" id="lv-submit" class="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-theme bg-primary text-sm font-bold text-primary-foreground">
+        <iconify-icon icon="lucide:send" class="text-base"></iconify-icon>
+        Talebi Gönder
+      </button>
+    </div>
+  </div>
+
+  <div id="zk-toast" style="position:fixed;left:50%;bottom:96px;transform:translate(-50%,16px);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;background:#17242C;color:#fff;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;padding:10px 16px;border-radius:12px;z-index:9999;max-width:86%;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.18);"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -133,12 +163,16 @@
     }
 
     var TYPE_NAMES = { yillik: 'Yıllık izin', mazeret: 'Mazeret izni', raporlu: 'Raporlu (sağlık)', ucretsiz: 'Ücretsiz izin' };
+    var TYPE_ICONS = { yillik: 'lucide:palmtree', mazeret: 'lucide:clock-4', raporlu: 'lucide:stethoscope', ucretsiz: 'lucide:wallet' };
     var STATUS_BADGES = {
       pending: '<span class="rounded-full bg-accent/10 px-2 py-1 text-[10px] font-bold text-accent">Bekliyor</span>',
       approved: '<span class="rounded-full bg-success/10 px-2 py-1 text-[10px] font-bold text-success">Onaylandı</span>',
       rejected: '<span class="rounded-full bg-destructive/10 px-2 py-1 text-[10px] font-bold text-destructive">Reddedildi</span>'
     };
     var currentMe = null;
+
+    function zkOpenLeaveSheet() { document.getElementById('leave-sheet').classList.remove('hidden'); }
+    function zkCloseLeaveSheet() { document.getElementById('leave-sheet').classList.add('hidden'); }
 
     function dayCount() {
       var s = document.getElementById('lv-start').value;
@@ -159,27 +193,42 @@
 
     function trDate(iso) { return new Date(iso + 'T00:00:00').toLocaleDateString('tr-TR'); }
 
+    function loadAnnualSummary() {
+      ZirkonikData.annualLeaveSummary(currentMe.id).then(function (r) {
+        var d = (r && r.data) || {};
+        if (r.error) { document.getElementById('al-summary').textContent = '—'; return; }
+        document.getElementById('al-summary').textContent = (d.remaining != null ? d.remaining : '—') + ' gün kaldı';
+        document.getElementById('al-entitled').textContent = (d.entitled != null ? d.entitled : '—') + ' gün';
+        document.getElementById('al-used').textContent = (d.used != null ? d.used : '—') + ' gün';
+        document.getElementById('al-note').textContent = d.reason
+          ? d.reason + ' Yöneticinizden işe giriş tarihinizi kaydetmesini isteyin.'
+          : 'Kıdeme göre yasal hak (İş Kanunu md.53); bu yılın onaylı yıllık izinleri düşülür.';
+      });
+    }
+
     function loadLeaves() {
       ZirkonikData.myLeaveRequests().then(function (r) {
         var el = document.getElementById('leave-list');
         if (r.error) { el.innerHTML = '<p class="text-xs text-destructive">Yüklenemedi: ' + escapeHtml(r.error.message) + '</p>'; return; }
         var list = r.data || [];
         if (!list.length) {
-          el.innerHTML = '<p class="text-xs text-muted-foreground">Henüz izin talebiniz yok.</p>';
+          el.innerHTML = '<p class="text-xs text-muted-foreground">Henüz izin talebiniz yok. Sağ üstteki + ile talep açabilirsiniz.</p>';
           return;
         }
         el.innerHTML = list.map(function (l) {
-          return '<div class="rounded-theme border border-border bg-card p-3.5">' +
+          return '<div class="flex items-start gap-3 rounded-theme border border-border bg-card p-3.5">' +
+            '<span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-primary"><iconify-icon icon="' + (TYPE_ICONS[l.leave_type] || 'lucide:calendar') + '" class="text-lg"></iconify-icon></span>' +
+            '<div class="min-w-0 flex-1">' +
             '<div class="flex items-center justify-between gap-2">' +
             '<p class="text-sm font-bold">' + (TYPE_NAMES[l.leave_type] || l.leave_type) + '</p>' +
             (STATUS_BADGES[l.status] || '') + '</div>' +
-            '<p class="mt-1 text-xs text-muted-foreground">' + trDate(l.start_date) + ' — ' + trDate(l.end_date) + ' · ' + l.day_count + ' gün</p>' +
-            (l.note ? '<p class="mt-1 text-xs text-muted-foreground">' + escapeHtml(l.note) + '</p>' : '') +
-            (l.decision_note ? '<p class="mt-1 text-xs font-semibold text-accent">Yönetici notu: ' + escapeHtml(l.decision_note) + '</p>' : '') +
+            '<p class="mt-0.5 text-xs text-muted-foreground">' + trDate(l.start_date) + ' — ' + trDate(l.end_date) + ' · ' + l.day_count + ' gün</p>' +
+            (l.note ? '<p class="mt-0.5 text-xs text-muted-foreground">' + escapeHtml(l.note) + '</p>' : '') +
+            (l.decision_note ? '<p class="mt-0.5 text-xs font-semibold text-accent">Yönetici notu: ' + escapeHtml(l.decision_note) + '</p>' : '') +
             (l.status === 'pending'
-              ? '<button onclick="zkCancelLeave(\'' + l.id + '\')" class="mt-2.5 text-[11px] font-bold text-destructive">Talebi geri çek</button>'
+              ? '<button onclick="zkCancelLeave(\'' + l.id + '\')" class="mt-2 text-[11px] font-bold text-destructive">Talebi geri çek</button>'
               : '') +
-            '</div>';
+            '</div></div>';
         }).join('');
       });
     }
@@ -215,6 +264,7 @@
           errEl.classList.remove('hidden');
           return;
         }
+        zkCloseLeaveSheet();
         zkToast('İzin talebiniz iletildi.');
         document.getElementById('lv-start').value = '';
         document.getElementById('lv-end').value = '';
@@ -229,6 +279,7 @@
         if (res.error) { zkToast('Olmadı: ' + res.error.message); return; }
         zkToast('Talep geri çekildi.');
         loadLeaves();
+        loadAnnualSummary();
       });
     }
 
@@ -237,6 +288,7 @@
       ZirkonikAuth.me().then(function (me) {
         currentMe = me;
         loadLeaves();
+        loadAnnualSummary();
       });
     });
   </script>

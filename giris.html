@@ -155,8 +155,19 @@
     });
 
     // Doktor hesapları sipariş paneline, lab ekibi üretim paneline gider.
+    // Yetki anlık görüntüsü girişte kaydedilir ki ilk sayfada menü doğru
+    // halde açılsın (bkz. js/zk-guard.js).
     function zkRouteByRole() {
       ZirkonikAuth.me().then(function (me) {
+        try {
+          var p = (me && me.user_permissions && me.user_permissions[0]) || {};
+          localStorage.setItem('zk-guard', JSON.stringify({
+            role: me ? me.role : null,
+            can_manage_stock: !!p.can_manage_stock,
+            can_view_finance: !!p.can_view_finance,
+            can_view_doctors: !!p.can_view_doctors
+          }));
+        } catch (e) {}
         window.location.href = (me && me.role === 'doktor') ? 'doktor-siparis.html' : 'retim.html';
       }).catch(function () { window.location.href = 'retim.html'; });
     }
