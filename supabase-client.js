@@ -128,12 +128,15 @@
     listLabs: function () {
       return client().from('laboratories').select('*').order('created_at');
     },
-    createLab: function (orgId, name, city, address) {
+    updateLab: function (labId, fields) {
+      return client().from('laboratories').update(fields).eq('id', labId);
+    },
+    createLab: function (orgId, name, city, address, phone, email) {
       // Not: .select() burada bilerek insert'ten ayrı — has_lab_access()
       // kendi laboratories tablosuna JOIN attığı için aynı komut içindeki
       // INSERT...RETURNING yeni satırı göremiyor (Postgres RLS + SECURITY
       // DEFINER snapshot sınırı). İki ayrı istek bunu aşıyor.
-      return client().from('laboratories').insert({ organization_id: orgId, name: name, city: city, address: address }).then(function (insRes) {
+      return client().from('laboratories').insert({ organization_id: orgId, name: name, city: city, address: address, phone: phone || null, email: email || null }).then(function (insRes) {
         if (insRes.error) return insRes;
         return client().from('laboratories').select().eq('organization_id', orgId).eq('name', name).order('created_at', { ascending: false }).limit(1).single();
       });
