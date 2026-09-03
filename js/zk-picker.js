@@ -152,19 +152,29 @@
   }
 
   // Belge düzeyinde yakala: yerli seçici hiç açılmadan bizimki açılır.
-  // (mousedown'da preventDefault, WebKit'in select/tarih çarkını engeller.)
+  // Dokunmatikte touchend'e preventDefault koymak WebKit'in üreteceği sahte
+  // mousedown'ı da iptal eder — bu yüzden sayfa HER İKİ olayda da açılır;
+  // lastOpenAt koruması aynı dokunuş için iki kez açılmasını engeller.
+  var lastOpenAt = 0;
+  function openFor(el) {
+    var now = Date.now();
+    if (now - lastOpenAt < 500) return;
+    lastOpenAt = now;
+    if (el.tagName === 'SELECT') openSelectSheet(el);
+    else openCalendarSheet(el);
+  }
   ['mousedown', 'touchend'].forEach(function (evName) {
     document.addEventListener(evName, function (e) {
       var sel = e.target.closest ? e.target.closest('select') : null;
       if (sel && !sel.disabled) {
         e.preventDefault();
-        if (evName === 'mousedown') openSelectSheet(sel);
+        openFor(sel);
         return;
       }
       var inp = e.target.closest ? e.target.closest('input[type="date"]') : null;
       if (inp && !inp.disabled && !inp.readOnly) {
         e.preventDefault();
-        if (evName === 'mousedown') openCalendarSheet(inp);
+        openFor(inp);
       }
     }, true);
   });

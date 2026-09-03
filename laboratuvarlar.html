@@ -343,7 +343,7 @@
         document.getElementById('nr-qc').checked = false;
         document.getElementById('nr-delivery').checked = false;
         zkToast('Oda eklendi.');
-        loadRooms(activeLabForRoom);
+        loadLabs();
       }).catch(function (err) {
         errEl.textContent = 'Eklenemedi: ' + err.message;
         errEl.classList.remove('hidden');
