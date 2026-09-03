@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://code.iconify.design; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://cuujupeindodpsdjcivm.supabase.co wss://cuujupeindodpsdjcivm.supabase.co https://api.iconify.design https://api.simplesvg.com https://api.unisvg.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <title>Bildirimler — Zirkonik</title>
+
+  <link rel="stylesheet" href="css/tailwind.css">
+  <link rel="stylesheet" href="css/ipad.css">
+  <link rel="stylesheet" href="css/zk-utils.css">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0E1013">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <script src="https://code.iconify.design/iconify-icon/2.3.0/iconify-icon.min.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap">
+
+  <style>
+  :root {
+    --color-background: #0E1013;
+    --color-foreground: #F2F4F7;
+    --color-primary: #3D7CDC;
+    --color-primary-foreground: #FFFFFF;
+    --color-secondary: #232732;
+    --color-secondary-foreground: #C6CBD6;
+    --color-accent: #F0A03C;
+    --color-accent-foreground: #FFFFFF;
+    --color-muted: #1B1E24;
+    --color-muted-foreground: #98A0AD;
+    --color-card: #15171C;
+    --color-card-foreground: #F2F4F7;
+    --color-border: #262A32;
+    --color-input: #1B1E24;
+    --color-destructive: #EF5350;
+    --color-destructive-foreground: #FFFFFF;
+    --color-success: #10B981;
+    --color-success-foreground: #FFFFFF;
+    --font-heading: 'Plus Jakarta Sans', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --radius: 12px;
+  }
+  html { overflow-x: hidden; }
+  body { font-family: var(--font-body); -webkit-font-smoothing: antialiased; margin: 0; padding: 0; overflow-x: hidden; overscroll-behavior-x: none; }
+  </style>
+</head>
+<body data-page="bildirimler" class="bg-background text-foreground m-0 p-0">
+  <div class="h-screen w-screen overflow-y-auto">
+    <div class="min-h-screen w-full bg-background text-foreground font-body pb-16">
+      <header class="border-b border-border bg-card px-5 pb-5 pt-12" style="padding-top:max(3rem,calc(env(safe-area-inset-top) + 12px));">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <button onclick="history.length > 1 ? history.back() : (location.href='retim.html')" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-background text-primary" aria-label="Geri">
+              <iconify-icon icon="lucide:arrow-left" class="text-xl"></iconify-icon>
+            </button>
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Zirkonik</p>
+              <h1 class="mt-0.5 font-heading text-[22px] font-extrabold tracking-tight">Bildirimler</h1>
+            </div>
+          </div>
+          <button onclick="zkMarkAllRead()" class="text-[11px] font-bold text-primary">Tümünü okundu yap</button>
+        </div>
+      </header>
+
+      <main class="px-5 pt-5">
+        <div id="notif-list" class="space-y-2">
+          <p class="text-xs text-muted-foreground">Yükleniyor…</p>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div id="zk-toast" style="position:fixed;left:50%;bottom:40px;transform:translate(-50%,16px);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;background:#17242C;color:#fff;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;padding:10px 16px;border-radius:12px;z-index:9999;max-width:86%;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.18);"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script src="supabase-client.js"></script>
+  <script src="js/zk-guard.js"></script>
+  <script>
+    function zkToast(msg){
+      var el = document.getElementById('zk-toast');
+      el.textContent = msg;
+      el.style.opacity = '1';
+      el.style.transform = 'translate(-50%,0)';
+      clearTimeout(window.__zkToastTimer);
+      window.__zkToastTimer = setTimeout(function(){
+        el.style.opacity = '0';
+        el.style.transform = 'translate(-50%,16px)';
+      }, 2200);
+    }
+    function escapeHtml(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+
+    var TYPE_ICONS = {
+      new_order: 'lucide:inbox',
+      job_created: 'lucide:file-plus-2',
+      job_incoming: 'lucide:package-open',
+      job_stage: 'lucide:route',
+      job_stage_doc: 'lucide:route',
+      job_done: 'lucide:check-circle-2',
+      job_received: 'lucide:package-check',
+      payment: 'lucide:circle-dollar-sign',
+      low_stock: 'lucide:package-x',
+      system: 'lucide:bell-ring'
+    };
+    var TYPE_COLORS = {
+      new_order: 'text-primary',
+      job_created: 'text-primary',
+      job_incoming: 'text-accent',
+      job_stage: 'text-primary',
+      job_stage_doc: 'text-primary',
+      job_done: 'text-success',
+      job_received: 'text-success',
+      payment: 'text-success',
+      low_stock: 'text-destructive',
+      system: 'text-primary'
+    };
+
+    var myRole = null;
+
+    function timeAgo(iso) {
+      var s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+      if (s < 60) return 'şimdi';
+      if (s < 3600) return Math.floor(s / 60) + ' dk önce';
+      if (s < 86400) return Math.floor(s / 3600) + ' sa önce';
+      return new Date(iso).toLocaleDateString('tr-TR');
+    }
+
+    function notifTarget(n) {
+      // Doktor iş detay sayfasını açamaz — kendi paneline döner.
+      if (myRole === 'doktor') return 'doktor-siparis.html';
+      if (n.job_id) return 'detay.html?id=' + n.job_id;
+      if (n.order_id && myRole === 'yonetici') return 'siparisler.html';
+      return null;
+    }
+
+    function loadNotifs() {
+      ZirkonikData.listNotifications().then(function (r) {
+        var el = document.getElementById('notif-list');
+        if (r.error) { el.innerHTML = '<p class="text-xs text-destructive">Yüklenemedi: ' + escapeHtml(r.error.message) + '</p>'; return; }
+        var list = r.data || [];
+        if (!list.length) {
+          el.innerHTML = '<p class="mt-10 text-center text-sm text-muted-foreground">Henüz bildirim yok.</p>';
+          return;
+        }
+        el.innerHTML = list.map(function (n) {
+          var unread = !n.read_at;
+          var icon = TYPE_ICONS[n.type] || 'lucide:bell';
+          var color = TYPE_COLORS[n.type] || 'text-primary';
+          var target = notifTarget(n);
+          var open = target ? ' onclick="location.href=\'' + target + '\'"' : '';
+          return '<div' + open + ' class="flex items-start gap-3 rounded-theme border ' + (unread ? 'border-primary/30 bg-card' : 'border-border bg-background') + ' p-3.5' + (target ? ' cursor-pointer' : '') + '">' +
+            '<span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary ' + color + '"><iconify-icon icon="' + icon + '" class="text-lg"></iconify-icon></span>' +
+            '<div class="min-w-0 flex-1">' +
+            '<div class="flex items-center justify-between gap-2">' +
+            '<p class="text-sm font-bold">' + escapeHtml(n.title) + (unread ? ' <span class="ml-1 inline-block h-2 w-2 rounded-full bg-primary align-middle"></span>' : '') + '</p>' +
+            '<span class="shrink-0 text-[10px] text-muted-foreground">' + timeAgo(n.created_at) + '</span></div>' +
+            (n.body ? '<p class="mt-0.5 text-xs text-muted-foreground">' + escapeHtml(n.body) + '</p>' : '') +
+            '</div></div>';
+        }).join('');
+      });
+    }
+
+    function zkMarkAllRead() {
+      ZirkonikData.markAllNotifsRead().then(function (res) {
+        if (res.error) { zkToast('Olmadı: ' + res.error.message); return; }
+        zkToast('Tümü okundu olarak işaretlendi.');
+        loadNotifs();
+      });
+    }
+
+    ZirkonikAuth.requireAuth().then(function (session) {
+      if (!session) return;
+      ZirkonikAuth.me().then(function (me) {
+        myRole = me ? me.role : null;
+        loadNotifs();
+      });
+    });
+  </script>
+</body>
+</html>

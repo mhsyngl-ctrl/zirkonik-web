@@ -28,7 +28,7 @@
     var isDoctor = me.role === 'doktor';
 
     if (isDoctor) {
-      if (page !== 'doktor-siparis' && page !== 'profil') location.replace('doktor-siparis.html');
+      if (page !== 'doktor-siparis' && page !== 'profil' && page !== 'bildirimler') location.replace('doktor-siparis.html');
       return;
     }
     if (isAdmin) return;

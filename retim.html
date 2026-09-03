@@ -75,6 +75,10 @@
             </div>
           </div>
           <div class="flex items-center gap-2">
+            <button onclick="location.href='bildirimler.html'" class="relative flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-background text-primary" aria-label="Bildirimler">
+              <iconify-icon icon="lucide:bell" class="text-xl"></iconify-icon>
+              <span id="notif-badge" class="zk-notif-badge" hidden></span>
+            </button>
             <button onclick="location.href='profil.html'" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-background text-primary" aria-label="Profil">
               <iconify-icon icon="lucide:settings" class="text-xl"></iconify-icon>
             </button>
@@ -448,12 +452,24 @@
     ZirkonikAuth.requireAuth().then(function (session) {
       if (!session) return;
       loadDashboard();
+      zkLoadNotifBadge();
     });
+
+    function zkLoadNotifBadge() {
+      var badge = document.getElementById('notif-badge');
+      if (!badge) return;
+      ZirkonikData.unreadNotifCount().then(function (r) {
+        var c = r.count || 0;
+        badge.textContent = c > 99 ? '99+' : String(c);
+        badge.hidden = !c;
+      });
+    }
 
     function zkRefreshDashboard() {
       var icon = document.getElementById('refresh-icon');
       icon.classList.add('animate-spin');
       loadDashboard();
+      zkLoadNotifBadge();
       setTimeout(function () { icon.classList.remove('animate-spin'); }, 700);
     }
 

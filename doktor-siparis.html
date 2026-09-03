@@ -60,6 +60,10 @@
             </div>
           </div>
           <div class="flex items-center gap-2">
+            <button onclick="location.href='bildirimler.html'" class="relative flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-background text-primary" aria-label="Bildirimler">
+              <iconify-icon icon="lucide:bell" class="text-xl"></iconify-icon>
+              <span id="notif-badge" class="zk-notif-badge" hidden></span>
+            </button>
             <button onclick="zkOpenContact()" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-background text-primary" aria-label="Laboratuvar iletişim" title="Laboratuvar iletişim">
               <iconify-icon icon="lucide:phone" class="text-xl"></iconify-icon>
             </button>
@@ -176,6 +180,18 @@
       if (teeth.length) document.getElementById('o-count').value = teeth.length;
     };
 
+    // ---- Bildirim rozeti ----
+    function zkLoadNotifBadge() {
+      var badge = document.getElementById('notif-badge');
+      if (!badge) return;
+      ZirkonikData.unreadNotifCount().then(function (r) {
+        var c = r.count || 0;
+        badge.textContent = c > 99 ? '99+' : String(c);
+        badge.hidden = !c;
+      });
+    }
+    setInterval(function () { if (!document.hidden) zkLoadNotifBadge(); }, 30000);
+
     // ---- Laboratuvar iletişim ----
     function zkOpenContact() {
       document.getElementById('contact-sheet').classList.remove('hidden');
@@ -222,6 +238,7 @@
           return;
         }
         document.getElementById('hdr-doctor').textContent = 'Dr. ' + doctor.full_name;
+        zkLoadNotifBadge();
         zkSetTab('new');
         ZirkonikData.listPriceItems().then(function (pr) {
           priceItems = pr.data || [];

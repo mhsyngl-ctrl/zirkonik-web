@@ -413,6 +413,17 @@
     // (create-staff-account edge function, service_role ile auth.users +
     // app_users + user_permissions + user_lab_access/user_room_access'i
     // tek seferde oluşturur — client'ın bu tabloları INSERT etme izni yok).
+    // ---- Bildirimler (kayıtları DB tetikleyicileri yazar, istemci okur) ----
+    listNotifications: function () {
+      return client().from('notifications').select('*').order('created_at', { ascending: false }).limit(100);
+    },
+    unreadNotifCount: function () {
+      return client().from('notifications').select('id', { count: 'exact', head: true }).is('read_at', null);
+    },
+    markAllNotifsRead: function () {
+      return client().from('notifications').update({ read_at: new Date().toISOString() }).is('read_at', null);
+    },
+
     createStaffAccount: function (fields) {
       return client().functions.invoke('create-staff-account', { body: fields });
     },
