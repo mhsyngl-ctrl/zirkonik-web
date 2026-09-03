@@ -506,7 +506,10 @@
     function loadBoardForLab(lab) {
       boardActiveLab = lab;
       var el = document.getElementById('production-board');
-      el.innerHTML = '<p class="text-xs text-muted-foreground">Yükleniyor…</p>';
+      // Sekme geçişi/yenilemede yükseklik korunur ki alttaki kartlar
+      // zıplamasın; içerik zaten varsa "Yükleniyor" da gösterilmez.
+      if (el.offsetHeight) el.style.minHeight = el.offsetHeight + 'px';
+      if (!el.firstChild) el.innerHTML = '<p class="text-xs text-muted-foreground">Yükleniyor…</p>';
       if (boardMode === 'completed') {
         loadCompletedList(lab, el);
       } else {
@@ -522,6 +525,7 @@
         var rooms = results[0].data || [];
         var jobs = results[1].data || [];
         if (!rooms.length) {
+          el.style.minHeight = '';
           el.innerHTML = '<p class="text-xs text-muted-foreground">Bu laboratuvarda henüz oda tanımlanmamış.</p>';
           return;
         }
@@ -601,6 +605,32 @@
       if (lst && lst.scrollIntoView) lst.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
+    // Bir peteğin o anki görünümü: sınıf + iç içerik (yerinde güncelleme için).
+    function hexState(idx) {
+      var sec = hiveSections[idx];
+      var secJobs = hiveJobs.filter(function (j) { return hiveJobInSection(j, sec); });
+      var pendingCount = secJobs.filter(function (j) { return sec.id !== null && hiveConfirmedMap[j.id] === false; }).length;
+      var incoming = sec.id ? (hiveIncomingMap[sec.id] || 0) : 0;
+      // Yük = mevcut + gelmekte olan; eşik aşılırsa istasyon "ısınır".
+      var load = secJobs.length + incoming;
+      var hot = load >= 3;
+      var cls = 'zk-hex';
+      if (idx === hiveSelectedIdx) cls += ' zk-hex-selected';
+      else if (hot) cls += ' zk-hex-hot';
+      else if (secJobs.length) cls += ' zk-hex-busy';
+      else cls += ' zk-hex-empty';
+      if (pendingCount) cls += ' zk-hex-alert';
+      var sub = hot ? 'Destek gerekebilir'
+        : (pendingCount ? 'Teslim bekliyor' : (secJobs.length ? 'aktif iş' : 'boş'));
+      var inner = (incoming ? '<span class="zk-hex-in">↓ +' + incoming + '</span>' : '') +
+        '<span class="zk-hex-name">' + escapeHtml(sec.name) + '</span>' +
+        '<span class="zk-hex-count">' + secJobs.length + '</span>' +
+        '<span class="zk-hex-sub">' + sub + '</span>';
+      return { cls: cls, inner: inner };
+    }
+
+    var hiveLastSig = null, hiveLastHex = [], hiveLastJobs = null;
+
     function renderHive() {
       var el = hiveContainer;
       if (!el) return;
@@ -612,32 +642,14 @@
         i += rowLen;
         rowLen = rowLen === 3 ? 2 : 3;
       }
+      var sig = hiveSections.map(function (s) { return s.id || 'w'; }).join('|');
       var hiveHtml = '<div class="zk-hive-deck">' +
         '<p class="zk-hive-deck-title"><span class="zk-live-dot"></span>İstasyon ağı</p>' +
         '<div class="zk-hive">' + rows.map(function (rowIdxs) {
           return '<div class="zk-hive-row">' + rowIdxs.map(function (idx) {
-            var sec = hiveSections[idx];
-            var secJobs = hiveJobs.filter(function (j) { return hiveJobInSection(j, sec); });
-            var pendingCount = secJobs.filter(function (j) { return sec.id !== null && hiveConfirmedMap[j.id] === false; }).length;
-            var incoming = sec.id ? (hiveIncomingMap[sec.id] || 0) : 0;
-            // Yük = mevcut + gelmekte olan; eşik aşılırsa istasyon "ısınır".
-            var load = secJobs.length + incoming;
-            var hot = load >= 3;
-            var cls = 'zk-hex';
-            if (idx === hiveSelectedIdx) cls += ' zk-hex-selected';
-            else if (hot) cls += ' zk-hex-hot';
-            else if (secJobs.length) cls += ' zk-hex-busy';
-            else cls += ' zk-hex-empty';
-            if (pendingCount) cls += ' zk-hex-alert';
-            var sub = hot ? 'Destek gerekebilir'
-              : (pendingCount ? 'Teslim bekliyor' : (secJobs.length ? 'aktif iş' : 'boş'));
-            return '<button type="button" class="' + cls + '" onclick="zkHexSelect(' + idx + ')">' +
-              '<span class="zk-hex-inner">' +
-              (incoming ? '<span class="zk-hex-in">↓ +' + incoming + '</span>' : '') +
-              '<span class="zk-hex-name">' + escapeHtml(sec.name) + '</span>' +
-              '<span class="zk-hex-count">' + secJobs.length + '</span>' +
-              '<span class="zk-hex-sub">' + sub + '</span>' +
-              '</span></button>';
+            var st = hexState(idx);
+            return '<button type="button" class="' + st.cls + '" onclick="zkHexSelect(' + idx + ')">' +
+              '<span class="zk-hex-inner">' + st.inner + '</span></button>';
           }).join('') + '</div>';
         }).join('') + '</div>' +
         '<div class="zk-hive-legend">' +
@@ -675,7 +687,35 @@
           '</div></div>';
       }
 
+      // Yapı değişmediyse (aynı odalar, aynı sırada) DOM yeniden kurulmaz;
+      // yalnız değişen petek sınıfları/iç bilgileri ve iş listesi güncellenir.
+      // Böylece otomatik yenilemede kovan "gidip gelmez".
+      if (hiveLastSig === sig && el.querySelector('.zk-hive')) {
+        var btns = el.querySelectorAll('.zk-hive .zk-hex');
+        for (var b = 0; b < btns.length && b < hiveSections.length; b++) {
+          var st2 = hexState(b);
+          if (hiveLastHex[b] !== st2.inner) {
+            var innerEl = btns[b].querySelector('.zk-hex-inner');
+            if (innerEl) innerEl.innerHTML = st2.inner;
+            hiveLastHex[b] = st2.inner;
+          }
+          if (btns[b].getAttribute('class') !== st2.cls) btns[b].setAttribute('class', st2.cls);
+        }
+        if (hiveLastJobs !== jobsHtml) {
+          var wrap = document.getElementById('hive-sel-jobs');
+          if (wrap) wrap.innerHTML = jobsHtml;
+          hiveLastJobs = jobsHtml;
+        }
+        el.style.minHeight = '';
+        return;
+      }
+
       el.innerHTML = hiveHtml + '<div id="hive-sel-jobs">' + jobsHtml + '</div>';
+      hiveLastSig = sig;
+      hiveLastHex = [];
+      for (var h = 0; h < hiveSections.length; h++) hiveLastHex[h] = hexState(h).inner;
+      hiveLastJobs = jobsHtml;
+      el.style.minHeight = '';
     }
 
     function loadCompletedList(lab, el) {
@@ -685,6 +725,7 @@
         .order('completed_at', { ascending: false }).limit(50)
         .then(function (r) {
           var jobs = r.data || [];
+          el.style.minHeight = '';
           if (!jobs.length) {
             el.innerHTML = '<p class="text-xs text-muted-foreground">Henüz tamamlanmış iş yok.</p>';
             return;
