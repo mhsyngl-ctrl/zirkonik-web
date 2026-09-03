@@ -328,6 +328,25 @@
       return client().from('materials').insert(fields).select().single();
     },
 
+    // ---- Ürün reçetesi (fiyat kalemi ↔ malzemeler; 1 diş = çok malzeme) ----
+    listPriceItemMaterials: function (itemId) {
+      return client().from('price_item_materials').select('*, materials(name, unit)').eq('price_item_id', itemId);
+    },
+    setPriceItemMaterials: function (orgId, itemId, rows) {
+      // Reçete bütün olarak değiştirilir: eskiyi sil, yeniyi yaz.
+      return client().from('price_item_materials').delete().eq('price_item_id', itemId).then(function (delRes) {
+        if (delRes.error) return delRes;
+        if (!rows.length) return { data: null, error: null };
+        return client().from('price_item_materials').insert(rows.map(function (r) {
+          return {
+            organization_id: orgId, price_item_id: itemId,
+            material_id: r.material_id, qty_per_unit: r.qty_per_unit,
+            room_id: r.room_id || null
+          };
+        }));
+      });
+    },
+
     // ---- Finans ----
     listInvoices: function (filters) {
       filters = filters || {};

@@ -93,6 +93,17 @@
         </section>
 
         <section class="px-5 pt-6">
+          <div>
+            <h2 class="font-heading text-lg font-bold">Oda stokları</h2>
+            <p class="mt-0.5 text-xs text-muted-foreground">Depo = odalara henüz dağıtılmamış miktar</p>
+          </div>
+          <div id="room-chips" class="mt-3 flex flex-wrap gap-1.5"></div>
+          <div id="room-stock-list" class="mt-3 overflow-hidden rounded-theme border border-border bg-card">
+            <p class="p-4 text-xs text-muted-foreground">Yükleniyor…</p>
+          </div>
+        </section>
+
+        <section class="px-5 pt-6">
           <div class="flex items-center justify-between">
             <div>
               <h2 class="font-heading text-lg font-bold">Son hareketler</h2>
@@ -151,7 +162,17 @@
         <input id="nm-name" type="text" placeholder="Malzeme adı *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         <input id="nm-category" type="text" placeholder="Kategori (Örn. CAD/CAM)" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         <div class="grid grid-cols-2 gap-2">
-          <input id="nm-unit" type="text" placeholder="Birim (adet, ml...)" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+          <select id="nm-unit" aria-label="Birim" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+            <option value="adet">adet</option>
+            <option value="kutu">kutu</option>
+            <option value="paket">paket</option>
+            <option value="kg">kg</option>
+            <option value="g">g</option>
+            <option value="litre">litre</option>
+            <option value="ml">ml</option>
+            <option value="çift">çift</option>
+            <option value="takım">takım</option>
+          </select>
           <input id="nm-cost" type="number" min="0" step="0.01" placeholder="Birim maliyet (₺)" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         </div>
         <input id="nm-threshold" type="number" min="0" step="0.01" placeholder="Kritik eşik (min. miktar)" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
@@ -167,10 +188,23 @@
       <p class="font-heading text-lg font-bold">Stok hareketi</p>
       <div class="mt-4 space-y-3">
         <select id="tx-material" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"><option value="">Malzeme seçin</option></select>
-        <select id="tx-type" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
-          <option value="giris">Giriş (stok artışı)</option>
-          <option value="cikis">Çıkış (stok düşümü)</option>
+        <select id="tx-type" onchange="zkTxTypeChanged()" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+          <option value="giris">Giriş (depoya — resepsiyon teslim aldı)</option>
+          <option value="transfer">Transfer (odaya dağıtım / oda→oda)</option>
+          <option value="cikis">Tüketim / Çıkış</option>
         </select>
+        <div id="tx-from-wrap" class="hidden">
+          <span class="mb-1.5 block text-xs font-bold text-card-foreground">Nereden</span>
+          <select id="tx-from" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"></select>
+        </div>
+        <div id="tx-to-wrap" class="hidden">
+          <span class="mb-1.5 block text-xs font-bold text-card-foreground">Nereye</span>
+          <select id="tx-to" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"></select>
+        </div>
+        <div id="tx-job-wrap" class="hidden">
+          <span class="mb-1.5 block text-xs font-bold text-card-foreground">İlgili iş (opsiyonel — iş maliyetine yazılır)</span>
+          <select id="tx-job" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"><option value="">İş seçilmedi</option></select>
+        </div>
         <input id="tx-qty" type="number" min="0" step="0.01" placeholder="Miktar *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
       </div>
       <p id="tx-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
@@ -242,6 +276,13 @@
 
     var primaryLab = null;
     var allLabs = [];
+    // Oda stoğu durumu
+    var stRooms = [];          // seçili laboratuvarın odaları
+    var stRoomRows = [];       // material_room_stock satırları
+    var stLabTotals = {};      // material_id → lab toplam { qty, mat }
+    var stSelRoom = 'depo';    // 'depo' | room id
+    var stMyRooms = {};        // personelin yetkili odaları
+    var stIsAdmin = false;
 
     function loadStock() {
       var client = ZirkonikAuth.client();
@@ -308,17 +349,9 @@
           }).join('') : '<p class="text-xs text-muted-foreground">Henüz malzeme yok.</p>';
         });
 
-        ZirkonikData.listStockTransactions(primaryLab.id, 10).then(function (txRes) {
-          var txs = txRes.data || [];
-          var el = document.getElementById('txn-list');
-          el.innerHTML = txs.length ? txs.map(function (t, i) {
-            var isIn = t.type === 'giris';
-            return '<div class="flex items-center justify-between' + (i < txs.length - 1 ? ' border-b border-border' : '') + ' px-4 py-3.5">' +
-              '<div class="flex items-center gap-3"><span class="flex h-8 w-8 items-center justify-center rounded-lg ' + (isIn ? 'bg-success/10 text-success' : 'bg-accent/10 text-accent') + '"><iconify-icon icon="' + (isIn ? 'lucide:arrow-down-to-line' : 'lucide:arrow-up-from-line') + '" class="text-base"></iconify-icon></span>' +
-              '<div><p class="font-heading text-xs font-bold">' + escapeHtml(t.materials ? t.materials.name : '') + '</p>' +
-              '<p class="mt-1 text-[10px] text-muted-foreground">' + new Date(t.created_at).toLocaleString('tr-TR') + '</p></div></div>' +
-              '<p class="font-heading text-xs font-bold tabular-nums ' + (isIn ? 'text-success' : 'text-accent') + '">' + (isIn ? '+' : '−') + t.quantity + ' ' + escapeHtml(t.materials ? t.materials.unit : '') + '</p></div>';
-          }).join('') : '<p class="p-4 text-xs text-muted-foreground">Henüz hareket yok.</p>';
+        ZirkonikData.listStockTransactions(primaryLab.id, 12).then(function (txRes) {
+          stTxns = txRes.data || [];
+          renderTxns();
         });
 
       ZirkonikData.listMaterials().then(function (matRes) {
@@ -326,10 +359,129 @@
         sel.innerHTML = '<option value="">Malzeme seçin</option>';
         (matRes.data || []).forEach(function (m) {
           var opt = document.createElement('option');
-          opt.value = m.id; opt.textContent = m.name;
+          opt.value = m.id; opt.textContent = m.name + ' (' + (m.unit || 'adet') + ')';
           sel.appendChild(opt);
         });
       });
+
+      loadRoomStock(lab);
+    }
+
+    // ---- Son hareketler (oda yolculuğu ile) ----
+    var stTxns = [];
+
+    function stRoomName(id) {
+      if (!id) return 'Depo';
+      for (var i = 0; i < stRooms.length; i++) if (stRooms[i].id === id) return stRooms[i].name;
+      return 'Oda';
+    }
+
+    function renderTxns() {
+      var el = document.getElementById('txn-list');
+      el.innerHTML = stTxns.length ? stTxns.map(function (t, i) {
+        var isIn = t.type === 'giris';
+        var isTr = t.type === 'transfer';
+        var icon = isTr ? 'lucide:arrow-left-right' : (isIn ? 'lucide:arrow-down-to-line' : 'lucide:arrow-up-from-line');
+        var tone = isTr ? 'bg-primary/10 text-primary' : (isIn ? 'bg-success/10 text-success' : 'bg-accent/10 text-accent');
+        var route = isTr ? (stRoomName(t.room_id) + ' → ' + stRoomName(t.to_room_id))
+          : (isIn ? 'Depoya giriş' : ('Tüketim · ' + stRoomName(t.room_id)));
+        var qtyTxt = (isIn ? '+' : (isTr ? '' : '−')) + t.quantity + ' ' + escapeHtml(t.materials ? t.materials.unit : '');
+        return '<div class="flex items-center justify-between' + (i < stTxns.length - 1 ? ' border-b border-border' : '') + ' px-4 py-3.5">' +
+          '<div class="flex items-center gap-3"><span class="flex h-8 w-8 items-center justify-center rounded-lg ' + tone + '"><iconify-icon icon="' + icon + '" class="text-base"></iconify-icon></span>' +
+          '<div><p class="font-heading text-xs font-bold">' + escapeHtml(t.materials ? t.materials.name : '') + '</p>' +
+          '<p class="mt-1 text-[10px] text-muted-foreground">' + escapeHtml(route) + ' · ' + new Date(t.created_at).toLocaleString('tr-TR') + '</p></div></div>' +
+          '<p class="font-heading text-xs font-bold tabular-nums ' + (isTr ? 'text-primary' : (isIn ? 'text-success' : 'text-accent')) + '">' + qtyTxt + '</p></div>';
+      }).join('') : '<p class="p-4 text-xs text-muted-foreground">Henüz hareket yok.</p>';
+    }
+
+    // ---- Oda stokları ----
+    function loadRoomStock(lab) {
+      var client = ZirkonikAuth.client();
+      Promise.all([
+        client.from('rooms').select('id, name, sort_order').eq('laboratory_id', lab.id).order('sort_order'),
+        client.from('material_room_stock').select('material_id, room_id, quantity_on_hand, min_threshold, materials(name, unit)').eq('laboratory_id', lab.id),
+        ZirkonikData.listStock(lab.id),
+        ZirkonikAuth.me(),
+        client.from('user_room_access').select('room_id'),
+        client.from('jobs').select('id, job_number').eq('status', 'active').eq('laboratory_id', lab.id).order('created_at', { ascending: false }).limit(50)
+      ]).then(function (res) {
+        stRooms = res[0].data || [];
+        stRoomRows = res[1].data || [];
+        stLabTotals = {};
+        (res[2].data || []).forEach(function (x) {
+          stLabTotals[x.material_id] = { qty: Number(x.quantity_on_hand), mat: x.materials || {} };
+        });
+        stIsAdmin = !!(res[3] && res[3].role === 'yonetici');
+        stMyRooms = {};
+        ((res[4] && res[4].data) || []).forEach(function (x) { stMyRooms[x.room_id] = true; });
+
+        // Hareket formu seçenekleri (Nereden/Nereye) + iş listesi
+        var roomOpts = '<option value="">Depo</option>' + stRooms.map(function (r) {
+          return '<option value="' + r.id + '">' + escapeHtml(r.name) + '</option>';
+        }).join('');
+        document.getElementById('tx-from').innerHTML = roomOpts;
+        document.getElementById('tx-to').innerHTML = stRooms.map(function (r) {
+          return '<option value="' + r.id + '">' + escapeHtml(r.name) + '</option>';
+        }).join('');
+        var jobSel = document.getElementById('tx-job');
+        jobSel.innerHTML = '<option value="">İş seçilmedi</option>' + ((res[5] && res[5].data) || []).map(function (j) {
+          return '<option value="' + j.id + '">' + escapeHtml(j.job_number) + '</option>';
+        }).join('');
+
+        renderRoomChips();
+        renderRoomStockList();
+        renderTxns(); // oda adları geldikten sonra rota metinleriyle tazele
+      });
+    }
+
+    function renderRoomChips() {
+      // Personel yalnız Depo + yetkili odalarını görür; yönetici hepsini.
+      var visible = stRooms.filter(function (r) { return stIsAdmin || stMyRooms[r.id]; });
+      var chips = [{ id: 'depo', name: 'Depo' }].concat(visible.map(function (r) { return { id: r.id, name: r.name }; }));
+      if (stSelRoom !== 'depo' && !chips.some(function (c) { return c.id === stSelRoom; })) stSelRoom = 'depo';
+      document.getElementById('room-chips').innerHTML = chips.map(function (c) {
+        var on = stSelRoom === c.id;
+        return '<button onclick="zkSelRoom(\'' + c.id + '\')" class="rounded-lg border px-3 py-2 text-xs font-semibold ' +
+          (on ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-input') + '">' + escapeHtml(c.name) + '</button>';
+      }).join('');
+    }
+
+    function zkSelRoom(id) { stSelRoom = id; renderRoomChips(); renderRoomStockList(); }
+
+    function renderRoomStockList() {
+      var el = document.getElementById('room-stock-list');
+      var rows;
+      if (stSelRoom === 'depo') {
+        // Depo = lab toplamı − odalara dağıtılmış toplam
+        var distributed = {};
+        stRoomRows.forEach(function (x) {
+          distributed[x.material_id] = (distributed[x.material_id] || 0) + Number(x.quantity_on_hand);
+        });
+        rows = Object.keys(stLabTotals).map(function (mid) {
+          return { name: stLabTotals[mid].mat.name, unit: stLabTotals[mid].mat.unit,
+                   qty: stLabTotals[mid].qty - (distributed[mid] || 0), low: false };
+        }).filter(function (r) { return r.qty !== 0; });
+      } else {
+        rows = stRoomRows.filter(function (x) { return x.room_id === stSelRoom && Number(x.quantity_on_hand) !== 0; })
+          .map(function (x) {
+            return { name: x.materials ? x.materials.name : '', unit: x.materials ? x.materials.unit : '',
+                     qty: Number(x.quantity_on_hand),
+                     low: Number(x.min_threshold) > 0 && Number(x.quantity_on_hand) <= Number(x.min_threshold) };
+          });
+      }
+      rows.sort(function (a, b) { return String(a.name).localeCompare(String(b.name), 'tr'); });
+      el.innerHTML = rows.length ? rows.map(function (r, i) {
+        return '<div class="flex items-center justify-between' + (i < rows.length - 1 ? ' border-b border-border' : '') + ' px-4 py-3">' +
+          '<p class="text-xs font-bold">' + escapeHtml(r.name) + (r.low ? ' <span class="ml-1 rounded-full bg-destructive/10 px-1.5 py-0.5 text-[9px] font-bold text-destructive">KRİTİK</span>' : '') + '</p>' +
+          '<p class="text-xs font-bold tabular-nums ' + (r.qty < 0 ? 'text-destructive' : '') + '">' + r.qty + ' ' + escapeHtml(r.unit || '') + '</p></div>';
+      }).join('') : '<p class="p-4 text-xs text-muted-foreground">' + (stSelRoom === 'depo' ? 'Depoda malzeme yok.' : 'Bu odada malzeme yok.') + '</p>';
+    }
+
+    function zkTxTypeChanged() {
+      var t = document.getElementById('tx-type').value;
+      document.getElementById('tx-from-wrap').classList.toggle('hidden', t === 'giris');
+      document.getElementById('tx-to-wrap').classList.toggle('hidden', t !== 'transfer');
+      document.getElementById('tx-job-wrap').classList.toggle('hidden', t !== 'cikis');
     }
 
     document.getElementById('lab-switch').addEventListener('change', function () {
@@ -391,12 +543,24 @@
       if (!materialId || !qty) { errEl.textContent = 'Malzeme ve miktar zorunludur.'; errEl.classList.remove('hidden'); return; }
       if (!primaryLab) { errEl.textContent = 'Önce bir laboratuvar ekleyin.'; errEl.classList.remove('hidden'); return; }
 
+      var txType = document.getElementById('tx-type').value;
+      var fromRoom = document.getElementById('tx-from').value || null;
+      var toRoom = document.getElementById('tx-to').value || null;
+      if (txType === 'transfer') {
+        if (!toRoom) { errEl.textContent = 'Hedef oda seçin.'; errEl.classList.remove('hidden'); return; }
+        if (fromRoom === toRoom) { errEl.textContent = 'Kaynak ve hedef aynı olamaz.'; errEl.classList.remove('hidden'); return; }
+      }
+
       ZirkonikAuth.me().then(function (me) {
         return ZirkonikData.createStockTransaction({
           material_id: materialId,
           laboratory_id: primaryLab.id,
-          type: document.getElementById('tx-type').value,
+          type: txType,
           quantity: Number(qty),
+          // giriş her zaman depoya (resepsiyon); transfer/tüketim oda bazlı
+          room_id: txType === 'giris' ? null : fromRoom,
+          to_room_id: txType === 'transfer' ? toRoom : null,
+          related_job_id: txType === 'cikis' ? (document.getElementById('tx-job').value || null) : null,
           performed_by: me.id
         });
       }).then(function (res) {

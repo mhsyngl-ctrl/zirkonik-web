@@ -119,6 +119,20 @@
     </div>
   </div>
 
+  <!-- Malzeme reçetesi sheet (1 diş başına tüketim; çok satır) -->
+  <div id="recipe-sheet" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkCloseRecipe()"></div>
+    <div class="absolute bottom-0 left-0 flex max-h-[85vh] w-full flex-col rounded-t-theme bg-card p-5 pb-8">
+      <h2 class="font-heading text-lg font-bold">Malzeme reçetesi</h2>
+      <p id="recipe-item-name" class="mt-0.5 text-xs text-muted-foreground"></p>
+      <p class="mt-2 text-xs text-muted-foreground">1 diş (birim) başına tüketilen malzemeler. İş tamamlanınca diş sayısıyla çarpılıp stoktan otomatik düşülür; oda seçiliyse o odanın stoğundan düşer.</p>
+      <div id="recipe-rows" class="mt-3 min-h-0 flex-1 space-y-2.5 overflow-y-auto"></div>
+      <button onclick="zkAddRecipeRow()" class="mt-3 flex h-10 w-full items-center justify-center gap-1.5 rounded-theme border border-border bg-input text-xs font-bold text-primary"><iconify-icon icon="lucide:plus" class="text-sm"></iconify-icon>Malzeme ekle</button>
+      <p id="recipe-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
+      <button id="recipe-save-btn" onclick="zkSaveRecipe()" class="mt-3 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Reçeteyi Kaydet</button>
+    </div>
+  </div>
+
   <!-- Üretim rotası sheet -->
   <div id="route-sheet" class="fixed inset-0 z-50 hidden">
     <div class="absolute inset-0 bg-black/40" onclick="zkCloseRoute()"></div>
@@ -258,9 +272,12 @@
             var routeBtn = (canEdit && !inScope)
               ? '<button data-route-for="' + p.id + '" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border ' + (hasRoute ? 'bg-secondary text-primary' : 'bg-input text-muted-foreground') + '" aria-label="Üretim rotası" title="Üretim rotası"><iconify-icon icon="lucide:route" class="text-base"></iconify-icon></button>'
               : '';
+            var recipeBtn = (canEdit && !inScope)
+              ? '<button data-recipe-for="' + p.id + '" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-input text-muted-foreground" aria-label="Malzeme reçetesi" title="Malzeme reçetesi (1 diş başına tüketim)"><iconify-icon icon="lucide:flask-conical" class="text-base"></iconify-icon></button>'
+              : '';
             return '<div class="flex items-center justify-between gap-2 border-b border-border py-2.5 last:border-b-0">' +
               '<p class="min-w-0 flex-1 text-sm font-semibold">' + escapeHtml(p.name) + '</p>' +
-              '<div class="flex items-center gap-1.5">' + routeBtn + priceCell +
+              '<div class="flex items-center gap-1.5">' + recipeBtn + routeBtn + priceCell +
               '<span class="w-5 text-sm text-muted-foreground">' + (p.currency || '$') + '</span></div></div>';
           }).join('');
           sec.innerHTML = '<p class="mb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-primary">' + escapeHtml(cat) + '</p>' + rows;
@@ -297,7 +314,114 @@
               zkOpenRoute(btn.getAttribute('data-route-for'));
             });
           });
+          main.querySelectorAll('[data-recipe-for]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              zkOpenRecipe(btn.getAttribute('data-recipe-for'));
+            });
+          });
         }
+      });
+    }
+
+    // ---- Malzeme reçetesi (BOM) ----
+    var recipeItemId = null;
+    var recipeRows = [];       // {material_id, qty_per_unit, room_id}
+    var recipeMaterials = [];  // malzeme kartları
+
+    function zkOpenRecipe(itemId) {
+      recipeItemId = itemId;
+      var item = items.find(function (p) { return p.id === itemId; });
+      document.getElementById('recipe-item-name').textContent = item ? item.name : '';
+      document.getElementById('recipe-error').classList.add('hidden');
+      Promise.all([
+        ZirkonikData.listMaterials(),
+        loadAllRooms(),
+        ZirkonikData.listPriceItemMaterials(itemId)
+      ]).then(function (res) {
+        recipeMaterials = res[0].data || [];
+        recipeRows = (res[2].data || []).map(function (r) {
+          return { material_id: r.material_id, qty_per_unit: Number(r.qty_per_unit), room_id: r.room_id };
+        });
+        if (!recipeRows.length) recipeRows.push({ material_id: '', qty_per_unit: '', room_id: null });
+        renderRecipeRows();
+        document.getElementById('recipe-sheet').classList.remove('hidden');
+      });
+    }
+    function zkCloseRecipe() { document.getElementById('recipe-sheet').classList.add('hidden'); }
+
+    function renderRecipeRows() {
+      var matOpts = '<option value="">Malzeme seçin</option>' + recipeMaterials.map(function (m) {
+        return '<option value="' + m.id + '">' + escapeHtml(m.name) + ' (' + escapeHtml(m.unit || 'adet') + ')</option>';
+      }).join('');
+      var roomOpts = '<option value="">Oda (ops. — lab havuzu)</option>' + allRooms.map(function (rm) {
+        return '<option value="' + rm.id + '">' + escapeHtml(rm.name) + '</option>';
+      }).join('');
+      document.getElementById('recipe-rows').innerHTML = recipeRows.map(function (r, i) {
+        return '<div class="rounded-theme border border-border bg-background p-2.5">' +
+          '<div class="flex items-center gap-2">' +
+          '<select data-rc-mat="' + i + '" aria-label="Malzeme" class="h-10 min-w-0 flex-1 rounded-theme border border-border bg-input px-2.5 text-xs">' + matOpts + '</select>' +
+          '<input data-rc-qty="' + i + '" type="number" min="0" step="0.0001" placeholder="Miktar" value="' + (r.qty_per_unit || '') + '" class="h-10 w-20 rounded-theme border border-border bg-input px-2 text-right text-xs tabular-nums">' +
+          '<button data-rc-del="' + i + '" class="flex h-10 w-8 shrink-0 items-center justify-center rounded-theme text-destructive" aria-label="Satırı sil"><iconify-icon icon="lucide:x" class="text-sm"></iconify-icon></button>' +
+          '</div>' +
+          '<select data-rc-room="' + i + '" aria-label="Tüketim odası" class="mt-2 h-10 w-full rounded-theme border border-border bg-input px-2.5 text-xs">' + roomOpts + '</select>' +
+          '</div>';
+      }).join('');
+      recipeRows.forEach(function (r, i) {
+        var matSel = document.querySelector('[data-rc-mat="' + i + '"]');
+        var roomSel = document.querySelector('[data-rc-room="' + i + '"]');
+        if (matSel) matSel.value = r.material_id || '';
+        if (roomSel) roomSel.value = r.room_id || '';
+      });
+      document.querySelectorAll('[data-rc-del]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          zkSyncRecipeRows();
+          recipeRows.splice(Number(b.getAttribute('data-rc-del')), 1);
+          if (!recipeRows.length) recipeRows.push({ material_id: '', qty_per_unit: '', room_id: null });
+          renderRecipeRows();
+        });
+      });
+    }
+
+    function zkSyncRecipeRows() {
+      recipeRows = recipeRows.map(function (r, i) {
+        var matSel = document.querySelector('[data-rc-mat="' + i + '"]');
+        var qtyInp = document.querySelector('[data-rc-qty="' + i + '"]');
+        var roomSel = document.querySelector('[data-rc-room="' + i + '"]');
+        return {
+          material_id: matSel ? matSel.value : r.material_id,
+          qty_per_unit: qtyInp ? qtyInp.value : r.qty_per_unit,
+          room_id: roomSel ? (roomSel.value || null) : r.room_id
+        };
+      });
+    }
+
+    function zkSaveRecipe() {
+      zkSyncRecipeRows();
+      var errEl = document.getElementById('recipe-error');
+      errEl.classList.add('hidden');
+      var rows = recipeRows.filter(function (r) { return r.material_id; });
+      var seen = {};
+      for (var i = 0; i < rows.length; i++) {
+        if (!(Number(rows[i].qty_per_unit) > 0)) {
+          errEl.textContent = 'Her malzeme için 0’dan büyük miktar girin.';
+          errEl.classList.remove('hidden');
+          return;
+        }
+        if (seen[rows[i].material_id]) {
+          errEl.textContent = 'Aynı malzeme reçetede iki kez olamaz.';
+          errEl.classList.remove('hidden');
+          return;
+        }
+        seen[rows[i].material_id] = true;
+        rows[i].qty_per_unit = Number(rows[i].qty_per_unit);
+      }
+      var btn = document.getElementById('recipe-save-btn');
+      btn.disabled = true;
+      ZirkonikData.setPriceItemMaterials(orgId, recipeItemId, rows).then(function (res) {
+        btn.disabled = false;
+        if (res.error) { errEl.textContent = 'Kaydedilemedi: ' + res.error.message; errEl.classList.remove('hidden'); return; }
+        zkCloseRecipe();
+        zkToast(rows.length ? 'Reçete kaydedildi (' + rows.length + ' malzeme).' : 'Reçete temizlendi.');
       });
     }
 
