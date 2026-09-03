@@ -310,3 +310,18 @@
 .border-destructive\/25 { border-color: rgba(239, 83, 80, 0.25) !important; }
 .border-primary\/15 { border-color: rgba(61, 124, 220, 0.15) !important; }
 .border-accent\/40 { border-color: rgba(240, 160, 60, 0.4); }
+
+/* ============ Sabit marka filigranı ============
+ * Tüm ekranlarda ortada duran, kaydırmayla OYNAMAYAN dev silik amblem.
+ * pointer-events:none → tıklamaları asla yakalamaz; z-index:5 → içerik
+ * üstünde ama alt menü (z-20+) ve sheet'lerin (z-40+) altında. */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: url('../brand/mark.png') no-repeat center 44%;
+  background-size: min(82vw, 560px);
+  opacity: .04;
+  pointer-events: none;
+  z-index: 5;
+}
