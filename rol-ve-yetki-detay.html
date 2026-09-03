@@ -377,6 +377,10 @@
       chain.then(function () {
         if (infoVisible) document.getElementById('user-name').textContent = document.getElementById('pi-name').value.trim();
         zkToast('Değişiklikler kaydedildi.');
+        // Kayıt sonrası otomatik geri dön (toast görünecek kadar bekle)
+        setTimeout(function () {
+          if (history.length > 1) history.back(); else location.href = 'ekip.html';
+        }, 700);
       }).catch(function (err) {
         errEl.textContent = 'Kaydedilemedi: ' + err.message;
         errEl.classList.remove('hidden');
