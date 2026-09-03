@@ -531,7 +531,14 @@
 
           // Arı kovanı görünümü: her istasyon (oda) bir altıgen petek;
           // dokununca o istasyonun işleri peteğin altında listelenir.
-          hiveSections = [{ id: null, name: 'Bekleyen' }].concat(rooms.map(function (r) { return { id: r.id, name: r.name }; }));
+          // "Bekleyen" adında gerçek bir oda varsa, henüz hiçbir odaya
+          // girmemiş işler (current_room_id null) o peteğe bağlanır;
+          // yoksa eskisi gibi sanal bir Bekleyen peteği eklenir.
+          var waitRoom = null;
+          rooms.forEach(function (r) { if (!waitRoom && r.name.trim().toLowerCase() === 'bekleyen') waitRoom = r; });
+          hiveSections = rooms.map(function (r) { return { id: r.id, name: r.name, wait: !!(waitRoom && r.id === waitRoom.id) }; });
+          if (!waitRoom) hiveSections.unshift({ id: null, name: 'Bekleyen', wait: true });
+          hiveWaitRoomId = waitRoom ? waitRoom.id : null;
           hiveJobs = jobs;
           hiveConfirmedMap = confirmedMap;
           // Gelen iş baskısı: her işin rotasındaki BİR SONRAKİ durağı bul,
@@ -540,10 +547,13 @@
           hiveIncomingMap = {};
           jobs.forEach(function (j) {
             var route = (j.planned_route && j.planned_route.length) ? j.planned_route : defaultRoute;
+            // Odasız iş Bekleyen peteğinde gösterildiğinden, sonraki durağı
+            // Bekleyen odasından sonrası kabul edilir (çifte sayım olmasın).
+            var curId = j.current_room_id || hiveWaitRoomId;
             var nextId;
-            if (!j.current_room_id) nextId = route[0];
+            if (!curId) nextId = route[0];
             else {
-              var idx = route.indexOf(j.current_room_id);
+              var idx = route.indexOf(curId);
               nextId = idx >= 0 ? route[idx + 1] : null;
             }
             if (nextId) hiveIncomingMap[nextId] = (hiveIncomingMap[nextId] || 0) + 1;
@@ -551,7 +561,7 @@
           // Varsayılan seçim: işi olan ilk istasyon.
           hiveSelectedIdx = 0;
           for (var i = 0; i < hiveSections.length; i++) {
-            if (jobs.some(function (j) { return j.current_room_id === hiveSections[i].id; })) { hiveSelectedIdx = i; break; }
+            if (jobs.some(function (j) { return hiveJobInSection(j, hiveSections[i]); })) { hiveSelectedIdx = i; break; }
           }
           hiveContainer = el;
           renderHive();
@@ -559,7 +569,12 @@
       });
     }
 
-    var hiveSections = [], hiveJobs = [], hiveConfirmedMap = {}, hiveIncomingMap = {}, hiveSelectedIdx = 0, hiveContainer = null;
+    var hiveSections = [], hiveJobs = [], hiveConfirmedMap = {}, hiveIncomingMap = {}, hiveSelectedIdx = 0, hiveContainer = null, hiveWaitRoomId = null;
+
+    // İş bu peteğe mi ait? Bekleyen peteği odasız işleri de kapsar.
+    function hiveJobInSection(j, sec) {
+      return j.current_room_id === sec.id || (sec.wait && !j.current_room_id);
+    }
 
     function zkHexSelect(idx) {
       hiveSelectedIdx = idx;
@@ -582,7 +597,7 @@
         '<div class="zk-hive">' + rows.map(function (rowIdxs) {
           return '<div class="zk-hive-row">' + rowIdxs.map(function (idx) {
             var sec = hiveSections[idx];
-            var secJobs = hiveJobs.filter(function (j) { return j.current_room_id === sec.id; });
+            var secJobs = hiveJobs.filter(function (j) { return hiveJobInSection(j, sec); });
             var pendingCount = secJobs.filter(function (j) { return sec.id !== null && hiveConfirmedMap[j.id] === false; }).length;
             var incoming = sec.id ? (hiveIncomingMap[sec.id] || 0) : 0;
             // Yük = mevcut + gelmekte olan; eşik aşılırsa istasyon "ısınır".
@@ -613,7 +628,7 @@
 
       // Seçili istasyonun işleri
       var sel = hiveSections[hiveSelectedIdx];
-      var selJobs = hiveJobs.filter(function (j) { return j.current_room_id === sel.id; });
+      var selJobs = hiveJobs.filter(function (j) { return hiveJobInSection(j, sel); });
       var jobsHtml;
       if (!selJobs.length) {
         jobsHtml = '<p class="mt-3 rounded-theme border border-border bg-card p-3.5 text-center text-xs text-muted-foreground">' + escapeHtml(sel.name) + ' istasyonunda aktif iş yok.</p>';
