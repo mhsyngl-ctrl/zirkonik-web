@@ -170,6 +170,9 @@
     createDoctor: function (fields) {
       return client().from('doctors').insert(fields).select().single();
     },
+    updateDoctor: function (doctorId, fields) {
+      return client().from('doctors').update(fields).eq('id', doctorId);
+    },
 
     // ---- Personel / Yetki ----
     listStaff: function () {

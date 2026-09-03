@@ -244,7 +244,9 @@
               '<div class="flex items-center justify-between"><div class="flex items-center gap-3">' +
               '<div class="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">' + escapeHtml(initials) + '</div>' +
               '<div><p class="font-heading text-sm font-bold">' + escapeHtml(s.full_name) + '</p>' +
-              '<p class="mt-0.5 text-xs text-primary">' + (ROLE_LABELS[s.role] || s.role) + '</p></div></div>' +
+              '<p class="mt-0.5 text-xs text-primary">' + (ROLE_LABELS[s.role] || s.role) + '</p>' +
+              ((s.phone || s.email) ? '<p class="mt-0.5 text-[11px] text-muted-foreground">' + escapeHtml([s.phone, s.email].filter(Boolean).join(' · ')) + '</p>' : '') +
+              '</div></div>' +
               '<span class="flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-1 text-[10px] font-bold text-success"><span class="h-1.5 w-1.5 rounded-full bg-success"></span>Aktif</span></div>' +
               '<div class="mt-4 grid grid-cols-2 gap-y-3 border-t border-border pt-3">' +
               '<div><p class="text-[11px] text-muted-foreground">Görev kapsamı</p><p class="mt-1 text-xs font-bold">' + describePermissions(s.user_permissions) + '</p></div>' +

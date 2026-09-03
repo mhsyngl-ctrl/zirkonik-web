@@ -579,6 +579,9 @@
     function zkHexSelect(idx) {
       hiveSelectedIdx = idx;
       renderHive();
+      // Seçilen istasyonun iş listesi kovanın altında — görünür alana kaydır.
+      var lst = document.getElementById('hive-sel-jobs');
+      if (lst && lst.scrollIntoView) lst.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     function renderHive() {
@@ -655,7 +658,7 @@
           '</div></div>';
       }
 
-      el.innerHTML = hiveHtml + jobsHtml;
+      el.innerHTML = hiveHtml + '<div id="hive-sel-jobs">' + jobsHtml + '</div>';
     }
 
     function loadCompletedList(lab, el) {

@@ -158,6 +158,22 @@
     </div>
   </div>
 
+  <!-- Doktor bilgilerini düzenle sheet -->
+  <div id="edit-doctor-sheet" class="fixed inset-0 z-40 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkCloseEditDoctor()"></div>
+    <div class="absolute bottom-0 left-0 w-full rounded-t-theme bg-card p-5 pb-8">
+      <p class="font-heading text-lg font-bold">Doktor bilgilerini düzenle</p>
+      <div class="mt-4 space-y-3">
+        <input id="ed-name" type="text" placeholder="Ad Soyad *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <input id="ed-clinic" type="text" placeholder="Klinik adı" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <input id="ed-phone" type="tel" placeholder="Telefon" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <input id="ed-email" type="email" placeholder="E-posta" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+      </div>
+      <p id="ed-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
+      <button onclick="zkSubmitEditDoctor()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
+    </div>
+  </div>
+
   <script>
     (function() {
       var els = document.querySelectorAll('iconify-icon');
@@ -248,10 +264,13 @@
       });
     }
 
+    var allDoctorsCache = [];
+
     function loadDoctors() {
       ZirkonikData.listDoctors().then(function (r) {
         if (r.error) { zkToast('Yüklenemedi: ' + r.error.message); return; }
         var all = r.data || [];
+        allDoctorsCache = all;
         var pending = all.filter(function (d) { return d.status === 'pending'; });
         var approved = all.filter(function (d) { return d.status === 'approved'; });
 
@@ -289,6 +308,7 @@
         '<div class="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground">' + escapeHtml((d.full_name || '?').charAt(0)) + '</div>' +
         '<div class="min-w-0 flex-1"><p class="truncate text-sm font-bold">Dr. ' + escapeHtml(d.full_name) + '</p>' +
         '<p class="truncate text-xs text-muted-foreground">' + escapeHtml(d.clinic_name || '—') + '</p></div>' +
+        '<button onclick="zkOpenEditDoctor(\'' + d.id + '\')" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Bilgileri düzenle" title="Bilgileri düzenle"><iconify-icon icon="lucide:pencil" class="text-sm"></iconify-icon></button>' +
         accountBtn +
         '<button onclick="zkOpenStatement(\'' + d.id + '\',\'' + escapeHtml(d.full_name).replace(/'/g, "\\'") + '\')" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-primary" aria-label="Ekstre gönder"><iconify-icon icon="lucide:send" class="text-sm"></iconify-icon></button>' +
         '<span class="rounded-full bg-success/10 px-2 py-1 text-[10px] font-bold text-success">Onaylı</span></div>';
@@ -346,6 +366,41 @@
       action.then(function (r) {
         if (r.error) { zkToast('İşlem başarısız: ' + r.error.message); return; }
         zkToast(verdict === 'approved' ? 'Doktor onaylandı.' : 'Doktor reddedildi.');
+        loadDoctors();
+      });
+    }
+
+    // ---- Doktor bilgilerini düzenle ----
+    var editDoctorId = null;
+
+    function zkOpenEditDoctor(id) {
+      var d = null;
+      allDoctorsCache.forEach(function (x) { if (x.id === id) d = x; });
+      if (!d) return;
+      editDoctorId = id;
+      document.getElementById('ed-name').value = d.full_name || '';
+      document.getElementById('ed-clinic').value = d.clinic_name || '';
+      document.getElementById('ed-phone').value = d.phone || '';
+      document.getElementById('ed-email').value = d.email || '';
+      document.getElementById('ed-error').classList.add('hidden');
+      document.getElementById('edit-doctor-sheet').classList.remove('hidden');
+    }
+    function zkCloseEditDoctor() { document.getElementById('edit-doctor-sheet').classList.add('hidden'); }
+
+    function zkSubmitEditDoctor() {
+      var errEl = document.getElementById('ed-error');
+      errEl.classList.add('hidden');
+      var name = document.getElementById('ed-name').value.trim();
+      if (!name) { errEl.textContent = 'Ad Soyad zorunludur.'; errEl.classList.remove('hidden'); return; }
+      ZirkonikData.updateDoctor(editDoctorId, {
+        full_name: name,
+        clinic_name: document.getElementById('ed-clinic').value.trim() || null,
+        phone: document.getElementById('ed-phone').value.trim() || null,
+        email: document.getElementById('ed-email').value.trim() || null
+      }).then(function (res) {
+        if (res.error) { errEl.textContent = 'Kaydedilemedi: ' + res.error.message; errEl.classList.remove('hidden'); return; }
+        zkCloseEditDoctor();
+        zkToast('Doktor bilgileri güncellendi.');
         loadDoctors();
       });
     }
