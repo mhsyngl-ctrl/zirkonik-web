@@ -205,6 +205,11 @@
           <span class="mb-1.5 block text-xs font-bold text-card-foreground">İlgili iş (opsiyonel — iş maliyetine yazılır)</span>
           <select id="tx-job" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"><option value="">İş seçilmedi</option></select>
         </div>
+        <div id="tx-supplier-wrap">
+          <span class="mb-1.5 block text-xs font-bold text-card-foreground">Tedarikçi (ops.) — tutar girilirse alış faturası oluşur</span>
+          <select id="tx-supplier" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"><option value="">Tedarikçi seçilmedi</option></select>
+          <input id="tx-sup-amount" type="number" min="0" step="0.01" placeholder="Alış tutarı (₺, ops.)" class="mt-2 h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        </div>
         <input id="tx-qty" type="number" min="0" step="0.01" placeholder="Miktar *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
       </div>
       <p id="tx-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
@@ -365,6 +370,7 @@
       });
 
       loadRoomStock(lab);
+      loadTxSuppliers();
     }
 
     // ---- Son hareketler (oda yolculuğu ile) ----
@@ -482,6 +488,18 @@
       document.getElementById('tx-from-wrap').classList.toggle('hidden', t === 'giris');
       document.getElementById('tx-to-wrap').classList.toggle('hidden', t !== 'transfer');
       document.getElementById('tx-job-wrap').classList.toggle('hidden', t !== 'cikis');
+      document.getElementById('tx-supplier-wrap').classList.toggle('hidden', t !== 'giris');
+    }
+
+    // Tedarikçi listesi (finans izni yoksa RLS boş döndürür — alan gizlenir)
+    function loadTxSuppliers() {
+      ZirkonikData.listSuppliers().then(function (r) {
+        var sups = (r && r.data) || [];
+        var wrap = document.getElementById('tx-supplier-wrap');
+        if (!sups.length) { wrap.classList.add('hidden'); return; }
+        document.getElementById('tx-supplier').innerHTML = '<option value="">Tedarikçi seçilmedi</option>' +
+          sups.map(function (s) { return '<option value="' + s.id + '">' + escapeHtml(s.name) + '</option>'; }).join('');
+      });
     }
 
     document.getElementById('lab-switch').addEventListener('change', function () {
@@ -551,6 +569,9 @@
         if (fromRoom === toRoom) { errEl.textContent = 'Kaynak ve hedef aynı olamaz.'; errEl.classList.remove('hidden'); return; }
       }
 
+      var supplierId = txType === 'giris' ? (document.getElementById('tx-supplier').value || null) : null;
+      var supAmount = txType === 'giris' ? Number(document.getElementById('tx-sup-amount').value || 0) : 0;
+
       ZirkonikAuth.me().then(function (me) {
         return ZirkonikData.createStockTransaction({
           material_id: materialId,
@@ -561,12 +582,27 @@
           room_id: txType === 'giris' ? null : fromRoom,
           to_room_id: txType === 'transfer' ? toRoom : null,
           related_job_id: txType === 'cikis' ? (document.getElementById('tx-job').value || null) : null,
+          supplier_id: supplierId,
           performed_by: me.id
+        }).then(function (res) {
+          if (res.error) throw res.error;
+          // Tedarikçi + tutar girildiyse stok girişinden alış faturası doğar
+          if (supplierId && supAmount > 0) {
+            return ZirkonikData.createSupplierInvoice({
+              organization_id: me.organization_id,
+              supplier_id: supplierId,
+              amount: supAmount,
+              stock_transaction_id: res.data ? res.data.id : null,
+              note: 'Stok girişi'
+            }).then(function () { return res; });
+          }
+          return res;
         });
       }).then(function (res) {
         if (res.error) throw res.error;
         zkCloseTxn();
         zkToast('Stok hareketi kaydedildi.');
+        document.getElementById('tx-sup-amount').value = '';
         document.getElementById('tx-qty').value = '';
         loadStock();
       }).catch(function (err) {

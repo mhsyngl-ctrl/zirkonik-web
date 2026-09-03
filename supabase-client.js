@@ -328,6 +328,33 @@
       return client().from('materials').insert(fields).select().single();
     },
 
+    // ---- Tedarikçi carileri ----
+    listSuppliers: function () {
+      return client().from('suppliers').select('*').order('name');
+    },
+    createSupplier: function (fields) {
+      return client().from('suppliers').insert(fields).select().single();
+    },
+    updateSupplier: function (id, fields) {
+      return client().from('suppliers').update(fields).eq('id', id);
+    },
+    listSupplierInvoices: function (supplierId) {
+      var q = client().from('supplier_invoices').select('*').order('issued_at', { ascending: false });
+      if (supplierId) q = q.eq('supplier_id', supplierId);
+      return q;
+    },
+    createSupplierInvoice: function (fields) {
+      return client().from('supplier_invoices').insert(fields).select().single();
+    },
+    listSupplierPayments: function (supplierId) {
+      var q = client().from('supplier_payments').select('*').order('paid_at', { ascending: false });
+      if (supplierId) q = q.eq('supplier_id', supplierId);
+      return q;
+    },
+    createSupplierPayment: function (fields) {
+      return client().from('supplier_payments').insert(fields).select().single();
+    },
+
     // ---- Ürün reçetesi (fiyat kalemi ↔ malzemeler; 1 diş = çok malzeme) ----
     listPriceItemMaterials: function (itemId) {
       return client().from('price_item_materials').select('*, materials(name, unit)').eq('price_item_id', itemId);

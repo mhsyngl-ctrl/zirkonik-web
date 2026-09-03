@@ -147,6 +147,19 @@
           </div>
         </section>
 
+        <section class="px-5 pt-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="font-heading text-lg font-bold">Tedarikçi carileri</h2>
+              <p class="mt-1 text-xs text-muted-foreground">Alış faturaları ve tedarikçi ödemeleri</p>
+            </div>
+            <button onclick="zkOpenAddSupplier()" class="text-xs font-semibold text-primary">Tedarikçi ekle</button>
+          </div>
+          <div id="supplier-list" class="mt-3 space-y-2">
+            <p class="text-xs text-muted-foreground">Yükleniyor…</p>
+          </div>
+        </section>
+
         <section class="px-5 pb-8 pt-6">
           <div class="flex gap-2">
             <button onclick="zkOpenPayment()" class="flex flex-1 items-center justify-center gap-2 rounded-theme bg-primary px-3 py-3 text-xs font-bold text-primary-foreground">
@@ -183,6 +196,49 @@
           <span class="text-[10px] font-semibold">Doktorlar</span>
         </button>
       </nav>
+    </div>
+  </div>
+
+  <!-- Tedarikçi ekle sheet -->
+  <div id="add-supplier-sheet" class="fixed inset-0 z-40 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkCloseAddSupplier()"></div>
+    <div class="absolute bottom-0 left-0 w-full rounded-t-theme bg-card p-5 pb-8">
+      <p class="font-heading text-lg font-bold">Tedarikçi ekle</p>
+      <div class="mt-4 space-y-3">
+        <input id="ns-sup-name" type="text" placeholder="Tedarikçi adı *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <input id="ns-sup-contact" type="text" placeholder="Yetkili kişi" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <input id="ns-sup-phone" type="tel" placeholder="Telefon" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <input id="ns-sup-email" type="email" placeholder="E-posta" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+      </div>
+      <p id="ns-sup-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
+      <button onclick="zkSubmitAddSupplier()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
+    </div>
+  </div>
+
+  <!-- Tedarikçi fatura/ödeme sheet -->
+  <div id="sup-op-sheet" class="fixed inset-0 z-40 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkCloseSupOp()"></div>
+    <div class="absolute bottom-0 left-0 w-full rounded-t-theme bg-card p-5 pb-8">
+      <p id="sup-op-title" class="font-heading text-lg font-bold">Tedarikçi işlemi</p>
+      <div class="mt-4 space-y-3">
+        <select id="sup-op-type" onchange="zkSupOpTypeChanged()" aria-label="İşlem türü" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+          <option value="fatura">Alış faturası (borç ekle)</option>
+          <option value="odeme">Ödeme yap (borç düş)</option>
+        </select>
+        <input id="sup-op-amount" type="number" min="0" step="0.01" placeholder="Tutar (₺) *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <label id="sup-op-due-wrap" class="block">
+          <span class="mb-1.5 block text-xs font-bold text-card-foreground">Vade tarihi</span>
+          <input id="sup-op-due" type="date" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        </label>
+        <select id="sup-op-method" class="hidden h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm" aria-label="Ödeme yöntemi">
+          <option value="havale">Havale</option>
+          <option value="nakit">Nakit</option>
+          <option value="kart">Kart</option>
+        </select>
+        <input id="sup-op-note" type="text" placeholder="Not (ops.)" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+      </div>
+      <p id="sup-op-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
+      <button onclick="zkSubmitSupOp()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
     </div>
   </div>
 
@@ -286,8 +342,129 @@
       });
     }
 
+    // ---- Tedarikçi carileri ----
+    var supList = [];
+    var supOpSupplierId = null;
+
+    function loadSuppliers() {
+      Promise.all([
+        ZirkonikData.listSuppliers(),
+        ZirkonikData.listSupplierInvoices(),
+        ZirkonikData.listSupplierPayments()
+      ]).then(function (res) {
+        supList = res[0].data || [];
+        var el = document.getElementById('supplier-list');
+        if (res[0].error) { el.innerHTML = '<p class="text-xs text-destructive">Yüklenemedi: ' + escapeHtml(res[0].error.message) + '</p>'; return; }
+        if (!supList.length) {
+          el.innerHTML = '<p class="text-xs text-muted-foreground">Henüz tedarikçi yok. "Tedarikçi ekle" ile başlayın.</p>';
+          return;
+        }
+        var invTot = {}, payTot = {}, overdue = {};
+        (res[1].data || []).forEach(function (x) {
+          invTot[x.supplier_id] = (invTot[x.supplier_id] || 0) + Number(x.amount);
+          if (x.status === 'overdue') overdue[x.supplier_id] = true;
+        });
+        (res[2].data || []).forEach(function (x) {
+          payTot[x.supplier_id] = (payTot[x.supplier_id] || 0) + Number(x.amount);
+        });
+        el.innerHTML = supList.map(function (s) {
+          var bal = (invTot[s.id] || 0) - (payTot[s.id] || 0);
+          var balTxt = bal > 0 ? (TL.format(bal) + ' borç') : (bal < 0 ? (TL.format(-bal) + ' alacak') : 'Bakiye 0');
+          return '<div class="rounded-theme border ' + (overdue[s.id] ? 'border-destructive/40' : 'border-border') + ' bg-card p-3.5">' +
+            '<div class="flex items-center justify-between gap-2">' +
+            '<div class="min-w-0"><p class="truncate text-sm font-bold">' + escapeHtml(s.name) + '</p>' +
+            '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + escapeHtml([s.contact_name, s.phone].filter(Boolean).join(' · ') || '—') + '</p></div>' +
+            '<p class="shrink-0 text-sm font-bold tabular-nums ' + (bal > 0 ? 'text-accent' : 'text-success') + '">' + balTxt +
+            (overdue[s.id] ? ' <span class="ml-1 rounded-full bg-destructive/10 px-1.5 py-0.5 text-[9px] font-bold text-destructive">VADESİ GEÇTİ</span>' : '') + '</p></div>' +
+            '<div class="mt-3 grid grid-cols-2 gap-2">' +
+            '<button onclick="zkOpenSupOp(\'' + s.id + '\',\'fatura\')" class="flex h-9 items-center justify-center gap-1 rounded-theme border border-border bg-background text-[11px] font-bold"><iconify-icon icon="lucide:file-plus-2" class="text-xs"></iconify-icon>Fatura</button>' +
+            '<button onclick="zkOpenSupOp(\'' + s.id + '\',\'odeme\')" class="flex h-9 items-center justify-center gap-1 rounded-theme bg-primary text-[11px] font-bold text-primary-foreground"><iconify-icon icon="lucide:banknote" class="text-xs"></iconify-icon>Ödeme yap</button>' +
+            '</div></div>';
+        }).join('');
+      });
+    }
+
+    function zkOpenAddSupplier() { document.getElementById('add-supplier-sheet').classList.remove('hidden'); }
+    function zkCloseAddSupplier() { document.getElementById('add-supplier-sheet').classList.add('hidden'); }
+
+    function zkSubmitAddSupplier() {
+      var errEl = document.getElementById('ns-sup-error');
+      errEl.classList.add('hidden');
+      var name = document.getElementById('ns-sup-name').value.trim();
+      if (!name) { errEl.textContent = 'Tedarikçi adı zorunludur.'; errEl.classList.remove('hidden'); return; }
+      ZirkonikAuth.me().then(function (me) {
+        return ZirkonikData.createSupplier({
+          organization_id: me.organization_id,
+          name: name,
+          contact_name: document.getElementById('ns-sup-contact').value.trim() || null,
+          phone: document.getElementById('ns-sup-phone').value.trim() || null,
+          email: document.getElementById('ns-sup-email').value.trim() || null
+        });
+      }).then(function (res) {
+        if (res.error) { errEl.textContent = 'Eklenemedi: ' + res.error.message; errEl.classList.remove('hidden'); return; }
+        zkCloseAddSupplier();
+        ['ns-sup-name', 'ns-sup-contact', 'ns-sup-phone', 'ns-sup-email'].forEach(function (id) { document.getElementById(id).value = ''; });
+        zkToast('Tedarikçi eklendi.');
+        loadSuppliers();
+      });
+    }
+
+    function zkOpenSupOp(supplierId, type) {
+      supOpSupplierId = supplierId;
+      var s = null;
+      supList.forEach(function (x) { if (x.id === supplierId) s = x; });
+      document.getElementById('sup-op-title').textContent = s ? s.name : 'Tedarikçi işlemi';
+      document.getElementById('sup-op-type').value = type || 'fatura';
+      document.getElementById('sup-op-error').classList.add('hidden');
+      zkSupOpTypeChanged();
+      document.getElementById('sup-op-sheet').classList.remove('hidden');
+    }
+    function zkCloseSupOp() { document.getElementById('sup-op-sheet').classList.add('hidden'); }
+
+    function zkSupOpTypeChanged() {
+      var isInv = document.getElementById('sup-op-type').value === 'fatura';
+      document.getElementById('sup-op-due-wrap').classList.toggle('hidden', !isInv);
+      document.getElementById('sup-op-method').classList.toggle('hidden', isInv);
+    }
+
+    function zkSubmitSupOp() {
+      var errEl = document.getElementById('sup-op-error');
+      errEl.classList.add('hidden');
+      var amount = Number(document.getElementById('sup-op-amount').value);
+      if (!(amount > 0)) { errEl.textContent = 'Geçerli bir tutar girin.'; errEl.classList.remove('hidden'); return; }
+      var isInv = document.getElementById('sup-op-type').value === 'fatura';
+      ZirkonikAuth.me().then(function (me) {
+        if (isInv) {
+          return ZirkonikData.createSupplierInvoice({
+            organization_id: me.organization_id,
+            supplier_id: supOpSupplierId,
+            amount: amount,
+            due_date: document.getElementById('sup-op-due').value || null,
+            note: document.getElementById('sup-op-note').value.trim() || null
+          });
+        }
+        return ZirkonikData.createSupplierPayment({
+          organization_id: me.organization_id,
+          supplier_id: supOpSupplierId,
+          amount: amount,
+          method: document.getElementById('sup-op-method').value,
+          note: document.getElementById('sup-op-note').value.trim() || null,
+          performed_by: me.id
+        });
+      }).then(function (res) {
+        if (res.error) { errEl.textContent = 'Kaydedilemedi: ' + res.error.message; errEl.classList.remove('hidden'); return; }
+        zkCloseSupOp();
+        document.getElementById('sup-op-amount').value = '';
+        document.getElementById('sup-op-due').value = '';
+        document.getElementById('sup-op-note').value = '';
+        zkToast(isInv ? 'Alış faturası kaydedildi.' : 'Tedarikçi ödemesi kaydedildi.');
+        loadSuppliers();
+      });
+    }
+
     ZirkonikAuth.requireAuth().then(function (session) {
       if (!session) return;
+      loadSuppliers();
       var client = ZirkonikAuth.client();
 
       // Faturaya ait kısmi ödemeler düşülmeden "bekleyen tahsilat" tam fatura
