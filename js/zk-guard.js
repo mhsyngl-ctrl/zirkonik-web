@@ -42,6 +42,60 @@
   window.addEventListener('offline', update);
 })();
 
+// ---- Yükleme çıkmazı koruması ----
+// requireAuth()/me() içindeki oturum yenilemesi ağa gider; internet yoksa
+// bu istek fetch'in varsayılan zaman aşımı olmadığı için SESSİZCE sonsuza
+// dek asılı kalabilir — sayfa "Yükleniyor…" halinde takılı kalır, kullanıcı
+// beyaz/boş bir ekranda mahsur kalmış gibi hisseder. Bu bekçi: (a) sayfa
+// açılışında zaten çevrimdışıysa hemen, (b) 8 sn içinde oturum kontrolü
+// hiç dönmezse tam ekran "İnternet yok" uyarısı + Tekrar Dene gösterir.
+(function () {
+  var page = (location.pathname.split('/').pop() || 'index.html').toLowerCase().replace('.html', '') || 'index';
+  var PUBLIC = { giris: 1, 'sifre-sifirla': 1, index: 1 };
+  if (PUBLIC[page] || !window.ZirkonikAuth || !window.ZirkonikAuth.getSession) return;
+
+  var settled = false;
+  var overlay = null;
+
+  function showOverlay() {
+    if (overlay) return;
+    overlay = document.createElement('div');
+    overlay.id = 'zk-offline-overlay';
+    overlay.innerHTML =
+      '<div class="zk-offline-box">' +
+        '<span class="zk-offline-icon">' +
+          '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path><path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>' +
+        '</span>' +
+        '<p class="zk-offline-title">İnternet bağlantısı yok</p>' +
+        '<p class="zk-offline-sub">Bağlantınızı kontrol edip tekrar deneyin.</p>' +
+        '<button type="button" id="zk-offline-retry">Tekrar Dene</button>' +
+      '</div>';
+    (document.body || document.documentElement).appendChild(overlay);
+    document.getElementById('zk-offline-retry').addEventListener('click', function () {
+      location.reload();
+    });
+  }
+  function hideOverlay() {
+    if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    overlay = null;
+  }
+  function run() {
+    if (navigator.onLine === false) showOverlay();
+    var timer = setTimeout(function () { if (!settled) showOverlay(); }, 8000);
+    ZirkonikAuth.getSession().then(function () {
+      settled = true;
+      clearTimeout(timer);
+      hideOverlay();
+    }).catch(function () {
+      settled = true;
+      clearTimeout(timer);
+      showOverlay();
+    });
+  }
+  if (document.body) run();
+  else document.addEventListener('DOMContentLoaded', run);
+})();
+
 (function () {
   var page = (location.pathname.split('/').pop() || 'index.html').toLowerCase().replace('.html', '') || 'index';
   var PUBLIC = { giris: 1, 'sifre-sifirla': 1, index: 1 };

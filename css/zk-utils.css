@@ -343,3 +343,38 @@ body::after {
   transform: translateY(-100%); transition: transform .25s ease;
 }
 #zk-offline-banner.zk-show { transform: translateY(0); }
+
+/* Yükleme çıkmazı koruması: internet yok/oturum kontrolü asılı kalırsa
+ * tam ekran uyarı (js/zk-guard.js tarafından eklenir/kaldırılır). */
+#zk-offline-overlay {
+  position: fixed; inset: 0; z-index: 20000;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--color-background, #0E1013);
+  padding: 24px;
+}
+#zk-offline-overlay .zk-offline-box {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  max-width: 320px;
+}
+#zk-offline-overlay .zk-offline-icon {
+  font-size: 40px; color: var(--color-destructive, #EF5350);
+  width: 72px; height: 72px; border-radius: 999px;
+  display: flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--color-destructive, #EF5350) 12%, transparent);
+  margin-bottom: 18px;
+}
+#zk-offline-overlay .zk-offline-title {
+  font-family: var(--font-heading, sans-serif); font-size: 18px; font-weight: 800;
+  color: var(--color-foreground, #F2F4F7); margin: 0;
+}
+#zk-offline-overlay .zk-offline-sub {
+  font-family: var(--font-body, sans-serif); font-size: 13px;
+  color: var(--color-muted-foreground, #98A0AD); margin: 8px 0 22px;
+  line-height: 1.5;
+}
+#zk-offline-overlay button {
+  height: 48px; width: 100%; border: none; border-radius: var(--radius, 12px);
+  background: var(--color-primary, #3D7CDC); color: #FFFFFF;
+  font-family: var(--font-body, sans-serif); font-size: 14px; font-weight: 700;
+  cursor: pointer;
+}
