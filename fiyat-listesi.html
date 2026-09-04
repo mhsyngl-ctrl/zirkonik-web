@@ -272,7 +272,10 @@
             var routeBtn = (canEdit && !inScope)
               ? '<button data-route-for="' + p.id + '" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border ' + (hasRoute ? 'bg-secondary text-primary' : 'bg-input text-muted-foreground') + '" aria-label="Üretim rotası" title="Üretim rotası"><iconify-icon icon="lucide:route" class="text-base"></iconify-icon></button>'
               : '';
-            var recipeBtn = (canEdit && !inScope)
+            // Reçete bazlı otomatik düşüm rafta (kullanıcı kararı, 2026-09-04):
+            // ikon gizli, altyapı duruyor — istenirse RECIPE_ENABLED=true yeter.
+            var RECIPE_ENABLED = false;
+            var recipeBtn = (RECIPE_ENABLED && canEdit && !inScope)
               ? '<button data-recipe-for="' + p.id + '" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-input text-muted-foreground" aria-label="Malzeme reçetesi" title="Malzeme reçetesi (1 diş başına tüketim)"><iconify-icon icon="lucide:flask-conical" class="text-base"></iconify-icon></button>'
               : '';
             return '<div class="flex items-center justify-between gap-2 border-b border-border py-2.5 last:border-b-0">' +
