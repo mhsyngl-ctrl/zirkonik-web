@@ -533,12 +533,10 @@
   window.ZirkonikAuth = Auth;
   window.ZirkonikData = Data;
 
-  // ---- APNs cihaz token kaydı ----
-  // Native kabuk token'ı window.zkNativePushToken'a yazar ve 'zk-push-token'
-  // olayını atar (bkz. iOS/Zirkonik/ZirkonikApp.swift). Oturum açıksa token
-  // bu kullanıcıya kaydedilir; push bildirimleri bu tabloya göre gönderilir.
-  function zkRegisterPushToken() {
-    var tok = window.zkNativePushToken;
+  // ---- Cihaz push token kaydı ----
+  // Oturum açıksa token bu kullanıcıya kaydedilir (device_tokens); push
+  // gönderimi platforma göre APNs/FCM'e ayrılır (bkz. backend/edge-functions/send-push).
+  function zkUpsertPushToken(tok, platform) {
     if (!tok) return;
     try {
       client().auth.getSession().then(function (r) {
@@ -547,12 +545,37 @@
         client().from('device_tokens').upsert({
           token: tok,
           user_id: s.user.id,
-          platform: 'ios',
+          platform: platform,
           updated_at: new Date().toISOString()
         }).then(function () {});
       });
     } catch (e) {}
   }
+
+  // iOS: native kabuk token'ı window.zkNativePushToken'a yazar ve
+  // 'zk-push-token' olayını atar (bkz. iOS/Zirkonik/ZirkonikApp.swift).
+  function zkRegisterPushToken() {
+    zkUpsertPushToken(window.zkNativePushToken, 'ios');
+  }
   window.addEventListener('zk-push-token', zkRegisterPushToken);
   setTimeout(zkRegisterPushToken, 2500);
+
+  // Android (Capacitor): @capacitor/push-notifications — native bridge
+  // window.Capacitor.Plugins.PushNotifications'ı otomatik sağlar (npm
+  // paketinin kendi JS'ini import etmeye gerek yok — cap sync ile native
+  // tarafta kayıtlı her resmi eklenti böyle görünür). İzin isteyip kaydolur;
+  // token 'registration' olayıyla gelir.
+  (function () {
+    var C = window.Capacitor;
+    if (!C || !C.isNativePlatform || !C.isNativePlatform() || !C.getPlatform || C.getPlatform() !== 'android') return;
+    var PN = C.Plugins && C.Plugins.PushNotifications;
+    if (!PN) return;
+    PN.addListener('registration', function (token) {
+      zkUpsertPushToken(token && token.value, 'android');
+    });
+    PN.addListener('registrationError', function () {});
+    PN.requestPermissions().then(function (res) {
+      if (res && res.receive === 'granted') PN.register();
+    }).catch(function () {});
+  })();
 })();
