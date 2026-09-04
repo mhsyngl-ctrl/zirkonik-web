@@ -12,6 +12,36 @@
  * gitmesin"); ardından sunucudan taze yetki gelince yeniden uygulanır.
  * Asıl güvenlik RLS'tedir (personel işleri oda bazlı görür, iş ekleyemez).
  */
+
+// ---- Bağlantı durumu şeridi ----
+// İnternet yokken ekranlar veri çekemez/kaydedemez; kullanıcı "kaydettim
+// sandım" tuzağına düşmesin diye üstte kırmızı bir uyarı gösterilir.
+// Çevrimdışı kuyruk YOK — bağlantı gelince şerit kaybolur, sayfa taze
+// veriyi normal akışıyla (varsa) kendi yenilemesiyle gösterir.
+(function () {
+  var el = null;
+  function ensureEl() {
+    if (el) return el;
+    el = document.createElement('div');
+    el.id = 'zk-offline-banner';
+    el.textContent = 'Bağlantı yok — işlemler kaydedilmiyor';
+    (document.body || document.documentElement).appendChild(el);
+    return el;
+  }
+  function update() {
+    var b = ensureEl();
+    if (navigator.onLine === false) {
+      requestAnimationFrame(function () { b.classList.add('zk-show'); });
+    } else {
+      b.classList.remove('zk-show');
+    }
+  }
+  if (document.body) update();
+  else document.addEventListener('DOMContentLoaded', update);
+  window.addEventListener('online', update);
+  window.addEventListener('offline', update);
+})();
+
 (function () {
   var page = (location.pathname.split('/').pop() || 'index.html').toLowerCase().replace('.html', '') || 'index';
   var PUBLIC = { giris: 1, 'sifre-sifirla': 1, index: 1 };
