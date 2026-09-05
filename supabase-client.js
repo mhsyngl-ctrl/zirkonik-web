@@ -401,6 +401,14 @@
     },
 
     // ---- Doktor siparişleri (dijital çalışma formu) ----
+    /* Laboratuvar sahibi, kendi organizasyonundaki bir kullanıcının şifresini
+     * yeniler. Şifre değiştirme service_role gerektirdiği için edge function
+     * üzerinden yapılır; yetki ve organizasyon kontrolü orada. */
+    resetUserPassword: function (userId, password) {
+      return client().functions.invoke('reset-user-password', {
+        body: { user_id: userId, password: password }
+      });
+    },
     createDoctorAccount: function (fields) {
       return client().functions.invoke('create-doctor-account', { body: fields });
     },
