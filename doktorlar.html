@@ -864,7 +864,8 @@
       var client = ZirkonikAuth.client();
 
       Promise.all([
-        client.from('invoices').select('amount, issued_at, jobs(job_number, restoration_type)').eq('doctor_id', statementDoctorId).order('issued_at'),
+        // İptal edilen fatura ekstreye girmez — doktordan tahsil edilmeyecek.
+        client.from('invoices').select('amount, issued_at, jobs(job_number, restoration_type)').eq('doctor_id', statementDoctorId).neq('status', 'cancelled').order('issued_at'),
         client.from('payments').select('amount, method, received_at').eq('doctor_id', statementDoctorId).order('received_at'),
         client.from('doctors').select('email').eq('id', statementDoctorId).single()
       ]).then(function (results) {

@@ -739,7 +739,10 @@
         var labs = labsRes.data || [];
         if (!labs.length) { document.getElementById('lab-revenue').innerHTML = '<p class="text-xs text-muted-foreground">Henüz laboratuvar yok.</p>'; return; }
         Promise.all(labs.map(function (lab) {
-          return client.from('jobs').select('price').eq('laboratory_id', lab.id).then(function (r) {
+          // İptal edilen iş ciroya girmez — iptal faturayı da hakedişi de
+          // geri alıyor, ciro rakamı da onunla birlikte düşmeli (2026-09-05).
+          return client.from('jobs').select('price').eq('laboratory_id', lab.id)
+            .neq('status', 'cancelled').then(function (r) {
             var revenue = (r.data || []).reduce(function (s, x) { return s + Number(x.price || 0); }, 0);
             return { lab: lab, revenue: revenue };
           });

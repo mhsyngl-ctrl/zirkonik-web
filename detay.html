@@ -231,6 +231,10 @@
           <span id="advance-label">Sonraki aşamaya taşı</span>
         </button>
         <!-- Yalnızca laboratuvar sahibi (organizasyon yöneticisi) görür -->
+        <p id="job-lock-note" class="mt-2 hidden rounded-theme border border-border bg-background px-3 py-2.5 text-[11px] leading-4 text-muted-foreground">
+          <iconify-icon icon="lucide:lock" class="align-[-2px] text-sm"></iconify-icon>
+          Tamamlanan iş kilitlidir: geri alınamaz, iptal edilemez, silinemez. Faturası, personel hakedişi ve stok düşümü kesinleşmiştir.
+        </p>
         <div id="owner-actions" class="mt-2 hidden gap-2">
           <button id="revert-btn" class="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-theme border border-border bg-background text-xs font-bold text-foreground">
             <iconify-icon icon="lucide:undo-2" class="text-base"></iconify-icon>Geri al
@@ -466,7 +470,9 @@
       ro.textContent = kisi ? kisi.full_name : 'Atanmadı';
 
       ZirkonikAuth.me().then(function (me) {
-        if (!me || me.role !== 'yonetici' || currentJob.status === 'cancelled') return;
+        // Tamamlanan iş kilitli; iptal edilen işte de değiştirilecek bir şey yok.
+        if (!me || me.role !== 'yonetici'
+            || currentJob.status === 'cancelled' || currentJob.status === 'completed') return;
         box.classList.remove('hidden');
         box.classList.add('flex');
         ro.classList.add('hidden');
@@ -523,9 +529,17 @@
       var cancelBtn = document.getElementById('cancel-job-btn');
       var deleteBtn = document.getElementById('delete-job-btn');
 
-      if (currentJob.status === 'cancelled') {
+      var lockNote = document.getElementById('job-lock-note');
+      lockNote.classList.add('hidden');
+
+      // İptal edilen işte yapılacak bir şey yok.
+      // Tamamlanan iş ise kilitlidir (kullanıcı kararı, 2026-09-05): tamamlanma
+      // anında fatura kesiliyor, hakediş yazılıyor ve stok düşülüyor — geri alma
+      // veya iptal bu üç kaydı da bozardı. Veritabanı da aynı kilidi uyguluyor.
+      if (currentJob.status === 'cancelled' || currentJob.status === 'completed') {
         ownerBox.classList.add('hidden');
         ownerBox.classList.remove('flex');
+        if (currentJob.status === 'completed') lockNote.classList.remove('hidden');
         return;
       }
 

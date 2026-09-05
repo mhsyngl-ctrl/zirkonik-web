@@ -289,8 +289,12 @@
               ? '<input data-price-for="' + p.id + '" type="number" min="0" step="0.01" value="' + shownVal + '" placeholder="' + ph + '" class="h-10 w-24 rounded-theme border ' + (ov ? 'border-primary' : 'border-border') + ' bg-input px-2.5 text-right text-sm tabular-nums">'
               : '<span class="text-sm font-bold tabular-nums">' + (p.unit_price != null ? p.unit_price : 'Sorunuz') + '</span>';
             var hasRoute = p.route_room_ids && p.route_room_ids.length;
-            var routeBtn = (canEdit && !inScope)
-              ? '<button data-route-for="' + p.id + '" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border ' + (hasRoute ? 'bg-secondary text-primary' : 'bg-input text-muted-foreground') + '" aria-label="Üretim rotası" title="Üretim rotası"><iconify-icon icon="lucide:route" class="text-base"></iconify-icon></button>'
+            // Üretim rotası kalemin kendi özelliğidir; doktora/lokasyona özel
+            // fiyat yazarken de aynı rota geçerlidir. Kapsam seçilince butonu
+            // gizlemek "kurduğum oda sirkülasyonu kayboldu" izlenimi veriyordu
+            // (rota aslında hiç değişmiyordu) — artık her kapsamda görünür.
+            var routeBtn = canEdit
+              ? '<button data-route-for="' + p.id + '" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border ' + (hasRoute ? 'bg-secondary text-primary' : 'bg-input text-muted-foreground') + '" aria-label="Üretim rotası" title="Üretim rotası — bu kalemin odaları (kapsamdan bağımsız)"><iconify-icon icon="lucide:route" class="text-base"></iconify-icon></button>'
               : '';
             // Reçete bazlı otomatik düşüm rafta (kullanıcı kararı, 2026-09-04):
             // ikon gizli, altyapı duruyor — istenirse RECIPE_ENABLED=true yeter.
@@ -480,7 +484,10 @@
       routeItemId = itemId;
       var item = items.find(function (p) { return p.id === itemId; });
       routeSeq = (item && item.route_room_ids) ? item.route_room_ids.slice() : [];
-      document.getElementById('route-item-name').textContent = item ? item.name : '';
+      // Rota kalem bazlıdır; doktor/lokasyon kapsamı seçiliyken de aynı rota
+      // geçerli olduğu için bunu açıkça yazıyoruz.
+      document.getElementById('route-item-name').textContent = (item ? item.name : '')
+        + ((scopeDoctorId || scopeLabId) ? ' · Rota tüm doktorlar için ortaktır' : '');
       loadAllRooms().then(function () {
         renderRouteRooms();
         document.getElementById('route-sheet').classList.remove('hidden');

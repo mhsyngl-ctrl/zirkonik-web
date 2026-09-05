@@ -264,7 +264,8 @@
     function loadCari() {
       var client = ZirkonikAuth.client();
       Promise.all([
-        client.from('invoices').select('id, amount, status, issued_at, due_date, jobs(job_number, restoration_type)').eq('doctor_id', doctor.id).order('issued_at', { ascending: false }),
+        // İptal edilen fatura bakiyeye de hareket listesine de girmez.
+        client.from('invoices').select('id, amount, status, issued_at, due_date, jobs(job_number, restoration_type)').eq('doctor_id', doctor.id).neq('status', 'cancelled').order('issued_at', { ascending: false }),
         client.from('payments').select('id, amount, method, received_at').eq('doctor_id', doctor.id).order('received_at', { ascending: false })
       ]).then(function (res) {
         var invs = res[0].data || [];
