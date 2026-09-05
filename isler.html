@@ -65,6 +65,7 @@
         <div class="mt-4 flex gap-1">
           <button id="tab-active" onclick="zkSetTab('active')" class="rounded-lg bg-secondary px-3 py-1.5 text-xs font-bold text-secondary-foreground">Aktif</button>
           <button id="tab-completed" onclick="zkSetTab('completed')" class="rounded-lg px-3 py-1.5 text-xs font-semibold text-muted-foreground">Tamamlanan</button>
+          <button id="tab-cancelled" onclick="zkSetTab('cancelled')" class="rounded-lg px-3 py-1.5 text-xs font-semibold text-muted-foreground">İptal</button>
         </div>
       </header>
 
@@ -158,13 +159,17 @@
 
     var zkParams = new URLSearchParams(location.search);
     var zkQcRoomIds = [];
-    var currentTab = zkParams.get('status') === 'completed' ? 'completed' : 'active';
+    var zkGecerliSekme = ['active', 'completed', 'cancelled'];
+    var currentTab = zkGecerliSekme.indexOf(zkParams.get('status')) >= 0 ? zkParams.get('status') : 'active';
     var currentJobs = [];
 
     function zkSetTab(tab) {
       currentTab = tab;
-      document.getElementById('tab-active').className = tab === 'active' ? 'rounded-lg bg-secondary px-3 py-1.5 text-xs font-bold text-secondary-foreground' : 'rounded-lg px-3 py-1.5 text-xs font-semibold text-muted-foreground';
-      document.getElementById('tab-completed').className = tab === 'completed' ? 'rounded-lg bg-secondary px-3 py-1.5 text-xs font-bold text-secondary-foreground' : 'rounded-lg px-3 py-1.5 text-xs font-semibold text-muted-foreground';
+      var aktifStil = 'rounded-lg bg-secondary px-3 py-1.5 text-xs font-bold text-secondary-foreground';
+      var pasifStil = 'rounded-lg px-3 py-1.5 text-xs font-semibold text-muted-foreground';
+      document.getElementById('tab-active').className = tab === 'active' ? aktifStil : pasifStil;
+      document.getElementById('tab-completed').className = tab === 'completed' ? aktifStil : pasifStil;
+      document.getElementById('tab-cancelled').className = tab === 'cancelled' ? aktifStil : pasifStil;
       loadJobs();
     }
 
@@ -252,7 +257,7 @@
           return;
         }
         var q = client.from('jobs')
-          .select('id, job_number, restoration_type, unit_count, status, created_at, completed_at, requested_delivery_at, patient_name, clinic_protocol_no, doctors(full_name, clinic_name), laboratories(name)')
+          .select('id, job_number, restoration_type, unit_count, status, created_at, completed_at, requested_delivery_at, patient_name, clinic_protocol_no, cancelled_at, cancel_reason, doctors(full_name, clinic_name), laboratories(name)')
           .eq('status', currentTab);
         if (labId) q = q.eq('laboratory_id', labId);
         if (doctorId) q = q.eq('doctor_id', doctorId);
@@ -286,7 +291,8 @@
           q = q.order('requested_delivery_at', { ascending: true }).limit(200);
           return q.then(function (r) { currentJobs = r.data || []; renderJobs(); });
         }
-        q = q.order(currentTab === 'completed' ? 'completed_at' : 'created_at', { ascending: false }).limit(200);
+        var siraAlani = currentTab === 'completed' ? 'completed_at' : (currentTab === 'cancelled' ? 'cancelled_at' : 'created_at');
+        q = q.order(siraAlani, { ascending: false }).limit(200);
 
         q.then(function (r) {
           currentJobs = r.data || [];
@@ -314,7 +320,9 @@
       el.innerHTML = currentJobs.map(function (j) {
         var dateLabel = currentTab === 'completed'
           ? (j.completed_at ? new Date(j.completed_at).toLocaleDateString('tr-TR') : '—')
-          : (j.requested_delivery_at ? new Date(j.requested_delivery_at).toLocaleDateString('tr-TR') : 'Teslim tarihi yok');
+          : currentTab === 'cancelled'
+            ? (j.cancelled_at ? 'İptal: ' + new Date(j.cancelled_at).toLocaleDateString('tr-TR') : 'İptal edildi')
+            : (j.requested_delivery_at ? new Date(j.requested_delivery_at).toLocaleDateString('tr-TR') : 'Teslim tarihi yok');
         return '<button onclick="location.href=\'detay.html?id=' + j.id + '\'" class="flex w-full items-center justify-between gap-3 rounded-theme border border-border bg-card px-3.5 py-3 text-left">' +
           '<div class="min-w-0"><p class="text-sm font-bold">' + escapeHtml(j.job_number) + '</p>' +
           (j.patient_name ? '<p class="mt-0.5 truncate text-[11px] font-semibold text-card-foreground">' + escapeHtml(j.patient_name) + (j.clinic_protocol_no ? ' · Protokol ' + escapeHtml(j.clinic_protocol_no) : '') + '</p>' : '') +
@@ -328,7 +336,8 @@
       if (!currentJobs.length) { zkToast('Rapor oluşturulacak iş yok.'); return; }
       var jsPDFCtor = window.jspdf.jsPDF;
       var doc = new jsPDFCtor();
-      var title = currentTab === 'active' ? 'Aktif İşler Raporu' : 'Tamamlanan İşler Raporu';
+      var title = currentTab === 'active' ? 'Aktif İşler Raporu'
+        : currentTab === 'cancelled' ? 'İptal Edilen İşler Raporu' : 'Tamamlanan İşler Raporu';
       var docLabel = document.getElementById('f-doctor').selectedOptions[0].textContent;
       var staffLabel = document.getElementById('f-staff').selectedOptions[0].textContent;
 

@@ -220,8 +220,11 @@
           <button id="revert-btn" class="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-theme border border-border bg-background text-xs font-bold text-foreground">
             <iconify-icon icon="lucide:undo-2" class="text-base"></iconify-icon>Geri al
           </button>
+          <button id="cancel-job-btn" class="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-theme bg-accent/10 text-xs font-bold text-accent">
+            <iconify-icon icon="lucide:ban" class="text-base"></iconify-icon>İptal et
+          </button>
           <button id="delete-job-btn" class="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-theme bg-destructive/10 text-xs font-bold text-destructive">
-            <iconify-icon icon="lucide:trash-2" class="text-base"></iconify-icon>İşi sil
+            <iconify-icon icon="lucide:trash-2" class="text-base"></iconify-icon>Sil
           </button>
         </div>
       </div>
@@ -402,6 +405,16 @@
       var errEl = document.getElementById('advance-error');
       errEl.classList.add('hidden');
 
+      if (currentJob.status === 'cancelled') {
+        label.textContent = 'Bu iş iptal edildi';
+        btn.disabled = true;
+        btn.classList.add('opacity-50');
+        // İptal edilmiş işte tekrar iptal/geri alma anlamsız.
+        var ownerBox = document.getElementById('owner-actions');
+        ownerBox.classList.add('hidden');
+        ownerBox.classList.remove('flex');
+        return;
+      }
       if (currentJob.status === 'completed') {
         label.textContent = 'İş tamamlandı';
         btn.disabled = true;
@@ -628,6 +641,32 @@
           errEl.textContent = 'Geri alınamadı: ' + err.message;
           errEl.classList.remove('hidden');
         });
+    });
+
+    /* İşi iptal et — silmenin yapamadığını yapar: kayıt durur, faturası ve
+     * hakedişi iptal olur, ayrılan stok iade edilir. Silme yalnızca hiçbir
+     * bağlı kaydı olmayan işlerde mümkün; iptal her zaman doğru seçenektir. */
+    document.getElementById('cancel-job-btn').addEventListener('click', function () {
+      var errEl = document.getElementById('advance-error');
+      errEl.classList.add('hidden');
+      if (!confirm('Bu iş iptal edilecek:\n\n• Faturası iptal olur (faturalandırılamaz)\n• Personel hakedişi iptal olur (ödeme çıkmaz)\n• Ayrılan stok iade edilir\n\nKayıt ve geçmiş silinmez. Devam edilsin mi?')) return;
+      var sebep = prompt('İptal sebebi (opsiyonel):', '') || null;
+
+      var btn = this;
+      btn.disabled = true;
+      ZirkonikData.cancelJob(jobId, sebep).then(function (res) {
+        btn.disabled = false;
+        if (res.error) throw res.error;
+        var o = res.data || {};
+        zkToast('İş iptal edildi · ' + (o.iptal_edilen_fatura || 0) + ' fatura, '
+          + (o.iptal_edilen_hakedis || 0) + ' hakediş iptal, '
+          + (o.iade_edilen_stok_hareketi || 0) + ' stok hareketi iade edildi.');
+        loadJob();
+      }).catch(function (err) {
+        btn.disabled = false;
+        errEl.textContent = 'İptal edilemedi: ' + (err.message || err);
+        errEl.classList.remove('hidden');
+      });
     });
 
     // İşi sil: yalnızca yönetici. Faturası/hakedişi/stok hareketi olan iş

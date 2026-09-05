@@ -487,7 +487,8 @@
         });
 
         client.from('invoices').select('id, amount, status').then(function (ir) {
-          var rows = ir.data || [];
+          // İptal edilen faturalar ciroya da alacağa da girmez (2026-09-05).
+          var rows = (ir.data || []).filter(function (x) { return x.status !== 'cancelled'; });
           function remaining(inv) { return Math.max(0, Number(inv.amount) - (paidByInvoice[inv.id] || 0)); }
           var invoiced = rows.reduce(function (s, x) { return s + Number(x.amount); }, 0);
           var outstanding = rows.filter(function (x) { return x.status !== 'paid'; }).reduce(function (s, x) { return s + remaining(x); }, 0);
@@ -519,7 +520,7 @@
 
       function loadReceivablesList() {
         ZirkonikData.listInvoices().then(function (r) {
-          var rows = (r.data || []).filter(function (x) { return x.status !== 'paid'; }).slice(0, 10);
+          var rows = (r.data || []).filter(function (x) { return x.status !== 'paid' && x.status !== 'cancelled'; }).slice(0, 10);
           var el = document.getElementById('receivables-list');
           var sel = document.getElementById('pay-invoice');
           if (!rows.length) {
@@ -527,7 +528,7 @@
             sel.innerHTML = '<option value="">Fatura seçin</option>';
             return;
           }
-          var STATUS_LABELS = { unpaid: 'Bekliyor', partial: 'Kısmi ödendi', overdue: 'Gecikti' };
+          var STATUS_LABELS = { unpaid: 'Bekliyor', partial: 'Kısmi ödendi', overdue: 'Gecikti', cancelled: 'İptal edildi' };
           el.innerHTML = rows.map(function (inv) {
             var isOverdue = inv.status === 'overdue';
             var remaining = Math.max(0, Number(inv.amount) - (paidByInvoice[inv.id] || 0));

@@ -356,6 +356,15 @@
       });
     },
 
+    /* İşi iptal eder: kayıt ve geçmiş durur, sonuçları geri alınır —
+     * fatura(lar) iptal (artık faturalandırılamaz), personel hakedişleri
+     * iptal (ödeme çıkmaz) ve işe bağlı stok çıkışları iade edilir.
+     * Para gerçekten hareket ettiyse (tahsilat işlenmiş veya hakediş ödenmiş)
+     * veritabanı iptali reddeder ve ne yapılması gerektiğini söyler. */
+    cancelJob: function (jobId, reason) {
+      return client().rpc('cancel_job', { p_job_id: jobId, p_reason: reason || null });
+    },
+
     /* İşi tamamen siler — yalnızca organizasyon yöneticisi (RLS: job_delete).
      * Faturası, personel hakedişi veya stok hareketi olan iş FK kısıtı
      * nedeniyle silinemez; çağıran tarafta anlaşılır mesaja çevriliyor. */
