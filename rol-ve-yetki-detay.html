@@ -145,12 +145,28 @@
               <span class="mb-1.5 block text-xs font-bold text-card-foreground">Telefon</span>
               <input id="pi-phone" type="tel" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
             </label>
-            <!-- 2026-09-05: iş başı (diş başına) hakediş ücreti -->
-            <label class="block">
-              <span class="mb-1.5 block text-xs font-bold text-card-foreground">Diş başına hakediş ücreti ($)</span>
-              <input id="pi-rate" type="number" min="0" step="0.01" placeholder="Örn. 2" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
-              <span class="mt-1 block text-[11px] leading-4 text-muted-foreground">Bu personel bir işe sorumlu teknisyen olarak atanır ve iş tamamlanırsa, hakedişi <b class="text-card-foreground">ücret × diş sayısı</b> olarak otomatik yazılır. Boş bırakılırsa bu personele hakediş oluşmaz. Ücreti yalnızca laboratuvar sahibi değiştirebilir.</span>
-            </label>
+            <!-- 2026-09-05: ücretlendirme modeli (maaşlı / maaş+diş / sadece diş) -->
+            <div class="rounded-theme border border-border bg-background p-3">
+              <p class="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Ücretlendirme</p>
+              <label class="mt-2.5 block">
+                <span class="mb-1.5 block text-xs font-bold text-card-foreground">Çalışma şekli</span>
+                <select id="pi-paytype" onchange="zkPayTypeChanged()" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+                  <option value="">Seçilmedi (hakediş yazılmaz)</option>
+                  <option value="maas">Maaşlı</option>
+                  <option value="maas_dis">Maaş + diş başına</option>
+                  <option value="dis">Sadece diş başına</option>
+                </select>
+              </label>
+              <label id="pi-salary-wrap" class="mt-3 hidden">
+                <span class="mb-1.5 block text-xs font-bold text-card-foreground">Aylık maaş ($)</span>
+                <input id="pi-salary" type="number" min="0" step="0.01" placeholder="Örn. 1200" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+              </label>
+              <label id="pi-rate-wrap" class="mt-3 hidden">
+                <span class="mb-1.5 block text-xs font-bold text-card-foreground">Diş başına ücret ($)</span>
+                <input id="pi-rate" type="number" min="0" step="0.01" placeholder="Örn. 2" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+              </label>
+              <p id="pi-pay-hint" class="mt-2 text-[11px] leading-4 text-muted-foreground">Çalışma şeklini seçin.</p>
+            </div>
             <label class="block">
               <span class="mb-1.5 block text-xs font-bold text-card-foreground">E-posta (giriş adresi)</span>
               <input id="pi-email" type="email" disabled style="opacity:.6" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
@@ -265,6 +281,26 @@
     var currentLabIds = [];
     var currentRoomIds = [];
 
+    /* Çalışma şekli seçimine göre yalnızca ilgili alanlar görünür; hangi
+     * durumda hakediş yazılacağı da burada açıkça anlatılıyor. */
+    function zkPayTypeChanged() {
+      var tip = document.getElementById('pi-paytype').value;
+      var salaryWrap = document.getElementById('pi-salary-wrap');
+      var rateWrap = document.getElementById('pi-rate-wrap');
+      var hint = document.getElementById('pi-pay-hint');
+      var maasVar = tip === 'maas' || tip === 'maas_dis';
+      var disVar = tip === 'dis' || tip === 'maas_dis';
+      salaryWrap.classList.toggle('hidden', !maasVar);
+      salaryWrap.classList.toggle('block', maasVar);
+      rateWrap.classList.toggle('hidden', !disVar);
+      rateWrap.classList.toggle('block', disVar);
+      hint.textContent =
+        tip === 'maas' ? 'Sabit maaşlı — işlerden ayrıca diş başına hakediş yazılmaz.'
+        : tip === 'maas_dis' ? 'Maaşın yanında, sorumlu teknisyen olduğu iş tamamlanınca diş başına hakediş de yazılır.'
+        : tip === 'dis' ? 'Maaş yok; kazanç yalnızca sorumlu olduğu tamamlanan işlerden (ücret × diş sayısı) oluşur.'
+        : 'Çalışma şekli seçilmezse bu personele otomatik hakediş yazılmaz.';
+    }
+
     function loadUser() {
       var client = ZirkonikAuth.client();
       client.from('app_users').select('*, user_permissions(*)').eq('id', userId).single().then(function (r) {
@@ -283,6 +319,9 @@
           document.getElementById('pi-phone').value = u.phone || '';
 
           document.getElementById('pi-rate').value = (u.piece_rate != null ? u.piece_rate : '');
+          document.getElementById('pi-salary').value = (u.salary != null ? u.salary : '');
+          document.getElementById('pi-paytype').value = u.pay_type || '';
+          zkPayTypeChanged();
           document.getElementById('pi-hire').value = u.hire_date || '';
           document.getElementById('pi-birth').value = u.birth_date || '';
           document.getElementById('pi-email').value = u.email || '';
@@ -412,6 +451,8 @@
             hire_date: document.getElementById('pi-hire').value || null,
             birth_date: document.getElementById('pi-birth').value || null,
             position: pos,
+            pay_type: document.getElementById('pi-paytype').value || null,
+            salary: document.getElementById('pi-salary').value === '' ? null : Number(document.getElementById('pi-salary').value),
             piece_rate: document.getElementById('pi-rate').value === '' ? null : Number(document.getElementById('pi-rate').value),
             // İşveren/Yönetici tam yetkili roldür; diğer pozisyonlar personel.
             role: (pos === 'Yönetici' || pos === 'İşveren') ? 'yonetici' : 'personel'

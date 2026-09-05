@@ -130,7 +130,7 @@
           <div class="flex items-end justify-between">
             <div>
               <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Hakedişlerim</p>
-              <p class="mt-1 text-[11px] leading-4 text-muted-foreground">Tamamlanan işlerden diş başına kazanç</p>
+              <p id="pf-pay-model" class="mt-1 text-[11px] leading-4 text-muted-foreground">Tamamlanan işlerden diş başına kazanç</p>
             </div>
             <p id="pf-earnings-total" class="font-heading text-xl font-bold tabular-nums">—</p>
           </div>
@@ -223,6 +223,7 @@
         if (me.role !== 'doktor') {
           // Hakediş kaydı varsa bölüm kendiliğinden görünür olur.
           zkLoadMyEarnings();
+          zkShowMyPayModel(me);
           document.getElementById('pf-work-stats').classList.remove('hidden');
           ZirkonikData.getStaffJobStats(me.id).then(function (r) {
             var stats = (r && r.data) || { jobCount: 0, teethCount: 0 };
@@ -239,6 +240,24 @@
      * başkasının hakedişini zaten vermez. */
     var USD_PF = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
     var DURUM_ETIKET = { pending: 'Bekliyor', approved: 'Onaylandı', paid: 'Ödendi', cancelled: 'İptal' };
+
+    /* Personel kendi çalışma şeklini de görsün: maaşlı mı, diş başına mı,
+     * ikisi birden mi (2026-09-05). */
+    function zkShowMyPayModel(me) {
+      var el = document.getElementById('pf-pay-model');
+      var bolum = document.getElementById('pf-earnings-section');
+      if (!me || !me.pay_type) return;
+      var parcalar = [];
+      if (me.pay_type === 'maas' || me.pay_type === 'maas_dis') {
+        parcalar.push('Aylık maaş: ' + USD_PF.format(me.salary || 0));
+      }
+      if (me.pay_type === 'dis' || me.pay_type === 'maas_dis') {
+        parcalar.push('Diş başına: ' + USD_PF.format(me.piece_rate || 0));
+      }
+      el.textContent = parcalar.join(' · ');
+      // Sadece maaşlıysa hakediş kaydı olmasa da bölüm görünsün.
+      if (me.pay_type === 'maas') bolum.classList.remove('hidden');
+    }
 
     function zkLoadMyEarnings() {
       ZirkonikData.listMyEarnings().then(function (r) {

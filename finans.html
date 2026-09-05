@@ -137,10 +137,20 @@
         <section class="px-5 pt-6">
           <div class="flex items-center justify-between">
             <div>
-              <h2 class="font-heading text-lg font-bold">Personel hakedişleri</h2>
-              <p class="mt-1 text-xs text-muted-foreground">Toplam kaydedilmiş hakediş</p>
+              <h2 class="font-heading text-lg font-bold">Personel maliyeti</h2>
+              <p class="mt-1 text-xs text-muted-foreground">Aylık maaşlar + diş başına hakedişler</p>
             </div>
             <span id="stat-earnings-total" class="font-heading text-lg font-bold tabular-nums">—</span>
+          </div>
+          <div class="mt-3 grid grid-cols-2 gap-2.5">
+            <div class="rounded-theme border border-border bg-card px-3 py-3">
+              <p id="stat-salary-total" class="font-heading text-base font-bold tabular-nums">—</p>
+              <p class="mt-0.5 text-[11px] text-muted-foreground">Aylık maaş toplamı</p>
+            </div>
+            <div class="rounded-theme border border-border bg-card px-3 py-3">
+              <p id="stat-piece-total" class="font-heading text-base font-bold tabular-nums">—</p>
+              <p class="mt-0.5 text-[11px] text-muted-foreground">Diş başına hakediş (kayıtlı)</p>
+            </div>
           </div>
           <div id="earnings-list" class="mt-3 rounded-theme border border-border bg-card">
             <p class="p-4 text-xs text-muted-foreground">Yükleniyor…</p>
@@ -546,10 +556,32 @@
         });
       }
 
+      // Personel maliyeti iki bileşenden oluşur: sabit aylık maaşlar
+      // (app_users.salary) ve tamamlanan işlerden doğan diş başına
+      // hakedişler (staff_earnings). İptal edilen hakediş sayılmaz.
+      ZirkonikData.listStaff().then(function (sr) {
+        var maasToplam = (sr.data || []).reduce(function (t, u) {
+          var modelli = u.pay_type === 'maas' || u.pay_type === 'maas_dis';
+          return t + (modelli && u.status === 'approved' ? Number(u.salary || 0) : 0);
+        }, 0);
+        document.getElementById('stat-salary-total').textContent = USD.format(maasToplam);
+        window.__zkMaasToplam = maasToplam;
+        zkGuncelleMaliyet();
+      });
+
+      function zkGuncelleMaliyet() {
+        var maas = Number(window.__zkMaasToplam || 0);
+        var hakedis = Number(window.__zkHakedisToplam || 0);
+        if (window.__zkMaasToplam === undefined || window.__zkHakedisToplam === undefined) return;
+        document.getElementById('stat-earnings-total').textContent = USD.format(maas + hakedis);
+      }
+
       ZirkonikData.listStaffEarnings().then(function (r) {
-        var rows = r.data || [];
+        var rows = (r.data || []).filter(function (x) { return x.status !== 'cancelled'; });
         var total = rows.reduce(function (s, x) { return s + Number(x.amount); }, 0);
-        document.getElementById('stat-earnings-total').textContent = USD.format(total);
+        document.getElementById('stat-piece-total').textContent = USD.format(total);
+        window.__zkHakedisToplam = total;
+        zkGuncelleMaliyet();
         var el = document.getElementById('earnings-list');
         if (!rows.length) { el.innerHTML = '<p class="p-4 text-xs text-muted-foreground">Henüz hakediş kaydı yok.</p>'; return; }
         el.innerHTML = rows.slice(0, 10).map(function (e, i) {

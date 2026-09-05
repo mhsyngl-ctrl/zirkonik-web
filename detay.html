@@ -474,17 +474,25 @@
           zkStaffCache.forEach(function (u) {
             var opt = document.createElement('option');
             opt.value = u.id;
-            opt.textContent = u.full_name + (u.piece_rate ? ' — diş başına ' + u.piece_rate + ' $' : ' — ücret tanımsız');
+            var disli = u.pay_type === 'dis' || u.pay_type === 'maas_dis';
+            opt.textContent = u.full_name + (
+              u.pay_type === 'maas' ? ' — maaşlı'
+              : disli && u.piece_rate ? ' — diş başına ' + u.piece_rate + ' $'
+              : ' — ücret tanımsız');
             sel.appendChild(opt);
           });
         }
         sel.value = currentJob.assigned_user_id || '';
-        var oran = kisi && kisi.piece_rate ? Number(kisi.piece_rate) : 0;
-        hint.textContent = currentJob.status === 'completed'
-          ? (oran ? 'İş tamamlandı; hakediş yazıldı.' : 'Bu personelin diş başına ücreti tanımlı değil — hakediş oluşmaz.')
-          : (oran
-              ? 'İş tamamlandığında hakediş: ' + oran + ' $ × ' + (currentJob.unit_count || 1) + ' diş = ' + (oran * (currentJob.unit_count || 1)) + ' $'
-              : 'Hakediş yazılması için personelin diş başına ücreti Ekip ekranından tanımlanmalı.');
+        // Maaşlı personelde diş başına hakediş yazılmaz; ipucu bunu söylesin.
+        var disKapsam = kisi && (kisi.pay_type === 'dis' || kisi.pay_type === 'maas_dis');
+        var oran = disKapsam && kisi.piece_rate ? Number(kisi.piece_rate) : 0;
+        hint.textContent = (kisi && kisi.pay_type === 'maas')
+          ? 'Bu personel maaşlı çalışıyor — bu işten ayrıca diş başına hakediş yazılmaz.'
+          : currentJob.status === 'completed'
+            ? (oran ? 'İş tamamlandı; hakediş yazıldı.' : 'Bu personelin diş başına ücreti tanımlı değil — hakediş oluşmaz.')
+            : (oran
+                ? 'İş tamamlandığında hakediş: ' + oran + ' $ × ' + (currentJob.unit_count || 1) + ' diş = ' + (oran * (currentJob.unit_count || 1)) + ' $'
+                : 'Hakediş yazılması için Ekip ekranından çalışma şekli ve diş başına ücret tanımlanmalı.');
         hint.classList.remove('hidden');
       });
     }
