@@ -81,6 +81,15 @@
               <option value="">Tüm çalışanlar</option>
             </select>
           </div>
+          <!-- Panodaki "Bugün teslim" / "Geciken işler" kartları buraya
+               due=today / due=overdue ile geliyor (2026-09-05). -->
+          <select id="f-due" onchange="loadJobs()" class="h-11 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+            <option value="">Tüm teslim tarihleri</option>
+            <option value="today">Bugün teslim edilecekler</option>
+            <option value="overdue">Teslim tarihi geçenler</option>
+            <option value="week">Bu hafta (7 gün) teslim</option>
+            <option value="none">Teslim tarihi girilmemiş</option>
+          </select>
         </section>
 
         <section class="mt-4 flex items-center justify-between rounded-theme border border-border bg-card px-4 py-3">
@@ -142,7 +151,8 @@
       });
     }
 
-    var currentTab = new URLSearchParams(location.search).get('status') === 'completed' ? 'completed' : 'active';
+    var zkParams = new URLSearchParams(location.search);
+    var currentTab = zkParams.get('status') === 'completed' ? 'completed' : 'active';
     var currentJobs = [];
 
     function zkSetTab(tab) {
@@ -210,6 +220,26 @@
         if (labId) q = q.eq('laboratory_id', labId);
         if (doctorId) q = q.eq('doctor_id', doctorId);
         if (staffJobIds) q = q.in('id', staffJobIds);
+
+        // Teslim tarihi filtresi — sınırlar cihazın yerel gününe göre.
+        var due = document.getElementById('f-due').value;
+        var gunBasi = new Date(); gunBasi.setHours(0, 0, 0, 0);
+        var gunSonu = new Date(); gunSonu.setHours(23, 59, 59, 999);
+        if (due === 'today') {
+          q = q.gte('requested_delivery_at', gunBasi.toISOString()).lte('requested_delivery_at', gunSonu.toISOString());
+        } else if (due === 'overdue') {
+          q = q.lt('requested_delivery_at', gunBasi.toISOString());
+        } else if (due === 'week') {
+          var haftaSonu = new Date(gunSonu); haftaSonu.setDate(haftaSonu.getDate() + 6);
+          q = q.gte('requested_delivery_at', gunBasi.toISOString()).lte('requested_delivery_at', haftaSonu.toISOString());
+        } else if (due === 'none') {
+          q = q.is('requested_delivery_at', null);
+        }
+        // Teslim tarihine göre süzülüyorsa en yakın teslim önce gelsin.
+        if (due && due !== 'none') {
+          q = q.order('requested_delivery_at', { ascending: true }).limit(200);
+          return q.then(function (r) { currentJobs = r.data || []; renderJobs(); });
+        }
         q = q.order(currentTab === 'completed' ? 'completed_at' : 'created_at', { ascending: false }).limit(200);
 
         q.then(function (r) {
@@ -222,7 +252,10 @@
     function renderJobs() {
       var el = document.getElementById('jobs-list');
       var totalTeeth = currentJobs.reduce(function (s, j) { return s + Number(j.unit_count || 0); }, 0);
-      document.getElementById('results-summary').textContent = currentJobs.length + ' iş · ' + totalTeeth + ' diş';
+      var dueLabels = { today: 'bugün teslim', overdue: 'teslimi geçmiş', week: 'bu hafta teslim', none: 'teslim tarihi yok' };
+      var dueSel = document.getElementById('f-due').value;
+      document.getElementById('results-summary').textContent =
+        currentJobs.length + ' iş · ' + totalTeeth + ' diş' + (dueSel ? ' · ' + dueLabels[dueSel] : '');
 
       if (!currentJobs.length) {
         el.innerHTML = '<p class="p-4 text-center text-xs text-muted-foreground">Bu filtrelerle eşleşen iş yok.</p>';
@@ -255,7 +288,8 @@
       doc.setTextColor(120);
       doc.text('Oluşturulma: ' + new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
         + (docLabel !== 'Tüm doktorlar' ? ' · Doktor: ' + docLabel : '')
-        + (staffLabel !== 'Tüm çalışanlar' ? ' · Çalışan: ' + staffLabel : ''), 14, 22);
+        + (staffLabel !== 'Tüm çalışanlar' ? ' · Çalışan: ' + staffLabel : '')
+        + (document.getElementById('f-due').value ? ' · ' + document.getElementById('f-due').selectedOptions[0].textContent : ''), 14, 22);
 
       var totalTeeth = currentJobs.reduce(function (s, j) { return s + Number(j.unit_count || 0); }, 0);
       var rows = currentJobs.map(function (j) {
@@ -276,7 +310,7 @@
         body: rows,
         styles: { fontSize: 8 },
         headStyles: { fillColor: [18, 59, 74] },
-        foot: [['Toplam', '', '', String(totalTeeth) + ' diş', String(currentJobs.length) + ' iş']],
+        foot: [['Toplam', '', '', '', String(totalTeeth) + ' diş', String(currentJobs.length) + ' iş']],
         footStyles: { fillColor: [231, 236, 238], textColor: [23, 36, 44], fontStyle: 'bold' }
       });
 
@@ -297,6 +331,9 @@
 
     ZirkonikAuth.requireAuth().then(function (session) {
       if (!session) return;
+      // Panodaki "Bugün teslim" / "Geciken işler" kartlarından gelen filtre
+      var dueParam = zkParams.get('due');
+      if (dueParam) document.getElementById('f-due').value = dueParam;
       zkSetTab(currentTab);
       loadFilters();
     });
