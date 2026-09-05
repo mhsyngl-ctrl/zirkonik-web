@@ -94,6 +94,26 @@
     return msg || 'Bilinmeyen bir hata oluştu.';
   }
 
+  /* Edge function çağrılarında supabase-js, 2xx dışı yanıtlarda yalnızca
+   * "Edge Function returned a non-2xx status code" diyor; fonksiyonun kendi
+   * açıklaması (ör. "Doktorun e-posta adresi kayıtlı değil", Resend'in
+   * reddetme sebebi) yanıt gövdesinde kalıp kayboluyordu. Burada gövdeyi
+   * okuyup gerçek mesajı hataya taşıyoruz (2026-09-05). */
+  function invokeFn(name, body) {
+    return client().functions.invoke(name, { body: body }).then(function (res) {
+      if (!res.error) return res;
+      var ctx = res.error.context;
+      if (ctx && typeof ctx.json === 'function') {
+        return ctx.json().then(function (payload) {
+          var msg = payload && (payload.error || payload.message);
+          if (payload && payload.detail) msg = (msg || '') + ' — ' + (typeof payload.detail === 'string' ? payload.detail : JSON.stringify(payload.detail));
+          return { data: null, error: { message: msg || res.error.message } };
+        }).catch(function () { return res; });
+      }
+      return res;
+    });
+  }
+
   var Auth = {
     client: client,
 
@@ -405,12 +425,10 @@
      * yeniler. Şifre değiştirme service_role gerektirdiği için edge function
      * üzerinden yapılır; yetki ve organizasyon kontrolü orada. */
     resetUserPassword: function (userId, password) {
-      return client().functions.invoke('reset-user-password', {
-        body: { user_id: userId, password: password }
-      });
+      return invokeFn('reset-user-password', { user_id: userId, password: password });
     },
     createDoctorAccount: function (fields) {
-      return client().functions.invoke('create-doctor-account', { body: fields });
+      return invokeFn('create-doctor-account', fields);
     },
     myDoctorRecord: function () {
       return client().auth.getUser().then(function (r) {
@@ -624,7 +642,7 @@
     },
 
     createStaffAccount: function (fields) {
-      return client().functions.invoke('create-staff-account', { body: fields });
+      return invokeFn('create-staff-account', fields);
     },
     listUserLabAccess: function (userId) {
       return client().from('user_lab_access').select('laboratory_id').eq('user_id', userId);
@@ -647,11 +665,11 @@
 
     // ---- İş fişi (yazdır/paylaş + doktora e-posta) ----
     sendJobSlip: function (jobId, attachmentBase64, attachmentFilename) {
-      return client().functions.invoke('send-job-slip', {
-        body: { job_id: jobId, attachment_base64: attachmentBase64, attachment_filename: attachmentFilename }
-      });
+      return invokeFn('send-job-slip', { job_id: jobId, attachment_base64: attachmentBase64, attachment_filename: attachmentFilename });
     }
   };
+
+  Data.invokeFunction = invokeFn;
 
   window.ZirkonikAuth = Auth;
   window.ZirkonikData = Data;

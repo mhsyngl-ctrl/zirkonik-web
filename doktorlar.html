@@ -824,8 +824,9 @@
         btn.innerHTML = '<iconify-icon icon="lucide:loader-2" class="text-sm animate-spin"></iconify-icon> Gönderiliyor...';
 
         return blobToBase64(file.blob).then(function (base64) {
-          return client.functions.invoke('send-doctor-statement', {
-            body: { doctor_id: statementDoctorId, attachment_base64: base64, attachment_filename: file.filename }
+          // invokeFunction, fonksiyonun kendi hata açıklamasını yüzeye çıkarır.
+          return ZirkonikData.invokeFunction('send-doctor-statement', {
+            doctor_id: statementDoctorId, attachment_base64: base64, attachment_filename: file.filename
           });
         }).then(function (res) {
           if (res.error) throw res.error;
