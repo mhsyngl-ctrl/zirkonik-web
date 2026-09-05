@@ -572,6 +572,19 @@
       }).eq('id', handoverId);
     },
 
+    /* Personelin kendi hakedişleri — RLS zaten user_id = auth.uid() satırlarını
+     * herkese açıyor, yönetici/payroll yetkisi olan tüm organizasyonu görür. */
+    listMyEarnings: function () {
+      return client().auth.getUser().then(function (r) {
+        var uid = r.data && r.data.user ? r.data.user.id : null;
+        if (!uid) return { data: [] };
+        return client().from('staff_earnings')
+          .select('*, jobs(job_number, restoration_type, completed_at)')
+          .eq('user_id', uid)
+          .order('period', { ascending: false });
+      });
+    },
+
     listStaffEarnings: function (period) {
       var q = client().from('staff_earnings').select('*, app_users(full_name)').order('period', { ascending: false });
       if (period) q = q.eq('period', period);

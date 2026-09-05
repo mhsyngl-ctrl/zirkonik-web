@@ -145,6 +145,12 @@
               <span class="mb-1.5 block text-xs font-bold text-card-foreground">Telefon</span>
               <input id="pi-phone" type="tel" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
             </label>
+            <!-- 2026-09-05: iş başı (diş başına) hakediş ücreti -->
+            <label class="block">
+              <span class="mb-1.5 block text-xs font-bold text-card-foreground">Diş başına hakediş ücreti ($)</span>
+              <input id="pi-rate" type="number" min="0" step="0.01" placeholder="Örn. 2" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+              <span class="mt-1 block text-[11px] leading-4 text-muted-foreground">Bu personel bir işe sorumlu teknisyen olarak atanır ve iş tamamlanırsa, hakedişi <b class="text-card-foreground">ücret × diş sayısı</b> olarak otomatik yazılır. Boş bırakılırsa bu personele hakediş oluşmaz. Ücreti yalnızca laboratuvar sahibi değiştirebilir.</span>
+            </label>
             <label class="block">
               <span class="mb-1.5 block text-xs font-bold text-card-foreground">E-posta (giriş adresi)</span>
               <input id="pi-email" type="email" disabled style="opacity:.6" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
@@ -275,6 +281,8 @@
           document.getElementById('pi-name').value = u.full_name || '';
           document.getElementById('pi-position').value = u.position || (u.role === 'yonetici' ? 'Yönetici' : 'Teknisyen');
           document.getElementById('pi-phone').value = u.phone || '';
+
+          document.getElementById('pi-rate').value = (u.piece_rate != null ? u.piece_rate : '');
           document.getElementById('pi-hire').value = u.hire_date || '';
           document.getElementById('pi-birth').value = u.birth_date || '';
           document.getElementById('pi-email').value = u.email || '';
@@ -404,6 +412,7 @@
             hire_date: document.getElementById('pi-hire').value || null,
             birth_date: document.getElementById('pi-birth').value || null,
             position: pos,
+            piece_rate: document.getElementById('pi-rate').value === '' ? null : Number(document.getElementById('pi-rate').value),
             // İşveren/Yönetici tam yetkili roldür; diğer pozisyonlar personel.
             role: (pos === 'Yönetici' || pos === 'İşveren') ? 'yonetici' : 'personel'
           }).eq('id', userId);
