@@ -361,8 +361,10 @@
      * iptal (ödeme çıkmaz) ve işe bağlı stok çıkışları iade edilir.
      * Para gerçekten hareket ettiyse (tahsilat işlenmiş veya hakediş ödenmiş)
      * veritabanı iptali reddeder ve ne yapılması gerektiğini söyler. */
-    cancelJob: function (jobId, reason) {
-      return client().rpc('cancel_job', { p_job_id: jobId, p_reason: reason || null });
+    cancelJob: function (jobId, reason, category) {
+      return client().rpc('cancel_job', {
+        p_job_id: jobId, p_reason: reason || null, p_category: category || 'diger'
+      });
     },
 
     /* İşi tamamen siler — yalnızca organizasyon yöneticisi (RLS: job_delete).

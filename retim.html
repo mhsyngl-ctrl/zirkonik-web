@@ -115,6 +115,9 @@
             <button onclick="location.href='stok.html'" class="zk-stat zk-stat-amber"><span class="zk-stat-icon"><iconify-icon icon="lucide:boxes"></iconify-icon></span><p id="stat-critical-stock" class="zk-stat-value">—</p><p class="zk-stat-label">Kritik stok uyarısı</p><iconify-icon class="zk-stat-ghost" icon="lucide:boxes"></iconify-icon></button>
 
             <button onclick="location.href='siparisler.html'" class="zk-stat zk-stat-teal"><span class="zk-stat-icon"><iconify-icon icon="lucide:inbox"></iconify-icon></span><p id="stat-pending-orders" class="zk-stat-value">—</p><p class="zk-stat-label">Bekleyen sipariş</p><iconify-icon class="zk-stat-ghost" icon="lucide:inbox"></iconify-icon></button>
+
+            <!-- 2026-09-05: geçmiş iptaller el altında olsun -->
+            <button onclick="location.href='isler.html?status=cancelled'" class="zk-stat zk-stat-amber"><span class="zk-stat-icon"><iconify-icon icon="lucide:ban"></iconify-icon></span><p id="stat-cancelled" class="zk-stat-value">—</p><p class="zk-stat-label">İptal edilen iş</p><iconify-icon class="zk-stat-ghost" icon="lucide:ban"></iconify-icon></button>
           </div></div>
         </section>
 
@@ -325,6 +328,9 @@
 
       client.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'completed')
         .then(function (r) { document.getElementById('stat-completed-jobs').textContent = r.count || 0; });
+
+      client.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'cancelled')
+        .then(function (r) { document.getElementById('stat-cancelled').textContent = r.count || 0; });
 
       client.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'active')
         .gte('requested_delivery_at', todayStart.toISOString()).lte('requested_delivery_at', todayEnd.toISOString())
