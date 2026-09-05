@@ -83,6 +83,11 @@
           </div>
           <!-- Panodaki "Bugün teslim" / "Geciken işler" kartları buraya
                due=today / due=overdue ile geliyor (2026-09-05). -->
+          <!-- Panodaki "Kalite kontrolde" kartı buraya room=qc ile geliyor. -->
+          <select id="f-room" onchange="loadJobs()" class="h-11 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+            <option value="">Tüm odalar</option>
+            <option value="qc">Kalite kontrolde</option>
+          </select>
           <select id="f-due" onchange="loadJobs()" class="h-11 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
             <option value="">Tüm teslim tarihleri</option>
             <option value="today">Bugün teslim edilecekler</option>
@@ -152,6 +157,7 @@
     }
 
     var zkParams = new URLSearchParams(location.search);
+    var zkQcRoomIds = [];
     var currentTab = zkParams.get('status') === 'completed' ? 'completed' : 'active';
     var currentJobs = [];
 
@@ -180,6 +186,37 @@
           sel.appendChild(opt);
         });
       });
+      // Odalar laboratuvarına göre gruplanır; kalite kontrol odaları ayrıca
+      // işaretlenir ki "Kalite kontrolde" seçeneği hangi odaları kapsadığı
+      // belli olsun (2026-09-05).
+      client.from('rooms').select('id, name, is_quality_control, sort_order, laboratories(name)')
+        .order('sort_order').then(function (r) {
+          var sel = document.getElementById('f-room');
+          var byLab = {};
+          (r.data || []).forEach(function (room) {
+            if (room.is_quality_control) zkQcRoomIds.push(room.id);
+            var labName = room.laboratories ? room.laboratories.name : 'Laboratuvar';
+            (byLab[labName] = byLab[labName] || []).push(room);
+          });
+          Object.keys(byLab).forEach(function (labName) {
+            var og = document.createElement('optgroup');
+            og.label = labName;
+            byLab[labName].forEach(function (room) {
+              var opt = document.createElement('option');
+              opt.value = room.id;
+              opt.textContent = room.name + (room.is_quality_control ? ' (kalite kontrol)' : '');
+              og.appendChild(opt);
+            });
+            sel.appendChild(og);
+          });
+          // Oda kimlikleri asenkron geldiği için ilk yükleme sırasında
+          // zkQcRoomIds boş olabiliyor; bir oda filtresi seçiliyse liste
+          // odalar hazır olunca yeniden çekilmeli.
+          var roomParam = zkParams.get('room');
+          if (roomParam && !sel.value) sel.value = roomParam;
+          if (sel.value) loadJobs();
+        });
+
       ZirkonikData.listStaff().then(function (r) {
         var staff = (r.data || []).filter(function (s) { return s.status === 'approved' && s.role !== 'doktor'; });
         var sel = document.getElementById('f-staff');
@@ -221,6 +258,15 @@
         if (doctorId) q = q.eq('doctor_id', doctorId);
         if (staffJobIds) q = q.in('id', staffJobIds);
 
+        // Bulunduğu oda filtresi — "qc" tüm kalite kontrol odalarını kapsar.
+        var roomSel = document.getElementById('f-room').value;
+        if (roomSel === 'qc') {
+          if (!zkQcRoomIds.length) { currentJobs = []; renderJobs(); return; }
+          q = q.in('current_room_id', zkQcRoomIds);
+        } else if (roomSel) {
+          q = q.eq('current_room_id', roomSel);
+        }
+
         // Teslim tarihi filtresi — sınırlar cihazın yerel gününe göre.
         var due = document.getElementById('f-due').value;
         var gunBasi = new Date(); gunBasi.setHours(0, 0, 0, 0);
@@ -254,8 +300,12 @@
       var totalTeeth = currentJobs.reduce(function (s, j) { return s + Number(j.unit_count || 0); }, 0);
       var dueLabels = { today: 'bugün teslim', overdue: 'teslimi geçmiş', week: 'bu hafta teslim', none: 'teslim tarihi yok' };
       var dueSel = document.getElementById('f-due').value;
+      var roomEl = document.getElementById('f-room');
+      var roomTxt = roomEl.value ? roomEl.selectedOptions[0].textContent : '';
       document.getElementById('results-summary').textContent =
-        currentJobs.length + ' iş · ' + totalTeeth + ' diş' + (dueSel ? ' · ' + dueLabels[dueSel] : '');
+        currentJobs.length + ' iş · ' + totalTeeth + ' diş'
+        + (dueSel ? ' · ' + dueLabels[dueSel] : '')
+        + (roomTxt ? ' · ' + roomTxt : '');
 
       if (!currentJobs.length) {
         el.innerHTML = '<p class="p-4 text-center text-xs text-muted-foreground">Bu filtrelerle eşleşen iş yok.</p>';
@@ -289,7 +339,8 @@
       doc.text('Oluşturulma: ' + new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
         + (docLabel !== 'Tüm doktorlar' ? ' · Doktor: ' + docLabel : '')
         + (staffLabel !== 'Tüm çalışanlar' ? ' · Çalışan: ' + staffLabel : '')
-        + (document.getElementById('f-due').value ? ' · ' + document.getElementById('f-due').selectedOptions[0].textContent : ''), 14, 22);
+        + (document.getElementById('f-due').value ? ' · ' + document.getElementById('f-due').selectedOptions[0].textContent : '')
+        + (document.getElementById('f-room').value ? ' · Oda: ' + document.getElementById('f-room').selectedOptions[0].textContent : ''), 14, 22);
 
       var totalTeeth = currentJobs.reduce(function (s, j) { return s + Number(j.unit_count || 0); }, 0);
       var rows = currentJobs.map(function (j) {
@@ -334,6 +385,8 @@
       // Panodaki "Bugün teslim" / "Geciken işler" kartlarından gelen filtre
       var dueParam = zkParams.get('due');
       if (dueParam) document.getElementById('f-due').value = dueParam;
+      var roomParam = zkParams.get('room');
+      if (roomParam === 'qc') document.getElementById('f-room').value = 'qc';
       zkSetTab(currentTab);
       loadFilters();
     });
