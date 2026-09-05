@@ -59,10 +59,11 @@
             <p class="mt-1 text-xs font-semibold text-primary">Kullanım kılavuzu</p>
           </div>
         </div>
-        <h1 class="mt-6 font-heading text-2xl font-bold">Laboratuvarınızı kurun</h1>
+        <h1 class="mt-6 font-heading text-2xl font-bold">Zirkonik kullanım kılavuzu</h1>
         <p class="mt-1.5 text-xs leading-5 text-muted-foreground">
-          Aşağıdaki 6 adımı sırayla tamamlayın. Her adım bir öncekine dayanır —
-          örneğin fiyat listesi olmadan iş girilemez, oda olmadan iş üretimde ilerleyemez.
+          İki bölüm: önce laboratuvarı kurma adımları, sonra ekran ekran günlük kullanım.
+          Kurulum adımları sırayla tamamlanmalı — fiyat listesi olmadan iş girilemez,
+          oda olmadan iş üretimde ilerleyemez.
         </p>
       </header>
 
@@ -194,58 +195,336 @@
           <button onclick="location.href='yeni-giri-i.html'" class="mt-3 flex h-11 w-full items-center justify-center rounded-theme bg-primary text-xs font-bold text-primary-foreground">Yeni iş oluştur</button>
         </section>
 
-        <!-- GÜNLÜK AKIŞ -->
+        <!-- İÇİNDEKİLER -->
         <section class="mt-6 rounded-theme border border-border bg-card p-4">
-          <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">Günlük çalışma düzeni</p>
+          <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">İçindekiler</p>
+          <div class="mt-3 grid grid-cols-2 gap-2">
+            <a href="#kv-akis" class="flex items-center gap-2 rounded-theme border border-border bg-background px-3 py-2.5 text-xs font-bold text-foreground"><iconify-icon icon="lucide:git-branch" class="text-base text-primary"></iconify-icon>İş akışı</a>
+            <a href="#kv-isler" class="flex items-center gap-2 rounded-theme border border-border bg-background px-3 py-2.5 text-xs font-bold text-foreground"><iconify-icon icon="lucide:clipboard-list" class="text-base text-primary"></iconify-icon>İşler</a>
+            <a href="#kv-fiyat" class="flex items-center gap-2 rounded-theme border border-border bg-background px-3 py-2.5 text-xs font-bold text-foreground"><iconify-icon icon="lucide:tags" class="text-base text-primary"></iconify-icon>Fiyatlar</a>
+            <a href="#kv-doktor" class="flex items-center gap-2 rounded-theme border border-border bg-background px-3 py-2.5 text-xs font-bold text-foreground"><iconify-icon icon="lucide:stethoscope" class="text-base text-primary"></iconify-icon>Doktorlar</a>
+            <a href="#kv-ekip" class="flex items-center gap-2 rounded-theme border border-border bg-background px-3 py-2.5 text-xs font-bold text-foreground"><iconify-icon icon="lucide:users" class="text-base text-primary"></iconify-icon>Ekip</a>
+            <a href="#kv-finans" class="flex items-center gap-2 rounded-theme border border-border bg-background px-3 py-2.5 text-xs font-bold text-foreground"><iconify-icon icon="lucide:chart-no-axes-combined" class="text-base text-primary"></iconify-icon>Finans</a>
+            <a href="#kv-stok" class="flex items-center gap-2 rounded-theme border border-border bg-background px-3 py-2.5 text-xs font-bold text-foreground"><iconify-icon icon="lucide:boxes" class="text-base text-primary"></iconify-icon>Stok</a>
+            <a href="#kv-sss" class="flex items-center gap-2 rounded-theme border border-border bg-background px-3 py-2.5 text-xs font-bold text-foreground"><iconify-icon icon="lucide:circle-help" class="text-base text-primary"></iconify-icon>Sık sorulanlar</a>
+          </div>
+        </section>
+
+        <!-- İŞ AKIŞI -->
+        <section id="kv-akis" class="mt-6 rounded-theme border border-border bg-card p-4">
+          <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">Bir işin yolculuğu</p>
+          <p class="mt-1.5 text-xs leading-5 text-muted-foreground">
+            Bir iş açıldığı andan tamamlanana kadar hep aynı yoldan geçer.
+            Aşağıdaki sıra, uygulamanın bütün mantığının temelidir.
+          </p>
+          <div class="mt-4 space-y-3.5">
+            <div class="flex gap-3">
+              <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">1</span>
+              <div>
+                <p class="text-sm font-bold">İş açılır</p>
+                <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
+                  Doktor, hasta adı ve klinik protokol numarası zorunludur. İş numarası
+                  otomatik verilir (laboratuvar bazlı, yıl + sıra). Fiyat, o doktora özel
+                  fiyat varsa ondan, yoksa genel listeden gelir.
+                </p>
+              </div>
+            </div>
+            <div class="flex gap-3">
+              <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">2</span>
+              <div>
+                <p class="text-sm font-bold">Odalara girer</p>
+                <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
+                  İş, o çalışma türü için tanımlı <b class="text-card-foreground">üretim rotasındaki</b> odalardan
+                  sırayla geçer. Rota tanımlı değilse laboratuvarın bütün odalarından geçer.
+                </p>
+              </div>
+            </div>
+            <div class="flex gap-3">
+              <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">3</span>
+              <div>
+                <p class="text-sm font-bold">Teslim alan onaylar</p>
+                <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
+                  İşi <b class="text-card-foreground">iten değil, teslim alan onaylar</b>. Sonraki odadaki teknisyen
+                  “Teslim Al” demeden iş ilerlemez — kayıp iş olmaz, sorumluluk nettir.
+                  Diş başına hakediş de <b class="text-card-foreground">işi teslim alan</b> teknisyene yazılır.
+                </p>
+              </div>
+            </div>
+            <div class="flex gap-3">
+              <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">4</span>
+              <div>
+                <p class="text-sm font-bold">Tamamlanır ve kilitlenir</p>
+                <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
+                  Son odadan çıkınca iş tamamlanır. O anda üç şey birden olur:
+                  <b class="text-card-foreground">fatura kesilir</b>, <b class="text-card-foreground">personel hakedişi yazılır</b>,
+                  <b class="text-card-foreground">stok düşülür</b>. Bu yüzden tamamlanan iş
+                  <b class="text-card-foreground">kilitlidir</b>: geri alınamaz, iptal edilemez, silinemez.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="mt-4 rounded-theme border border-accent/40 bg-background p-3">
+            <p class="text-xs font-bold text-accent">Tamamlamadan önce kontrol edin</p>
+            <p class="mt-1 text-[11px] leading-4 text-muted-foreground">
+              Kilit tamamlandıktan sonra başlar. Yanlışlık varsa iş <b class="text-card-foreground">tamamlanmadan önce</b>
+              düzeltilmelidir — “Geri al” ve “İptal et” yalnızca devam eden işlerde çalışır.
+            </p>
+          </div>
+        </section>
+
+        <!-- İŞLER -->
+        <section id="kv-isler" class="mt-6 rounded-theme border border-border bg-card p-4">
+          <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">İşler ve iş detayı</p>
           <div class="mt-3 space-y-3">
             <div>
-              <p class="text-sm font-bold">1. Üretim panosu</p>
+              <p class="text-sm font-bold">Listeyi süzmek</p>
               <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
-                Odalar altıgen pano olarak görünür. Her odada kaç iş var, rotadan kaç iş geliyor
-                (↓ +N) ve yoğunluk uyarısı buradan izlenir.
+                İşler ekranında sekmeler (Devam eden / Tamamlanan / İptal) ve süzgeçler var:
+                teslim tarihine göre (bugün, geciken, bu hafta), odaya göre ve kalite kontroldekiler.
+                Listeyi PDF olarak da çıkarabilirsiniz.
               </p>
             </div>
             <div>
-              <p class="text-sm font-bold">2. Odalar arası teslim</p>
+              <p class="text-sm font-bold">Geri al</p>
               <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
-                İşi <b class="text-card-foreground">iten değil, teslim alan onaylar</b>. Bir sonraki odadaki
-                teknisyen işi kabul etmeden iş ilerlemez — böylece kayıp iş olmaz.
+                Yanlış ilerletilen işi bir önceki odaya döndürür. Yalnızca laboratuvar sahibi
+                yapabilir; iş henüz bir odaya girmemişse geri alınacak aşama yoktur.
               </p>
             </div>
             <div>
-              <p class="text-sm font-bold">3. Kalite kontrol ve teslim</p>
+              <p class="text-sm font-bold">İptal et</p>
               <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
-                İş kalite kontrol odasından geçip teslim odasına ulaşınca tamamlanır.
-                İşlem kağıdını yazdırabilir veya doktora e-postayla gönderebilirsiniz.
+                İşi silmez — kaydı ve geçmişi durur, ama sonuçları geri alınır:
+                <b class="text-card-foreground">faturası iptal olur</b> (ciroya ve alacağa girmez),
+                <b class="text-card-foreground">personel hakedişi iptal olur</b> (ödeme çıkmaz) ve
+                <b class="text-card-foreground">ayrılan stok iade edilir</b>.
+                İptal sebebi seçilir; sebep “üretim kusuru” ise laboratuvar sahibine bildirim gider.
+              </p>
+              <p class="mt-1 text-[11px] leading-4 text-muted-foreground">
+                Faturasına tahsilat işlenmiş veya hakedişi ödenmiş iş iptal edilemez —
+                önce o para hareketini düzeltmeniz gerekir.
               </p>
             </div>
             <div>
-              <p class="text-sm font-bold">4. Fatura ve tahsilat</p>
+              <p class="text-sm font-bold">Sil</p>
               <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
-                <b class="text-card-foreground">Finans</b> sekmesinde işten fatura oluşturur, tahsilatı işlersiniz.
-                Sahada nakit toplayan personel gün sonunda <b class="text-card-foreground">kasa teslimi</b> yapar;
-                teslimi başka biri onaylar.
+                Yalnızca hiçbir fatura, hakediş veya stok kaydı olmayan işlerde mümkündür.
+                Geçmişi olan işi silmek yerine iptal edin.
               </p>
             </div>
             <div>
-              <p class="text-sm font-bold">5. Stok</p>
+              <p class="text-sm font-bold">Sorumlu teknisyen</p>
               <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
-                <b class="text-card-foreground">Stok</b> sekmesinde malzeme tanımlayıp kritik seviye belirleyin;
-                seviye altına düşünce panoda uyarı çıkar.
+                Bir odada iki teknisyen varsa diş ücreti <b class="text-card-foreground">işi teslim alana</b> yazılır.
+                Gerekirse iş detayından elle değiştirebilirsiniz. Yardımcı teknisyen
+                diş başına ücret almaz, maaşla çalışır.
               </p>
             </div>
           </div>
         </section>
 
-        <section class="mt-5 rounded-theme border border-border bg-card p-4">
+        <!-- FİYATLAR -->
+        <section id="kv-fiyat" class="mt-6 rounded-theme border border-border bg-card p-4">
+          <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">Fiyat listesi ve üretim rotası</p>
+          <div class="mt-3 space-y-3">
+            <div>
+              <p class="text-sm font-bold">Genel fiyat</p>
+              <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
+                Hiçbir doktor seçili değilken girdiğiniz fiyat, herkes için geçerli liste fiyatıdır.
+                Boş bırakılan kalem iş ekranında “Sorunuz” görünür. Bütün tutarlar dolardır ($).
+              </p>
+            </div>
+            <div>
+              <p class="text-sm font-bold">Doktora özel fiyat</p>
+              <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
+                Üstten bir doktor seçip fiyat yazarsanız <b class="text-card-foreground">yalnızca o doktor</b> için geçerli
+                anlaşmalı fiyat kaydedilir. Kutuyu boşaltırsanız özel fiyat kalkar, genel listeye döner.
+                Kalemin yanındaki <b class="text-card-foreground">“N özel fiyat”</b> rozeti, o kalemde kaç doktora özel
+                fiyat tanımlı olduğunu gösterir.
+              </p>
+              <p class="mt-1 text-[11px] leading-4 text-muted-foreground">
+                İş açılırken sıra şudur: doktora özel fiyat varsa o, yoksa genel liste fiyatı.
+              </p>
+            </div>
+            <div>
+              <p class="text-sm font-bold">Üretim rotası (oda sirkülasyonu)</p>
+              <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
+                Kalemin yanındaki rota simgesine dokunun, odalara <b class="text-card-foreground">sırayla</b> dokunarak
+                yolu kurun (tekrar dokunmak rotadan çıkarır). O çalışma türündeki işler bu sırayla ilerler.
+              </p>
+              <p class="mt-1 text-[11px] leading-4 text-muted-foreground">
+                Rota <b class="text-card-foreground">kalemin kendi özelliğidir, doktora göre değişmez</b> —
+                doktor seçiliyken de aynı rota geçerlidir. Fiyat yazmak rotayı etkilemez.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- DOKTORLAR -->
+        <section id="kv-doktor" class="mt-6 rounded-theme border border-border bg-card p-4">
+          <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">Doktorlar</p>
+          <div class="mt-3 space-y-3">
+            <div>
+              <p class="text-sm font-bold">Doktor eklemek</p>
+              <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
+                Ad soyad, <b class="text-card-foreground">telefon, e-posta ve adres zorunludur</b> — fatura ve ekstre
+                bu bilgilere dayanır. Aynı isimde iki doktor olabileceği için klinik adı ayırt edicidir.
+              </p>
+            </div>
+            <div>
+              <p class="text-sm font-bold">Başvuran doktoru onaylamak</p>
+              <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
+                Uygulamadan başvuran doktorlar “Onay bekleyen” listesine düşer. Onaylamadan önce
+                karttaki bilgileri (klinik, telefon, e-posta, adres) görebilirsiniz. Reddettikleriniz
+                “Reddedilen” bölümünde durur, listeden düşer.
+              </p>
+            </div>
+            <div>
+              <p class="text-sm font-bold">Doktora hesap açmak</p>
+              <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
+                Doktorun kendi e-posta adresi giriş adresi olur. Şifre otomatik üretilip doktora gönderilir;
+                sonra “Şifremi unuttum” ile kendisi değiştirebilir. Şifresini siz de sıfırlayabilirsiniz.
+              </p>
+            </div>
+            <div>
+              <p class="text-sm font-bold">Doktor ekstresi</p>
+              <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
+                Doktorun bütün faturaları ve ödemeleri PDF veya CSV olarak çıkar, e-postayla gönderilir.
+                İptal edilen faturalar ekstreye girmez.
+              </p>
+            </div>
+            <div>
+              <p class="text-sm font-bold">Doktor silmek</p>
+              <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
+                Adına açılmış iş, sipariş veya faturası olan doktor silinemez — kayıtların
+                “kime ait” bilgisi kaybolmasın diye. Böyle bir doktoru silmek yerine çalışmayı durdurun.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- EKİP -->
+        <section id="kv-ekip" class="mt-6 rounded-theme border border-border bg-card p-4">
+          <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">Ekip ve ücretlendirme</p>
+          <div class="mt-3 space-y-3">
+            <div>
+              <p class="text-sm font-bold">Personel eklemek ve yetkiler</p>
+              <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
+                Personel eklerken laboratuvar ve oda erişimi verirsiniz. Personel yalnızca
+                erişimi olan odalardaki işleri ilerletebilir. Finans görünürlüğü ayrı bir yetkidir.
+              </p>
+            </div>
+            <div>
+              <p class="text-sm font-bold">Üç ücret modeli</p>
+              <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
+                Her personel için “Yetkileri düzenle” ekranından seçilir:
+              </p>
+              <ul class="mt-2 space-y-1.5 text-xs leading-5 text-muted-foreground">
+                <li>• <b class="text-card-foreground">Maaşlı</b> — sabit aylık ücret, diş başına ödeme yok.</li>
+                <li>• <b class="text-card-foreground">Maaş + diş başına</b> — sabit maaş, üstüne yaptığı diş kadar hakediş.</li>
+                <li>• <b class="text-card-foreground">Sadece diş başına</b> — maaş yok, tamamen üretime bağlı.</li>
+              </ul>
+              <p class="mt-2 text-[11px] leading-4 text-muted-foreground">
+                Yardımcı teknisyen seçilirse model otomatik “maaşlı” olur — yardımcı teknisyen
+                diş başına ücret almaz.
+              </p>
+            </div>
+            <div>
+              <p class="text-sm font-bold">Şifre sıfırlama</p>
+              <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
+                Personel e-posta beklemesin diye şifreyi doğrudan laboratuvar sahibi belirler
+                ve personele iletir.
+              </p>
+            </div>
+            <div>
+              <p class="text-sm font-bold">Ekipten çıkarmak</p>
+              <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
+                Hiç iş görmemiş personel tamamen silinir. İşi, tahsilatı veya hakedişi olan personelin
+                kaydı <b class="text-card-foreground">arşive alınır</b> (girişi kapanır, listeden düşer) —
+                yoksa geçmiş işlerin “kim yaptı” bilgisi kaybolurdu. Yanlışlıkla çıkarırsanız
+                “Çıkarılan personel” bölümünden geri alabilirsiniz.
+              </p>
+              <p class="mt-1 text-[11px] leading-4 text-muted-foreground">
+                Kendi hesabınızı ve laboratuvarın tek yöneticisini çıkaramazsınız.
+              </p>
+            </div>
+            <div>
+              <p class="text-sm font-bold">Personel kendi hakedişini nereden görür?</p>
+              <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
+                Ayarlar → <b class="text-card-foreground">Hakedişlerim</b>. Ücret modeli ve tamamlanan işlerden
+                doğan kazancı orada listelenir.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- FİNANS -->
+        <section id="kv-finans" class="mt-6 rounded-theme border border-border bg-card p-4">
+          <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">Finans</p>
+          <div class="mt-3 space-y-3">
+            <div>
+              <p class="text-sm font-bold">Ciro ve bekleyen tahsilatlar</p>
+              <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
+                Laboratuvar bazında ciro, kesilen faturalar ve gecikmiş alacaklar üstteki kartlarda.
+                <b class="text-card-foreground">İptal edilen işler ve faturalar hiçbir rakama girmez.</b>
+              </p>
+            </div>
+            <div>
+              <p class="text-sm font-bold">Carinin içine girmek</p>
+              <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
+                Doktor satırına veya tedarikçi kartına dokununca o carinin detayı açılır:
+                bakiye, toplam fatura, toplam ödeme ve bütün hareketler tarih sırasıyla —
+                her satırda o andaki yürüyen bakiye görünür. Detaydan çıkmadan
+                fatura/ödeme/tahsilat işleyebilirsiniz.
+              </p>
+            </div>
+            <div>
+              <p class="text-sm font-bold">Kasa teslimi</p>
+              <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
+                Sahada nakit toplayan personel gün sonunda kasa teslimi oluşturur;
+                teslimi başka biri onaylar. Böylece nakit iki kişinin kaydından geçer.
+              </p>
+            </div>
+            <div>
+              <p class="text-sm font-bold">Personel maliyeti</p>
+              <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
+                Aylık maaşların toplamı + tamamlanan işlerden doğan diş başına hakedişler.
+                İptal edilen hakediş sayılmaz.
+              </p>
+            </div>
+            <div>
+              <p class="text-sm font-bold">Tedarikçi carileri</p>
+              <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
+                Alış faturası girip ödeme işlersiniz; bakiye borç/alacak olarak görünür,
+                vadesi geçen tedarikçi kırmızı çerçeveyle işaretlenir.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- STOK -->
+        <section id="kv-stok" class="mt-6 rounded-theme border border-border bg-card p-4">
+          <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">Stok</p>
+          <p class="mt-2 text-xs leading-5 text-muted-foreground">
+            Malzemeleri tanımlayıp giriş/çıkış hareketi işlersiniz. Bir işe malzeme ayırdığınızda
+            çıkış olarak düşer; iş iptal edilirse <b class="text-card-foreground">ters kayıtla otomatik iade edilir</b>.
+            Kritik seviyenin altına düşen malzeme için panoda uyarı çıkar.
+          </p>
+        </section>
+
+        <section id="kv-sss" class="mt-6 rounded-theme border border-border bg-card p-4">
           <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Sık sorulanlar</p>
           <div class="mt-3 space-y-3 text-xs leading-5 text-muted-foreground">
-            <p><b class="text-card-foreground">Şifremi nasıl değiştiririm?</b><br>Hesap ekranı (sağ üst profil simgesi) → Şifre bölümü.</p>
-            <p><b class="text-card-foreground">Personel finansı göremiyor.</b><br>Ekip → ilgili personel → “Finans görünürlüğü” yetkisini açın.</p>
+            <p><b class="text-card-foreground">Şifremi nasıl değiştiririm?</b><br>Ayarlar (sağ üstteki dişli simgesi) → Şifre bölümü. Personelin ve doktorun şifresini laboratuvar sahibi de sıfırlayabilir.</p>
+            <p><b class="text-card-foreground">Personel finansı göremiyor.</b><br>Ekip → ilgili personel → “Yetkileri düzenle” → finans görünürlüğünü açın.</p>
             <p><b class="text-card-foreground">İş bir sonraki odaya geçmiyor.</b><br>Hedef odadaki personelin işi teslim alması gerekir; ayrıca o kişinin oda erişimi olmalı.</p>
             <p><b class="text-card-foreground">Çalışma türü listede çıkmıyor.</b><br>Fiyat listesine o kalemi ekleyin; iş girişindeki liste fiyat listesinden beslenir.</p>
-            <p><b class="text-card-foreground">Yanlış iş açtım / işi yanlış odaya ilerlettim.</b><br>İş detayında laboratuvar sahibine özel iki düğme var: <b class="text-card-foreground">Geri al</b> işi bir önceki odaya döndürür, <b class="text-card-foreground">İşi sil</b> işi kalıcı olarak siler. Faturası, hakedişi veya stok hareketi olan iş silinemez.</p>
-            <p><b class="text-card-foreground">Yeni iş açarken doktor seçmek zorunlu mu?</b><br>Evet. Fiyat doktora göre değişebildiği için doktor seçilmeden iş açılamaz.</p>
+            <p><b class="text-card-foreground">Yanlış iş açtım / işi yanlış odaya ilerlettim.</b><br>İş <b class="text-card-foreground">tamamlanmadan önce</b> iş detayındaki “Geri al” (bir önceki odaya döndürür), “İptal et” (faturayı, hakedişi ve stoğu geri alır) veya “Sil” (yalnızca hiç kaydı olmayan işlerde) düğmelerini kullanın. Üçü de laboratuvar sahibine özeldir.</p>
+            <p><b class="text-card-foreground">Tamamlanan işi neden geri alamıyorum?</b><br>Tamamlanan iş kilitlidir. Tamamlanma anında fatura kesilir, personel hakedişi yazılır ve stok düşülür; geri alma bu üç kaydı da bozardı. Düzeltme tamamlanmadan önce yapılmalıdır.</p>
+            <p><b class="text-card-foreground">İptal ettiğim işin tutarı ciroda duruyor mu?</b><br>Hayır. İptal edilen iş ve faturası ciroya, alacağa, doktor ekstresine ve personel maliyetine girmez; ayrılan stok da iade edilir.</p>
+            <p><b class="text-card-foreground">Doktora özel fiyat yazınca oda sirkülasyonu değişir mi?</b><br>Hayır. Üretim rotası kalemin kendi özelliğidir, doktora göre değişmez. Fiyat yazmak rotaya dokunmaz.</p>
+            <p><b class="text-card-foreground">Yeni iş açarken doktor seçmek zorunlu mu?</b><br>Evet. Fiyat doktora göre değişebildiği için doktor seçilmeden iş açılamaz. Hasta adı ve klinik protokol numarası da zorunludur.</p>
+            <p><b class="text-card-foreground">İşten ayrılan personeli nasıl çıkarırım?</b><br>Ekip → personel kartı → “Ekipten çıkar”. Geçmişi olan personelin kaydı arşive alınır, girişi kapanır; “Çıkarılan personel” bölümünden geri alınabilir.</p>
             <p><b class="text-card-foreground">Verilerimi başka laboratuvar görebilir mi?</b><br>Hayır. Her laboratuvar ayrı bir hesaptır; veriler organizasyon bazında ayrılır.</p>
           </div>
         </section>
