@@ -89,6 +89,17 @@
             <p class="text-xs text-muted-foreground">Yükleniyor…</p>
           </div>
         </section>
+
+        <!-- 2026-09-05: Reddedilen kayıtlar hiçbir listede görünmüyordu ama
+             "Toplam kayıt" sayısına giriyordu; sayı düşmüyor gibi duruyordu. -->
+        <section id="rejected-section" class="mt-6 hidden">
+          <div class="flex items-end justify-between">
+            <h2 class="font-heading text-lg font-bold">Reddedilen doktorlar</h2>
+            <span id="stat-rejected" class="rounded-full bg-muted px-2.5 py-1 text-[11px] font-bold text-muted-foreground">0</span>
+          </div>
+          <p class="mt-0.5 text-xs text-muted-foreground">Kayıt duruyor ama listelerde çıkmaz. Geri alabilir ya da kalıcı silebilirsiniz.</p>
+          <div id="rejected-list" class="mt-3 space-y-2"></div>
+        </section>
       </main>
 
       <nav data-fv-tabbar class="fixed bottom-0 left-0 z-20 grid w-full grid-cols-6 border-t border-border bg-card/95 px-2 pb-5 pt-2 backdrop-blur-md">
@@ -336,9 +347,21 @@
         allDoctorsCache = all;
         var pending = all.filter(function (d) { return d.status === 'pending'; });
         var approved = all.filter(function (d) { return d.status === 'approved'; });
+        var rejected = all.filter(function (d) { return d.status === 'rejected'; });
 
-        document.getElementById('stat-total').textContent = all.length;
+        // "Toplam kayıt" ekranda görünen kayıtları sayar (onaylı + onay
+        // bekleyen). Reddedilenler kendi bölümünde ayrıca sayılıyor —
+        // önceden toplama dahil oldukları için doktor listeden kalkınca
+        // sayı düşmüyormuş gibi görünüyordu.
+        document.getElementById('stat-total').textContent = approved.length + pending.length;
         document.getElementById('stat-pending').textContent = pending.length;
+
+        var rSection = document.getElementById('rejected-section');
+        rSection.classList.toggle('hidden', !rejected.length || docReadOnly);
+        document.getElementById('stat-rejected').textContent = rejected.length;
+        if (rejected.length) {
+          document.getElementById('rejected-list').innerHTML = rejected.map(renderRejectedRow).join('');
+        }
 
         var pEl = document.getElementById('pending-list');
         pEl.innerHTML = pending.length ? pending.map(renderPendingCard).join('') :
@@ -382,6 +405,18 @@
         '<button onclick="zkDecide(\'' + d.id + '\',\'approved\')" class="flex h-10 items-center justify-center gap-1.5 rounded-theme bg-primary text-xs font-bold text-primary-foreground"><iconify-icon icon="lucide:check" class="text-sm"></iconify-icon>Onayla</button>' +
         '<button onclick="zkDecide(\'' + d.id + '\',\'rejected\')" class="flex h-10 items-center justify-center gap-1.5 rounded-theme border border-border bg-background text-xs font-bold text-destructive">Reddet</button>' +
         '</div></article>';
+    }
+
+    /* Reddedilen kayıt: geri alınabilir (onayla) ya da kalıcı silinebilir.
+     * Bilgi kartı buradan da açılır. */
+    function renderRejectedRow(d) {
+      return '<div class="flex items-center gap-3 rounded-theme border border-border bg-card p-3 opacity-80">' +
+        '<div class="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">' + escapeHtml((d.full_name || '?').charAt(0)) + '</div>' +
+        '<div class="min-w-0 flex-1"><p class="truncate text-sm font-bold">Dr. ' + escapeHtml(d.full_name) + '</p>' +
+        '<p class="truncate text-[11px] text-muted-foreground">' + escapeHtml(d.clinic_name || '—') + (d.phone ? ' · ' + escapeHtml(d.phone) : '') + '</p></div>' +
+        '<button onclick="zkOpenDoctorInfo(\'' + d.id + '\')" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Bilgileri gör"><iconify-icon icon="lucide:info" class="text-sm"></iconify-icon></button>' +
+        '<button onclick="zkDecide(\'' + d.id + '\',\'approved\')" class="flex h-8 items-center justify-center rounded-lg bg-muted px-2.5 text-[11px] font-bold text-primary">Geri al</button>' +
+        '</div>';
     }
 
     function renderApprovedRow(d) {
@@ -431,11 +466,14 @@
       // Onay bekleyen doktorda karar düğmeleri de burada olsun ki işveren
       // bilgileri okuduğu yerden onaylayıp reddedebilsin.
       var karar = document.getElementById('di-decide');
-      var bekliyor = d.status === 'pending' && !docReadOnly;
+      // Reddedilen kayıt da buradan geri alınabilsin.
+      var bekliyor = (d.status === 'pending' || d.status === 'rejected') && !docReadOnly;
       karar.classList.toggle('hidden', !bekliyor);
       karar.classList.toggle('flex', bekliyor);
       document.getElementById('di-clinic').textContent =
-        (d.clinic_name || 'Klinik belirtilmedi') + (d.status === 'pending' ? ' · Onay bekliyor' : '');
+        (d.clinic_name || 'Klinik belirtilmedi')
+        + (d.status === 'pending' ? ' · Onay bekliyor' : '')
+        + (d.status === 'rejected' ? ' · Reddedildi' : '');
       document.getElementById('di-error').classList.add('hidden');
       // Şifre sıfırlama yalnızca uygulama hesabı olan doktorlarda ve
       // yalnızca laboratuvar sahibinde anlamlı.
