@@ -148,6 +148,7 @@
           <div class="mt-4 border-t border-border pt-4">
             <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Sorumlu teknisyen</p>
             <p id="assignee-readonly" class="mt-1 text-sm font-bold">—</p>
+            <p class="mt-1 text-[11px] leading-4 text-muted-foreground">İş bir odada teslim alındığında sorumlu otomatik olarak teslim alan teknisyen olur. Gerekirse buradan değiştirebilirsiniz.</p>
             <div id="assignee-edit" class="mt-2 hidden gap-2">
               <select id="job-assignee" class="h-11 min-w-0 flex-1 rounded-theme border border-border bg-input px-3 text-sm">
                 <option value="">Atanmadı</option>
@@ -476,7 +477,8 @@
             opt.value = u.id;
             var disli = u.pay_type === 'dis' || u.pay_type === 'maas_dis';
             opt.textContent = u.full_name + (
-              u.pay_type === 'maas' ? ' — maaşlı'
+              u.position === 'Yardımcı Teknisyen' ? ' — yardımcı teknisyen (maaşlı)'
+              : u.pay_type === 'maas' ? ' — maaşlı'
               : disli && u.piece_rate ? ' — diş başına ' + u.piece_rate + ' $'
               : ' — ücret tanımsız');
             sel.appendChild(opt);
@@ -486,7 +488,9 @@
         // Maaşlı personelde diş başına hakediş yazılmaz; ipucu bunu söylesin.
         var disKapsam = kisi && (kisi.pay_type === 'dis' || kisi.pay_type === 'maas_dis');
         var oran = disKapsam && kisi.piece_rate ? Number(kisi.piece_rate) : 0;
-        hint.textContent = (kisi && kisi.pay_type === 'maas')
+        hint.textContent = (kisi && kisi.position === 'Yardımcı Teknisyen')
+          ? 'Yardımcı teknisyen diş başına ücret almaz; maaşlı çalışır — bu işten hakediş yazılmaz.'
+          : (kisi && kisi.pay_type === 'maas')
           ? 'Bu personel maaşlı çalışıyor — bu işten ayrıca diş başına hakediş yazılmaz.'
           : currentJob.status === 'completed'
             ? (oran ? 'İş tamamlandı; hakediş yazıldı.' : 'Bu personelin diş başına ücreti tanımlı değil — hakediş oluşmaz.')

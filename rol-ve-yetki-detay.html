@@ -122,7 +122,7 @@
             </label>
             <label class="block">
               <span class="mb-1.5 block text-xs font-bold text-card-foreground">Pozisyon</span>
-              <select id="pi-position" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+              <select id="pi-position" onchange="zkPositionChanged()" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
                 <option value="Teknisyen">Teknisyen</option>
                 <option value="Yardımcı Teknisyen">Yardımcı Teknisyen</option>
                 <option value="Yönetici">Yönetici (tam yetki)</option>
@@ -283,8 +283,24 @@
 
     /* Çalışma şekli seçimine göre yalnızca ilgili alanlar görünür; hangi
      * durumda hakediş yazılacağı da burada açıkça anlatılıyor. */
+    /* Yardımcı teknisyen diş başına ücret almaz — maaşlı çalışır (kural
+     * veritabanında da uygulanıyor). Pozisyon buysa model "Maaşlı"ya
+     * sabitlenir ve diş başına alanı kapanır. */
+    function zkPositionChanged() {
+      var yardimci = document.getElementById('pi-position').value === 'Yardımcı Teknisyen';
+      var sel = document.getElementById('pi-paytype');
+      if (yardimci) {
+        sel.value = 'maas';
+        sel.disabled = true;
+      } else {
+        sel.disabled = false;
+      }
+      zkPayTypeChanged();
+    }
+
     function zkPayTypeChanged() {
       var tip = document.getElementById('pi-paytype').value;
+      var yardimci = document.getElementById('pi-position').value === 'Yardımcı Teknisyen';
       var salaryWrap = document.getElementById('pi-salary-wrap');
       var rateWrap = document.getElementById('pi-rate-wrap');
       var hint = document.getElementById('pi-pay-hint');
@@ -295,7 +311,8 @@
       rateWrap.classList.toggle('hidden', !disVar);
       rateWrap.classList.toggle('block', disVar);
       hint.textContent =
-        tip === 'maas' ? 'Sabit maaşlı — işlerden ayrıca diş başına hakediş yazılmaz.'
+        yardimci ? 'Yardımcı teknisyen diş başına ücret almaz; maaşlı çalışır.'
+        : tip === 'maas' ? 'Sabit maaşlı — işlerden ayrıca diş başına hakediş yazılmaz.'
         : tip === 'maas_dis' ? 'Maaşın yanında, sorumlu teknisyen olduğu iş tamamlanınca diş başına hakediş de yazılır.'
         : tip === 'dis' ? 'Maaş yok; kazanç yalnızca sorumlu olduğu tamamlanan işlerden (ücret × diş sayısı) oluşur.'
         : 'Çalışma şekli seçilmezse bu personele otomatik hakediş yazılmaz.';
@@ -321,7 +338,7 @@
           document.getElementById('pi-rate').value = (u.piece_rate != null ? u.piece_rate : '');
           document.getElementById('pi-salary').value = (u.salary != null ? u.salary : '');
           document.getElementById('pi-paytype').value = u.pay_type || '';
-          zkPayTypeChanged();
+          zkPositionChanged();
           document.getElementById('pi-hire').value = u.hire_date || '';
           document.getElementById('pi-birth').value = u.birth_date || '';
           document.getElementById('pi-email').value = u.email || '';
@@ -451,7 +468,8 @@
             hire_date: document.getElementById('pi-hire').value || null,
             birth_date: document.getElementById('pi-birth').value || null,
             position: pos,
-            pay_type: document.getElementById('pi-paytype').value || null,
+            // Yardımcı teknisyen her zaman maaşlı kaydedilir.
+            pay_type: (pos === 'Yardımcı Teknisyen') ? 'maas' : (document.getElementById('pi-paytype').value || null),
             salary: document.getElementById('pi-salary').value === '' ? null : Number(document.getElementById('pi-salary').value),
             piece_rate: document.getElementById('pi-rate').value === '' ? null : Number(document.getElementById('pi-rate').value),
             // İşveren/Yönetici tam yetkili roldür; diğer pozisyonlar personel.
