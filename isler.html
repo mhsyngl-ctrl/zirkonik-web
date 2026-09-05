@@ -205,7 +205,7 @@
           return;
         }
         var q = client.from('jobs')
-          .select('id, job_number, restoration_type, unit_count, status, created_at, completed_at, requested_delivery_at, doctors(full_name, clinic_name), laboratories(name)')
+          .select('id, job_number, restoration_type, unit_count, status, created_at, completed_at, requested_delivery_at, patient_name, clinic_protocol_no, doctors(full_name, clinic_name), laboratories(name)')
           .eq('status', currentTab);
         if (labId) q = q.eq('laboratory_id', labId);
         if (doctorId) q = q.eq('doctor_id', doctorId);
@@ -234,6 +234,7 @@
           : (j.requested_delivery_at ? new Date(j.requested_delivery_at).toLocaleDateString('tr-TR') : 'Teslim tarihi yok');
         return '<button onclick="location.href=\'detay.html?id=' + j.id + '\'" class="flex w-full items-center justify-between gap-3 rounded-theme border border-border bg-card px-3.5 py-3 text-left">' +
           '<div class="min-w-0"><p class="text-sm font-bold">' + escapeHtml(j.job_number) + '</p>' +
+          (j.patient_name ? '<p class="mt-0.5 truncate text-[11px] font-semibold text-card-foreground">' + escapeHtml(j.patient_name) + (j.clinic_protocol_no ? ' · Protokol ' + escapeHtml(j.clinic_protocol_no) : '') + '</p>' : '') +
           '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + escapeHtml(j.doctors ? j.doctors.full_name : '') + ' · ' + escapeHtml(j.restoration_type || '') + (j.unit_count ? ' · ' + j.unit_count + ' diş' : '') + '</p></div>' +
           '<span class="shrink-0 text-[10px] font-semibold text-muted-foreground">' + escapeHtml(dateLabel) + '</span>' +
           '</button>';
@@ -261,6 +262,7 @@
         var dateVal = currentTab === 'completed' ? j.completed_at : j.requested_delivery_at;
         return [
           j.job_number,
+          j.patient_name || '—',
           j.doctors ? j.doctors.full_name : '—',
           j.restoration_type || '—',
           String(j.unit_count || '—'),
@@ -270,7 +272,7 @@
 
       doc.autoTable({
         startY: 28,
-        head: [['İş No', 'Doktor', 'Restorasyon', 'Diş', currentTab === 'completed' ? 'Tamamlanma' : 'Teslim']],
+        head: [['İş No', 'Hasta', 'Doktor', 'Restorasyon', 'Diş', currentTab === 'completed' ? 'Tamamlanma' : 'Teslim']],
         body: rows,
         styles: { fontSize: 8 },
         headStyles: { fillColor: [18, 59, 74] },

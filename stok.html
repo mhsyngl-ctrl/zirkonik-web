@@ -173,7 +173,7 @@
             <option value="çift">çift</option>
             <option value="takım">takım</option>
           </select>
-          <input id="nm-cost" type="number" min="0" step="0.01" placeholder="Birim maliyet (₺)" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+          <input id="nm-cost" type="number" min="0" step="0.01" placeholder="Birim maliyet ($)" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         </div>
         <input id="nm-threshold" type="number" min="0" step="0.01" placeholder="Kritik eşik (min. miktar)" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
       </div>
@@ -208,7 +208,7 @@
         <div id="tx-supplier-wrap">
           <span class="mb-1.5 block text-xs font-bold text-card-foreground">Tedarikçi (ops.) — tutar girilirse alış faturası oluşur</span>
           <select id="tx-supplier" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"><option value="">Tedarikçi seçilmedi</option></select>
-          <input id="tx-sup-amount" type="number" min="0" step="0.01" placeholder="Alış tutarı (₺, ops.)" class="mt-2 h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+          <input id="tx-sup-amount" type="number" min="0" step="0.01" placeholder="Alış tutarı ($, ops.)" class="mt-2 h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         </div>
         <input id="tx-qty" type="number" min="0" step="0.01" placeholder="Miktar *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
       </div>
@@ -272,7 +272,9 @@
   <script src="js/zk-guard.js"></script>
   <script src="js/zk-picker.js"></script>
   <script>
-    var TL = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 });
+        // 2026-09-05: tüm tutarlar USD üzerinden gösteriliyor (fiyat listesi de
+    // dolar cinsinden tutuluyor). Sayı biçimi Türkçe ayraçlarla kalır: $1.234,00
+    var USD = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
     function escapeHtml(s) {
       return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
         return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -296,7 +298,7 @@
         if (!allLabs.length) {
           document.getElementById('lab-switch-wrap').classList.add('hidden');
           document.getElementById('critical-list').innerHTML = '<p class="p-4 text-xs text-muted-foreground">Önce Laboratuvarlar sekmesinden bir laboratuvar ekleyin.</p>';
-          document.getElementById('stat-value').textContent = TL.format(0);
+          document.getElementById('stat-value').textContent = USD.format(0);
           document.getElementById('stat-critical').textContent = 0;
           document.getElementById('stat-item-count').textContent = '0 aktif kalem';
           return;
@@ -326,7 +328,7 @@
           var rows = stockRes.data || [];
           var totalValue = rows.reduce(function (s, x) { return s + Number(x.quantity_on_hand) * Number(x.materials ? x.materials.unit_cost || 0 : 0); }, 0);
           var critical = rows.filter(function (x) { return Number(x.quantity_on_hand) <= Number(x.min_threshold); });
-          document.getElementById('stat-value').textContent = TL.format(totalValue);
+          document.getElementById('stat-value').textContent = USD.format(totalValue);
           document.getElementById('stat-item-count').textContent = rows.length + ' aktif kalem';
           document.getElementById('stat-critical').textContent = critical.length;
 
@@ -349,7 +351,7 @@
           var catKeys = Object.keys(catMap);
           document.getElementById('category-breakdown').innerHTML = catKeys.length ? catKeys.map(function (cat) {
             return '<div class="rounded-theme border border-border bg-card p-3.5"><p class="text-xs font-semibold">' + escapeHtml(cat) + '</p>' +
-              '<p class="mt-3 font-heading text-lg font-bold tabular-nums">' + TL.format(catMap[cat].value) + '</p>' +
+              '<p class="mt-3 font-heading text-lg font-bold tabular-nums">' + USD.format(catMap[cat].value) + '</p>' +
               '<p class="mt-1 text-[10px] text-muted-foreground">' + catMap[cat].count + ' malzeme</p></div>';
           }).join('') : '<p class="text-xs text-muted-foreground">Henüz malzeme yok.</p>';
         });

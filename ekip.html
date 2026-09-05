@@ -376,7 +376,7 @@
         loadTeam();
       }).catch(function (err) {
         btn.disabled = false;
-        errEl.textContent = 'Oluşturulamadı: ' + err.message;
+        errEl.textContent = 'Oluşturulamadı: ' + ZirkonikAuth.errorText(err);
         errEl.classList.remove('hidden');
       });
     }

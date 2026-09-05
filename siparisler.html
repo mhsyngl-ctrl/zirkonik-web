@@ -86,6 +86,14 @@
         <select id="ap-lab" class="flex h-12 w-full items-center rounded-theme border border-border bg-input px-3.5 text-sm"></select>
       </label>
       <label class="mt-3 block">
+        <span class="mb-1.5 block text-xs font-bold">Hasta adı *</span>
+        <input id="ap-patient" type="text" required class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="Hastanın adı soyadı">
+      </label>
+      <label class="mt-3 block">
+        <span class="mb-1.5 block text-xs font-bold">Klinik protokol no *</span>
+        <input id="ap-protocol" type="text" required class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="Kliniğin hasta protokol numarası">
+      </label>
+      <label class="mt-3 block">
         <span class="mb-1.5 block text-xs font-bold">Tahmini teslim tarihi</span>
         <input id="ap-delivery" type="date" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
       </label>
@@ -220,6 +228,10 @@
         opt.value = l.id; opt.textContent = l.name;
         sel.appendChild(opt);
       });
+      // Doktor siparişte girdiyse hazır gelsin; eski siparişlerde boş olabilir,
+      // o zaman yönetici doldurur (iş için zorunlu alanlar).
+      document.getElementById('ap-patient').value = o.patient_name || '';
+      document.getElementById('ap-protocol').value = o.clinic_protocol_no || '';
       document.getElementById('approve-sheet').classList.remove('hidden');
     }
     function zkCloseApprove() { document.getElementById('approve-sheet').classList.add('hidden'); }
@@ -232,6 +244,20 @@
       if (!o || !labId) {
         errEl.textContent = 'Laboratuvar seçin.';
         errEl.classList.remove('hidden');
+        return;
+      }
+      var apPatientName = document.getElementById('ap-patient').value.trim();
+      if (!apPatientName) {
+        errEl.textContent = 'Hasta adı zorunludur.';
+        errEl.classList.remove('hidden');
+        document.getElementById('ap-patient').focus();
+        return;
+      }
+      var apProtocolNo = document.getElementById('ap-protocol').value.trim();
+      if (!apProtocolNo) {
+        errEl.textContent = 'Klinik protokol numarası zorunludur.';
+        errEl.classList.remove('hidden');
+        document.getElementById('ap-protocol').focus();
         return;
       }
       var btn = document.getElementById('ap-btn');
@@ -256,46 +282,46 @@
               })
             : Promise.resolve(null);
           return routePromise.then(function (plannedRoute) {
-            return ZirkonikData.nextJobNumber(labId).then(function (jobNumber) {
-              var deliveryVal = document.getElementById('ap-delivery').value;
-              // Doktora/lokasyona özel anlaşmalı fiyat varsa fatura ona göre kesilir.
-              var unit = item ? ZirkonikData.resolveUnitPrice(item, allOverrides, o.doctor_id, labId) : null;
-              var price = unit != null ? unit * o.unit_count : null;
-              return ZirkonikData.createJob({
-                organization_id: o.organization_id,
-                laboratory_id: labId,
-                job_number: jobNumber,
-                doctor_id: o.doctor_id,
-                restoration_type: o.restoration_type,
-                price_item_id: o.price_item_id,
-                work_form: o.work_form,
-                planned_route: plannedRoute,
-                patient_reference: o.note,
-                teeth_numbers: o.teeth_numbers,
-                unit_count: o.unit_count,
-                requested_delivery_at: deliveryVal ? new Date(deliveryVal).toISOString() : null,
-                price: price,
-                created_by: me.id
-              }).then(function (jobRes) {
-                if (jobRes.error) throw jobRes.error;
-                var job = jobRes.data;
-                var invoicePromise = price
-                  ? client.from('doctors').select('payment_terms_days').eq('id', o.doctor_id).single().then(function (docRes) {
-                      var days = (docRes.data && docRes.data.payment_terms_days) || 30;
-                      var due = new Date(); due.setDate(due.getDate() + days);
-                      return client.from('invoices').insert({
-                        organization_id: o.organization_id, doctor_id: o.doctor_id, job_id: job.id,
-                        amount: price, due_date: due.toISOString().slice(0, 10), status: 'unpaid'
-                      });
-                    }).then(function (invRes) {
-                      if (invRes.error) zkToast('İş oluşturuldu ama fatura eklenemedi: ' + invRes.error.message);
-                    })
-                  : Promise.resolve();
-                return invoicePromise.then(function () {
-                  return ZirkonikData.reviewOrder(o.id, {
-                    status: 'approved', job_id: job.id,
-                    reviewed_by: me.id, reviewed_at: new Date().toISOString()
-                  });
+            // job_number veritabanındaki trg_set_job_number tarafından atanır.
+            var deliveryVal = document.getElementById('ap-delivery').value;
+            // Doktora/lokasyona özel anlaşmalı fiyat varsa fatura ona göre kesilir.
+            var unit = item ? ZirkonikData.resolveUnitPrice(item, allOverrides, o.doctor_id, labId) : null;
+            var price = unit != null ? unit * o.unit_count : null;
+            return ZirkonikData.createJob({
+              organization_id: o.organization_id,
+              laboratory_id: labId,
+              doctor_id: o.doctor_id,
+              restoration_type: o.restoration_type,
+              price_item_id: o.price_item_id,
+              work_form: o.work_form,
+              planned_route: plannedRoute,
+              patient_name: apPatientName,
+              clinic_protocol_no: apProtocolNo,
+              patient_reference: o.note,
+              teeth_numbers: o.teeth_numbers,
+              unit_count: o.unit_count,
+              requested_delivery_at: deliveryVal ? new Date(deliveryVal).toISOString() : null,
+              price: price,
+              created_by: me.id
+            }).then(function (jobRes) {
+              if (jobRes.error) throw jobRes.error;
+              var job = jobRes.data;
+              var invoicePromise = price
+                ? client.from('doctors').select('payment_terms_days').eq('id', o.doctor_id).single().then(function (docRes) {
+                    var days = (docRes.data && docRes.data.payment_terms_days) || 30;
+                    var due = new Date(); due.setDate(due.getDate() + days);
+                    return client.from('invoices').insert({
+                      organization_id: o.organization_id, doctor_id: o.doctor_id, job_id: job.id,
+                      amount: price, due_date: due.toISOString().slice(0, 10), status: 'unpaid'
+                    });
+                  }).then(function (invRes) {
+                    if (invRes.error) zkToast('İş oluşturuldu ama fatura eklenemedi: ' + invRes.error.message);
+                  })
+                : Promise.resolve();
+              return invoicePromise.then(function () {
+                return ZirkonikData.reviewOrder(o.id, {
+                  status: 'approved', job_id: job.id,
+                  reviewed_by: me.id, reviewed_at: new Date().toISOString()
                 });
               });
             });

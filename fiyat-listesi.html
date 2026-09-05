@@ -67,7 +67,7 @@
             <option value="">Genel fiyat listesi</option>
           </select>
         </label>
-        <p id="pl-scope-hint" class="mt-2 hidden text-xs text-muted-foreground">Bu kapsamda girilen fiyat yalnız o doktor/lokasyon için geçerlidir; boş bırakılan kalemlerde genel liste fiyatı uygulanır. Alanı temizlemek özel fiyatı kaldırır.</p>
+        <p id="pl-scope-hint" class="mt-2 hidden text-xs text-muted-foreground">Bu kapsamda girilen fiyat yalnız o doktor/lokasyon için geçerlidir ve <b class="text-card-foreground">genel liste fiyatını ezer</b> — genel listeyi sonradan değiştirseniz bile bu kapsamda özel fiyat uygulanmaya devam eder. Boş bırakılan kalemlerde genel liste geçerlidir; alanı temizlemek özel fiyatı kaldırır.</p>
       </header>
 
       <main id="pl-main" class="px-5 pt-5"></main>
@@ -153,6 +153,17 @@
         return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
       });
     }
+    /* Fiyat girildiğinde kaydın gerçekten oluştuğu görünsün: hem toast hem de
+     * alanın kendisinde kısa bir yeşil vurgu (2026-09-05 kullanıcı geri
+     * bildirimi — "kayıt oldu bildirimi görülmeli"). */
+    function zkFlashSaved(inp) {
+      if (!inp) return;
+      var before = inp.style.borderColor;
+      inp.style.borderColor = 'var(--color-success)';
+      inp.style.transition = 'border-color .2s ease';
+      setTimeout(function () { inp.style.borderColor = before; }, 1400);
+    }
+
     function zkToast(msg){
       var el = document.getElementById('zk-toast');
       if(!el) return;
@@ -190,13 +201,17 @@
 
         var client = ZirkonikAuth.client();
         var sel = document.getElementById('pl-scope');
-        client.from('doctors').select('id, full_name').eq('status', 'approved').order('full_name').then(function (r) {
+        // Aynı ada sahip iki doktor olabiliyor (canlıda "Dr. Murat" iki ayrı
+        // klinik) — klinik adı olmadan yanlış doktora anlaşmalı fiyat
+        // giriliyordu ve iş ekranında beklenmedik fiyat çıkıyordu.
+        client.from('doctors').select('id, full_name, clinic_name').eq('status', 'approved').order('full_name').then(function (r) {
           if (!(r.data || []).length) return;
           var og = document.createElement('optgroup');
           og.label = 'Doktora özel';
           r.data.forEach(function (d) {
             var o = document.createElement('option');
-            o.value = 'doc:' + d.id; o.textContent = 'Dr. ' + d.full_name;
+            o.value = 'doc:' + d.id;
+            o.textContent = 'Dr. ' + d.full_name + (d.clinic_name ? ' — ' + d.clinic_name : '');
             og.appendChild(o);
           });
           sel.appendChild(og);
@@ -234,9 +249,13 @@
 
     function loadList() {
       var inScope = !!(scopeDoctorId || scopeLabId);
+      // Özel fiyatlar kapsam seçilmeden de yüklenir: genel listede hangi
+      // kalemin doktora özel fiyatı olduğunu rozetle göstermek için gerekli
+      // (aksi halde liste fiyatı değiştirildiğinde iş ekranında neden farklı
+      // bir rakam çıktığı anlaşılmıyordu).
       Promise.all([
         ZirkonikData.listPriceItems(),
-        inScope ? ZirkonikData.listPriceOverrides() : Promise.resolve({ data: [] })
+        ZirkonikData.listPriceOverrides()
       ]).then(function (results) {
         var r = results[0];
         overrides = results[1].data || [];
@@ -263,6 +282,7 @@
           var rows = byCat[cat].map(function (p) {
             var inScope = !!(scopeDoctorId || scopeLabId);
             var ov = inScope ? scopeOverrideFor(p.id) : null;
+            var ovCount = inScope ? 0 : overrides.filter(function (o) { return o.price_item_id === p.id; }).length;
             var shownVal = inScope ? (ov ? ov.unit_price : '') : (p.unit_price != null ? p.unit_price : '');
             var ph = inScope ? ('Genel: ' + (p.unit_price != null ? p.unit_price : 'sorunuz')) : 'Sorunuz';
             var priceCell = canEdit
@@ -278,8 +298,12 @@
             var recipeBtn = (RECIPE_ENABLED && canEdit && !inScope)
               ? '<button data-recipe-for="' + p.id + '" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-input text-muted-foreground" aria-label="Malzeme reçetesi" title="Malzeme reçetesi (1 diş başına tüketim)"><iconify-icon icon="lucide:flask-conical" class="text-base"></iconify-icon></button>'
               : '';
+            var ovBadge = ovCount
+              ? '<span class="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold text-accent" title="Bu kalemde doktora/lokasyona özel fiyat tanımlı — o kapsamda liste fiyatı yerine özel fiyat uygulanır.">'
+                + '<iconify-icon icon="lucide:tag" class="text-xs"></iconify-icon>' + ovCount + ' özel fiyat</span>'
+              : '';
             return '<div class="flex items-center justify-between gap-2 border-b border-border py-2.5 last:border-b-0">' +
-              '<p class="min-w-0 flex-1 text-sm font-semibold">' + escapeHtml(p.name) + '</p>' +
+              '<div class="min-w-0 flex-1"><p class="text-sm font-semibold">' + escapeHtml(p.name) + '</p>' + ovBadge + '</div>' +
               '<div class="flex items-center gap-1.5">' + recipeBtn + routeBtn + priceCell +
               '<span class="w-5 text-sm text-muted-foreground">' + (p.currency || '$') + '</span></div></div>';
           }).join('');
@@ -292,6 +316,10 @@
 
         if (canEdit) {
           main.querySelectorAll('[data-price-for]').forEach(function (inp) {
+            // Mobil klavyede "Enter" ile de kaydedilebilsin — blur, change'i tetikler.
+            inp.addEventListener('keydown', function (e) {
+              if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
+            });
             inp.addEventListener('change', function () {
               var id = inp.getAttribute('data-price-for');
               var val = inp.value === '' ? null : Number(inp.value);
@@ -299,7 +327,8 @@
                 // Doktora/lokasyona özel fiyat — boş bırakmak genel listeye döndürür.
                 ZirkonikData.setPriceOverride(orgId, id, scopeDoctorId, scopeLabId, val).then(function (res) {
                   if (res.error) { zkToast('Kaydedilemedi: ' + res.error.message); return; }
-                  zkToast(val == null ? 'Özel fiyat kaldırıldı, genel liste geçerli.' : 'Anlaşmalı fiyat kaydedildi.');
+                  zkFlashSaved(inp);
+                  zkToast(val == null ? 'Özel fiyat kaldırıldı, genel liste geçerli.' : 'Anlaşmalı fiyat kaydedildi: ' + val);
                   loadList();
                 });
                 return;
@@ -308,7 +337,10 @@
                 if (res.error) { zkToast('Kaydedilemedi: ' + res.error.message); return; }
                 var item = items.find(function (p) { return p.id === id; });
                 if (item) item.unit_price = val;
-                zkToast('Fiyat güncellendi.');
+                zkFlashSaved(inp);
+                zkToast(val == null
+                  ? 'Fiyat temizlendi: ' + (item ? item.name : 'kalem')
+                  : 'Kaydedildi: ' + (item ? item.name : 'kalem') + ' · ' + val + ' ' + ((item && item.currency) || '$'));
               });
             });
           });

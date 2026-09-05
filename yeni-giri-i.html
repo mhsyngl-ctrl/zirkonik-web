@@ -115,8 +115,18 @@
               </label>
 
               <label class="block">
-                <span class="mb-1.5 block text-xs font-bold">İç referans / hasta notu</span>
-                <input id="f-reference" type="text" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="Örn. Üst çene restorasyonu">
+                <span class="mb-1.5 block text-xs font-bold">Hasta adı *</span>
+                <input id="f-patient" type="text" required class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="Hastanın adı soyadı">
+              </label>
+
+              <label class="block">
+                <span class="mb-1.5 block text-xs font-bold">Klinik protokol no *</span>
+                <input id="f-protocol" type="text" required class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="Kliniğin hasta protokol numarası">
+              </label>
+
+              <label class="block">
+                <span class="mb-1.5 block text-xs font-bold">İç referans / not</span>
+                <input id="f-reference" type="text" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="Opsiyonel — örn. Üst çene restorasyonu">
               </label>
 
               <label class="block">
@@ -164,8 +174,9 @@
               <h2 class="mt-1 font-heading text-lg font-bold">Doktor fiyatı</h2>
             </div>
             <p id="f-price-hint" class="mb-2 hidden text-xs font-semibold text-success"></p>
+            <p id="f-currency-warn" class="mb-2 hidden text-xs font-semibold text-accent"></p>
             <label class="block">
-              <span class="mb-1.5 block text-xs font-bold">Tutar</span>
+              <span class="mb-1.5 block text-xs font-bold">Tutar ($)</span>
               <input id="f-price" type="number" min="0" step="0.01" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="0">
             </label>
           </section>
@@ -239,7 +250,18 @@
       var itemId = document.getElementById('f-type').value;
       var item = priceItems.find(function (p) { return p.id === itemId; });
       var hint = document.getElementById('f-price-hint');
+      var warn = document.getElementById('f-currency-warn');
+      warn.classList.add('hidden');
       if (!item) { hint.classList.add('hidden'); return; }
+
+      // İş, fatura ve tahsilat kayıtlarının tamamı USD üzerinden tutuluyor
+      // (detay/finans/stok ekranları $ biçimlendirir). Fiyat listesindeki
+      // kalem başka bir para biriminde tanımlıysa tutar sessizce dolara
+      // dönüşmüş gibi görünür — bu yüzden uyarıyoruz.
+      if (item.currency && item.currency !== '$') {
+        warn.textContent = 'Bu kalem fiyat listesinde ' + item.currency + ' cinsinden tanımlı, ancak iş ve fatura tutarları $ olarak kaydedilir. Aşağıdaki tutarı dolar karşılığıyla girin.';
+        warn.classList.remove('hidden');
+      }
       var count = Math.max(1, Number(document.getElementById('f-tooth-count').value) || 1);
       var doctorId = document.getElementById('f-doctor').value || null;
       var labId = document.getElementById('f-lab').value || null;
@@ -249,10 +271,26 @@
         hint.classList.remove('hidden');
         return;
       }
-      var isSpecial = item.unit_price == null || unit !== Number(item.unit_price);
+      var cur = item.currency || '$';
+      var listPrice = item.unit_price != null ? Number(item.unit_price) : null;
+      var isSpecial = listPrice == null || unit !== listPrice;
       var total = unit * count;
       document.getElementById('f-price').value = total;
-      hint.textContent = unit + ' ' + (item.currency || '$') + ' × ' + count + ' diş = ' + total + ' ' + (item.currency || '$') + (isSpecial ? ' · anlaşmalı fiyat' : '');
+
+      // Doktora/lokasyona özel fiyat genel listeyi ezdiği için, iş ekranında
+      // fiyat listesindekinden farklı bir rakam çıkabiliyordu ve sebebi
+      // görünmüyordu (2026-09-05 hata bildirimi). Artık hem anlaşmalı fiyat
+      // hem de genel liste fiyatı birlikte yazılıyor.
+      var label = unit + ' ' + cur + ' × ' + count + ' diş = ' + total + ' ' + cur;
+      if (isSpecial) {
+        var doc = doctors.find(function (d) { return d.id === doctorId; });
+        var who = doc
+          ? ('Dr. ' + doc.full_name + (doc.clinic_name ? ' — ' + doc.clinic_name : ''))
+          : 'bu kapsam';
+        label += ' · ' + who + ' için anlaşmalı fiyat'
+          + (listPrice != null ? ' (genel liste: ' + listPrice + ' ' + cur + ')' : ' (genel listede fiyat tanımlı değil)');
+      }
+      hint.textContent = label;
       hint.classList.remove('hidden');
     }
 
@@ -321,9 +359,38 @@
       var priceItemId = document.getElementById('f-type').value;
       var priceItem = priceItems.find(function (p) { return p.id === priceItemId; });
 
-      if (!doctorId || !labId || !priceItem) {
-        errEl.textContent = 'Doktor, laboratuvar ve çalışma türü zorunludur.';
+      // Doktor seçimi zorunlu: fiyat doktora özel olabildiği için yanlış/boş
+      // doktorla açılan iş hem yanlış fiyatlanıyor hem faturalanamıyor.
+      if (!doctorId) {
+        errEl.textContent = 'Doktor seçimi zorunludur — listeden doktoru seçin.';
         errEl.classList.remove('hidden');
+        document.getElementById('f-doctor').focus();
+        return;
+      }
+      if (!labId) {
+        errEl.textContent = 'Laboratuvar seçimi zorunludur.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+      if (!priceItem) {
+        errEl.textContent = 'Çalışma türü seçimi zorunludur.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+      // Hasta adı ve klinik protokol numarası zorunlu (2026-09-05): iş kağıdı,
+      // ekstre ve klinikle yapılan yazışmalar bu iki bilgiye dayanıyor.
+      var patientName = document.getElementById('f-patient').value.trim();
+      if (!patientName) {
+        errEl.textContent = 'Hasta adı zorunludur.';
+        errEl.classList.remove('hidden');
+        document.getElementById('f-patient').focus();
+        return;
+      }
+      var protocolNo = document.getElementById('f-protocol').value.trim();
+      if (!protocolNo) {
+        errEl.textContent = 'Klinik protokol numarası zorunludur.';
+        errEl.classList.remove('hidden');
+        document.getElementById('f-protocol').focus();
         return;
       }
 
@@ -342,25 +409,27 @@
             })
           : Promise.resolve(null);
         return routePromise.then(function (plannedRoute) {
-        return ZirkonikData.nextJobNumber(labId).then(function (jobNumber) {
-          var deliveryVal = document.getElementById('f-delivery').value;
-          return ZirkonikData.createJob({
-            planned_route: plannedRoute,
-            organization_id: me.organization_id,
-            laboratory_id: labId,
-            job_number: jobNumber,
-            doctor_id: doctorId,
-            restoration_type: priceItem.name,
-            price_item_id: priceItem.id,
-            work_form: ZkWorkForm.getData(),
-            patient_reference: document.getElementById('f-reference').value.trim() || null,
-            teeth_numbers: document.getElementById('f-teeth').value.trim() || null,
-            unit_count: Math.max(1, Number(document.getElementById('f-tooth-count').value) || 1),
-            is_priority: document.getElementById('f-priority').value === '1',
-            requested_delivery_at: deliveryVal ? new Date(deliveryVal).toISOString() : null,
-            price: document.getElementById('f-price').value ? Number(document.getElementById('f-price').value) : null,
-            created_by: me.id
-          });
+        // job_number veritabanındaki trg_set_job_number tetikleyicisi tarafından
+        // atanır (laboratuvar bazlı, YYYYAAGG + 4 haneli sıra). İstemci tarafında
+        // üretmek yarış durumunda aynı numarayı verebiliyordu.
+        var deliveryVal = document.getElementById('f-delivery').value;
+        return ZirkonikData.createJob({
+          planned_route: plannedRoute,
+          organization_id: me.organization_id,
+          laboratory_id: labId,
+          doctor_id: doctorId,
+          restoration_type: priceItem.name,
+          price_item_id: priceItem.id,
+          work_form: ZkWorkForm.getData(),
+          patient_name: patientName,
+          clinic_protocol_no: protocolNo,
+          patient_reference: document.getElementById('f-reference').value.trim() || null,
+          teeth_numbers: document.getElementById('f-teeth').value.trim() || null,
+          unit_count: Math.max(1, Number(document.getElementById('f-tooth-count').value) || 1),
+          is_priority: document.getElementById('f-priority').value === '1',
+          requested_delivery_at: deliveryVal ? new Date(deliveryVal).toISOString() : null,
+          price: document.getElementById('f-price').value ? Number(document.getElementById('f-price').value) : null,
+          created_by: me.id
         });
         });
       }).then(function (res) {

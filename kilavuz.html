@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://code.iconify.design; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://cuujupeindodpsdjcivm.supabase.co wss://cuujupeindodpsdjcivm.supabase.co https://api.iconify.design https://api.simplesvg.com https://api.unisvg.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <title>Kullanım Kılavuzu — Zirkonik</title>
+
+  <link rel="stylesheet" href="css/tailwind.css">
+  <link rel="stylesheet" href="css/ipad.css">
+  <link rel="stylesheet" href="css/zk-utils.css">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0E1013">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <script src="https://code.iconify.design/iconify-icon/2.3.0/iconify-icon.min.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap">
+
+  <style>
+  :root {
+    --color-background: #0E1013;
+    --color-foreground: #F2F4F7;
+    --color-primary: #3D7CDC;
+    --color-primary-foreground: #FFFFFF;
+    --color-secondary: #232732;
+    --color-secondary-foreground: #C6CBD6;
+    --color-accent: #F0A03C;
+    --color-accent-foreground: #FFFFFF;
+    --color-muted: #1B1E24;
+    --color-muted-foreground: #98A0AD;
+    --color-card: #15171C;
+    --color-card-foreground: #F2F4F7;
+    --color-border: #262A32;
+    --color-input: #1B1E24;
+    --color-destructive: #EF5350;
+    --color-destructive-foreground: #FFFFFF;
+    --color-success: #10B981;
+    --color-success-foreground: #FFFFFF;
+    --font-heading: 'Plus Jakarta Sans', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --radius: 12px;
+  }
+  html { overflow-x: hidden; }
+  body { font-family: var(--font-body); -webkit-font-smoothing: antialiased; margin: 0; padding: 0; overflow-x: hidden; overscroll-behavior-x: none; }
+  </style>
+</head>
+<body data-page="kilavuz" class="bg-background text-foreground m-0 p-0">
+  <div class="h-screen w-screen overflow-y-auto">
+    <div class="min-h-screen w-full bg-background text-foreground font-body pb-16">
+      <header class="border-b border-border bg-card px-5 pb-5 pt-12" style="padding-top:max(3rem,calc(env(safe-area-inset-top) + 12px));">
+        <div class="flex items-center justify-between">
+          <button onclick="location.href='profil.html'" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-background text-primary" aria-label="Geri dön">
+            <iconify-icon icon="lucide:arrow-left" class="text-xl"></iconify-icon>
+          </button>
+          <div class="text-right">
+            <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Yardım</p>
+            <p class="mt-1 text-xs font-semibold text-primary">Kullanım kılavuzu</p>
+          </div>
+        </div>
+        <h1 class="mt-6 font-heading text-2xl font-bold">Laboratuvarınızı kurun</h1>
+        <p class="mt-1.5 text-xs leading-5 text-muted-foreground">
+          Aşağıdaki 6 adımı sırayla tamamlayın. Her adım bir öncekine dayanır —
+          örneğin fiyat listesi olmadan iş girilemez, oda olmadan iş üretimde ilerleyemez.
+        </p>
+      </header>
+
+      <main class="px-5 pt-5">
+        <section id="kv-progress" class="rounded-theme border border-border bg-card p-4">
+          <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Kurulum durumu</p>
+          <div id="kv-progress-list" class="mt-3 space-y-2">
+            <p class="text-xs text-muted-foreground">Kontrol ediliyor…</p>
+          </div>
+        </section>
+
+        <!-- ADIM 1 -->
+        <section class="mt-5 rounded-theme border border-border bg-card p-4">
+          <div class="flex items-start gap-3">
+            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">1</span>
+            <div class="min-w-0">
+              <p class="font-heading text-base font-bold">Laboratuvar bilgilerini tamamlayın</p>
+              <p class="mt-1 text-xs leading-5 text-muted-foreground">
+                Kayıt olurken girdiğiniz laboratuvar adı ile laboratuvarınız
+                <b class="text-card-foreground">otomatik oluşturuldu</b>. <b class="text-card-foreground">Laboratuvarlar</b>
+                sekmesinden kartın üzerindeki kalem simgesine dokunup şehir, adres ve telefon
+                bilgilerini ekleyin.
+              </p>
+              <p class="mt-2 text-[11px] leading-4 text-muted-foreground">
+                Standart pakette bir laboratuvar bulunur; birden fazla şube için kurumsal pakete geçilmesi gerekir.
+              </p>
+            </div>
+          </div>
+          <button onclick="location.href='laboratuvarlar.html'" class="mt-3 flex h-11 w-full items-center justify-center rounded-theme border border-border bg-background text-xs font-bold text-primary">Laboratuvarlar sekmesine git</button>
+        </section>
+
+        <!-- ADIM 2 -->
+        <section class="mt-4 rounded-theme border border-border bg-card p-4">
+          <div class="flex items-start gap-3">
+            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">2</span>
+            <div class="min-w-0">
+              <p class="font-heading text-base font-bold">Odaları (istasyonları) ekleyin</p>
+              <p class="mt-1 text-xs leading-5 text-muted-foreground">
+                Aynı sekmede laboratuvarın altına <b class="text-card-foreground">Oda ekle</b> deyin.
+                Odalar üretim istasyonlarınızdır: Model, CAD/CAM, Fırın, Boyama, Kalite Kontrol, Teslimat…
+                Sıralama, işin izleyeceği yolu belirler.
+              </p>
+              <ul class="mt-2 space-y-1.5 text-[11px] leading-4 text-muted-foreground">
+                <li>• <b class="text-card-foreground">Kalite kontrol</b> kutusunu işaretlediğiniz oda, panoda ayrı sayaçta görünür.</li>
+                <li>• <b class="text-card-foreground">Teslim odası</b>, işin bittiği son duraktır.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- ADIM 3 -->
+        <section class="mt-4 rounded-theme border border-border bg-card p-4">
+          <div class="flex items-start gap-3">
+            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">3</span>
+            <div class="min-w-0">
+              <p class="font-heading text-base font-bold">Fiyat listenizi girin</p>
+              <p class="mt-1 text-xs leading-5 text-muted-foreground">
+                <b class="text-card-foreground">Finans</b> sekmesi → sağ üstteki <b class="text-card-foreground">Fiyat Listesi</b>.
+                Liste yeni laboratuvarlarda <b class="text-card-foreground">boş başlar</b>; kendi çalışma
+                türlerinizi ve birim fiyatlarınızı siz girersiniz.
+              </p>
+              <ul class="mt-2 space-y-1.5 text-[11px] leading-4 text-muted-foreground">
+                <li>• Önce kategori (ör. “Zirkonyum”), sonra kalem (ör. “Zirkonyum Kron”) ekleyin.</li>
+                <li>• Fiyat kutusuna yazıp alandan çıkın — “Fiyat kaydedildi” bildirimi görünür.</li>
+                <li>• Tüm tutarlar <b class="text-card-foreground">USD ($)</b> olarak gösterilir ve kaydedilir.</li>
+                <li>• Her kaleme <b class="text-card-foreground">üretim rotası</b> atayın: o iş hangi odalardan, hangi sırayla geçecek.</li>
+                <li>• Belirli bir doktora özel fiyat verecekseniz, doktoru seçip aynı ekrandan girin.</li>
+              </ul>
+            </div>
+          </div>
+          <button onclick="location.href='fiyat-listesi.html'" class="mt-3 flex h-11 w-full items-center justify-center rounded-theme border border-border bg-background text-xs font-bold text-primary">Fiyat listesine git</button>
+        </section>
+
+        <!-- ADIM 4 -->
+        <section class="mt-4 rounded-theme border border-border bg-card p-4">
+          <div class="flex items-start gap-3">
+            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">4</span>
+            <div class="min-w-0">
+              <p class="font-heading text-base font-bold">Personeli ekleyin</p>
+              <p class="mt-1 text-xs leading-5 text-muted-foreground">
+                <b class="text-card-foreground">Ekip</b> sekmesi → <b class="text-card-foreground">Personel ekle</b>.
+                Ad, e-posta ve şifre belirleyin; şifreyi personele siz iletirsiniz. Ardından
+                hangi laboratuvar ve odalara erişeceğini işaretleyin.
+              </p>
+              <ul class="mt-2 space-y-1.5 text-[11px] leading-4 text-muted-foreground">
+                <li>• Personel yalnızca <b class="text-card-foreground">kendi odasındaki</b> işi ilerletebilir.</li>
+                <li>• Finans, stok, hakediş gibi yetkileri Ekip → yetki ekranından ayrı ayrı açarsınız.</li>
+                <li>• Yönetici rolü her zaman tam yetkilidir.</li>
+              </ul>
+            </div>
+          </div>
+          <button onclick="location.href='ekip.html'" class="mt-3 flex h-11 w-full items-center justify-center rounded-theme border border-border bg-background text-xs font-bold text-primary">Ekip sekmesine git</button>
+        </section>
+
+        <!-- ADIM 5 -->
+        <section class="mt-4 rounded-theme border border-border bg-card p-4">
+          <div class="flex items-start gap-3">
+            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">5</span>
+            <div class="min-w-0">
+              <p class="font-heading text-base font-bold">Doktorları kaydedin</p>
+              <p class="mt-1 text-xs leading-5 text-muted-foreground">
+                <b class="text-card-foreground">Doktorlar</b> sekmesi → <b class="text-card-foreground">Doktor ekle</b>.
+                Ad Soyad, <b class="text-card-foreground">telefon, e-posta ve adres zorunludur</b> — ekstre ve
+                iş kağıdı e-postayla gönderilir, teslimat adrese göre yapılır.
+              </p>
+              <ul class="mt-2 space-y-1.5 text-[11px] leading-4 text-muted-foreground">
+                <li>• Anahtar simgesinden doktora <b class="text-card-foreground">uygulama hesabı</b> açabilirsiniz; doktor kendi siparişini girer.</li>
+                <li>• Doktorun girdiği siparişler <b class="text-card-foreground">Siparişler</b> ekranında onayınızı bekler.</li>
+              </ul>
+            </div>
+          </div>
+          <button onclick="location.href='doktorlar.html'" class="mt-3 flex h-11 w-full items-center justify-center rounded-theme border border-border bg-background text-xs font-bold text-primary">Doktorlar sekmesine git</button>
+        </section>
+
+        <!-- ADIM 6 -->
+        <section class="mt-4 rounded-theme border border-border bg-card p-4">
+          <div class="flex items-start gap-3">
+            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">6</span>
+            <div class="min-w-0">
+              <p class="font-heading text-base font-bold">İlk işinizi girin</p>
+              <p class="mt-1 text-xs leading-5 text-muted-foreground">
+                Üretim panosunda <b class="text-card-foreground">+ Yeni iş oluştur</b>. Doktoru, çalışma türünü
+                (fiyat listesinden gelir) ve teslim tarihini seçin; diş şemasından ilgili dişleri işaretleyin.
+                Renk, materyal, prova bilgileri dijital çalışma formuna kaydedilir.
+              </p>
+            </div>
+          </div>
+          <button onclick="location.href='yeni-giri-i.html'" class="mt-3 flex h-11 w-full items-center justify-center rounded-theme bg-primary text-xs font-bold text-primary-foreground">Yeni iş oluştur</button>
+        </section>
+
+        <!-- GÜNLÜK AKIŞ -->
+        <section class="mt-6 rounded-theme border border-border bg-card p-4">
+          <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">Günlük çalışma düzeni</p>
+          <div class="mt-3 space-y-3">
+            <div>
+              <p class="text-sm font-bold">1. Üretim panosu</p>
+              <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
+                Odalar altıgen pano olarak görünür. Her odada kaç iş var, rotadan kaç iş geliyor
+                (↓ +N) ve yoğunluk uyarısı buradan izlenir.
+              </p>
+            </div>
+            <div>
+              <p class="text-sm font-bold">2. Odalar arası teslim</p>
+              <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
+                İşi <b class="text-card-foreground">iten değil, teslim alan onaylar</b>. Bir sonraki odadaki
+                teknisyen işi kabul etmeden iş ilerlemez — böylece kayıp iş olmaz.
+              </p>
+            </div>
+            <div>
+              <p class="text-sm font-bold">3. Kalite kontrol ve teslim</p>
+              <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
+                İş kalite kontrol odasından geçip teslim odasına ulaşınca tamamlanır.
+                İşlem kağıdını yazdırabilir veya doktora e-postayla gönderebilirsiniz.
+              </p>
+            </div>
+            <div>
+              <p class="text-sm font-bold">4. Fatura ve tahsilat</p>
+              <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
+                <b class="text-card-foreground">Finans</b> sekmesinde işten fatura oluşturur, tahsilatı işlersiniz.
+                Sahada nakit toplayan personel gün sonunda <b class="text-card-foreground">kasa teslimi</b> yapar;
+                teslimi başka biri onaylar.
+              </p>
+            </div>
+            <div>
+              <p class="text-sm font-bold">5. Stok</p>
+              <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
+                <b class="text-card-foreground">Stok</b> sekmesinde malzeme tanımlayıp kritik seviye belirleyin;
+                seviye altına düşünce panoda uyarı çıkar.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section class="mt-5 rounded-theme border border-border bg-card p-4">
+          <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Sık sorulanlar</p>
+          <div class="mt-3 space-y-3 text-xs leading-5 text-muted-foreground">
+            <p><b class="text-card-foreground">Şifremi nasıl değiştiririm?</b><br>Hesap ekranı (sağ üst profil simgesi) → Şifre bölümü.</p>
+            <p><b class="text-card-foreground">Personel finansı göremiyor.</b><br>Ekip → ilgili personel → “Finans görünürlüğü” yetkisini açın.</p>
+            <p><b class="text-card-foreground">İş bir sonraki odaya geçmiyor.</b><br>Hedef odadaki personelin işi teslim alması gerekir; ayrıca o kişinin oda erişimi olmalı.</p>
+            <p><b class="text-card-foreground">Çalışma türü listede çıkmıyor.</b><br>Fiyat listesine o kalemi ekleyin; iş girişindeki liste fiyat listesinden beslenir.</p>
+            <p><b class="text-card-foreground">Yanlış iş açtım / işi yanlış odaya ilerlettim.</b><br>İş detayında laboratuvar sahibine özel iki düğme var: <b class="text-card-foreground">Geri al</b> işi bir önceki odaya döndürür, <b class="text-card-foreground">İşi sil</b> işi kalıcı olarak siler. Faturası, hakedişi veya stok hareketi olan iş silinemez.</p>
+            <p><b class="text-card-foreground">Yeni iş açarken doktor seçmek zorunlu mu?</b><br>Evet. Fiyat doktora göre değişebildiği için doktor seçilmeden iş açılamaz.</p>
+            <p><b class="text-card-foreground">Verilerimi başka laboratuvar görebilir mi?</b><br>Hayır. Her laboratuvar ayrı bir hesaptır; veriler organizasyon bazında ayrılır.</p>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      var els = document.querySelectorAll('iconify-icon');
+      for (var i = 0; i < els.length; i++) (function(el) {
+        var tries = 0;
+        (function check() {
+          var s = el.status;
+          if (s === 'failed') el.setAttribute('icon', 'lucide:circle');
+          else if (s !== 'rendered' && tries++ < 40) setTimeout(check, 250);
+        })();
+      })(els[i]);
+    })();
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script src="supabase-client.js"></script>
+  <script src="js/zk-guard.js"></script>
+  <script>
+    // Kurulum durumu: kılavuzun tepesinde hangi adımların tamamlandığını
+    // canlı veriden gösterir ki yeni laboratuvar nerede kaldığını bilsin.
+    ZirkonikAuth.requireAuth().then(function (session) {
+      if (!session) return;
+      var client = ZirkonikAuth.client();
+      return Promise.all([
+        client.from('laboratories').select('id', { count: 'exact', head: true }),
+        client.from('rooms').select('id', { count: 'exact', head: true }),
+        client.from('price_list_items').select('id', { count: 'exact', head: true }),
+        client.from('app_users').select('id', { count: 'exact', head: true }),
+        client.from('doctors').select('id', { count: 'exact', head: true }),
+        client.from('jobs').select('id', { count: 'exact', head: true })
+      ]).then(function (r) {
+        var steps = [
+          { ad: 'Laboratuvar hazır', n: r[0].count || 0 },
+          { ad: 'Odalar eklendi', n: r[1].count || 0 },
+          { ad: 'Fiyat listesi girildi', n: r[2].count || 0 },
+          { ad: 'Personel eklendi', n: Math.max(0, (r[3].count || 0) - 1) },
+          { ad: 'Doktor kaydedildi', n: r[4].count || 0 },
+          { ad: 'İlk iş girildi', n: r[5].count || 0 }
+        ];
+        document.getElementById('kv-progress-list').innerHTML = steps.map(function (s) {
+          var ok = s.n > 0;
+          return '<div class="flex items-center gap-2.5">' +
+            '<iconify-icon icon="' + (ok ? 'lucide:check-circle-2' : 'lucide:circle-dashed') + '" class="text-base ' + (ok ? 'text-success' : 'text-muted-foreground') + '"></iconify-icon>' +
+            '<span class="flex-1 text-xs ' + (ok ? 'font-semibold text-card-foreground' : 'text-muted-foreground') + '">' + s.ad + '</span>' +
+            (ok ? '<span class="text-[11px] font-bold tabular-nums text-success">' + s.n + '</span>' : '<span class="text-[11px] text-muted-foreground">bekliyor</span>') +
+            '</div>';
+        }).join('');
+      });
+    }).catch(function () {
+      document.getElementById('kv-progress-list').innerHTML = '<p class="text-xs text-muted-foreground">Kurulum durumu okunamadı.</p>';
+    });
+  </script>
+
+</body>
+</html>

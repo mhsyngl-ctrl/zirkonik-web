@@ -225,7 +225,7 @@
           <option value="fatura">Alış faturası (borç ekle)</option>
           <option value="odeme">Ödeme yap (borç düş)</option>
         </select>
-        <input id="sup-op-amount" type="number" min="0" step="0.01" placeholder="Tutar (₺) *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <input id="sup-op-amount" type="number" min="0" step="0.01" placeholder="Tutar ($) *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         <label id="sup-op-due-wrap" class="block">
           <span class="mb-1.5 block text-xs font-bold text-card-foreground">Vade tarihi</span>
           <input id="sup-op-due" type="date" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
@@ -250,7 +250,7 @@
         <select id="pay-invoice" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
           <option value="">Fatura seçin</option>
         </select>
-        <input id="pay-amount" type="number" min="0" step="0.01" placeholder="Tutar (₺) *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <input id="pay-amount" type="number" min="0" step="0.01" placeholder="Tutar ($) *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         <select id="pay-method" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
           <option value="havale">Havale</option>
           <option value="nakit">Nakit</option>
@@ -335,7 +335,9 @@
   <script src="js/zk-guard.js"></script>
   <script src="js/zk-picker.js"></script>
   <script>
-    var TL = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 });
+        // 2026-09-05: tüm tutarlar USD üzerinden gösteriliyor (fiyat listesi de
+    // dolar cinsinden tutuluyor). Sayı biçimi Türkçe ayraçlarla kalır: $1.234,00
+    var USD = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
     function escapeHtml(s) {
       return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
         return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -369,7 +371,7 @@
         });
         el.innerHTML = supList.map(function (s) {
           var bal = (invTot[s.id] || 0) - (payTot[s.id] || 0);
-          var balTxt = bal > 0 ? (TL.format(bal) + ' borç') : (bal < 0 ? (TL.format(-bal) + ' alacak') : 'Bakiye 0');
+          var balTxt = bal > 0 ? (USD.format(bal) + ' borç') : (bal < 0 ? (USD.format(-bal) + ' alacak') : 'Bakiye 0');
           return '<div class="rounded-theme border ' + (overdue[s.id] ? 'border-destructive/40' : 'border-border') + ' bg-card p-3.5">' +
             '<div class="flex items-center justify-between gap-2">' +
             '<div class="min-w-0"><p class="truncate text-sm font-bold">' + escapeHtml(s.name) + '</p>' +
@@ -476,8 +478,8 @@
       client.from('payments').select('invoice_id, amount').then(function (r) {
         var payments = r.data || [];
         var received = payments.reduce(function (s, x) { return s + Number(x.amount); }, 0);
-        document.getElementById('stat-received').textContent = TL.format(received);
-        document.getElementById('stat-net').textContent = TL.format(received);
+        document.getElementById('stat-received').textContent = USD.format(received);
+        document.getElementById('stat-net').textContent = USD.format(received);
 
         payments.forEach(function (p) {
           if (!p.invoice_id) return;
@@ -490,9 +492,9 @@
           var invoiced = rows.reduce(function (s, x) { return s + Number(x.amount); }, 0);
           var outstanding = rows.filter(function (x) { return x.status !== 'paid'; }).reduce(function (s, x) { return s + remaining(x); }, 0);
           var overdue = rows.filter(function (x) { return x.status === 'overdue'; }).reduce(function (s, x) { return s + remaining(x); }, 0);
-          document.getElementById('stat-invoiced').textContent = TL.format(invoiced);
-          document.getElementById('stat-outstanding').textContent = TL.format(outstanding);
-          document.getElementById('stat-overdue').textContent = TL.format(overdue);
+          document.getElementById('stat-invoiced').textContent = USD.format(invoiced);
+          document.getElementById('stat-outstanding').textContent = USD.format(outstanding);
+          document.getElementById('stat-overdue').textContent = USD.format(overdue);
         });
 
         loadReceivablesList();
@@ -510,7 +512,7 @@
           document.getElementById('lab-revenue').innerHTML = rows.map(function (row) {
             return '<div class="rounded-theme border border-border bg-card p-3.5"><div class="flex items-center justify-between">' +
               '<p class="text-sm font-bold">' + escapeHtml(row.lab.name) + '</p>' +
-              '<p class="font-heading text-base font-bold tabular-nums">' + TL.format(row.revenue) + '</p></div></div>';
+              '<p class="font-heading text-base font-bold tabular-nums">' + USD.format(row.revenue) + '</p></div></div>';
           }).join('');
         });
       });
@@ -533,12 +535,12 @@
               '<div class="flex h-9 w-9 items-center justify-center rounded-lg ' + (isOverdue ? 'bg-destructive/10 text-destructive' : 'bg-accent/10 text-accent') + '"><iconify-icon icon="lucide:receipt-text" class="text-lg"></iconify-icon></div>' +
               '<div class="min-w-0 flex-1"><p class="truncate text-sm font-bold">' + escapeHtml(inv.doctors ? inv.doctors.full_name : '') + '</p>' +
               '<p class="truncate text-xs text-muted-foreground">' + escapeHtml(inv.doctors ? inv.doctors.clinic_name || '' : '') + '</p></div>' +
-              '<div class="text-right"><p class="text-sm font-bold tabular-nums">' + TL.format(remaining) + '</p>' +
+              '<div class="text-right"><p class="text-sm font-bold tabular-nums">' + USD.format(remaining) + '</p>' +
               '<span class="text-[10px] font-bold ' + (isOverdue ? 'text-destructive' : 'text-accent') + '">' + (STATUS_LABELS[inv.status] || inv.status) + '</span></div></div>';
           }).join('');
           sel.innerHTML = '<option value="">Fatura seçin</option>' + rows.map(function (inv) {
             var remaining = Math.max(0, Number(inv.amount) - (paidByInvoice[inv.id] || 0));
-            return '<option value="' + inv.id + '">' + escapeHtml(inv.doctors ? inv.doctors.full_name : '') + ' — ' + TL.format(remaining) + ' kaldı</option>';
+            return '<option value="' + inv.id + '">' + escapeHtml(inv.doctors ? inv.doctors.full_name : '') + ' — ' + USD.format(remaining) + ' kaldı</option>';
           }).join('');
         });
       }
@@ -546,13 +548,13 @@
       ZirkonikData.listStaffEarnings().then(function (r) {
         var rows = r.data || [];
         var total = rows.reduce(function (s, x) { return s + Number(x.amount); }, 0);
-        document.getElementById('stat-earnings-total').textContent = TL.format(total);
+        document.getElementById('stat-earnings-total').textContent = USD.format(total);
         var el = document.getElementById('earnings-list');
         if (!rows.length) { el.innerHTML = '<p class="p-4 text-xs text-muted-foreground">Henüz hakediş kaydı yok.</p>'; return; }
         el.innerHTML = rows.slice(0, 10).map(function (e, i) {
           return '<div class="flex items-center justify-between px-4 py-3' + (i < Math.min(rows.length,10) - 1 ? ' border-b border-border' : '') + '">' +
             '<span class="text-xs font-semibold text-muted-foreground">' + escapeHtml(e.app_users ? e.app_users.full_name : '') + '</span>' +
-            '<span class="text-xs font-bold tabular-nums">' + TL.format(e.amount) + '</span></div>';
+            '<span class="text-xs font-bold tabular-nums">' + USD.format(e.amount) + '</span></div>';
         }).join('');
       });
 
@@ -624,7 +626,7 @@
               '<div class="min-w-0"><p class="text-sm font-bold">' + escapeHtml(staffName) + '</p>' +
               '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + new Date(h.created_at).toLocaleDateString('tr-TR') + (h.note ? ' · ' + escapeHtml(h.note) : '') + '</p></div>' +
               '<div class="shrink-0 text-right">' +
-              '<p class="text-sm font-bold tabular-nums">' + TL.format(h.amount) + '</p>' +
+              '<p class="text-sm font-bold tabular-nums">' + USD.format(h.amount) + '</p>' +
               (isPending && canConfirm
                 ? '<button onclick="zkConfirmHandover(\'' + h.id + '\')" class="mt-1 text-[10px] font-bold text-primary">Teslim alındı işaretle</button>'
                 : '<span class="text-[10px] font-bold ' + (isPending ? 'text-accent' : 'text-success') + '">' + (isPending ? 'Onay bekliyor' : 'Teslim alındı') + '</span>') +
@@ -645,14 +647,14 @@
           handoverCashRows = r.data || [];
           if (!handoverCashRows.length) {
             listEl.innerHTML = '<p class="text-xs text-muted-foreground">Teslim edilecek nakit tahsilatınız yok.</p>';
-            document.getElementById('handover-total').textContent = TL.format(0);
+            document.getElementById('handover-total').textContent = USD.format(0);
             return;
           }
           listEl.innerHTML = handoverCashRows.map(function (p) {
             return '<label class="flex items-center justify-between gap-2 rounded-theme border border-border bg-background px-3 py-2.5">' +
               '<span class="flex items-center gap-2 text-xs"><input type="checkbox" class="ho-cash-cb" value="' + p.id + '" checked onchange="zkRecalcHandoverTotal()">' +
               escapeHtml(p.doctors ? p.doctors.full_name : '') + '</span>' +
-              '<span class="text-xs font-bold tabular-nums">' + TL.format(p.amount) + '</span></label>';
+              '<span class="text-xs font-bold tabular-nums">' + USD.format(p.amount) + '</span></label>';
           }).join('');
           zkRecalcHandoverTotal();
         });
@@ -663,7 +665,7 @@
     function zkRecalcHandoverTotal() {
       var checked = Array.prototype.slice.call(document.querySelectorAll('.ho-cash-cb:checked')).map(function (cb) { return cb.value; });
       var total = handoverCashRows.filter(function (p) { return checked.indexOf(p.id) >= 0; }).reduce(function (s, p) { return s + Number(p.amount); }, 0);
-      document.getElementById('handover-total').textContent = TL.format(total);
+      document.getElementById('handover-total').textContent = USD.format(total);
     }
 
     function zkSubmitHandover() {

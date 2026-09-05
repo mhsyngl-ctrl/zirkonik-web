@@ -63,12 +63,19 @@
         <form id="rs-form" class="mx-auto mt-2 hidden max-w-sm space-y-3">
           <label class="block">
             <span class="mb-1.5 block text-xs font-bold text-card-foreground">Yeni şifre</span>
-            <input id="rs-password" type="password" minlength="6" required class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="En az 6 karakter">
+            <div class="relative">
+              <input id="rs-password" type="password" minlength="6" required class="h-12 w-full rounded-theme border border-border bg-input pl-3.5 pr-20 text-sm" placeholder="En az 6 karakter">
+              <button type="button" onclick="zkTogglePassword('rs-password', this)" class="absolute right-1 top-1 flex h-10 items-center rounded-lg px-3 text-xs font-bold text-primary">Göster</button>
+            </div>
           </label>
           <label class="block">
             <span class="mb-1.5 block text-xs font-bold text-card-foreground">Yeni şifre (tekrar)</span>
-            <input id="rs-password2" type="password" minlength="6" required class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="Şifreyi tekrar girin">
+            <div class="relative">
+              <input id="rs-password2" type="password" minlength="6" required class="h-12 w-full rounded-theme border border-border bg-input pl-3.5 pr-20 text-sm" placeholder="Şifreyi tekrar girin">
+              <button type="button" onclick="zkTogglePassword('rs-password2', this)" class="absolute right-1 top-1 flex h-10 items-center rounded-lg px-3 text-xs font-bold text-primary">Göster</button>
+            </div>
           </label>
+          <p class="text-[11px] leading-4 text-muted-foreground">Şifreniz büyük-küçük harf ve rakam içersin. 123456, sifre123 gibi yaygın şifreler güvenlik nedeniyle reddedilir.</p>
           <p id="rs-error" class="hidden text-xs font-semibold text-destructive"></p>
           <button type="submit" class="flex h-12 w-full items-center justify-center gap-2 rounded-theme bg-primary font-heading text-sm font-bold text-primary-foreground">
             Şifreyi kaydet
@@ -101,6 +108,14 @@
   <script src="supabase-config.js"></script>
   <script src="supabase-client.js"></script>
   <script>
+    /** Şifre alanını okunur hale getirir (bkz. giris.html'deki eşi). */
+    function zkTogglePassword(inputId, btn) {
+      var input = document.getElementById(inputId);
+      var show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      btn.textContent = show ? 'Gizle' : 'Göster';
+    }
+
     var params = new URLSearchParams(location.search);
     var accessToken = params.get('access_token');
     var refreshToken = params.get('refresh_token');
@@ -139,7 +154,7 @@
         if (res.error) throw res.error;
         window.location.href = 'retim.html';
       }).catch(function (err) {
-        errEl.textContent = 'Kaydedilemedi: ' + err.message;
+        errEl.textContent = 'Kaydedilemedi: ' + ZirkonikAuth.errorText(err);
         errEl.classList.remove('hidden');
       });
     });

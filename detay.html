@@ -126,6 +126,14 @@
 
           <div class="mt-4 grid grid-cols-2 gap-3">
             <div class="rounded-theme border border-border bg-background px-3 py-3">
+              <p class="text-[10px] text-muted-foreground">Hasta</p>
+              <p id="job-patient" class="mt-1 text-sm font-bold">—</p>
+            </div>
+            <div class="rounded-theme border border-border bg-background px-3 py-3">
+              <p class="text-[10px] text-muted-foreground">Klinik protokol no</p>
+              <p id="job-protocol" class="mt-1 text-sm font-bold">—</p>
+            </div>
+            <div class="rounded-theme border border-border bg-background px-3 py-3">
               <p class="text-[10px] text-muted-foreground">İç referans</p>
               <p id="job-reference" class="mt-1 text-sm font-bold">—</p>
             </div>
@@ -207,6 +215,15 @@
           <iconify-icon icon="lucide:arrow-right-circle" class="text-xl"></iconify-icon>
           <span id="advance-label">Sonraki aşamaya taşı</span>
         </button>
+        <!-- Yalnızca laboratuvar sahibi (organizasyon yöneticisi) görür -->
+        <div id="owner-actions" class="mt-2 hidden gap-2">
+          <button id="revert-btn" class="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-theme border border-border bg-background text-xs font-bold text-foreground">
+            <iconify-icon icon="lucide:undo-2" class="text-base"></iconify-icon>Geri al
+          </button>
+          <button id="delete-job-btn" class="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-theme bg-destructive/10 text-xs font-bold text-destructive">
+            <iconify-icon icon="lucide:trash-2" class="text-base"></iconify-icon>İşi sil
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -245,7 +262,9 @@
   <script src="supabase-client.js"></script>
   <script src="js/zk-guard.js"></script>
   <script>
-    var TL = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 });
+        // 2026-09-05: tüm tutarlar USD üzerinden gösteriliyor (fiyat listesi de
+    // dolar cinsinden tutuluyor). Sayı biçimi Türkçe ayraçlarla kalır: $1.234,00
+    var USD = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
     function escapeHtml(s) {
       return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
         return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -311,9 +330,11 @@
       document.getElementById('job-tooth-count').textContent = j.unit_count || '—';
       document.getElementById('job-teeth').textContent = j.teeth_numbers || '—';
       document.getElementById('job-delivery').textContent = j.requested_delivery_at ? new Date(j.requested_delivery_at).toLocaleDateString('tr-TR') : 'Belirtilmedi';
+      document.getElementById('job-patient').textContent = j.patient_name || '—';
+      document.getElementById('job-protocol').textContent = j.clinic_protocol_no || '—';
       document.getElementById('job-reference').textContent = j.patient_reference || '—';
       document.getElementById('job-lab').textContent = j.laboratories ? j.laboratories.name : '—';
-      document.getElementById('job-price').textContent = j.price != null ? TL.format(j.price) : 'Belirtilmedi';
+      document.getElementById('job-price').textContent = j.price != null ? USD.format(j.price) : 'Belirtilmedi';
       document.getElementById('job-payment-status').textContent = PAYMENT_LABELS[j.payment_status] || j.payment_status;
 
       if (j.is_priority) document.getElementById('priority-badge').classList.remove('hidden');
@@ -407,6 +428,16 @@
         if (me.role === 'yonetici') {
           btn.disabled = false;
           btn.classList.remove('opacity-50');
+          // Yanlış açılan işi silme ve yanlış ilerletilen işi geri alma
+          // yetkisi yalnızca laboratuvar sahibinde (2026-09-05).
+          var ownerBox = document.getElementById('owner-actions');
+          ownerBox.classList.remove('hidden');
+          ownerBox.classList.add('flex');
+          // İş henüz hiçbir odaya girmemişse geri alınacak bir şey yok.
+          var revertBtn = document.getElementById('revert-btn');
+          var canRevert = !!currentJob.current_room_id;
+          revertBtn.disabled = !canRevert;
+          revertBtn.classList.toggle('opacity-50', !canRevert);
           return;
         }
         var perms = me.user_permissions;
@@ -573,6 +604,58 @@
         }).join('');
       });
     }
+
+    // Geri al: işi bir önceki odaya döndürür. Geçmiş kaydı silinmez,
+    // yanlış giriş "geri alındı" notuyla kapatılır.
+    document.getElementById('revert-btn').addEventListener('click', function () {
+      var errEl = document.getElementById('advance-error');
+      errEl.classList.add('hidden');
+      var currentIdx = rooms.findIndex(function (r) { return r.id === currentJob.current_room_id; });
+      var prevRoom = currentIdx > 0 ? rooms[currentIdx - 1] : null;
+      var hedef = prevRoom ? ('"' + prevRoom.name + '" odasına') : 'başlangıca (henüz odaya girmemiş haline)';
+      if (!confirm('İş ' + hedef + ' geri alınacak. Devam edilsin mi?')) return;
+
+      var btn = this;
+      btn.disabled = true;
+      ZirkonikData.revertJobStage(jobId, currentJob.current_room_id, prevRoom ? prevRoom.id : null)
+        .then(function (res) {
+          btn.disabled = false;
+          if (res && res.error) throw res.error;
+          zkToast(prevRoom ? ('İş "' + prevRoom.name + '" odasına geri alındı.') : 'İş başlangıca geri alındı.');
+          loadJob();
+        }).catch(function (err) {
+          btn.disabled = false;
+          errEl.textContent = 'Geri alınamadı: ' + err.message;
+          errEl.classList.remove('hidden');
+        });
+    });
+
+    // İşi sil: yalnızca yönetici. Faturası/hakedişi/stok hareketi olan iş
+    // veritabanı kısıtı nedeniyle silinemez — mesajı anlaşılır hale getiriyoruz.
+    document.getElementById('delete-job-btn').addEventListener('click', function () {
+      var errEl = document.getElementById('advance-error');
+      errEl.classList.add('hidden');
+      if (!confirm('Bu iş kalıcı olarak silinecek. Bu işlem geri alınamaz. Devam edilsin mi?')) return;
+
+      var btn = this;
+      btn.disabled = true;
+      ZirkonikData.deleteJob(jobId).then(function (res) {
+        btn.disabled = false;
+        if (res.error) throw res.error;
+        if (!res.data || !res.data.length) {
+          errEl.textContent = 'İş silinemedi: bu işlem için laboratuvar sahibi yetkisi gerekiyor.';
+          errEl.classList.remove('hidden');
+          return;
+        }
+        window.location.href = 'retim.html';
+      }).catch(function (err) {
+        var msg = String(err.message || '');
+        errEl.textContent = /foreign key|violates|ihlal/i.test(msg)
+          ? 'Bu iş silinemez: işe bağlı fatura, personel hakedişi veya stok hareketi var. Önce onları kaldırın.'
+          : 'Silinemedi: ' + msg;
+        errEl.classList.remove('hidden');
+      });
+    });
 
     document.getElementById('advance-btn').addEventListener('click', function () {
       var errEl = document.getElementById('advance-error');

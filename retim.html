@@ -297,7 +297,9 @@
       if (el) el.scrollIntoView({ behavior: 'smooth' });
     }
 
-    var TL = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 });
+        // 2026-09-05: tüm tutarlar USD üzerinden gösteriliyor (fiyat listesi de
+    // dolar cinsinden tutuluyor). Sayı biçimi Türkçe ayraçlarla kalır: $1.234,00
+    var USD = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 
     function escapeHtml(s) {
       return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -341,7 +343,7 @@
 
       client.from('invoices').select('id, amount').in('status', ['unpaid', 'partial', 'overdue']).then(function (r) {
         var invoices = r.data || [];
-        if (!invoices.length) { document.getElementById('stat-receivables').textContent = TL.format(0); return; }
+        if (!invoices.length) { document.getElementById('stat-receivables').textContent = USD.format(0); return; }
         var ids = invoices.map(function (x) { return x.id; });
         // Kısmi ödemeler düşülmeden tam fatura tutarı gösteriliyordu — kalan
         // bakiyeyi hesaplamak için o faturalara ait tahsilatları da çekiyoruz.
@@ -349,7 +351,7 @@
           var paidByInvoice = {};
           (pr.data || []).forEach(function (p) { paidByInvoice[p.invoice_id] = (paidByInvoice[p.invoice_id] || 0) + Number(p.amount); });
           var total = invoices.reduce(function (s, x) { return s + Math.max(0, Number(x.amount || 0) - (paidByInvoice[x.id] || 0)); }, 0);
-          document.getElementById('stat-receivables').textContent = TL.format(total);
+          document.getElementById('stat-receivables').textContent = USD.format(total);
         });
       });
 
@@ -613,7 +615,11 @@
         boardLabs = r.data || [];
         if (!boardLabs.length) {
           document.getElementById('board-lab-switch-wrap').classList.add('hidden');
-          document.getElementById('production-board').innerHTML = '<p class="text-xs text-muted-foreground">Önce Laboratuvarlar sekmesinden bir laboratuvar ekleyin.</p>';
+          // Yeni laboratuvar buradan başlıyor — kurulum kılavuzuna yönlendir.
+          document.getElementById('production-board').innerHTML =
+            '<p class="text-xs text-muted-foreground">Önce Laboratuvarlar sekmesinden bir laboratuvar ekleyin.</p>' +
+            '<button onclick="location.href=\'kilavuz.html\'" class="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-theme border border-border bg-background text-xs font-bold text-primary">' +
+            '<iconify-icon icon="lucide:book-open" class="text-base"></iconify-icon>Kurulum kılavuzunu aç</button>';
           return;
         }
         var wrap = document.getElementById('board-lab-switch-wrap');

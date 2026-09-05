@@ -30,8 +30,75 @@
     return _client;
   }
 
+  /* Supabase hata mesajları İngilizce gelir (auth katmanı yerelleştirilmiyor).
+   * Kullanıcıya ham mesaj göstermek yerine burada Türkçeye çeviriyoruz —
+   * özellikle "leaked password protection" uyarısı, yeni laboratuvar
+   * kaydında en sık karşılaşılan hata. Eşleşme önce Supabase hata koduna
+   * (err.code), sonra mesaj metnine bakar; tanınmayan hata olduğu gibi
+   * gösterilir ki gerçek sorun kaybolmasın. */
+  var ERROR_CODES = {
+    weak_password: 'Bu şifre çok yaygın kullanıldığı için kabul edilmiyor. Daha zor bir şifre seçin: en az 8 karakter, büyük-küçük harf, rakam ve sembol karışımı olsun (kayıt ekranındaki "Şifre öner" düğmesi güvenli bir şifre üretir).',
+    invalid_credentials: 'E-posta veya şifre hatalı. Lütfen kontrol edip tekrar deneyin.',
+    email_not_confirmed: 'E-posta adresiniz henüz doğrulanmadı. Gelen kutunuzdaki (ve spam klasörünüzdeki) onay bağlantısına tıklayın.',
+    user_already_exists: 'Bu e-posta adresiyle zaten bir hesap var. Giriş yapmayı ya da "Şifremi unuttum" adımını deneyin.',
+    email_exists: 'Bu e-posta adresiyle zaten bir hesap var. Giriş yapmayı ya da "Şifremi unuttum" adımını deneyin.',
+    email_address_invalid: 'E-posta adresi geçersiz görünüyor. Yazımını kontrol edin.',
+    validation_failed: 'Girdiğiniz bilgiler geçersiz. Alanları kontrol edip tekrar deneyin.',
+    same_password: 'Yeni şifre eskisinden farklı olmalı.',
+    otp_expired: 'Bağlantının süresi dolmuş. Yeni bir sıfırlama bağlantısı isteyin.',
+    over_request_rate_limit: 'Çok fazla deneme yapıldı. Lütfen bir dakika bekleyip tekrar deneyin.',
+    over_email_send_rate_limit: 'Kısa sürede çok fazla e-posta istendi. Lütfen birkaç dakika sonra tekrar deneyin.',
+    signup_disabled: 'Yeni kayıtlar şu anda kapalı. Laboratuvar yöneticinizle iletişime geçin.',
+    user_not_found: 'Bu e-posta ile kayıtlı bir kullanıcı bulunamadı.',
+    session_expired: 'Oturumunuzun süresi doldu. Lütfen tekrar giriş yapın.'
+  };
+
+  // Kod gelmeyen (eski sürüm / edge function üzerinden aktarılan) hatalar
+  // için mesaj metnine göre eşleştirme. Sıra önemli: ilk eşleşen kazanır.
+  var ERROR_PATTERNS = [
+    ['password is known to be weak', ERROR_CODES.weak_password],
+    ['password is too weak', ERROR_CODES.weak_password],
+    ['pwned', ERROR_CODES.weak_password],
+    ['password should be at least', 'Şifre çok kısa. En az 6 karakter olmalı.'],
+    ['password should contain', 'Şifre yeterince güçlü değil: büyük-küçük harf, rakam ve sembol içermeli.'],
+    ['invalid login credentials', ERROR_CODES.invalid_credentials],
+    ['email not confirmed', ERROR_CODES.email_not_confirmed],
+    ['already registered', ERROR_CODES.user_already_exists],
+    ['already been registered', ERROR_CODES.user_already_exists],
+    ['already exists', ERROR_CODES.user_already_exists],
+    ['unable to validate email address', ERROR_CODES.email_address_invalid],
+    ['invalid email', ERROR_CODES.email_address_invalid],
+    ['new password should be different', ERROR_CODES.same_password],
+    ['token has expired', ERROR_CODES.otp_expired],
+    ['is invalid or has expired', ERROR_CODES.otp_expired],
+    ['for security purposes', 'Güvenlik nedeniyle kısa bir süre beklemeniz gerekiyor. Birkaç saniye sonra tekrar deneyin.'],
+    ['rate limit', ERROR_CODES.over_request_rate_limit],
+    ['signups not allowed', ERROR_CODES.signup_disabled],
+    ['user not found', ERROR_CODES.user_not_found],
+    ['failed to fetch', 'Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.'],
+    ['network', 'Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.'],
+    ['load failed', 'Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.']
+  ];
+
+  /** Supabase hatasını (ya da düz Error'u) Türkçe, kullanıcıya gösterilebilir
+   *  metne çevirir. Tanınmayan hatalarda orijinal mesaj döner. */
+  function errorText(err) {
+    if (!err) return 'Bilinmeyen bir hata oluştu.';
+    var msg = (typeof err === 'string') ? err : (err.message || err.error_description || err.error || '');
+    var code = (typeof err === 'object' && err) ? (err.code || err.error_code || '') : '';
+    if (code && ERROR_CODES[code]) return ERROR_CODES[code];
+    var lower = String(msg).toLowerCase();
+    for (var i = 0; i < ERROR_PATTERNS.length; i++) {
+      if (lower.indexOf(ERROR_PATTERNS[i][0]) !== -1) return ERROR_PATTERNS[i][1];
+    }
+    return msg || 'Bilinmeyen bir hata oluştu.';
+  }
+
   var Auth = {
     client: client,
+
+    /** Hata mesajlarını Türkçeleştirir — bkz. errorText(). */
+    errorText: errorText,
 
     /** Giriş formundaki "Beni hatırla" kutusundan çağrılır — tercihi
      *  kaydeder ve istemciyi doğru depolamayla yeniden kurdurur. */
@@ -171,6 +238,12 @@
     createDoctor: function (fields) {
       return client().from('doctors').insert(fields).select().single();
     },
+    /* Doktoru siler — RLS'te doctor_admin_write (FOR ALL) yalnızca organizasyon
+     * yöneticisine izin verir. İşi olan doktor, jobs.doctor_id NOT NULL kısıtı
+     * yüzünden silinemez; çağıran taraf bunu anlaşılır mesaja çevirir. */
+    deleteDoctor: function (doctorId) {
+      return client().from('doctors').delete().eq('id', doctorId).select();
+    },
     updateDoctor: function (doctorId, fields) {
       return client().from('doctors').update(fields).eq('id', doctorId);
     },
@@ -200,12 +273,11 @@
     getJob: function (jobId) {
       return client().from('jobs').select('*, doctors(*), laboratories(name), rooms:current_room_id(name)').eq('id', jobId).single();
     },
-    nextJobNumber: function (labId) {
-      return client().from('jobs').select('job_number', { count: 'exact', head: true }).eq('laboratory_id', labId).then(function (r) {
-        var n = (r.count || 0) + 1;
-        return 'DY-' + (2000 + n);
-      });
-    },
+    // nextJobNumber kaldırıldı (2026-09-05): iş numarası artık veritabanında
+    // trg_set_job_number tetikleyicisiyle atanıyor — laboratuvar bazlı,
+    // YYYYAAGG + 4 haneli günlük sıra (ör. 202608130001). İstemcide jobs
+    // sayısını sayarak üretmek aynı anda iş açan iki kullanıcıya aynı
+    // numarayı verebiliyordu.
     createJob: function (fields) {
       return client().from('jobs').insert(fields).select().single();
     },
@@ -235,6 +307,42 @@
         handled_by: userId, confirmed_by: userId, confirmed_at: new Date().toISOString()
       }).eq('job_id', jobId).eq('room_id', roomId).is('exited_at', null).select().single();
     },
+    /* Yanlışlıkla ilerletilen işi bir önceki odaya geri alır (yalnızca
+     * yönetici çağırır — RLS/guard_job_field_updates yönetici dışındakini
+     * zaten reddeder). Geçmiş kaydı silinmez: yanlış giriş "geri alındı"
+     * notuyla kapatılır, önceki odanın kaydı yeniden açılır. */
+    revertJobStage: function (jobId, currentRoomId, prevRoomId) {
+      var closeWrong = currentRoomId
+        ? client().from('job_stage_history')
+            .update({ exited_at: new Date().toISOString(), note: 'Yanlış ilerletme — geri alındı' })
+            .eq('job_id', jobId).eq('room_id', currentRoomId).is('exited_at', null)
+        : Promise.resolve({ error: null });
+      return Promise.resolve(closeWrong).then(function (res) {
+        if (res && res.error) throw res.error;
+        if (!prevRoomId) return { error: null };
+        // Önceki odanın en son kaydını yeniden aç (iş oraya döndü).
+        return client().from('job_stage_history').select('id')
+          .eq('job_id', jobId).eq('room_id', prevRoomId)
+          .order('entered_at', { ascending: false }).limit(1).maybeSingle()
+          .then(function (r) {
+            if (r.error) throw r.error;
+            if (!r.data) return { error: null };
+            return client().from('job_stage_history')
+              .update({ exited_at: null }).eq('id', r.data.id);
+          });
+      }).then(function (res) {
+        if (res && res.error) throw res.error;
+        return client().from('jobs').update({ current_room_id: prevRoomId || null }).eq('id', jobId);
+      });
+    },
+
+    /* İşi tamamen siler — yalnızca organizasyon yöneticisi (RLS: job_delete).
+     * Faturası, personel hakedişi veya stok hareketi olan iş FK kısıtı
+     * nedeniyle silinemez; çağıran tarafta anlaşılır mesaja çevriliyor. */
+    deleteJob: function (jobId) {
+      return client().from('jobs').delete().eq('id', jobId).select();
+    },
+
     completeJob: function (jobId) {
       return client().from('jobs').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', jobId);
     },
@@ -279,7 +387,14 @@
         if (o.doctor_id && o.doctor_id !== doctorId) return;
         if (o.laboratory_id && o.laboratory_id !== labId) return;
         var score = (o.doctor_id ? 2 : 0) + (o.laboratory_id ? 1 : 0);
-        if (score > bestScore) { bestScore = score; best = o; }
+        // Aynı kapsamda birden fazla satır bulunursa (setPriceOverride önce
+        // siler, ama yarış/kısmi hata durumunda iki satır kalabilir) en yeni
+        // kayıt kazansın — aksi halde hangi fiyatın uygulandığı diziye bağlı
+        // kalıyor ve "fiyatı değiştirdim ama eski fiyat çıkıyor" hissi doğuyor.
+        if (score > bestScore ||
+            (score === bestScore && best && String(o.created_at || '') > String(best.created_at || ''))) {
+          bestScore = score; best = o;
+        }
       });
       if (best) return Number(best.unit_price);
       return item.unit_price != null ? Number(item.unit_price) : null;
