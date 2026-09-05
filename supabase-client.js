@@ -281,6 +281,18 @@
     rejectStaff: function (userId) {
       return client().from('app_users').update({ status: 'rejected' }).eq('id', userId);
     },
+    /* Personeli ekipten çıkarır. Hiç kayda dokunmamış personel tamamen silinir
+     * (mode: 'deleted'); iş/tahsilat/hakediş geçmişi olan personelin kaydı
+     * korunur, hesabı kapatılır (mode: 'deactivated') — aksi halde o işlerin
+     * "kim yaptı" bilgisi kaybolurdu. Yetki ve organizasyon kontrolü,
+     * kullanıcı silme service_role gerektirdiği için edge function'da. */
+    deleteStaffAccount: function (userId) {
+      return invokeFn('delete-staff-account', { user_id: userId });
+    },
+    /** Kapatılmış personel hesabını yeniden açar. */
+    restoreStaffAccount: function (userId) {
+      return invokeFn('delete-staff-account', { user_id: userId, restore: true });
+    },
 
     // ---- İşler ----
     listJobs: function (filters) {
