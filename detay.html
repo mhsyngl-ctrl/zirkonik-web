@@ -399,20 +399,51 @@
       document.getElementById('stage-track').innerHTML = html;
     }
 
+    /* Laboratuvar sahibine ait aksiyonlar (Geri al / İptal et / Sil) işin
+     * durumundan bağımsız gösterilir. Önceden bu blok ilerletme düğmesinin
+     * mantığı içindeydi ve "tamamlandı" dalında erken return edildiği için
+     * tamamlanmış bir iş ne iptal edilebiliyor ne geri alınabiliyordu. */
+    function renderOwnerActions() {
+      var ownerBox = document.getElementById('owner-actions');
+      var revertBtn = document.getElementById('revert-btn');
+      var cancelBtn = document.getElementById('cancel-job-btn');
+      var deleteBtn = document.getElementById('delete-job-btn');
+
+      if (currentJob.status === 'cancelled') {
+        ownerBox.classList.add('hidden');
+        ownerBox.classList.remove('flex');
+        return;
+      }
+
+      ZirkonikAuth.me().then(function (me) {
+        if (!me || me.role !== 'yonetici') return;
+        ownerBox.classList.remove('hidden');
+        ownerBox.classList.add('flex');
+
+        // Geri alma yalnızca bir odada duran iş için anlamlı; sebebi
+        // görünsün diye düğme pasifken açıklama başlığa yazılıyor.
+        var canRevert = !!currentJob.current_room_id;
+        revertBtn.disabled = !canRevert;
+        revertBtn.classList.toggle('opacity-50', !canRevert);
+        revertBtn.title = canRevert
+          ? 'İşi bir önceki odaya geri al'
+          : 'Bu iş henüz bir odaya girmemiş — geri alınacak aşama yok.';
+        cancelBtn.title = 'Faturayı ve hakedişi iptal eder, ayrılan stoğu iade eder. Kayıt silinmez.';
+        deleteBtn.title = 'Yalnızca hiçbir fatura/hakediş/stok kaydı olmayan işlerde mümkün.';
+      });
+    }
+
     function renderAdvanceButton() {
       var btn = document.getElementById('advance-btn');
       var label = document.getElementById('advance-label');
       var errEl = document.getElementById('advance-error');
       errEl.classList.add('hidden');
+      renderOwnerActions();
 
       if (currentJob.status === 'cancelled') {
         label.textContent = 'Bu iş iptal edildi';
         btn.disabled = true;
         btn.classList.add('opacity-50');
-        // İptal edilmiş işte tekrar iptal/geri alma anlamsız.
-        var ownerBox = document.getElementById('owner-actions');
-        ownerBox.classList.add('hidden');
-        ownerBox.classList.remove('flex');
         return;
       }
       if (currentJob.status === 'completed') {
@@ -441,16 +472,6 @@
         if (me.role === 'yonetici') {
           btn.disabled = false;
           btn.classList.remove('opacity-50');
-          // Yanlış açılan işi silme ve yanlış ilerletilen işi geri alma
-          // yetkisi yalnızca laboratuvar sahibinde (2026-09-05).
-          var ownerBox = document.getElementById('owner-actions');
-          ownerBox.classList.remove('hidden');
-          ownerBox.classList.add('flex');
-          // İş henüz hiçbir odaya girmemişse geri alınacak bir şey yok.
-          var revertBtn = document.getElementById('revert-btn');
-          var canRevert = !!currentJob.current_room_id;
-          revertBtn.disabled = !canRevert;
-          revertBtn.classList.toggle('opacity-50', !canRevert);
           return;
         }
         var perms = me.user_permissions;
@@ -623,6 +644,11 @@
     document.getElementById('revert-btn').addEventListener('click', function () {
       var errEl = document.getElementById('advance-error');
       errEl.classList.add('hidden');
+      if (!currentJob.current_room_id) {
+        errEl.textContent = 'Bu iş henüz bir odaya girmemiş — geri alınacak bir aşama yok.';
+        errEl.classList.remove('hidden');
+        return;
+      }
       var currentIdx = rooms.findIndex(function (r) { return r.id === currentJob.current_room_id; });
       var prevRoom = currentIdx > 0 ? rooms[currentIdx - 1] : null;
       var hedef = prevRoom ? ('"' + prevRoom.name + '" odasına') : 'başlangıca (henüz odaya girmemiş haline)';
@@ -690,7 +716,7 @@
       }).catch(function (err) {
         var msg = String(err.message || '');
         errEl.textContent = /foreign key|violates|ihlal/i.test(msg)
-          ? 'Bu iş silinemez: işe bağlı fatura, personel hakedişi veya stok hareketi var. Önce onları kaldırın.'
+          ? 'Bu iş silinemez: işe bağlı fatura, personel hakedişi veya stok hareketi var. Bunun yerine "İptal et" kullanın — kayıt kalır, fatura ve hakediş iptal olur, stok iade edilir.'
           : 'Silinemedi: ' + msg;
         errEl.classList.remove('hidden');
       });
