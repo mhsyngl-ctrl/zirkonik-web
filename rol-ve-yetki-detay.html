@@ -167,6 +167,9 @@
               <input id="pi-email" type="email" disabled style="opacity:.6" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
               <span class="mt-1 block text-[11px] text-muted-foreground">Giriş e-postası buradan değiştirilemez; hesap bu adresle açılmıştır.</span>
             </label>
+            <button type="button" onclick="zkOpenResetPassword()" class="flex h-11 w-full items-center justify-center gap-2 rounded-theme border border-border bg-background text-xs font-bold text-primary">
+              <iconify-icon icon="lucide:key-round" class="text-base"></iconify-icon>Şifreyi sıfırla
+            </button>
           </div>
         </section>
 
@@ -208,6 +211,23 @@
       </div>
     </div>
   </div>
+
+  <!-- Şifre sıfırlama sheet -->
+  <div id="reset-pw-sheet" class="fixed inset-0 z-40 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkCloseResetPassword()"></div>
+    <div class="absolute bottom-0 left-0 w-full rounded-t-theme bg-card p-5 pb-8">
+      <p class="font-heading text-lg font-bold">Şifreyi sıfırla</p>
+      <p class="mt-1 text-xs text-muted-foreground">Yeni şifreyi kişiye kendiniz iletin — bu ekranda bir daha görünmez.</p>
+      <div class="mt-4 flex gap-2">
+        <input id="rp-password" type="text" placeholder="Yeni şifre" class="h-12 flex-1 rounded-theme border border-border bg-input px-3.5 text-sm">
+        <button type="button" onclick="zkGenResetPassword()" class="flex h-12 items-center justify-center rounded-theme border border-border bg-background px-3.5 text-xs font-bold text-primary">Üret</button>
+      </div>
+      <p id="reset-pw-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
+      <p id="reset-pw-ok" class="mt-2 hidden text-xs font-semibold text-success"></p>
+      <button id="reset-pw-btn" onclick="zkSubmitResetPassword()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Şifreyi Değiştir</button>
+    </div>
+  </div>
+
   <script>
     (function() {
       var els = document.querySelectorAll('iconify-icon');
@@ -380,6 +400,38 @@
       // odalarını seçili listeden düşür.
       currentRoomIds = Array.prototype.slice.call(document.querySelectorAll('.acc-room-cb:checked')).map(function (cb) { return cb.value; });
       renderAccessRooms();
+    }
+
+    function zkOpenResetPassword() {
+      document.getElementById('rp-password').value = '';
+      document.getElementById('reset-pw-error').classList.add('hidden');
+      document.getElementById('reset-pw-ok').classList.add('hidden');
+      document.getElementById('reset-pw-sheet').classList.remove('hidden');
+    }
+    function zkCloseResetPassword() { document.getElementById('reset-pw-sheet').classList.add('hidden'); }
+    function zkGenResetPassword() {
+      var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+      var out = '';
+      var arr = new Uint32Array(10);
+      crypto.getRandomValues(arr);
+      for (var i = 0; i < 10; i++) out += chars[arr[i] % chars.length];
+      document.getElementById('rp-password').value = out;
+    }
+    function zkSubmitResetPassword() {
+      var errEl = document.getElementById('reset-pw-error');
+      var okEl = document.getElementById('reset-pw-ok');
+      errEl.classList.add('hidden');
+      okEl.classList.add('hidden');
+      var pw = document.getElementById('rp-password').value;
+      if (pw.length < 8) { errEl.textContent = 'Şifre en az 8 karakter olmalı.'; errEl.classList.remove('hidden'); return; }
+      var btn = document.getElementById('reset-pw-btn');
+      btn.disabled = true;
+      ZirkonikData.resetStaffPassword(userId, pw).then(function (res) {
+        btn.disabled = false;
+        if (res.error) { errEl.textContent = 'Değiştirilemedi: ' + res.error.message; errEl.classList.remove('hidden'); return; }
+        okEl.textContent = 'Şifre değiştirildi: ' + pw + ' — bunu kişiye şimdi iletin.';
+        okEl.classList.remove('hidden');
+      });
     }
 
     function zkCompTypeChanged() {
