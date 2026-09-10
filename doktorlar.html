@@ -18,7 +18,7 @@
   <script src="https://code.iconify.design/iconify-icon/2.3.0/iconify-icon.min.js"></script>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap">
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf-autotable.min.js"></script>
 
   <style>
   :root {
@@ -89,17 +89,6 @@
             <p class="text-xs text-muted-foreground">Yükleniyor…</p>
           </div>
         </section>
-
-        <!-- 2026-09-05: Reddedilen kayıtlar hiçbir listede görünmüyordu ama
-             "Toplam kayıt" sayısına giriyordu; sayı düşmüyor gibi duruyordu. -->
-        <section id="rejected-section" class="mt-6 hidden">
-          <div class="flex items-end justify-between">
-            <h2 class="font-heading text-lg font-bold">Reddedilen doktorlar</h2>
-            <span id="stat-rejected" class="rounded-full bg-muted px-2.5 py-1 text-[11px] font-bold text-muted-foreground">0</span>
-          </div>
-          <p class="mt-0.5 text-xs text-muted-foreground">Kayıt duruyor ama listelerde çıkmaz. Geri alabilir ya da kalıcı silebilirsiniz.</p>
-          <div id="rejected-list" class="mt-3 space-y-2"></div>
-        </section>
       </main>
 
       <nav data-fv-tabbar class="fixed bottom-0 left-0 z-20 grid w-full grid-cols-6 border-t border-border bg-card/95 px-2 pb-5 pt-2 backdrop-blur-md">
@@ -158,16 +147,8 @@
       <div class="mt-4 space-y-3">
         <input id="nd-name" type="text" placeholder="Ad Soyad *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         <input id="nd-clinic" type="text" placeholder="Klinik adı" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
-        <input id="nd-phone" type="tel" placeholder="Telefon *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
-        <input id="nd-email" type="email" placeholder="E-posta *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
-        <textarea id="nd-address" rows="2" placeholder="Adres * (klinik adresi)" class="w-full rounded-theme border border-border bg-input px-3.5 py-2.5 text-sm"></textarea>
-        <label class="flex items-start gap-2.5 rounded-theme border border-border bg-background p-3">
-          <input id="nd-open-account" type="checkbox" class="mt-0.5 h-5 w-5 shrink-0 rounded border-border" style="accent-color:#3D7CDC;">
-          <span class="min-w-0">
-            <span class="block text-xs font-bold text-card-foreground">Uygulama hesabı da aç</span>
-            <span class="mt-1 block text-[11px] leading-4 text-muted-foreground">Giriş adresi yukarıdaki e-posta olur. Şifre otomatik üretilip doktorun e-postasına gönderilir; doktor sonra "Şifremi unuttum" ile kendisi değiştirir.</span>
-          </span>
-        </label>
+        <input id="nd-phone" type="tel" placeholder="Telefon" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <input id="nd-email" type="email" placeholder="E-posta" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         <select id="nd-lab" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
           <option value="">Sorumlu laboratuvar (opsiyonel)</option>
         </select>
@@ -185,9 +166,8 @@
       <div class="mt-4 space-y-3">
         <input id="ed-name" type="text" placeholder="Ad Soyad *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         <input id="ed-clinic" type="text" placeholder="Klinik adı" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
-        <input id="ed-phone" type="tel" placeholder="Telefon *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
-        <input id="ed-email" type="email" placeholder="E-posta *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
-        <textarea id="ed-address" rows="2" placeholder="Adres * (klinik adresi)" class="w-full rounded-theme border border-border bg-input px-3.5 py-2.5 text-sm"></textarea>
+        <input id="ed-phone" type="tel" placeholder="Telefon" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <input id="ed-email" type="email" placeholder="E-posta" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
       </div>
       <p id="ed-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
       <button onclick="zkSubmitEditDoctor()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
@@ -208,59 +188,6 @@
     })();
   </script>
 
-  <!-- Doktor bilgi sheet'i — düzenlemeden önce bilgileri görmek için -->
-  <div id="doctor-info-sheet" class="fixed inset-0 z-40 hidden">
-    <div class="absolute inset-0 bg-black/40" onclick="zkCloseDoctorInfo()"></div>
-    <div class="absolute bottom-0 left-0 w-full rounded-t-2xl bg-card p-5 pb-8">
-      <h2 id="di-title" class="font-heading text-lg font-bold">—</h2>
-      <p id="di-clinic" class="mt-0.5 text-xs text-muted-foreground">—</p>
-      <div class="mt-4 space-y-2.5">
-        <div class="rounded-theme border border-border bg-background px-3.5 py-2.5">
-          <p class="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">Telefon</p>
-          <p id="di-phone" class="mt-0.5 text-sm font-bold">—</p>
-        </div>
-        <div class="rounded-theme border border-border bg-background px-3.5 py-2.5">
-          <p class="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">E-posta</p>
-          <p id="di-email" class="mt-0.5 break-all text-sm font-bold">—</p>
-        </div>
-        <div class="rounded-theme border border-border bg-background px-3.5 py-2.5">
-          <p class="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">Adres</p>
-          <p id="di-address" class="mt-0.5 text-sm font-bold">—</p>
-        </div>
-        <div class="rounded-theme border border-border bg-background px-3.5 py-2.5">
-          <p class="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">Uygulama hesabı</p>
-          <p id="di-account" class="mt-0.5 text-sm font-bold">—</p>
-        </div>
-      </div>
-      <div id="di-password-box" class="mt-3 hidden rounded-theme border border-border bg-background p-3">
-        <p class="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Şifre sıfırla</p>
-        <p class="mt-1 text-[11px] leading-4 text-muted-foreground">Yeni şifreyi belirleyip doktora iletin. Doktorun e-posta ile sıfırlama yapmasına gerek kalmaz.</p>
-        <div class="mt-2.5 flex gap-2">
-          <input id="di-newpass" type="text" placeholder="Yeni şifre (en az 8 karakter)" class="h-11 min-w-0 flex-1 rounded-theme border border-border bg-input px-3 text-sm">
-          <button type="button" onclick="document.getElementById('di-newpass').value = zkGenPassword()" class="flex h-11 shrink-0 items-center justify-center rounded-theme border border-border bg-card px-3 text-xs font-bold text-primary">Üret</button>
-        </div>
-        <button id="di-pass-btn" onclick="zkResetDoctorPassword()" class="mt-2 flex h-11 w-full items-center justify-center rounded-theme border border-border bg-card text-xs font-bold text-primary">Şifreyi güncelle</button>
-        <p id="di-pass-ok" class="mt-2 hidden text-[11px] font-semibold text-success"></p>
-      </div>
-      <p id="di-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
-      <div id="di-decide" class="mt-4 hidden gap-2">
-        <button onclick="zkDecideFromInfo('approved')" class="flex h-12 flex-1 items-center justify-center gap-1.5 rounded-theme bg-primary text-sm font-bold text-primary-foreground">
-          <iconify-icon icon="lucide:check" class="text-base"></iconify-icon>Onayla
-        </button>
-        <button onclick="zkDecideFromInfo('rejected')" class="flex h-12 flex-1 items-center justify-center gap-1.5 rounded-theme border border-border bg-background text-sm font-bold text-destructive">Reddet</button>
-      </div>
-      <div id="di-actions" class="mt-4 hidden gap-2">
-        <button onclick="zkEditFromInfo()" class="flex h-12 flex-1 items-center justify-center gap-1.5 rounded-theme bg-primary text-sm font-bold text-primary-foreground">
-          <iconify-icon icon="lucide:pencil" class="text-base"></iconify-icon>Düzenle
-        </button>
-        <button onclick="zkDeleteDoctor()" class="flex h-12 flex-1 items-center justify-center gap-1.5 rounded-theme bg-destructive/10 text-sm font-bold text-destructive">
-          <iconify-icon icon="lucide:trash-2" class="text-base"></iconify-icon>Sil
-        </button>
-      </div>
-      <button onclick="zkCloseDoctorInfo()" class="mt-2 flex h-11 w-full items-center justify-center rounded-theme border border-border bg-background text-xs font-bold text-foreground">Kapat</button>
-    </div>
-  </div>
-
   <!-- Doktor hesabı açma sheet -->
   <div id="doctor-account-sheet" class="fixed inset-0 z-40 hidden">
     <div class="absolute inset-0 bg-black/40" onclick="zkCloseDoctorAccount()"></div>
@@ -269,17 +196,17 @@
       <div id="da-form">
         <p class="mt-1 text-xs text-muted-foreground">Doktor bu bilgilerle uygulamaya girip dijital çalışma formu ile sipariş gönderebilir.</p>
         <div class="mt-4 space-y-3">
+          <input id="da-email" type="email" placeholder="E-posta *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
           <div class="flex gap-2">
-            <input id="da-email" type="email" placeholder="E-posta *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+            <input id="da-password" type="text" placeholder="Şifre *" class="h-12 min-w-0 flex-1 rounded-theme border border-border bg-input px-3.5 text-sm">
+            <button type="button" onclick="document.getElementById('da-password').value = zkGenPassword()" class="flex h-12 w-12 items-center justify-center rounded-theme border border-border bg-background text-primary" aria-label="Şifre üret"><iconify-icon icon="lucide:refresh-cw" class="text-lg"></iconify-icon></button>
           </div>
-          <p class="text-[11px] leading-4 text-muted-foreground">Doktorun kendi e-posta adresi (gmail vb.) giriş adresi olur. Şifre otomatik üretilip bu adrese gönderilir; doktor sonra "Şifremi unuttum" ile kendisi değiştirebilir.</p>
-
         </div>
         <p id="da-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
         <button id="da-btn" onclick="zkSubmitDoctorAccount()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Hesabı Aç</button>
       </div>
       <div id="da-result" class="hidden">
-        <p id="da-result-note" class="mt-1 text-xs text-muted-foreground">Hesap oluşturuldu.</p>
+        <p class="mt-1 text-xs text-muted-foreground">Hesap oluşturuldu. Bu bilgileri doktora iletin — şifre yalnızca şimdi görünür.</p>
         <div class="mt-4 rounded-theme border border-border bg-background p-4">
           <p class="text-xs text-muted-foreground">E-posta</p>
           <p id="da-cred-email" class="mt-0.5 text-sm font-bold"></p>
@@ -347,21 +274,9 @@
         allDoctorsCache = all;
         var pending = all.filter(function (d) { return d.status === 'pending'; });
         var approved = all.filter(function (d) { return d.status === 'approved'; });
-        var rejected = all.filter(function (d) { return d.status === 'rejected'; });
 
-        // "Toplam kayıt" ekranda görünen kayıtları sayar (onaylı + onay
-        // bekleyen). Reddedilenler kendi bölümünde ayrıca sayılıyor —
-        // önceden toplama dahil oldukları için doktor listeden kalkınca
-        // sayı düşmüyormuş gibi görünüyordu.
-        document.getElementById('stat-total').textContent = approved.length + pending.length;
+        document.getElementById('stat-total').textContent = all.length;
         document.getElementById('stat-pending').textContent = pending.length;
-
-        var rSection = document.getElementById('rejected-section');
-        rSection.classList.toggle('hidden', !rejected.length || docReadOnly);
-        document.getElementById('stat-rejected').textContent = rejected.length;
-        if (rejected.length) {
-          document.getElementById('rejected-list').innerHTML = rejected.map(renderRejectedRow).join('');
-        }
 
         var pEl = document.getElementById('pending-list');
         pEl.innerHTML = pending.length ? pending.map(renderPendingCard).join('') :
@@ -373,55 +288,22 @@
       });
     }
 
-    /* Onay kuyruğundaki kartta tek satırlık bilgi; değer yoksa "belirtilmemiş"
-     * uyarısıyla gösterilir ki işveren eksiği onaydan önce fark etsin. */
-    function zkBilgiSatiri(icon, etiket, deger) {
-      var dolu = !!(deger && String(deger).trim());
-      return '<div class="flex items-start gap-2">' +
-        '<iconify-icon icon="' + icon + '" class="mt-0.5 text-sm ' + (dolu ? 'text-muted-foreground' : 'text-accent') + '"></iconify-icon>' +
-        '<div class="min-w-0"><p class="text-[10px] uppercase tracking-[0.1em] text-muted-foreground">' + etiket + '</p>' +
-        '<p class="text-xs ' + (dolu ? 'font-semibold text-card-foreground' : 'font-semibold text-accent') + '">' +
-        (dolu ? escapeHtml(deger) : 'belirtilmemiş') + '</p></div></div>';
-    }
-
     function renderPendingCard(d) {
       return '<article class="rounded-theme border border-border bg-card p-4">' +
         '<div class="flex items-start justify-between"><div class="flex items-start gap-3">' +
         '<div class="flex h-10 w-10 items-center justify-center rounded-theme bg-secondary text-secondary-foreground"><iconify-icon icon="lucide:user-round" class="text-lg"></iconify-icon></div>' +
         '<div><div class="flex items-center gap-2"><h3 class="font-heading text-sm font-bold">Dr. ' + escapeHtml(d.full_name) + '</h3>' +
         '<span class="rounded-full bg-accent/10 px-2 py-1 text-[10px] font-bold text-accent">Onay bekliyor</span></div>' +
-        '<p class="mt-1 text-xs text-muted-foreground">' + escapeHtml(d.clinic_name || 'Klinik belirtilmedi') + '</p></div></div></div>' +
-        // 2026-09-05: işveren onaylamadan önce kaydın içindeki bilgileri
-        // görebilmeli — kartta özet, detay için "Bilgileri gör".
-        '<div class="mt-3 space-y-1.5 rounded-theme border border-border bg-background p-3">' +
-        zkBilgiSatiri('lucide:phone', 'Telefon', d.phone) +
-        zkBilgiSatiri('lucide:mail', 'E-posta', d.email) +
-        zkBilgiSatiri('lucide:map-pin', 'Adres', d.address) +
-        zkBilgiSatiri('lucide:building-2', 'Sorumlu laboratuvar', d.laboratories ? d.laboratories.name : null) +
-        zkBilgiSatiri('lucide:calendar', 'Başvuru', d.created_at ? new Date(d.created_at).toLocaleDateString('tr-TR') : null) +
-        '</div>' +
-        '<button onclick="zkOpenDoctorInfo(\'' + d.id + '\')" class="mt-2 flex h-10 w-full items-center justify-center gap-1.5 rounded-theme border border-border bg-background text-xs font-bold text-primary"><iconify-icon icon="lucide:info" class="text-sm"></iconify-icon>Bilgileri gör / düzenle</button>' +
-        '<div class="mt-2 grid grid-cols-2 gap-2">' +
+        '<p class="mt-1 text-xs text-muted-foreground">' + escapeHtml(d.clinic_name || 'Klinik belirtilmedi') + (d.phone ? ' · ' + escapeHtml(d.phone) : '') + '</p></div></div></div>' +
+        '<div class="mt-3 grid grid-cols-2 gap-2">' +
         '<button onclick="zkDecide(\'' + d.id + '\',\'approved\')" class="flex h-10 items-center justify-center gap-1.5 rounded-theme bg-primary text-xs font-bold text-primary-foreground"><iconify-icon icon="lucide:check" class="text-sm"></iconify-icon>Onayla</button>' +
         '<button onclick="zkDecide(\'' + d.id + '\',\'rejected\')" class="flex h-10 items-center justify-center gap-1.5 rounded-theme border border-border bg-background text-xs font-bold text-destructive">Reddet</button>' +
         '</div></article>';
     }
 
-    /* Reddedilen kayıt: geri alınabilir (onayla) ya da kalıcı silinebilir.
-     * Bilgi kartı buradan da açılır. */
-    function renderRejectedRow(d) {
-      return '<div class="flex items-center gap-3 rounded-theme border border-border bg-card p-3 opacity-80">' +
-        '<div class="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">' + escapeHtml((d.full_name || '?').charAt(0)) + '</div>' +
-        '<div class="min-w-0 flex-1"><p class="truncate text-sm font-bold">Dr. ' + escapeHtml(d.full_name) + '</p>' +
-        '<p class="truncate text-[11px] text-muted-foreground">' + escapeHtml(d.clinic_name || '—') + (d.phone ? ' · ' + escapeHtml(d.phone) : '') + '</p></div>' +
-        '<button onclick="zkOpenDoctorInfo(\'' + d.id + '\')" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Bilgileri gör"><iconify-icon icon="lucide:info" class="text-sm"></iconify-icon></button>' +
-        '<button onclick="zkDecide(\'' + d.id + '\',\'approved\')" class="flex h-8 items-center justify-center rounded-lg bg-muted px-2.5 text-[11px] font-bold text-primary">Geri al</button>' +
-        '</div>';
-    }
-
     function renderApprovedRow(d) {
       if (docReadOnly) {
-        var contact = [d.phone, d.email, d.address].filter(Boolean);
+        var contact = [d.phone, d.email].filter(Boolean);
         return '<div class="flex items-center gap-3 rounded-theme border border-border bg-card p-3">' +
           '<div class="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground">' + escapeHtml((d.full_name || '?').charAt(0)) + '</div>' +
           '<div class="min-w-0 flex-1"><p class="truncate text-sm font-bold">Dr. ' + escapeHtml(d.full_name) + '</p>' +
@@ -437,143 +319,19 @@
       return '<div class="flex items-center gap-3 rounded-theme border border-border bg-card p-3">' +
         '<div class="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground">' + escapeHtml((d.full_name || '?').charAt(0)) + '</div>' +
         '<div class="min-w-0 flex-1"><p class="truncate text-sm font-bold">Dr. ' + escapeHtml(d.full_name) + '</p>' +
-        '<p class="truncate text-xs text-muted-foreground">' + escapeHtml(d.clinic_name || '—') + '</p>' +
-        (d.address ? '<p class="truncate text-[11px] text-muted-foreground">' + escapeHtml(d.address) + '</p>' : '') +
-        // Telefon/e-posta/adres artık zorunlu — eski kayıtlarda eksik olabilir,
-        // yönetici tamamlasın diye kartta işaretliyoruz.
-        (zkValidateDoctorFields(d.full_name, d.phone, d.email, d.address)
-          ? '<p class="mt-0.5 truncate text-[11px] font-semibold text-accent">İletişim bilgileri eksik — düzenleyin</p>' : '') +
-        '</div>' +
-        '<button onclick="zkOpenDoctorInfo(\'' + d.id + '\')" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Bilgileri gör" title="Bilgileri gör"><iconify-icon icon="lucide:info" class="text-sm"></iconify-icon></button>' +
+        '<p class="truncate text-xs text-muted-foreground">' + escapeHtml(d.clinic_name || '—') + '</p></div>' +
+        '<button onclick="zkOpenEditDoctor(\'' + d.id + '\')" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Bilgileri düzenle" title="Bilgileri düzenle"><iconify-icon icon="lucide:pencil" class="text-sm"></iconify-icon></button>' +
         accountBtn +
         '<button onclick="zkOpenStatement(\'' + d.id + '\',\'' + escapeHtml(d.full_name).replace(/'/g, "\\'") + '\')" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-primary" aria-label="Ekstre gönder"><iconify-icon icon="lucide:send" class="text-sm"></iconify-icon></button>' +
         '<span class="rounded-full bg-success/10 px-2 py-1 text-[10px] font-bold text-success">Onaylı</span></div>';
     }
 
-    // ---- Doktor bilgi kartı (düzenlemeden önce görüntüleme) ----
-    var infoDoctorId = null;
-
-    function zkOpenDoctorInfo(id) {
-      var d = null;
-      allDoctorsCache.forEach(function (x) { if (x.id === id) d = x; });
-      if (!d) return;
-      infoDoctorId = id;
-      document.getElementById('di-title').textContent = 'Dr. ' + (d.full_name || '—');
-      document.getElementById('di-phone').textContent = d.phone || '—';
-      document.getElementById('di-email').textContent = d.email || '—';
-      document.getElementById('di-address').textContent = d.address || '—';
-      document.getElementById('di-account').textContent = d.user_id ? 'Var — doktor uygulamaya girebiliyor' : 'Yok';
-      // Onay bekleyen doktorda karar düğmeleri de burada olsun ki işveren
-      // bilgileri okuduğu yerden onaylayıp reddedebilsin.
-      var karar = document.getElementById('di-decide');
-      // Reddedilen kayıt da buradan geri alınabilsin.
-      var bekliyor = (d.status === 'pending' || d.status === 'rejected') && !docReadOnly;
-      karar.classList.toggle('hidden', !bekliyor);
-      karar.classList.toggle('flex', bekliyor);
-      document.getElementById('di-clinic').textContent =
-        (d.clinic_name || 'Klinik belirtilmedi')
-        + (d.status === 'pending' ? ' · Onay bekliyor' : '')
-        + (d.status === 'rejected' ? ' · Reddedildi' : '');
-      document.getElementById('di-error').classList.add('hidden');
-      // Şifre sıfırlama yalnızca uygulama hesabı olan doktorlarda ve
-      // yalnızca laboratuvar sahibinde anlamlı.
-      document.getElementById('di-password-box').classList.toggle('hidden', docReadOnly || !d.user_id);
-      document.getElementById('di-newpass').value = '';
-      document.getElementById('di-pass-ok').classList.add('hidden');
-      // Düzenleme ve silme yalnızca laboratuvar sahibinde (docReadOnly personel).
-      var actions = document.getElementById('di-actions');
-      actions.classList.toggle('hidden', docReadOnly);
-      actions.classList.toggle('flex', !docReadOnly);
-      document.getElementById('doctor-info-sheet').classList.remove('hidden');
-    }
-    function zkCloseDoctorInfo() { document.getElementById('doctor-info-sheet').classList.add('hidden'); }
-
-    function zkDecideFromInfo(verdict) {
-      var id = infoDoctorId;
-      zkCloseDoctorInfo();
-      zkDecide(id, verdict);
-    }
-
-    function zkEditFromInfo() {
-      var id = infoDoctorId;
-      zkCloseDoctorInfo();
-      zkOpenEditDoctor(id);
-    }
-
-    // Doktoru sil — işi olan doktor jobs.doctor_id kısıtıyla korunur.
-    function zkDeleteDoctor() {
-      var d = null;
-      allDoctorsCache.forEach(function (x) { if (x.id === infoDoctorId) d = x; });
-      if (!d) return;
-      var errEl = document.getElementById('di-error');
-      errEl.classList.add('hidden');
-      if (!confirm('Dr. ' + d.full_name + ' kalıcı olarak silinecek. Devam edilsin mi?')) return;
-
-      ZirkonikData.deleteDoctor(infoDoctorId).then(function (res) {
-        if (res.error) throw res.error;
-        if (!res.data || !res.data.length) {
-          errEl.textContent = 'Silinemedi: bu işlem için laboratuvar sahibi yetkisi gerekiyor.';
-          errEl.classList.remove('hidden');
-          return;
-        }
-        zkCloseDoctorInfo();
-        zkToast('Doktor silindi.');
-        loadDoctors();
-      }).catch(function (err) {
-        var msg = String(err.message || '');
-        errEl.textContent = /foreign key|violates|ihlal/i.test(msg)
-          ? 'Bu doktor silinemez: adına açılmış iş, sipariş veya fatura var. Önce onları kaldırın.'
-          : 'Silinemedi: ' + ZirkonikAuth.errorText(err);
-        errEl.classList.remove('hidden');
-      });
-    }
-
-    /* Laboratuvar sahibi doktorun şifresini kendisi yeniler — doktorun giriş
-     * e-postası çoğu zaman laboratuvarın verdiği bir adres olduğu için e-posta
-     * ile sıfırlama akışı onlarda işlemiyor (2026-09-05 kullanıcı kararı). */
-    function zkResetDoctorPassword() {
-      var d = null;
-      allDoctorsCache.forEach(function (x) { if (x.id === infoDoctorId) d = x; });
-      if (!d || !d.user_id) return;
-      var errEl = document.getElementById('di-error');
-      var okEl = document.getElementById('di-pass-ok');
-      var btn = document.getElementById('di-pass-btn');
-      errEl.classList.add('hidden');
-      okEl.classList.add('hidden');
-
-      var pass = document.getElementById('di-newpass').value.trim();
-      if (pass.length < 8) {
-        errEl.textContent = 'Şifre en az 8 karakter olmalı.';
-        errEl.classList.remove('hidden');
-        return;
-      }
-
-      btn.disabled = true;
-      ZirkonikData.resetUserPassword(d.user_id, pass).then(function (res) {
-        btn.disabled = false;
-        var err = res.error || (res.data && res.data.error);
-        if (err) {
-          errEl.textContent = 'Şifre güncellenemedi: ' + ZirkonikAuth.errorText(err);
-          errEl.classList.remove('hidden');
-          return;
-        }
-        okEl.textContent = 'Şifre güncellendi. Doktora iletin: ' + pass;
-        okEl.classList.remove('hidden');
-      }).catch(function (e) {
-        btn.disabled = false;
-        errEl.textContent = 'Şifre güncellenemedi: ' + ZirkonikAuth.errorText(e);
-        errEl.classList.remove('hidden');
-      });
-    }
-
     var daDoctorId = null;
-    var daDoctorName = '';
     function zkOpenDoctorAccount(id, name, email) {
       daDoctorId = id;
       document.getElementById('da-title').textContent = 'Dr. ' + name + ' için hesap aç';
-      // Giriş adresi doktorun kendi e-postasıdır (kayıtta zorunlu alan).
       document.getElementById('da-email').value = email || '';
-      daDoctorName = name;
+      document.getElementById('da-password').value = zkGenPassword();
       document.getElementById('da-result').classList.add('hidden');
       document.getElementById('da-form').classList.remove('hidden');
       document.getElementById('doctor-account-sheet').classList.remove('hidden');
@@ -591,32 +349,25 @@
       var errEl = document.getElementById('da-error');
       errEl.classList.add('hidden');
       var email = document.getElementById('da-email').value.trim();
-      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-        errEl.textContent = 'Geçerli bir e-posta adresi girin — giriş bilgileri bu adrese gönderilecek.';
+      var password = document.getElementById('da-password').value;
+      if (!email || password.length < 6) {
+        errEl.textContent = 'Geçerli bir e-posta ve en az 6 karakterli şifre gerekli.';
         errEl.classList.remove('hidden');
         return;
       }
-      // Şifre otomatik üretilir ve doktorun e-postasına gönderilir.
-      var password = zkGenPassword() + '!';
       var btn = document.getElementById('da-btn');
       btn.disabled = true;
       ZirkonikData.createDoctorAccount({ doctor_id: daDoctorId, email: email, password: password }).then(function (res) {
         btn.disabled = false;
         var err = res.error || (res.data && res.data.error);
         if (err) {
-          errEl.textContent = 'Hesap açılamadı: ' + ZirkonikAuth.errorText(err);
+          errEl.textContent = 'Hesap açılamadı: ' + (err.message || err);
           errEl.classList.remove('hidden');
           return;
         }
-        var out = res.data || {};
         document.getElementById('da-form').classList.add('hidden');
         document.getElementById('da-cred-email').textContent = email;
-        // E-posta gittiyse şifreyi ekranda tutmaya gerek yok; gitmediyse
-        // laboratuvar elden iletebilsin diye gösteriyoruz.
-        document.getElementById('da-cred-pass').textContent = out.email_sent ? '(e-posta ile gönderildi)' : password;
-        document.getElementById('da-result-note').textContent = out.email_sent
-          ? 'Giriş bilgileri ' + email + ' adresine gönderildi. Doktor şifresini "Şifremi unuttum" ile kendisi değiştirebilir.'
-          : 'E-posta gönderilemedi (' + (out.email_error || 'sebep bilinmiyor') + '). Şifreyi doktora siz iletin — yalnızca şimdi görünür.';
+        document.getElementById('da-cred-pass').textContent = password;
         document.getElementById('da-result').classList.remove('hidden');
         loadDoctors();
       });
@@ -643,7 +394,6 @@
       document.getElementById('ed-clinic').value = d.clinic_name || '';
       document.getElementById('ed-phone').value = d.phone || '';
       document.getElementById('ed-email').value = d.email || '';
-      document.getElementById('ed-address').value = d.address || '';
       document.getElementById('ed-error').classList.add('hidden');
       document.getElementById('edit-doctor-sheet').classList.remove('hidden');
     }
@@ -653,34 +403,18 @@
       var errEl = document.getElementById('ed-error');
       errEl.classList.add('hidden');
       var name = document.getElementById('ed-name').value.trim();
-      var phone = document.getElementById('ed-phone').value.trim();
-      var email = document.getElementById('ed-email').value.trim();
-      var address = document.getElementById('ed-address').value.trim();
-      var invalid = zkValidateDoctorFields(name, phone, email, address);
-      if (invalid) { errEl.textContent = invalid; errEl.classList.remove('hidden'); return; }
+      if (!name) { errEl.textContent = 'Ad Soyad zorunludur.'; errEl.classList.remove('hidden'); return; }
       ZirkonikData.updateDoctor(editDoctorId, {
         full_name: name,
         clinic_name: document.getElementById('ed-clinic').value.trim() || null,
-        phone: phone,
-        email: email,
-        address: address
+        phone: document.getElementById('ed-phone').value.trim() || null,
+        email: document.getElementById('ed-email').value.trim() || null
       }).then(function (res) {
-        if (res.error) { errEl.textContent = 'Kaydedilemedi: ' + ZirkonikAuth.errorText(res.error); errEl.classList.remove('hidden'); return; }
+        if (res.error) { errEl.textContent = 'Kaydedilemedi: ' + res.error.message; errEl.classList.remove('hidden'); return; }
         zkCloseEditDoctor();
         zkToast('Doktor bilgileri güncellendi.');
         loadDoctors();
       });
-    }
-
-    /* Doktor iletişim bilgileri zorunlu: ekstre/iş kağıdı e-postayla gidiyor,
-     * teslimat ve arama için telefon/adres gerekiyor (2026-09-05). */
-    function zkValidateDoctorFields(name, phone, email, address) {
-      if (!name) return 'Ad Soyad zorunludur.';
-      if (!phone) return 'Telefon zorunludur.';
-      if (!email) return 'E-posta zorunludur — ekstre ve iş kağıdı bu adrese gönderiliyor.';
-      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return 'E-posta adresi geçersiz görünüyor.';
-      if (!address) return 'Adres zorunludur.';
-      return null;
     }
 
     function zkOpenAddDoctor() { document.getElementById('add-doctor-sheet').classList.remove('hidden'); }
@@ -690,12 +424,8 @@
       var errEl = document.getElementById('nd-error');
       errEl.classList.add('hidden');
       var name = document.getElementById('nd-name').value.trim();
-      var phone = document.getElementById('nd-phone').value.trim();
-      var email = document.getElementById('nd-email').value.trim();
-      var address = document.getElementById('nd-address').value.trim();
-      var invalid = zkValidateDoctorFields(name, phone, email, address);
-      if (invalid) {
-        errEl.textContent = invalid;
+      if (!name) {
+        errEl.textContent = 'Ad Soyad zorunludur.';
         errEl.classList.remove('hidden');
         return;
       }
@@ -704,39 +434,18 @@
           organization_id: me.organization_id,
           full_name: name,
           clinic_name: document.getElementById('nd-clinic').value.trim() || null,
-          phone: phone,
-          email: email,
-          address: address,
+          phone: document.getElementById('nd-phone').value.trim() || null,
+          email: document.getElementById('nd-email').value.trim() || null,
           primary_laboratory_id: document.getElementById('nd-lab').value || null
         });
       }).then(function (res) {
         if (res.error) throw res.error;
-        // Giriş bilgileri doldurulduysa aynı adımda uygulama hesabını da aç.
-        if (!document.getElementById('nd-open-account').checked) return { skipped: true };
-        // Giriş adresi doktorun kendi e-postası; şifre otomatik üretilip
-        // o adrese gönderilir.
-        var loginPass = zkGenPassword() + '!';
-        return ZirkonikData.createDoctorAccount({
-          doctor_id: res.data.id, email: email, password: loginPass
-        }).then(function (accRes) {
-          var accErr = accRes.error || (accRes.data && accRes.data.error);
-          if (accErr) throw (accErr.message ? accErr : new Error(String(accErr)));
-          var out = accRes.data || {};
-          return { account: true, email: email, password: loginPass, sent: !!out.email_sent };
-        });
-      }).then(function (outcome) {
         zkCloseAddDoctor();
-        zkToast(outcome && outcome.account
-          ? (outcome.sent
-              ? 'Doktor eklendi ve giriş bilgileri ' + outcome.email + ' adresine gönderildi.'
-              : 'Doktor eklendi. E-posta gönderilemedi — şifreyi siz iletin: ' + outcome.password)
-          : 'Doktor eklendi, onay kuyruğunda.');
+        zkToast('Doktor eklendi, onay kuyruğunda.');
         document.getElementById('nd-name').value = '';
         document.getElementById('nd-clinic').value = '';
         document.getElementById('nd-phone').value = '';
         document.getElementById('nd-email').value = '';
-        document.getElementById('nd-address').value = '';
-        document.getElementById('nd-open-account').checked = false;
         loadDoctors();
       }).catch(function (err) {
         errEl.textContent = 'Kaydedilemedi: ' + err.message;
@@ -772,9 +481,7 @@
     });
 
     // ---- Ekstre / Rapor Gönder ----
-        // 2026-09-05: tüm tutarlar USD üzerinden gösteriliyor (fiyat listesi de
-    // dolar cinsinden tutuluyor). Sayı biçimi Türkçe ayraçlarla kalır: $1.234,00
-    var USD = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
+    var TL = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 2 });
     var selectedFormat = 'pdf';
     var statementDoctorId = null;
     var statementDoctorName = '';
@@ -828,9 +535,9 @@
 
       var rows = invoices.map(function (inv) {
         var title = inv.jobs ? (inv.jobs.job_number + ' — ' + (inv.jobs.restoration_type || '')) : 'İş kaydı';
-        return [(inv.issued_at || '').slice(0, 10), 'Fatura', title, '-' + USD.format(inv.amount)];
+        return [(inv.issued_at || '').slice(0, 10), 'Fatura', title, '-' + TL.format(inv.amount)];
       }).concat(payments.map(function (p) {
-        return [(p.received_at || '').slice(0, 10), 'Tahsilat', p.method || '', '+' + USD.format(p.amount)];
+        return [(p.received_at || '').slice(0, 10), 'Tahsilat', p.method || '', '+' + TL.format(p.amount)];
       }));
 
       doc.autoTable({
@@ -864,8 +571,7 @@
       var client = ZirkonikAuth.client();
 
       Promise.all([
-        // İptal edilen fatura ekstreye girmez — doktordan tahsil edilmeyecek.
-        client.from('invoices').select('amount, issued_at, jobs(job_number, restoration_type)').eq('doctor_id', statementDoctorId).neq('status', 'cancelled').order('issued_at'),
+        client.from('invoices').select('amount, issued_at, jobs(job_number, restoration_type)').eq('doctor_id', statementDoctorId).order('issued_at'),
         client.from('payments').select('amount, method, received_at').eq('doctor_id', statementDoctorId).order('received_at'),
         client.from('doctors').select('email').eq('id', statementDoctorId).single()
       ]).then(function (results) {
@@ -883,12 +589,23 @@
         btn.innerHTML = '<iconify-icon icon="lucide:loader-2" class="text-sm animate-spin"></iconify-icon> Gönderiliyor...';
 
         return blobToBase64(file.blob).then(function (base64) {
-          // invokeFunction, fonksiyonun kendi hata açıklamasını yüzeye çıkarır.
-          return ZirkonikData.invokeFunction('send-doctor-statement', {
-            doctor_id: statementDoctorId, attachment_base64: base64, attachment_filename: file.filename
+          return client.functions.invoke('send-doctor-statement', {
+            body: { doctor_id: statementDoctorId, attachment_base64: base64, attachment_filename: file.filename }
           });
         }).then(function (res) {
-          if (res.error) throw res.error;
+          if (res.error) {
+            // Supabase JS, edge function 2xx dışı döndüğünde res.error'ı genel
+            // bir "non-2xx status code" mesajıyla dolduruyor — asıl (bizim
+            // yazdığımız Türkçe) hata mesajı yanıt gövdesinde (error.context)
+            // kalıyor, açıkça okunmazsa kullanıcı hiçbir zaman görmüyordu.
+            var ctx = res.error.context;
+            if (ctx && typeof ctx.json === 'function') {
+              return ctx.json().then(function (body) {
+                throw new Error((body && body.error) || res.error.message);
+              }, function () { throw res.error; });
+            }
+            throw res.error;
+          }
           if (res.data && res.data.error) throw new Error(res.data.error);
           zkCloseStatement();
           zkToast('Ekstre ' + doctor.email + ' adresine gönderildi.');

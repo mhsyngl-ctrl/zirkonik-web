@@ -171,7 +171,7 @@
     // Devre dışı bırakılmış kullanıcı: RLS zaten tüm veriyi reddeder (asıl
     // güvenlik orada) ama bunu görmeden boş/kırık ekranlarla karşılaşmasın —
     // açık bir mesajla oturumu kapat.
-    if (me.is_active === false) {
+    if (me.status === 'rejected') {
       try { localStorage.removeItem('zk-guard'); } catch (e) {}
       var box = document.createElement('div');
       box.id = 'zk-deactivated-overlay';

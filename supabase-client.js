@@ -14,6 +14,27 @@
   var _client = null;
   var _meCache = null;
 
+  /** Edge Function 2xx dışı döndüğünde supabase-js `error`'ı genel bir
+   *  "non-2xx status code" mesajıyla dolduruyor — bizim yazdığımız asıl
+   *  Türkçe hata metni yanıt gövdesinde (error.context) kalıyor, açıkça
+   *  okunmazsa kullanıcı hiçbir zaman görmüyor (2026-09-10'da doktor
+   *  ekstresi gönderiminde fark edildi — muhtemelen tüm fonksiyon çağrıları
+   *  bu sorunu paylaşıyordu). functions.invoke() çağrılarını bu sarmalayıcı
+   *  içinden geçirmek {data,error} şeklini korur, yalnız error.message'ı
+   *  gerçek mesaja çevirir. */
+  function unwrapFnResult(promise) {
+    return promise.then(function (res) {
+      if (!res.error) return res;
+      var ctx = res.error.context;
+      if (ctx && typeof ctx.json === 'function') {
+        return ctx.json().then(function (body) {
+          return { data: res.data, error: new Error((body && body.error) || res.error.message) };
+        }, function () { return res; });
+      }
+      return res;
+    });
+  }
+
   function client() {
     if (!_client) {
       if (typeof supabase === 'undefined') {
@@ -182,21 +203,18 @@
     updatePermissions: function (userId, perms) {
       return client().from('user_permissions').update(perms).eq('user_id', userId);
     },
-    // "Silme" yerine devre dışı bırakma: geçmiş iş/kasa/izin kayıtlarındaki
-    // adı korunur (app_users.id onlarca tabloya referans veriyor), yalnız
-    // erişimi kapatılır. RLS (is_org_admin vb.) is_active=false'u zaten
-    // reddeder; burada ayrıca oda/lab erişimini de açıkça temizliyoruz.
-    deactivateStaff: function (userId) {
-      return client().from('app_users').update({ is_active: false }).eq('id', userId).then(function (res) {
-        if (res.error) return res;
-        return Promise.all([
-          client().from('user_room_access').delete().eq('user_id', userId),
-          client().from('user_lab_access').delete().eq('user_id', userId)
-        ]).then(function () { return res; });
-      });
+    // "Silme" yerine akıllı çıkarma (delete-staff-account edge function):
+    // hiç geçmişi (iş/kasa/hakediş/stok...) olmayan biri tamamen silinir;
+    // geçmişi olan biri Auth'ta gerçekten banlanır + status='rejected' olur
+    // (geçmiş kayıtlardaki adı korunur). restore:true ile geri açılır.
+    removeStaff: function (userId) {
+      return unwrapFnResult(client().functions.invoke('delete-staff-account', { body: { user_id: userId } }));
     },
-    reactivateStaff: function (userId) {
-      return client().from('app_users').update({ is_active: true }).eq('id', userId);
+    restoreStaff: function (userId) {
+      return unwrapFnResult(client().functions.invoke('delete-staff-account', { body: { user_id: userId, restore: true } }));
+    },
+    resetStaffPassword: function (userId, password) {
+      return unwrapFnResult(client().functions.invoke('reset-user-password', { body: { user_id: userId, password: password } }));
     },
     approveStaff: function (userId) {
       return client().from('app_users').update({ status: 'approved', approved_at: new Date().toISOString() }).eq('id', userId);
@@ -303,7 +321,7 @@
 
     // ---- Doktor siparişleri (dijital çalışma formu) ----
     createDoctorAccount: function (fields) {
-      return client().functions.invoke('create-doctor-account', { body: fields });
+      return unwrapFnResult(client().functions.invoke('create-doctor-account', { body: fields }));
     },
     myDoctorRecord: function () {
       return client().auth.getUser().then(function (r) {
@@ -518,7 +536,7 @@
     },
 
     createStaffAccount: function (fields) {
-      return client().functions.invoke('create-staff-account', { body: fields });
+      return unwrapFnResult(client().functions.invoke('create-staff-account', { body: fields }));
     },
     listUserLabAccess: function (userId) {
       return client().from('user_lab_access').select('laboratory_id').eq('user_id', userId);
@@ -541,9 +559,9 @@
 
     // ---- İş fişi (yazdır/paylaş + doktora e-posta) ----
     sendJobSlip: function (jobId, attachmentBase64, attachmentFilename) {
-      return client().functions.invoke('send-job-slip', {
+      return unwrapFnResult(client().functions.invoke('send-job-slip', {
         body: { job_id: jobId, attachment_base64: attachmentBase64, attachment_filename: attachmentFilename }
-      });
+      }));
     }
   };
 

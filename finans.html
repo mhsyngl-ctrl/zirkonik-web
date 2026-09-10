@@ -546,17 +546,28 @@
         });
       }
 
-      ZirkonikData.listStaffEarnings().then(function (r) {
-        var rows = r.data || [];
-        var total = rows.reduce(function (s, x) { return s + Number(x.amount); }, 0);
-        document.getElementById('stat-earnings-total').textContent = TL.format(total);
+      Promise.all([
+        ZirkonikData.listStaffEarnings(),
+        client.from('app_users').select('id, full_name, monthly_salary').eq('compensation_type', 'maas').eq('status', 'approved')
+      ]).then(function (res) {
+        var rows = res[0].data || [];
+        var salaried = res[1].data || [];
+        var earningsTotal = rows.reduce(function (s, x) { return s + Number(x.amount); }, 0);
+        var salaryTotal = salaried.reduce(function (s, x) { return s + Number(x.monthly_salary || 0); }, 0);
+        document.getElementById('stat-earnings-total').textContent = TL.format(earningsTotal + salaryTotal);
         var el = document.getElementById('earnings-list');
-        if (!rows.length) { el.innerHTML = '<p class="p-4 text-xs text-muted-foreground">Henüz hakediş kaydı yok.</p>'; return; }
-        el.innerHTML = rows.slice(0, 10).map(function (e, i) {
-          return '<div class="flex items-center justify-between px-4 py-3' + (i < Math.min(rows.length,10) - 1 ? ' border-b border-border' : '') + '">' +
-            '<span class="text-xs font-semibold text-muted-foreground">' + escapeHtml(e.app_users ? e.app_users.full_name : '') + '</span>' +
+        var salaryRows = salaried.map(function (s) {
+          return '<div class="flex items-center justify-between px-4 py-3">' +
+            '<span class="text-xs font-semibold text-muted-foreground">' + escapeHtml(s.full_name) + ' <span class="text-[10px] font-bold text-primary">· Maaşlı</span></span>' +
+            '<span class="text-xs font-bold tabular-nums">' + TL.format(s.monthly_salary) + '/ay</span></div>';
+        });
+        var earningsRows = rows.slice(0, 10).map(function (e) {
+          return '<div class="flex items-center justify-between px-4 py-3">' +
+            '<span class="text-xs font-semibold text-muted-foreground">' + escapeHtml(e.app_users ? e.app_users.full_name : '') + ' <span class="text-[10px] font-bold text-accent">· Diş başı</span></span>' +
             '<span class="text-xs font-bold tabular-nums">' + TL.format(e.amount) + '</span></div>';
-        }).join('');
+        });
+        var all = salaryRows.concat(earningsRows);
+        el.innerHTML = all.length ? '<div class="divide-y divide-border">' + all.join('') + '</div>' : '<p class="p-4 text-xs text-muted-foreground">Henüz hakediş/maaş kaydı yok.</p>';
       });
 
       loadHandovers();
