@@ -30,95 +30,8 @@
     return _client;
   }
 
-  /* Supabase hata mesajları İngilizce gelir (auth katmanı yerelleştirilmiyor).
-   * Kullanıcıya ham mesaj göstermek yerine burada Türkçeye çeviriyoruz —
-   * özellikle "leaked password protection" uyarısı, yeni laboratuvar
-   * kaydında en sık karşılaşılan hata. Eşleşme önce Supabase hata koduna
-   * (err.code), sonra mesaj metnine bakar; tanınmayan hata olduğu gibi
-   * gösterilir ki gerçek sorun kaybolmasın. */
-  var ERROR_CODES = {
-    weak_password: 'Bu şifre çok yaygın kullanıldığı için kabul edilmiyor. Daha zor bir şifre seçin: en az 8 karakter, büyük-küçük harf, rakam ve sembol karışımı olsun (kayıt ekranındaki "Şifre öner" düğmesi güvenli bir şifre üretir).',
-    invalid_credentials: 'E-posta veya şifre hatalı. Lütfen kontrol edip tekrar deneyin.',
-    email_not_confirmed: 'E-posta adresiniz henüz doğrulanmadı. Gelen kutunuzdaki (ve spam klasörünüzdeki) onay bağlantısına tıklayın.',
-    user_already_exists: 'Bu e-posta adresiyle zaten bir hesap var. Giriş yapmayı ya da "Şifremi unuttum" adımını deneyin.',
-    email_exists: 'Bu e-posta adresiyle zaten bir hesap var. Giriş yapmayı ya da "Şifremi unuttum" adımını deneyin.',
-    email_address_invalid: 'E-posta adresi geçersiz görünüyor. Yazımını kontrol edin.',
-    validation_failed: 'Girdiğiniz bilgiler geçersiz. Alanları kontrol edip tekrar deneyin.',
-    same_password: 'Yeni şifre eskisinden farklı olmalı.',
-    otp_expired: 'Bağlantının süresi dolmuş. Yeni bir sıfırlama bağlantısı isteyin.',
-    over_request_rate_limit: 'Çok fazla deneme yapıldı. Lütfen bir dakika bekleyip tekrar deneyin.',
-    over_email_send_rate_limit: 'Kısa sürede çok fazla e-posta istendi. Lütfen birkaç dakika sonra tekrar deneyin.',
-    signup_disabled: 'Yeni kayıtlar şu anda kapalı. Laboratuvar yöneticinizle iletişime geçin.',
-    user_not_found: 'Bu e-posta ile kayıtlı bir kullanıcı bulunamadı.',
-    session_expired: 'Oturumunuzun süresi doldu. Lütfen tekrar giriş yapın.'
-  };
-
-  // Kod gelmeyen (eski sürüm / edge function üzerinden aktarılan) hatalar
-  // için mesaj metnine göre eşleştirme. Sıra önemli: ilk eşleşen kazanır.
-  var ERROR_PATTERNS = [
-    ['password is known to be weak', ERROR_CODES.weak_password],
-    ['password is too weak', ERROR_CODES.weak_password],
-    ['pwned', ERROR_CODES.weak_password],
-    ['password should be at least', 'Şifre çok kısa. En az 6 karakter olmalı.'],
-    ['password should contain', 'Şifre yeterince güçlü değil: büyük-küçük harf, rakam ve sembol içermeli.'],
-    ['invalid login credentials', ERROR_CODES.invalid_credentials],
-    ['email not confirmed', ERROR_CODES.email_not_confirmed],
-    ['already registered', ERROR_CODES.user_already_exists],
-    ['already been registered', ERROR_CODES.user_already_exists],
-    ['already exists', ERROR_CODES.user_already_exists],
-    ['unable to validate email address', ERROR_CODES.email_address_invalid],
-    ['invalid email', ERROR_CODES.email_address_invalid],
-    ['new password should be different', ERROR_CODES.same_password],
-    ['token has expired', ERROR_CODES.otp_expired],
-    ['is invalid or has expired', ERROR_CODES.otp_expired],
-    ['for security purposes', 'Güvenlik nedeniyle kısa bir süre beklemeniz gerekiyor. Birkaç saniye sonra tekrar deneyin.'],
-    ['rate limit', ERROR_CODES.over_request_rate_limit],
-    ['signups not allowed', ERROR_CODES.signup_disabled],
-    ['user not found', ERROR_CODES.user_not_found],
-    ['failed to fetch', 'Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.'],
-    ['network', 'Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.'],
-    ['load failed', 'Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.']
-  ];
-
-  /** Supabase hatasını (ya da düz Error'u) Türkçe, kullanıcıya gösterilebilir
-   *  metne çevirir. Tanınmayan hatalarda orijinal mesaj döner. */
-  function errorText(err) {
-    if (!err) return 'Bilinmeyen bir hata oluştu.';
-    var msg = (typeof err === 'string') ? err : (err.message || err.error_description || err.error || '');
-    var code = (typeof err === 'object' && err) ? (err.code || err.error_code || '') : '';
-    if (code && ERROR_CODES[code]) return ERROR_CODES[code];
-    var lower = String(msg).toLowerCase();
-    for (var i = 0; i < ERROR_PATTERNS.length; i++) {
-      if (lower.indexOf(ERROR_PATTERNS[i][0]) !== -1) return ERROR_PATTERNS[i][1];
-    }
-    return msg || 'Bilinmeyen bir hata oluştu.';
-  }
-
-  /* Edge function çağrılarında supabase-js, 2xx dışı yanıtlarda yalnızca
-   * "Edge Function returned a non-2xx status code" diyor; fonksiyonun kendi
-   * açıklaması (ör. "Doktorun e-posta adresi kayıtlı değil", Resend'in
-   * reddetme sebebi) yanıt gövdesinde kalıp kayboluyordu. Burada gövdeyi
-   * okuyup gerçek mesajı hataya taşıyoruz (2026-09-05). */
-  function invokeFn(name, body) {
-    return client().functions.invoke(name, { body: body }).then(function (res) {
-      if (!res.error) return res;
-      var ctx = res.error.context;
-      if (ctx && typeof ctx.json === 'function') {
-        return ctx.json().then(function (payload) {
-          var msg = payload && (payload.error || payload.message);
-          if (payload && payload.detail) msg = (msg || '') + ' — ' + (typeof payload.detail === 'string' ? payload.detail : JSON.stringify(payload.detail));
-          return { data: null, error: { message: msg || res.error.message } };
-        }).catch(function () { return res; });
-      }
-      return res;
-    });
-  }
-
   var Auth = {
     client: client,
-
-    /** Hata mesajlarını Türkçeleştirir — bkz. errorText(). */
-    errorText: errorText,
 
     /** Giriş formundaki "Beni hatırla" kutusundan çağrılır — tercihi
      *  kaydeder ve istemciyi doğru depolamayla yeniden kurdurur. */
@@ -258,12 +171,6 @@
     createDoctor: function (fields) {
       return client().from('doctors').insert(fields).select().single();
     },
-    /* Doktoru siler — RLS'te doctor_admin_write (FOR ALL) yalnızca organizasyon
-     * yöneticisine izin verir. İşi olan doktor, jobs.doctor_id NOT NULL kısıtı
-     * yüzünden silinemez; çağıran taraf bunu anlaşılır mesaja çevirir. */
-    deleteDoctor: function (doctorId) {
-      return client().from('doctors').delete().eq('id', doctorId).select();
-    },
     updateDoctor: function (doctorId, fields) {
       return client().from('doctors').update(fields).eq('id', doctorId);
     },
@@ -275,23 +182,27 @@
     updatePermissions: function (userId, perms) {
       return client().from('user_permissions').update(perms).eq('user_id', userId);
     },
+    // "Silme" yerine devre dışı bırakma: geçmiş iş/kasa/izin kayıtlarındaki
+    // adı korunur (app_users.id onlarca tabloya referans veriyor), yalnız
+    // erişimi kapatılır. RLS (is_org_admin vb.) is_active=false'u zaten
+    // reddeder; burada ayrıca oda/lab erişimini de açıkça temizliyoruz.
+    deactivateStaff: function (userId) {
+      return client().from('app_users').update({ is_active: false }).eq('id', userId).then(function (res) {
+        if (res.error) return res;
+        return Promise.all([
+          client().from('user_room_access').delete().eq('user_id', userId),
+          client().from('user_lab_access').delete().eq('user_id', userId)
+        ]).then(function () { return res; });
+      });
+    },
+    reactivateStaff: function (userId) {
+      return client().from('app_users').update({ is_active: true }).eq('id', userId);
+    },
     approveStaff: function (userId) {
       return client().from('app_users').update({ status: 'approved', approved_at: new Date().toISOString() }).eq('id', userId);
     },
     rejectStaff: function (userId) {
       return client().from('app_users').update({ status: 'rejected' }).eq('id', userId);
-    },
-    /* Personeli ekipten çıkarır. Hiç kayda dokunmamış personel tamamen silinir
-     * (mode: 'deleted'); iş/tahsilat/hakediş geçmişi olan personelin kaydı
-     * korunur, hesabı kapatılır (mode: 'deactivated') — aksi halde o işlerin
-     * "kim yaptı" bilgisi kaybolurdu. Yetki ve organizasyon kontrolü,
-     * kullanıcı silme service_role gerektirdiği için edge function'da. */
-    deleteStaffAccount: function (userId) {
-      return invokeFn('delete-staff-account', { user_id: userId });
-    },
-    /** Kapatılmış personel hesabını yeniden açar. */
-    restoreStaffAccount: function (userId) {
-      return invokeFn('delete-staff-account', { user_id: userId, restore: true });
     },
 
     // ---- İşler ----
@@ -305,11 +216,12 @@
     getJob: function (jobId) {
       return client().from('jobs').select('*, doctors(*), laboratories(name), rooms:current_room_id(name)').eq('id', jobId).single();
     },
-    // nextJobNumber kaldırıldı (2026-09-05): iş numarası artık veritabanında
-    // trg_set_job_number tetikleyicisiyle atanıyor — laboratuvar bazlı,
-    // YYYYAAGG + 4 haneli günlük sıra (ör. 202608130001). İstemcide jobs
-    // sayısını sayarak üretmek aynı anda iş açan iki kullanıcıya aynı
-    // numarayı verebiliyordu.
+    nextJobNumber: function (labId) {
+      return client().from('jobs').select('job_number', { count: 'exact', head: true }).eq('laboratory_id', labId).then(function (r) {
+        var n = (r.count || 0) + 1;
+        return 'DY-' + (2000 + n);
+      });
+    },
     createJob: function (fields) {
       return client().from('jobs').insert(fields).select().single();
     },
@@ -339,53 +251,6 @@
         handled_by: userId, confirmed_by: userId, confirmed_at: new Date().toISOString()
       }).eq('job_id', jobId).eq('room_id', roomId).is('exited_at', null).select().single();
     },
-    /* Yanlışlıkla ilerletilen işi bir önceki odaya geri alır (yalnızca
-     * yönetici çağırır — RLS/guard_job_field_updates yönetici dışındakini
-     * zaten reddeder). Geçmiş kaydı silinmez: yanlış giriş "geri alındı"
-     * notuyla kapatılır, önceki odanın kaydı yeniden açılır. */
-    revertJobStage: function (jobId, currentRoomId, prevRoomId) {
-      var closeWrong = currentRoomId
-        ? client().from('job_stage_history')
-            .update({ exited_at: new Date().toISOString(), note: 'Yanlış ilerletme — geri alındı' })
-            .eq('job_id', jobId).eq('room_id', currentRoomId).is('exited_at', null)
-        : Promise.resolve({ error: null });
-      return Promise.resolve(closeWrong).then(function (res) {
-        if (res && res.error) throw res.error;
-        if (!prevRoomId) return { error: null };
-        // Önceki odanın en son kaydını yeniden aç (iş oraya döndü).
-        return client().from('job_stage_history').select('id')
-          .eq('job_id', jobId).eq('room_id', prevRoomId)
-          .order('entered_at', { ascending: false }).limit(1).maybeSingle()
-          .then(function (r) {
-            if (r.error) throw r.error;
-            if (!r.data) return { error: null };
-            return client().from('job_stage_history')
-              .update({ exited_at: null }).eq('id', r.data.id);
-          });
-      }).then(function (res) {
-        if (res && res.error) throw res.error;
-        return client().from('jobs').update({ current_room_id: prevRoomId || null }).eq('id', jobId);
-      });
-    },
-
-    /* İşi iptal eder: kayıt ve geçmiş durur, sonuçları geri alınır —
-     * fatura(lar) iptal (artık faturalandırılamaz), personel hakedişleri
-     * iptal (ödeme çıkmaz) ve işe bağlı stok çıkışları iade edilir.
-     * Para gerçekten hareket ettiyse (tahsilat işlenmiş veya hakediş ödenmiş)
-     * veritabanı iptali reddeder ve ne yapılması gerektiğini söyler. */
-    cancelJob: function (jobId, reason, category) {
-      return client().rpc('cancel_job', {
-        p_job_id: jobId, p_reason: reason || null, p_category: category || 'diger'
-      });
-    },
-
-    /* İşi tamamen siler — yalnızca organizasyon yöneticisi (RLS: job_delete).
-     * Faturası, personel hakedişi veya stok hareketi olan iş FK kısıtı
-     * nedeniyle silinemez; çağıran tarafta anlaşılır mesaja çevriliyor. */
-    deleteJob: function (jobId) {
-      return client().from('jobs').delete().eq('id', jobId).select();
-    },
-
     completeJob: function (jobId) {
       return client().from('jobs').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', jobId);
     },
@@ -430,28 +295,15 @@
         if (o.doctor_id && o.doctor_id !== doctorId) return;
         if (o.laboratory_id && o.laboratory_id !== labId) return;
         var score = (o.doctor_id ? 2 : 0) + (o.laboratory_id ? 1 : 0);
-        // Aynı kapsamda birden fazla satır bulunursa (setPriceOverride önce
-        // siler, ama yarış/kısmi hata durumunda iki satır kalabilir) en yeni
-        // kayıt kazansın — aksi halde hangi fiyatın uygulandığı diziye bağlı
-        // kalıyor ve "fiyatı değiştirdim ama eski fiyat çıkıyor" hissi doğuyor.
-        if (score > bestScore ||
-            (score === bestScore && best && String(o.created_at || '') > String(best.created_at || ''))) {
-          bestScore = score; best = o;
-        }
+        if (score > bestScore) { bestScore = score; best = o; }
       });
       if (best) return Number(best.unit_price);
       return item.unit_price != null ? Number(item.unit_price) : null;
     },
 
     // ---- Doktor siparişleri (dijital çalışma formu) ----
-    /* Laboratuvar sahibi, kendi organizasyonundaki bir kullanıcının şifresini
-     * yeniler. Şifre değiştirme service_role gerektirdiği için edge function
-     * üzerinden yapılır; yetki ve organizasyon kontrolü orada. */
-    resetUserPassword: function (userId, password) {
-      return invokeFn('reset-user-password', { user_id: userId, password: password });
-    },
     createDoctorAccount: function (fields) {
-      return invokeFn('create-doctor-account', fields);
+      return client().functions.invoke('create-doctor-account', { body: fields });
     },
     myDoctorRecord: function () {
       return client().auth.getUser().then(function (r) {
@@ -557,11 +409,12 @@
       return client().from('payments').insert(fields).select().single();
     },
 
-    // ---- Kasa teslimi (personel -> yönetici, nakit) ----
-    /** Bu kullanıcının henüz bir teslime dahil edilmemiş nakit tahsilatları. */
+    // ---- Kasa teslimi (personel -> yönetici, tüm yöntemler) ----
+    /** Bu kullanıcının henüz bir teslime dahil edilmemiş tahsilatları
+     *  (nakit + kart + EFT/havale — hepsi teslim/onay listesinde görünür). */
     listMyPendingCash: function (userId) {
-      return client().from('payments').select('id, amount, doctor_id, received_at, doctors(full_name)')
-        .eq('received_by', userId).eq('method', 'nakit').is('handover_id', null)
+      return client().from('payments').select('id, amount, doctor_id, method, received_at, doctors(full_name)')
+        .eq('received_by', userId).is('handover_id', null)
         .order('received_at', { ascending: false });
     },
     createCashHandover: function (organizationId, staffId, paymentIds, amount, note) {
@@ -584,19 +437,6 @@
       return client().from('cash_handovers').update({
         status: 'confirmed', confirmed_by: confirmedByUserId, confirmed_at: new Date().toISOString()
       }).eq('id', handoverId);
-    },
-
-    /* Personelin kendi hakedişleri — RLS zaten user_id = auth.uid() satırlarını
-     * herkese açıyor, yönetici/payroll yetkisi olan tüm organizasyonu görür. */
-    listMyEarnings: function () {
-      return client().auth.getUser().then(function (r) {
-        var uid = r.data && r.data.user ? r.data.user.id : null;
-        if (!uid) return { data: [] };
-        return client().from('staff_earnings')
-          .select('*, jobs(job_number, restoration_type, completed_at)')
-          .eq('user_id', uid)
-          .order('period', { ascending: false });
-      });
     },
 
     listStaffEarnings: function (period) {
@@ -678,7 +518,7 @@
     },
 
     createStaffAccount: function (fields) {
-      return invokeFn('create-staff-account', fields);
+      return client().functions.invoke('create-staff-account', { body: fields });
     },
     listUserLabAccess: function (userId) {
       return client().from('user_lab_access').select('laboratory_id').eq('user_id', userId);
@@ -701,11 +541,11 @@
 
     // ---- İş fişi (yazdır/paylaş + doktora e-posta) ----
     sendJobSlip: function (jobId, attachmentBase64, attachmentFilename) {
-      return invokeFn('send-job-slip', { job_id: jobId, attachment_base64: attachmentBase64, attachment_filename: attachmentFilename });
+      return client().functions.invoke('send-job-slip', {
+        body: { job_id: jobId, attachment_base64: attachmentBase64, attachment_filename: attachmentFilename }
+      });
     }
   };
-
-  Data.invokeFunction = invokeFn;
 
   window.ZirkonikAuth = Auth;
   window.ZirkonikData = Data;

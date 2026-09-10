@@ -87,17 +87,6 @@
           </div>
         </section>
 
-        <section id="removed-staff-section" class="hidden pt-6">
-          <div class="flex items-end justify-between">
-            <div>
-              <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Arşiv</p>
-              <h2 class="mt-1 font-heading text-lg font-bold">Çıkarılan personel</h2>
-              <p class="mt-1 text-xs text-muted-foreground">Hesapları kapalı — giriş yapamazlar. Geçmiş işleri kayıtlı kalır.</p>
-            </div>
-          </div>
-          <div id="removed-staff-list" class="mt-4 space-y-3"></div>
-        </section>
-
         <section class="pb-6 pt-6">
           <div class="rounded-theme border border-accent/20 bg-card p-4">
             <div class="flex items-start justify-between gap-3">
@@ -236,47 +225,6 @@
     })();
   </script>
 
-  <!-- Personel şifre sıfırlama sheet'i (2026-09-05) -->
-  <div id="staff-pass-sheet" class="fixed inset-0 z-40 hidden">
-    <div class="absolute inset-0 bg-black/40" onclick="zkCloseStaffPassword()"></div>
-    <div class="absolute bottom-0 left-0 w-full rounded-t-theme bg-card p-5 pb-8">
-      <p id="sp-title" class="font-heading text-lg font-bold">Şifre sıfırla</p>
-      <p class="mt-1 text-xs text-muted-foreground">Yeni şifreyi belirleyip personele iletin.</p>
-      <div class="mt-4 flex gap-2">
-        <input id="sp-password" type="text" placeholder="Yeni şifre (en az 8 karakter)" class="h-12 min-w-0 flex-1 rounded-theme border border-border bg-input px-3.5 text-sm">
-        <button type="button" onclick="document.getElementById('sp-password').value = zkGenStaffPassword()" class="flex h-12 shrink-0 items-center justify-center rounded-theme border border-border bg-background px-3 text-xs font-bold text-primary">Üret</button>
-      </div>
-      <p id="sp-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
-      <p id="sp-ok" class="mt-2 hidden text-xs font-semibold text-success"></p>
-      <button id="sp-btn" onclick="zkSubmitStaffPassword()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Şifreyi güncelle</button>
-    </div>
-  </div>
-
-  <!-- Personeli ekipten çıkarma onayı -->
-  <div id="remove-staff-sheet" class="fixed inset-0 z-40 hidden">
-    <div class="absolute inset-0 bg-black/40" onclick="zkCloseRemoveStaff()"></div>
-    <div class="absolute bottom-0 left-0 w-full rounded-t-theme bg-card p-5 pb-8">
-      <div class="flex items-start gap-3">
-        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-destructive/10 text-destructive">
-          <iconify-icon icon="lucide:user-minus" class="text-xl"></iconify-icon>
-        </div>
-        <div class="min-w-0">
-          <p class="font-heading text-lg font-bold">Ekipten çıkar</p>
-          <p id="rs-name" class="mt-0.5 truncate text-sm font-bold text-primary">—</p>
-        </div>
-      </div>
-      <ul class="mt-4 space-y-2 text-xs leading-5 text-muted-foreground">
-        <li class="flex gap-2"><iconify-icon icon="lucide:log-out" class="mt-0.5 shrink-0 text-sm"></iconify-icon><span>Hesabı kapanır, bir daha giriş yapamaz.</span></li>
-        <li class="flex gap-2"><iconify-icon icon="lucide:building-2" class="mt-0.5 shrink-0 text-sm"></iconify-icon><span>Laboratuvar ve oda erişimleri kaldırılır.</span></li>
-        <li class="flex gap-2"><iconify-icon icon="lucide:history" class="mt-0.5 shrink-0 text-sm"></iconify-icon><span>Yaptığı işler, tahsilatlar ve hakedişler kayıtlarda kalır; bu yüzden kaydı arşive alınır. Hiç iş görmemişse tamamen silinir.</span></li>
-        <li class="flex gap-2"><iconify-icon icon="lucide:rotate-ccw" class="mt-0.5 shrink-0 text-sm"></iconify-icon><span>Yanlışlıkla çıkarırsanız "Çıkarılan personel" bölümünden geri alabilirsiniz.</span></li>
-      </ul>
-      <p id="rs-error" class="mt-3 hidden text-xs font-semibold text-destructive"></p>
-      <button id="rs-btn" onclick="zkSubmitRemoveStaff()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-destructive text-sm font-bold text-destructive-foreground">Ekipten çıkar</button>
-      <button onclick="zkCloseRemoveStaff()" class="mt-2 flex h-11 w-full items-center justify-center rounded-theme border border-border bg-background text-xs font-bold">Vazgeç</button>
-    </div>
-  </div>
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
   <script src="supabase-client.js"></script>
@@ -288,12 +236,6 @@
       });
     }
     var ROLE_LABELS = { yonetici: 'Yönetici · Tam yetki', personel: 'Personel', doktor: 'Doktor' };
-    var zkMe = null;
-
-    /** Personeli ekipten çıkarma yetkisi: yalnızca laboratuvar sahibi, kendisi hariç. */
-    function canRemove(s) {
-      return !!zkMe && zkMe.role === 'yonetici' && zkMe.id !== s.id;
-    }
 
     function loadTeam() {
       var client = ZirkonikAuth.client();
@@ -302,8 +244,10 @@
         if (r.error) { zkToast('Yüklenemedi: ' + r.error.message); return; }
         // Doktor hesapları ekipte listelenmez — doktor havuzu Doktorlar sayfasındadır.
         var staff = (r.data || []).filter(function (s) { return s.status === 'approved' && s.role !== 'doktor'; });
-        document.getElementById('stat-active').textContent = staff.length;
-        renderRemovedStaff((r.data || []).filter(function (s) { return s.status === 'rejected' && s.role !== 'doktor'; }));
+        // Pasif olanlar da listede kalsın (yeniden etkinleştirilebilsin) ama
+        // aktif olmayanlar önce görünmesin ve üstteki sayaç yalnız aktifleri saysın.
+        staff.sort(function (a, b) { return (b.is_active !== false) - (a.is_active !== false); });
+        document.getElementById('stat-active').textContent = staff.filter(function (s) { return s.is_active !== false; }).length;
 
         client.from('jobs').select('assigned_user_id').eq('status', 'active').then(function (jobsRes) {
           var counts = {};
@@ -311,29 +255,27 @@
 
           document.getElementById('staff-list').innerHTML = staff.length ? staff.map(function (s) {
             var initials = (s.full_name || '?').split(' ').map(function (p) { return p.charAt(0); }).slice(0, 2).join('').toUpperCase();
-            return '<div class="rounded-theme border border-border bg-card p-4">' +
+            var active = s.is_active !== false;
+            var statusBadge = active
+              ? '<span class="flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-1 text-[10px] font-bold text-success"><span class="h-1.5 w-1.5 rounded-full bg-success"></span>Aktif</span>'
+              : '<span class="flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-[10px] font-bold text-muted-foreground"><span class="h-1.5 w-1.5 rounded-full bg-muted-foreground"></span>Pasif</span>';
+            var toggleBtn = active
+              ? '<button onclick="zkDeactivateStaff(\'' + s.id + '\',\'' + escapeHtml(s.full_name).replace(/'/g, "\\'") + '\')" class="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-destructive/10 py-2.5 text-xs font-bold text-destructive"><iconify-icon icon="lucide:user-x" class="text-base"></iconify-icon>Ekipten çıkar</button>'
+              : '<button onclick="zkReactivateStaff(\'' + s.id + '\',\'' + escapeHtml(s.full_name).replace(/'/g, "\\'") + '\')" class="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-success/10 py-2.5 text-xs font-bold text-success"><iconify-icon icon="lucide:user-check" class="text-base"></iconify-icon>Yeniden etkinleştir</button>';
+            return '<div class="rounded-theme border border-border bg-card p-4' + (active ? '' : ' opacity-70') + '">' +
               '<div class="flex items-center justify-between"><div class="flex items-center gap-3">' +
               '<div class="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">' + escapeHtml(initials) + '</div>' +
               '<div><p class="font-heading text-sm font-bold">' + escapeHtml(s.full_name) + '</p>' +
               '<p class="mt-0.5 text-xs text-primary">' + escapeHtml(s.position || ROLE_LABELS[s.role] || s.role) + '</p>' +
               ((s.phone || s.email) ? '<p class="mt-0.5 text-[11px] text-muted-foreground">' + escapeHtml([s.phone, s.email].filter(Boolean).join(' · ')) + '</p>' : '') +
-              '</div></div>' +
-              '<span class="flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-1 text-[10px] font-bold text-success"><span class="h-1.5 w-1.5 rounded-full bg-success"></span>Aktif</span></div>' +
+              '</div></div>' + statusBadge + '</div>' +
               '<div class="mt-4 grid grid-cols-2 gap-y-3 border-t border-border pt-3">' +
               '<div><p class="text-[11px] text-muted-foreground">Görev kapsamı</p><p class="mt-1 text-xs font-bold">' + describePermissions(s.user_permissions) + '</p></div>' +
               '<div><p class="text-[11px] text-muted-foreground">Aktif işler</p><p class="mt-1 text-xs font-bold tabular-nums">' + (counts[s.id] || 0) + ' iş</p></div>' +
               '</div>' +
-              '<div class="mt-4 flex gap-2">' +
-              '<button onclick="location.href=\'rol-ve-yetki-detay.html?user=' + s.id + '\'" class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-muted py-2.5 text-xs font-bold text-primary">' +
+              '<button onclick="location.href=\'rol-ve-yetki-detay.html?user=' + s.id + '\'" class="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-muted py-2.5 text-xs font-bold text-primary">' +
               '<iconify-icon icon="lucide:key-round" class="text-base"></iconify-icon>Yetkileri düzenle</button>' +
-              // Şifreyi laboratuvar sahibi yeniler — personel e-posta beklemesin.
-              '<button onclick="zkOpenStaffPassword(\'' + s.id + '\',\'' + escapeHtml(s.full_name || '').replace(/'/g, "\\'") + '\')" class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-muted py-2.5 text-xs font-bold text-primary">' +
-              '<iconify-icon icon="lucide:lock" class="text-base"></iconify-icon>Şifre sıfırla</button>' +
-              '</div>' +
-              // Personeli ekipten çıkarma — yalnızca laboratuvar sahibi, kendisi hariç.
-              (canRemove(s) ? '<button onclick="zkOpenRemoveStaff(\'' + s.id + '\',\'' + escapeHtml(s.full_name || '').replace(/'/g, "\\'") + '\')" class="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-destructive/10 py-2.5 text-xs font-bold text-destructive">' +
-                '<iconify-icon icon="lucide:user-minus" class="text-base"></iconify-icon>Ekipten çıkar</button>' : '') +
-              '</div>';
+              toggleBtn + '</div>';
           }).join('') : '<p class="text-xs text-muted-foreground">Henüz personel yok.</p>';
         });
       });
@@ -345,85 +287,8 @@
 
     ZirkonikAuth.requireAuth().then(function (session) {
       if (!session) return;
-      // "Ekipten çıkar" butonunun görünürlüğü kullanıcının rolüne bağlı;
-      // listeyi basmadan önce kim olduğumuzu biliyor olmalıyız.
-      return ZirkonikAuth.me().then(function (me) { zkMe = me; }).catch(function () {}).then(loadTeam);
+      loadTeam();
     });
-
-    function renderRemovedStaff(rows) {
-      var sec = document.getElementById('removed-staff-section');
-      var el = document.getElementById('removed-staff-list');
-      if (!rows.length) { sec.classList.add('hidden'); el.innerHTML = ''; return; }
-      sec.classList.remove('hidden');
-      el.innerHTML = rows.map(function (s) {
-        return '<div class="rounded-theme border border-border bg-card p-4 opacity-80">' +
-          '<div class="flex items-center justify-between gap-3">' +
-          '<div class="min-w-0"><p class="truncate font-heading text-sm font-bold">' + escapeHtml(s.full_name) + '</p>' +
-          '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + escapeHtml([s.position || ROLE_LABELS[s.role] || s.role, s.email].filter(Boolean).join(' · ')) + '</p></div>' +
-          '<span class="shrink-0 rounded-full bg-muted px-2.5 py-1 text-[10px] font-bold text-muted-foreground">Kapalı</span></div>' +
-          (zkMe && zkMe.role === 'yonetici'
-            ? '<button onclick="zkRestoreStaff(\'' + s.id + '\',\'' + escapeHtml(s.full_name || '').replace(/'/g, "\\'") + '\')" class="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-muted py-2.5 text-xs font-bold text-primary">' +
-              '<iconify-icon icon="lucide:rotate-ccw" class="text-base"></iconify-icon>Geri al</button>'
-            : '') +
-          '</div>';
-      }).join('');
-    }
-
-    // ---- Personeli ekipten çıkar ----
-    var removeStaffId = null;
-
-    function zkOpenRemoveStaff(userId, name) {
-      removeStaffId = userId;
-      document.getElementById('rs-name').textContent = name;
-      document.getElementById('rs-error').classList.add('hidden');
-      var btn = document.getElementById('rs-btn');
-      btn.disabled = false;
-      btn.textContent = 'Ekipten çıkar';
-      document.getElementById('remove-staff-sheet').classList.remove('hidden');
-    }
-    function zkCloseRemoveStaff() { document.getElementById('remove-staff-sheet').classList.add('hidden'); }
-
-    function zkSubmitRemoveStaff() {
-      var errEl = document.getElementById('rs-error');
-      var btn = document.getElementById('rs-btn');
-      errEl.classList.add('hidden');
-      btn.disabled = true;
-      btn.textContent = 'Çıkarılıyor…';
-      ZirkonikData.deleteStaffAccount(removeStaffId).then(function (res) {
-        var err = res.error || (res.data && res.data.error);
-        if (err) {
-          btn.disabled = false;
-          btn.textContent = 'Ekipten çıkar';
-          errEl.textContent = 'Çıkarılamadı: ' + ZirkonikAuth.errorText(err);
-          errEl.classList.remove('hidden');
-          return;
-        }
-        zkCloseRemoveStaff();
-        // Geçmişi olan personelin kaydı silinmez, hesabı kapatılır — kullanıcıya
-        // hangisinin olduğunu söylüyoruz ki "silinmedi mi?" diye tereddüt etmesin.
-        zkToast(res.data && res.data.mode === 'deleted'
-          ? 'Personel silindi.'
-          : 'Personel ekipten çıkarıldı. Geçmiş işleri kayıtlı kaldığı için kaydı arşivde duruyor, giriş yapamaz.');
-        loadTeam();
-      }).catch(function (err) {
-        btn.disabled = false;
-        btn.textContent = 'Ekipten çıkar';
-        errEl.textContent = 'Çıkarılamadı: ' + ZirkonikAuth.errorText(err);
-        errEl.classList.remove('hidden');
-      });
-    }
-
-    function zkRestoreStaff(userId, name) {
-      if (!confirm(name + ' yeniden ekibe alınacak ve giriş yapabilecek. Devam edilsin mi?')) return;
-      ZirkonikData.restoreStaffAccount(userId).then(function (res) {
-        var err = res.error || (res.data && res.data.error);
-        if (err) { zkToast('Geri alınamadı: ' + ZirkonikAuth.errorText(err)); return; }
-        zkToast('Personel yeniden ekibe alındı.');
-        loadTeam();
-      }).catch(function (err) {
-        zkToast('Geri alınamadı: ' + ZirkonikAuth.errorText(err));
-      });
-    }
 
     function describePermissions(perms) {
       perms = (perms && perms[0]) || perms || {};
@@ -434,6 +299,22 @@
     }
 
     // ---- Personel ekle ----
+    function zkDeactivateStaff(userId, name) {
+      if (!confirm(name + ' ekipten çıkarılsın mı? Giriş yapamaz ve oda/lab erişimi kaldırılır — geçmiş iş/kasa/izin kayıtlarındaki adı korunur. İstediğiniz zaman yeniden etkinleştirebilirsiniz.')) return;
+      ZirkonikData.deactivateStaff(userId).then(function (res) {
+        if (res.error) { zkToast('Yapılamadı: ' + res.error.message); return; }
+        zkToast(name + ' ekipten çıkarıldı.');
+        loadTeam();
+      });
+    }
+    function zkReactivateStaff(userId, name) {
+      ZirkonikData.reactivateStaff(userId).then(function (res) {
+        if (res.error) { zkToast('Yapılamadı: ' + res.error.message); return; }
+        zkToast(name + ' yeniden etkinleştirildi — oda/lab erişimini "Yetkileri düzenle"den yeniden verin.');
+        loadTeam();
+      });
+    }
+
     function zkOpenAddStaff() {
       document.getElementById('add-staff-sheet').classList.remove('hidden');
       document.getElementById('ns-error').classList.add('hidden');
@@ -441,58 +322,6 @@
       zkLoadStaffLabOptions();
     }
     function zkCloseAddStaff() { document.getElementById('add-staff-sheet').classList.add('hidden'); }
-
-    // ---- Personel şifresini laboratuvar sahibi yeniler ----
-    var spUserId = null;
-
-    function zkGenStaffPassword() {
-      var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-      var out = '';
-      var arr = new Uint32Array(10);
-      crypto.getRandomValues(arr);
-      for (var i = 0; i < 10; i++) out += chars[arr[i] % chars.length];
-      return out;
-    }
-
-    function zkOpenStaffPassword(userId, name) {
-      spUserId = userId;
-      document.getElementById('sp-title').textContent = name + ' — şifre sıfırla';
-      document.getElementById('sp-password').value = zkGenStaffPassword();
-      document.getElementById('sp-error').classList.add('hidden');
-      document.getElementById('sp-ok').classList.add('hidden');
-      document.getElementById('staff-pass-sheet').classList.remove('hidden');
-    }
-    function zkCloseStaffPassword() { document.getElementById('staff-pass-sheet').classList.add('hidden'); }
-
-    function zkSubmitStaffPassword() {
-      var errEl = document.getElementById('sp-error');
-      var okEl = document.getElementById('sp-ok');
-      var btn = document.getElementById('sp-btn');
-      errEl.classList.add('hidden');
-      okEl.classList.add('hidden');
-      var pass = document.getElementById('sp-password').value.trim();
-      if (pass.length < 8) {
-        errEl.textContent = 'Şifre en az 8 karakter olmalı.';
-        errEl.classList.remove('hidden');
-        return;
-      }
-      btn.disabled = true;
-      ZirkonikData.resetUserPassword(spUserId, pass).then(function (res) {
-        btn.disabled = false;
-        var err = res.error || (res.data && res.data.error);
-        if (err) {
-          errEl.textContent = 'Şifre güncellenemedi: ' + ZirkonikAuth.errorText(err);
-          errEl.classList.remove('hidden');
-          return;
-        }
-        okEl.textContent = 'Şifre güncellendi. Personele iletin: ' + pass;
-        okEl.classList.remove('hidden');
-      }).catch(function (e) {
-        btn.disabled = false;
-        errEl.textContent = 'Şifre güncellenemedi: ' + ZirkonikAuth.errorText(e);
-        errEl.classList.remove('hidden');
-      });
-    }
 
     function zkGenerateStaffPassword() {
       var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
@@ -573,7 +402,7 @@
         loadTeam();
       }).catch(function (err) {
         btn.disabled = false;
-        errEl.textContent = 'Oluşturulamadı: ' + ZirkonikAuth.errorText(err);
+        errEl.textContent = 'Oluşturulamadı: ' + err.message;
         errEl.classList.remove('hidden');
       });
     }

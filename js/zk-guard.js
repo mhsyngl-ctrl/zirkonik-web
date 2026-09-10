@@ -168,6 +168,20 @@
   // 2) ASENKRON: taze yetkiyle doğrula ve önbelleği tazele
   ZirkonikAuth.me().then(function (me) {
     if (!me) return; // oturum denetimini sayfanın kendi requireAuth'u yapar
+    // Devre dışı bırakılmış kullanıcı: RLS zaten tüm veriyi reddeder (asıl
+    // güvenlik orada) ama bunu görmeden boş/kırık ekranlarla karşılaşmasın —
+    // açık bir mesajla oturumu kapat.
+    if (me.is_active === false) {
+      try { localStorage.removeItem('zk-guard'); } catch (e) {}
+      var box = document.createElement('div');
+      box.id = 'zk-deactivated-overlay';
+      box.style.cssText = 'position:fixed;inset:0;z-index:30000;display:flex;align-items:center;justify-content:center;background:#0E1013;padding:24px;text-align:center;font-family:Inter,sans-serif;';
+      box.innerHTML = '<div style="max-width:300px;"><p style="color:#F2F4F7;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:17px;font-weight:800;margin:0 0 8px;">Hesabınız devre dışı bırakıldı</p><p style="color:#98A0AD;font-size:13px;line-height:1.5;margin:0 0 20px;">Bu hesap işvereniniz tarafından ekipten çıkarıldı. Bilgi almak için laboratuvarınızla iletişime geçin.</p><button id="zk-deact-signout" style="height:48px;width:100%;border:none;border-radius:12px;background:#3D7CDC;color:#fff;font-size:14px;font-weight:700;">Çıkış Yap</button></div>';
+      document.body.innerHTML = '';
+      document.body.appendChild(box);
+      document.getElementById('zk-deact-signout').addEventListener('click', function () { ZirkonikAuth.signOut(); });
+      return;
+    }
     var p = me.user_permissions || {};
     if (Object.prototype.toString.call(p) === '[object Array]') p = p[0] || {};
     var snap = {
