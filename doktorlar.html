@@ -120,6 +120,30 @@
     </div>
   </div>
 
+  <!-- Cari geçmişi (işveren görünümü): tüm işler + fatura + tahsilat -->
+  <div id="cari-sheet" class="fixed inset-0 z-40 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkCloseDoctorCari()"></div>
+    <div class="absolute bottom-0 left-0 flex max-h-[88vh] w-full flex-col rounded-t-theme bg-card p-5 pb-8">
+      <div class="flex items-center justify-between">
+        <p id="cari-doc-title" class="font-heading text-lg font-bold">Cari geçmişi</p>
+        <button onclick="zkCloseDoctorCari()" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Kapat"><iconify-icon icon="lucide:x" class="text-sm"></iconify-icon></button>
+      </div>
+      <div class="mt-3 rounded-theme border border-border bg-background p-3.5">
+        <p id="cari-balance" class="font-heading text-2xl font-bold tabular-nums">—</p>
+        <div class="mt-2 grid grid-cols-2 gap-2 border-t border-border pt-2">
+          <div><p class="text-[11px] text-muted-foreground">Toplam fatura</p><p id="cari-inv-total" class="mt-0.5 text-sm font-bold tabular-nums">—</p></div>
+          <div><p class="text-[11px] text-muted-foreground">Toplam ödeme</p><p id="cari-pay-total" class="mt-0.5 text-sm font-bold tabular-nums text-success">—</p></div>
+        </div>
+      </div>
+      <div class="mt-4 min-h-0 flex-1 overflow-y-auto">
+        <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Tüm işler</p>
+        <div id="cari-jobs-list" class="mt-2 space-y-2"><p class="text-xs text-muted-foreground">Yükleniyor…</p></div>
+        <p class="mt-4 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Hesap hareketleri</p>
+        <div id="cari-moves-list" class="mt-2 space-y-2"></div>
+      </div>
+    </div>
+  </div>
+
   <div id="statement-sheet" class="fixed inset-0 z-40 hidden">
     <div class="absolute inset-0 bg-black/40" onclick="zkCloseStatement()"></div>
     <div class="absolute bottom-0 left-0 w-full rounded-t-theme bg-card p-5 pb-8">
@@ -320,6 +344,7 @@
         '<div class="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground">' + escapeHtml((d.full_name || '?').charAt(0)) + '</div>' +
         '<div class="min-w-0 flex-1"><p class="truncate text-sm font-bold">Dr. ' + escapeHtml(d.full_name) + '</p>' +
         '<p class="truncate text-xs text-muted-foreground">' + escapeHtml(d.clinic_name || '—') + '</p></div>' +
+        '<button onclick="zkOpenDoctorCari(\'' + d.id + '\',\'' + escapeHtml(d.full_name).replace(/'/g, "\\'") + '\')" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Cari geçmişi" title="Cari geçmişi"><iconify-icon icon="lucide:receipt-text" class="text-sm"></iconify-icon></button>' +
         '<button onclick="zkOpenEditDoctor(\'' + d.id + '\')" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Bilgileri düzenle" title="Bilgileri düzenle"><iconify-icon icon="lucide:pencil" class="text-sm"></iconify-icon></button>' +
         accountBtn +
         '<button onclick="zkOpenStatement(\'' + d.id + '\',\'' + escapeHtml(d.full_name).replace(/'/g, "\\'") + '\')" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-primary" aria-label="Ekstre gönder"><iconify-icon icon="lucide:send" class="text-sm"></iconify-icon></button>' +
@@ -496,6 +521,60 @@
         });
       });
     });
+
+    // ---- Cari geçmişi (işveren görünümü) ----
+    var JOB_STATUS_LABELS = { active: 'Aktif', completed: 'Tamamlandı', cancelled: 'İptal' };
+
+    function zkOpenDoctorCari(doctorId, doctorName) {
+      document.getElementById('cari-doc-title').textContent = 'Dr. ' + doctorName + ' — Cari geçmişi';
+      document.getElementById('cari-jobs-list').innerHTML = '<p class="text-xs text-muted-foreground">Yükleniyor…</p>';
+      document.getElementById('cari-moves-list').innerHTML = '';
+      document.getElementById('cari-sheet').classList.remove('hidden');
+
+      var client = ZirkonikAuth.client();
+      Promise.all([
+        client.from('jobs').select('id, job_number, restoration_type, unit_count, status, created_at, completed_at').eq('doctor_id', doctorId).order('created_at', { ascending: false }),
+        client.from('invoices').select('id, amount, status, issued_at, jobs(job_number, restoration_type)').eq('doctor_id', doctorId).order('issued_at', { ascending: false }),
+        client.from('payments').select('id, amount, method, received_at').eq('doctor_id', doctorId).order('received_at', { ascending: false })
+      ]).then(function (res) {
+        var jobs = res[0].data || [];
+        var invoices = res[1].data || [];
+        var payments = res[2].data || [];
+
+        var invTotal = invoices.reduce(function (s, x) { return s + Number(x.amount || 0); }, 0);
+        var payTotal = payments.reduce(function (s, x) { return s + Number(x.amount || 0); }, 0);
+        var balance = invTotal - payTotal;
+        var balEl = document.getElementById('cari-balance');
+        balEl.textContent = TL.format(Math.abs(balance)) + (balance > 0 ? ' borç' : (balance < 0 ? ' alacak' : ''));
+        balEl.className = 'font-heading text-2xl font-bold tabular-nums ' + (balance > 0 ? 'text-accent' : 'text-success');
+        document.getElementById('cari-inv-total').textContent = TL.format(invTotal);
+        document.getElementById('cari-pay-total').textContent = TL.format(payTotal);
+
+        document.getElementById('cari-jobs-list').innerHTML = jobs.length ? jobs.map(function (j) {
+          return '<button onclick="location.href=\'detay.html?id=' + j.id + '\'" class="flex w-full items-center justify-between gap-3 rounded-theme border border-border bg-background p-2.5 text-left">' +
+            '<div class="min-w-0"><p class="text-xs font-bold">' + escapeHtml(j.job_number) + '</p>' +
+            '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + escapeHtml(j.restoration_type || '') + ' · ' + (j.unit_count || 0) + ' diş</p></div>' +
+            '<span class="shrink-0 text-[10px] font-bold ' + (j.status === 'completed' ? 'text-success' : (j.status === 'cancelled' ? 'text-destructive' : 'text-primary')) + '">' + (JOB_STATUS_LABELS[j.status] || j.status) + '</span></button>';
+        }).join('') : '<p class="text-xs text-muted-foreground">Henüz iş yok.</p>';
+
+        var moves = invoices.map(function (x) {
+          return { at: x.issued_at, html: '<div class="flex items-center justify-between rounded-theme border border-border bg-background p-2.5">' +
+            '<div class="min-w-0"><p class="text-xs font-bold">Fatura' + (x.jobs ? ' · ' + escapeHtml(x.jobs.job_number) : '') + '</p>' +
+            '<p class="mt-0.5 text-[11px] text-muted-foreground">' + new Date(x.issued_at).toLocaleDateString('tr-TR') + '</p></div>' +
+            '<p class="shrink-0 text-xs font-bold tabular-nums text-accent">' + TL.format(Number(x.amount || 0)) + '</p></div>' };
+        }).concat(payments.map(function (p) {
+          return { at: p.received_at, html: '<div class="flex items-center justify-between rounded-theme border border-border bg-background p-2.5">' +
+            '<div class="min-w-0"><p class="text-xs font-bold">Ödeme</p>' +
+            '<p class="mt-0.5 text-[11px] text-muted-foreground">' + new Date(p.received_at).toLocaleDateString('tr-TR') + (p.method ? ' · ' + escapeHtml(p.method) : '') + '</p></div>' +
+            '<p class="shrink-0 text-xs font-bold tabular-nums text-success">−' + TL.format(Number(p.amount || 0)) + '</p></div>' };
+        }));
+        moves.sort(function (a, b) { return new Date(b.at) - new Date(a.at); });
+        document.getElementById('cari-moves-list').innerHTML = moves.length
+          ? moves.map(function (m) { return m.html; }).join('')
+          : '<p class="text-xs text-muted-foreground">Henüz hesap hareketi yok.</p>';
+      });
+    }
+    function zkCloseDoctorCari() { document.getElementById('cari-sheet').classList.add('hidden'); }
 
     function zkOpenStatement(doctorId, doctorName) {
       statementDoctorId = doctorId;

@@ -640,7 +640,7 @@
               '<div class="shrink-0 text-right">' +
               '<p class="text-sm font-bold tabular-nums">' + TL.format(h.amount) + '</p>' +
               (isPending && canConfirm
-                ? '<button onclick="zkConfirmHandover(\'' + h.id + '\')" class="mt-1 text-[10px] font-bold text-primary">Teslim alındı işaretle</button>'
+                ? '<button onclick="zkConfirmHandover(\'' + h.id + '\')" class="mt-1 rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold text-primary-foreground">Teslim alındı işaretle</button>'
                 : '<span class="text-[10px] font-bold ' + (isPending ? 'text-accent' : 'text-success') + '">' + (isPending ? 'Onay bekliyor' : 'Teslim alındı') + '</span>') +
               '</div></div>';
           }).join('');

@@ -79,10 +79,7 @@
               <iconify-icon icon="lucide:bell" class="text-xl"></iconify-icon>
               <span id="notif-badge" class="zk-notif-badge" hidden></span>
             </button>
-            <button onclick="location.href='kilavuz.html'" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-background text-primary" aria-label="Kullanım kılavuzu" title="Kullanım kılavuzu">
-              <iconify-icon icon="lucide:book-open" class="text-xl"></iconify-icon>
-            </button>
-            <button onclick="location.href='profil.html'" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-background text-primary" aria-label="Ayarlar" title="Ayarlar">
+            <button onclick="location.href='profil.html'" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-background text-primary" aria-label="Profil">
               <iconify-icon icon="lucide:settings" class="text-xl"></iconify-icon>
             </button>
           </div>
@@ -107,20 +104,17 @@
 
             <button onclick="location.href='isler.html?status=completed'" class="zk-stat zk-stat-green"><span class="zk-stat-icon"><iconify-icon icon="lucide:check-circle-2"></iconify-icon></span><p id="stat-completed-jobs" class="zk-stat-value">—</p><p class="zk-stat-label">Tamamlanan iş</p><iconify-icon class="zk-stat-ghost" icon="lucide:check-circle-2"></iconify-icon></button>
 
-            <button onclick="location.href='isler.html?status=active&due=today'" class="zk-stat zk-stat-teal"><span class="zk-stat-icon"><iconify-icon icon="lucide:truck"></iconify-icon></span><p id="stat-due-today" class="zk-stat-value">—</p><p class="zk-stat-label">Bugün teslim</p><iconify-icon class="zk-stat-ghost" icon="lucide:truck"></iconify-icon></button>
+            <div class="zk-stat zk-stat-teal"><span class="zk-stat-icon"><iconify-icon icon="lucide:truck"></iconify-icon></span><p id="stat-due-today" class="zk-stat-value">—</p><p class="zk-stat-label">Bugün teslim</p><iconify-icon class="zk-stat-ghost" icon="lucide:truck"></iconify-icon></div>
 
-            <button onclick="location.href='isler.html?status=active&due=overdue'" class="zk-stat zk-stat-amber"><span class="zk-stat-icon"><iconify-icon icon="lucide:triangle-alert"></iconify-icon></span><p id="stat-overdue" class="zk-stat-value">—</p><p class="zk-stat-label">Geciken işler</p><iconify-icon class="zk-stat-ghost" icon="lucide:triangle-alert"></iconify-icon></button>
+            <button onclick="location.href='isler.html?status=active'" class="zk-stat zk-stat-amber"><span class="zk-stat-icon"><iconify-icon icon="lucide:triangle-alert"></iconify-icon></span><p id="stat-overdue" class="zk-stat-value">—</p><p class="zk-stat-label">Geciken işler</p><iconify-icon class="zk-stat-ghost" icon="lucide:triangle-alert"></iconify-icon></button>
 
-            <button onclick="location.href='isler.html?status=active&room=qc'" class="zk-stat zk-stat-teal"><span class="zk-stat-icon"><iconify-icon icon="lucide:scan-search"></iconify-icon></span><p id="stat-qc" class="zk-stat-value">—</p><p class="zk-stat-label">Kalite kontrolde</p><iconify-icon class="zk-stat-ghost" icon="lucide:scan-search"></iconify-icon></button>
+            <div class="zk-stat zk-stat-teal"><span class="zk-stat-icon"><iconify-icon icon="lucide:scan-search"></iconify-icon></span><p id="stat-qc" class="zk-stat-value">—</p><p class="zk-stat-label">Kalite kontrolde</p><iconify-icon class="zk-stat-ghost" icon="lucide:scan-search"></iconify-icon></div>
 
             <button onclick="location.href='finans.html'" class="zk-stat zk-stat-amber"><span class="zk-stat-icon"><iconify-icon icon="lucide:wallet-cards"></iconify-icon></span><p id="stat-receivables" class="zk-stat-value zk-stat-value-sm">—</p><p class="zk-stat-label">Bekleyen tahsilat</p><iconify-icon class="zk-stat-ghost" icon="lucide:wallet-cards"></iconify-icon></button>
 
             <button onclick="location.href='stok.html'" class="zk-stat zk-stat-amber"><span class="zk-stat-icon"><iconify-icon icon="lucide:boxes"></iconify-icon></span><p id="stat-critical-stock" class="zk-stat-value">—</p><p class="zk-stat-label">Kritik stok uyarısı</p><iconify-icon class="zk-stat-ghost" icon="lucide:boxes"></iconify-icon></button>
 
             <button onclick="location.href='siparisler.html'" class="zk-stat zk-stat-teal"><span class="zk-stat-icon"><iconify-icon icon="lucide:inbox"></iconify-icon></span><p id="stat-pending-orders" class="zk-stat-value">—</p><p class="zk-stat-label">Bekleyen sipariş</p><iconify-icon class="zk-stat-ghost" icon="lucide:inbox"></iconify-icon></button>
-
-            <!-- 2026-09-05: geçmiş iptaller el altında olsun -->
-            <button onclick="location.href='isler.html?status=cancelled'" class="zk-stat zk-stat-amber"><span class="zk-stat-icon"><iconify-icon icon="lucide:ban"></iconify-icon></span><p id="stat-cancelled" class="zk-stat-value">—</p><p class="zk-stat-label">İptal edilen iş</p><iconify-icon class="zk-stat-ghost" icon="lucide:ban"></iconify-icon></button>
           </div></div>
         </section>
 
@@ -303,9 +297,7 @@
       if (el) el.scrollIntoView({ behavior: 'smooth' });
     }
 
-        // 2026-09-05: tüm tutarlar USD üzerinden gösteriliyor (fiyat listesi de
-    // dolar cinsinden tutuluyor). Sayı biçimi Türkçe ayraçlarla kalır: $1.234,00
-    var USD = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+    var TL = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 });
 
     function escapeHtml(s) {
       return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -332,9 +324,6 @@
       client.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'completed')
         .then(function (r) { document.getElementById('stat-completed-jobs').textContent = r.count || 0; });
 
-      client.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'cancelled')
-        .then(function (r) { document.getElementById('stat-cancelled').textContent = r.count || 0; });
-
       client.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'active')
         .gte('requested_delivery_at', todayStart.toISOString()).lte('requested_delivery_at', todayEnd.toISOString())
         .then(function (r) { document.getElementById('stat-due-today').textContent = r.count || 0; });
@@ -352,7 +341,7 @@
 
       client.from('invoices').select('id, amount').in('status', ['unpaid', 'partial', 'overdue']).then(function (r) {
         var invoices = r.data || [];
-        if (!invoices.length) { document.getElementById('stat-receivables').textContent = USD.format(0); return; }
+        if (!invoices.length) { document.getElementById('stat-receivables').textContent = TL.format(0); return; }
         var ids = invoices.map(function (x) { return x.id; });
         // Kısmi ödemeler düşülmeden tam fatura tutarı gösteriliyordu — kalan
         // bakiyeyi hesaplamak için o faturalara ait tahsilatları da çekiyoruz.
@@ -360,7 +349,7 @@
           var paidByInvoice = {};
           (pr.data || []).forEach(function (p) { paidByInvoice[p.invoice_id] = (paidByInvoice[p.invoice_id] || 0) + Number(p.amount); });
           var total = invoices.reduce(function (s, x) { return s + Math.max(0, Number(x.amount || 0) - (paidByInvoice[x.id] || 0)); }, 0);
-          document.getElementById('stat-receivables').textContent = USD.format(total);
+          document.getElementById('stat-receivables').textContent = TL.format(total);
         });
       });
 
@@ -527,7 +516,7 @@
           return '<button onclick="location.href=\'detay.html?id=' + s.job_id + '\'" class="flex w-full items-center justify-between gap-3 rounded-theme border border-border bg-card p-3 text-left">' +
             '<div class="min-w-0"><p class="text-xs font-bold">' + escapeHtml(s.jobs.job_number || '') + '</p>' +
             '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + escapeHtml(roomName[s.room_id]) + (s.jobs.restoration_type ? ' · ' + escapeHtml(s.jobs.restoration_type) : '') + '</p></div>' +
-            '<span class="flex shrink-0 items-center gap-1 rounded-lg bg-accent px-2.5 py-1.5 text-[11px] font-bold text-accent-foreground"><iconify-icon icon="lucide:hand" class="text-xs"></iconify-icon>Teslim Al</span>' +
+            '<span class="flex shrink-0 items-center gap-1 rounded-lg bg-primary px-2.5 py-1.5 text-[11px] font-bold text-primary-foreground"><iconify-icon icon="lucide:hand" class="text-xs"></iconify-icon>Teslim Al</span>' +
             '</button>';
         }).join('');
         });
@@ -624,11 +613,7 @@
         boardLabs = r.data || [];
         if (!boardLabs.length) {
           document.getElementById('board-lab-switch-wrap').classList.add('hidden');
-          // Yeni laboratuvar buradan başlıyor — kurulum kılavuzuna yönlendir.
-          document.getElementById('production-board').innerHTML =
-            '<p class="text-xs text-muted-foreground">Önce Laboratuvarlar sekmesinden bir laboratuvar ekleyin.</p>' +
-            '<button onclick="location.href=\'kilavuz.html\'" class="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-theme border border-border bg-background text-xs font-bold text-primary">' +
-            '<iconify-icon icon="lucide:book-open" class="text-base"></iconify-icon>Kurulum kılavuzunu aç</button>';
+          document.getElementById('production-board').innerHTML = '<p class="text-xs text-muted-foreground">Önce Laboratuvarlar sekmesinden bir laboratuvar ekleyin.</p>';
           return;
         }
         var wrap = document.getElementById('board-lab-switch-wrap');
