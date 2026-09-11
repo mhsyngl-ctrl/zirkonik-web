@@ -447,16 +447,22 @@
           '<div class="flex min-w-0 items-center gap-3">' +
           '<span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-theme bg-secondary text-primary"><iconify-icon icon="' + p.icon + '" class="text-base"></iconify-icon></span>' +
           '<div><p class="text-sm font-bold">' + escapeHtml(p.title) + '</p><p class="mt-0.5 text-[11px] text-muted-foreground">' + escapeHtml(p.desc) + '</p></div></div>' +
-          '<button onclick="zkTogglePermission(\'' + p.key + '\', this)" class="flex h-7 w-7 items-center justify-center rounded-full ' + (granted ? 'bg-success text-success-foreground' : 'bg-muted text-muted-foreground') + '">' +
-          '<iconify-icon icon="' + (granted ? 'lucide:check' : 'lucide:x') + '" class="text-sm"></iconify-icon></button></div>';
+          '<div class="flex shrink-0 items-center gap-2">' +
+          '<span class="zk-perm-label text-[11px] font-bold ' + (granted ? 'text-success' : 'text-muted-foreground') + '">' + (granted ? 'Açık' : 'Kapalı') + '</span>' +
+          '<button type="button" onclick="zkTogglePermission(\'' + p.key + '\', this)" aria-label="' + escapeHtml(p.title) + '" class="zk-switch' + (granted ? ' zk-on' : '') + '"><span class="zk-switch-knob"></span></button>' +
+          '</div></div>';
       }).join('');
     }
 
     function zkTogglePermission(key, btn) {
       currentPerms[key] = !currentPerms[key];
       var granted = currentPerms[key];
-      btn.className = 'flex h-7 w-7 items-center justify-center rounded-full ' + (granted ? 'bg-success text-success-foreground' : 'bg-muted text-muted-foreground');
-      btn.innerHTML = '<iconify-icon icon="' + (granted ? 'lucide:check' : 'lucide:x') + '" class="text-sm"></iconify-icon>';
+      btn.classList.toggle('zk-on', granted);
+      var label = btn.previousElementSibling;
+      if (label) {
+        label.textContent = granted ? 'Açık' : 'Kapalı';
+        label.className = 'zk-perm-label text-[11px] font-bold ' + (granted ? 'text-success' : 'text-muted-foreground');
+      }
     }
 
     document.getElementById('save-btn').addEventListener('click', function () {

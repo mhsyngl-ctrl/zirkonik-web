@@ -416,3 +416,33 @@ body { animation: zkPageIn .2s ease both; }
   transition: transform .2s cubic-bezier(.32,.72,0,1);
 }
 [id$="-sheet"].hidden .rounded-t-theme { transform: translateY(16px); }
+
+/* Açık/kapalı anahtar (yetki listesi vb.) — evrensel switch görünümü,
+ * X/tik ikonundan çok daha net "açık mı kapalı mı" anlatıyor. */
+.zk-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 48px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--color-muted);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: background-color .18s ease;
+  flex-shrink: 0;
+}
+.zk-switch.zk-on { background: var(--color-success); }
+.zk-switch .zk-switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,.3);
+  transition: transform .18s ease;
+}
+.zk-switch.zk-on .zk-switch-knob { transform: translateX(20px); }
