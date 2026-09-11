@@ -278,6 +278,7 @@
               '<iconify-icon icon="lucide:key-round" class="text-base"></iconify-icon>Yetkileri düzenle</button>' +
               toggleBtn + '</div>';
           }).join('') : '<p class="text-xs text-muted-foreground">Henüz personel yok.</p>';
+          if (window.zkFlow) window.zkFlow.stagger(document.getElementById('staff-list'));
         });
       });
 

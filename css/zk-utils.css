@@ -446,3 +446,35 @@ body { animation: zkPageIn .2s ease both; }
   transition: transform .18s ease;
 }
 .zk-switch.zk-on .zk-switch-knob { transform: translateX(20px); }
+
+/* Kart "seri seri" akış animasyonu — js/zk-guard.js'teki zkFlow.stagger()
+ * her karta artan bir animation-delay (inline style) verir, bu sınıf
+ * yalnız hareketi tanımlar. Bitişte transform:none'a oturur — kalıcı bir
+ * transform ASLA bırakılmaz (translateY(0) dahil), yoksa position:fixed
+ * alt öğeler için yeni bir containing block oluşup iOS'ta iç içe
+ * overflow-y:auto listelerin scroll momentum'unu kilitler (2026-09-11'de
+ * bir kez yaşandı, zk-utils.css'teki sheet animasyonunda düzeltildi).
+ * Sadece opacity+transform kullanılıyor — ucuz Android cihazlarda da
+ * GPU'da ucuza render edilir. */
+.zk-stagger-item {
+  opacity: 0;
+  animation: zkCardIn .19s cubic-bezier(.16,1,.3,1) both;
+}
+@keyframes zkCardIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Sekme/panel geçişinde yönlü kayma (soldan/sağdan) — sekme sırasına göre
+ * hangi yönden geldiğini gösterir. Aynı prensip: bitiş durumu her zaman
+ * transform:none. */
+.zk-panel-in-right { animation: zkPanelInRight .19s cubic-bezier(.16,1,.3,1) both; }
+.zk-panel-in-left { animation: zkPanelInLeft .19s cubic-bezier(.16,1,.3,1) both; }
+@keyframes zkPanelInRight {
+  from { opacity: 0; transform: translateX(14px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes zkPanelInLeft {
+  from { opacity: 0; transform: translateX(-14px); }
+  to { opacity: 1; transform: none; }
+}

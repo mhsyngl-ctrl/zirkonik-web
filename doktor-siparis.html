@@ -243,6 +243,8 @@
     }
     function zkCloseContact() { document.getElementById('contact-sheet').classList.add('hidden'); }
 
+    var TAB_ORDER = ['new', 'list', 'prices', 'cari'];
+    var lastTab = 'new';
     function zkSetTab(tab) {
       var isNew = tab === 'new';
       document.getElementById('panel-new').classList.toggle('hidden', tab !== 'new');
@@ -255,6 +257,11 @@
           ? 'flex h-10 items-center justify-center rounded-lg bg-primary text-[11px] font-bold text-primary-foreground'
           : 'flex h-10 items-center justify-center rounded-lg text-[11px] font-bold text-muted-foreground';
       });
+      if (window.zkFlow && tab !== lastTab) {
+        var dir = TAB_ORDER.indexOf(tab) > TAB_ORDER.indexOf(lastTab) ? 'right' : 'left';
+        window.zkFlow.slidePanel(document.getElementById('panel-' + tab), dir);
+      }
+      lastTab = tab;
       if (tab === 'list') loadOrders();
       if (tab === 'prices') loadMyPrices();
       if (tab === 'cari') loadCari();
@@ -297,9 +304,11 @@
             '<p class="shrink-0 text-sm font-bold tabular-nums text-success">−' + TLc.format(Number(x.amount || 0)) + '</p></button>' };
         }));
         moves.sort(function (a, b) { return new Date(b.at) - new Date(a.at); });
-        document.getElementById('cari-list').innerHTML = moves.length
+        var cariListEl = document.getElementById('cari-list');
+        cariListEl.innerHTML = moves.length
           ? moves.map(function (m) { return m.html; }).join('')
           : '<p class="text-xs text-muted-foreground">Henüz hesap hareketi yok.</p>';
+        if (window.zkFlow) window.zkFlow.stagger(cariListEl);
       });
     }
 
@@ -537,6 +546,7 @@
             (o.note ? '<p class="mt-2 text-xs text-muted-foreground">' + escapeHtml(o.note) + '</p>' : '') +
             '</article>';
         }).join('');
+        if (window.zkFlow) window.zkFlow.stagger(el);
       });
     }
   </script>

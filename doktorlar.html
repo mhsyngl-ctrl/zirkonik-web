@@ -321,6 +321,11 @@
         var aEl = document.getElementById('approved-list');
         aEl.innerHTML = approved.length ? approved.map(renderApprovedRow).join('') :
           '<p class="text-xs text-muted-foreground">Henüz onaylı doktor yok.</p>';
+
+        if (window.zkFlow) {
+          window.zkFlow.stagger(pEl);
+          window.zkFlow.stagger(aEl);
+        }
       });
     }
 

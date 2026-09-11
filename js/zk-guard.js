@@ -195,3 +195,40 @@
     if (snap.role === 'personel') applyStaff(snap);
   }).catch(function () {});
 })();
+
+// ---- Akış animasyonları (kart "seri seri" akışı + yönlü panel geçişi) ----
+// Tüm sayfalarda zaten yüklü olduğundan render fonksiyonlarına eklenecek
+// tek satırlık çağrılarla kullanılır — yeni bir <script> etiketi gerekmez.
+window.zkFlow = {
+  // container.innerHTML = ... satırından HEMEN SONRA çağrılır. Her doğrudan
+  // alt öğeye artan bir animation-delay verir, 5. öğeden sonra gecikme
+  // sabitlenir (uzun listeler animasyonun bitmesini beklemesin diye).
+  stagger: function (container, opts) {
+    if (!container) return;
+    opts = opts || {};
+    var stepMs = opts.stepMs || 22;
+    var capIndex = opts.capIndex || 4; // 5. öğeden (index 4) sonra sabit
+    var children = container.children;
+    for (var i = 0; i < children.length; i++) {
+      var el = children[i];
+      el.classList.remove('zk-stagger-item');
+      el.style.animation = 'none';
+      // reflow'u zorla ki animasyon sınıfı yeniden eklendiğinde tekrar oynasın
+      void el.offsetWidth;
+      el.style.animation = '';
+      el.classList.add('zk-stagger-item');
+      el.style.animationDelay = (Math.min(i, capIndex) * stepMs) + 'ms';
+    }
+  },
+  // Sekme/panel gösterildikten HEMEN SONRA çağrılır. dir: 'right' (ileri
+  // sekmeye geçiş) veya 'left' (geri sekmeye geçiş).
+  slidePanel: function (el, dir) {
+    if (!el) return;
+    var cls = dir === 'left' ? 'zk-panel-in-left' : 'zk-panel-in-right';
+    el.classList.remove('zk-panel-in-left', 'zk-panel-in-right');
+    el.style.animation = 'none';
+    void el.offsetWidth;
+    el.style.animation = '';
+    el.classList.add(cls);
+  }
+};

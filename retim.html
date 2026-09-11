@@ -596,6 +596,7 @@
     var boardMode = 'active';
 
     function zkSetBoardMode(mode) {
+      var dir = mode === 'completed' ? 'right' : 'left';
       boardMode = mode;
       var activeTab = document.getElementById('board-tab-active');
       var completedTab = document.getElementById('board-tab-completed');
@@ -604,6 +605,7 @@
       document.getElementById('board-subtitle').textContent = mode === 'active'
         ? 'Odalara göre aktif işler — bir işe dokunarak aşamasını ilerletin'
         : 'Son tamamlanan işler';
+      if (window.zkFlow) window.zkFlow.slidePanel(document.getElementById('production-board'), dir);
       if (boardActiveLab) loadBoardForLab(boardActiveLab);
     }
 
@@ -831,7 +833,10 @@
         }
         if (hiveLastJobs !== jobsHtml) {
           var wrap = document.getElementById('hive-sel-jobs');
-          if (wrap) wrap.innerHTML = jobsHtml;
+          if (wrap) {
+            wrap.innerHTML = jobsHtml;
+            if (window.zkFlow) window.zkFlow.stagger(wrap.querySelector('.overflow-y-auto') || wrap);
+          }
           hiveLastJobs = jobsHtml;
         }
         el.style.minHeight = '';
@@ -839,6 +844,10 @@
       }
 
       el.innerHTML = hiveHtml + '<div id="hive-sel-jobs">' + jobsHtml + '</div>';
+      if (window.zkFlow) {
+        var freshWrap = document.getElementById('hive-sel-jobs');
+        if (freshWrap) window.zkFlow.stagger(freshWrap.querySelector('.overflow-y-auto') || freshWrap);
+      }
       hiveLastSig = sig;
       hiveLastHex = [];
       for (var h = 0; h < hiveSections.length; h++) hiveLastHex[h] = hexState(h).inner;
@@ -866,6 +875,7 @@
               '</button>';
           }).join('') + '</div>' +
           (jobs.length === 50 ? '<p class="mt-2 px-1 text-[11px] text-muted-foreground">Son 50 iş gösteriliyor.</p>' : '');
+          if (window.zkFlow) window.zkFlow.stagger(el.querySelector('.divide-y'));
         });
     }
 
