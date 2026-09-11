@@ -381,10 +381,16 @@ body::after {
 
 /* ================== Akıcı geçişler (2026-09-11) ================== */
 /* Sayfa açılışı: sert kesme yerine hafif bir belirme. */
+/* DİKKAT: transform KULLANILMAZ — animasyon bitince "both" fill-mode son
+ * kare stilini kalıcı bırakır; transform:translateY(0) bile olsa body'de
+ * kalıcı kalırsa TÜM sayfadaki position:fixed elemanları (alt menü,
+ * sheet'ler, bildirim şeridi...) artık viewport'a değil body'ye göre
+ * konumlanır — bu da iOS'ta iç içe listelerin dokunmatik kaydırmasını
+ * tıkadı (2026-09-11). Saf opacity ile aynı "belirme" hissi, yan etkisiz. */
 body { animation: zkPageIn .2s ease both; }
 @keyframes zkPageIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 /* Sayfadan sayfaya geçiş: tarayıcı destekliyorsa (Cross-Document View
@@ -400,8 +406,13 @@ body { animation: zkPageIn .2s ease both; }
 [id$="-sheet"] { transition: opacity .15s ease; }
 [id$="-sheet"].hidden { display: block !important; opacity: 0; pointer-events: none; }
 [id$="-sheet"]:not(.hidden) { opacity: 1; }
+/* DİKKAT: açık haldeyken transform HİÇ uygulanmaz (yalnız .hidden'da) —
+ * kalıcı bir transform (translateY(0) bile olsa) elemanı yeni bir
+ * "containing block" yapıyor ve bu, iOS WKWebView'de içindeki
+ * overflow-y:auto listelerin dokunmatik kaydırmasını TIKIYORDU (2026-09-11'de
+ * doktor cari sheet'inde yaşandı — liste aşağı kayıyor ama yukarı dönmüyordu).
+ * transform:none ⇄ translateY(16px) arası geçiş yine animasyonlu kalır. */
 [id$="-sheet"] .rounded-t-theme {
   transition: transform .2s cubic-bezier(.32,.72,0,1);
-  transform: translateY(0);
 }
 [id$="-sheet"].hidden .rounded-t-theme { transform: translateY(16px); }
