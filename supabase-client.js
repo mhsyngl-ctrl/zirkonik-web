@@ -272,6 +272,12 @@
     completeJob: function (jobId) {
       return client().from('jobs').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', jobId);
     },
+    // Yalnız yönetici çağırabilir (cancel_job RPC içinde is_org_admin kontrolü var).
+    // Tahsilat işlenmiş veya hakediş ödenmiş işler reddedilir; faturalar ve
+    // hakedişler iptal edilir, tüketilen stok geri iade edilir.
+    cancelJob: function (jobId, reason, category) {
+      return client().rpc('cancel_job', { p_job_id: jobId, p_reason: reason || null, p_category: category || null });
+    },
 
     // ---- Fiyat listesi ----
     listPriceItems: function (includeInactive) {

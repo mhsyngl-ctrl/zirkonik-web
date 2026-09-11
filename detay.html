@@ -59,7 +59,9 @@
             <p class="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/55">Üretim kaydı</p>
             <h1 class="mt-1 font-heading text-lg font-bold">İş Detayı</h1>
           </div>
-          <div class="h-10 w-10"></div>
+          <button id="cancel-job-icon-btn" onclick="zkOpenCancelJob()" class="hidden flex h-10 w-10 items-center justify-center rounded-theme bg-white/10 text-destructive" aria-label="İşi iptal et" title="İşi iptal et">
+            <iconify-icon icon="lucide:ban" class="text-lg"></iconify-icon>
+          </button>
         </div>
 
         <div class="mt-6 flex items-end justify-between">
@@ -92,6 +94,14 @@
           </div>
         </div>
       </header>
+
+      <div id="cancelled-banner" class="hidden mx-5 mt-5 rounded-theme border border-destructive/30 bg-destructive/10 p-4">
+        <div class="flex items-center gap-2 text-destructive">
+          <iconify-icon icon="lucide:ban" class="text-lg"></iconify-icon>
+          <p class="font-heading text-sm font-bold">Bu iş iptal edildi</p>
+        </div>
+        <p id="cancelled-detail" class="mt-1.5 text-xs text-muted-foreground">—</p>
+      </div>
 
       <main class="space-y-5 px-5 pt-5">
         <section class="rounded-theme border border-border bg-card p-4">
@@ -126,14 +136,6 @@
 
           <div class="mt-4 grid grid-cols-2 gap-3">
             <div class="rounded-theme border border-border bg-background px-3 py-3">
-              <p class="text-[10px] text-muted-foreground">Hasta</p>
-              <p id="job-patient" class="mt-1 text-sm font-bold">—</p>
-            </div>
-            <div class="rounded-theme border border-border bg-background px-3 py-3">
-              <p class="text-[10px] text-muted-foreground">Klinik protokol no</p>
-              <p id="job-protocol" class="mt-1 text-sm font-bold">—</p>
-            </div>
-            <div class="rounded-theme border border-border bg-background px-3 py-3">
               <p class="text-[10px] text-muted-foreground">İç referans</p>
               <p id="job-reference" class="mt-1 text-sm font-bold">—</p>
             </div>
@@ -141,21 +143,6 @@
               <p class="text-[10px] text-muted-foreground">Laboratuvar</p>
               <p id="job-lab" class="mt-1 text-sm font-bold">—</p>
             </div>
-          </div>
-
-          <!-- 2026-09-05: hakediş işe atanan teknisyene yazıldığı için
-               atamanın yapılabileceği bir yer gerekiyordu. -->
-          <div class="mt-4 border-t border-border pt-4">
-            <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Sorumlu teknisyen</p>
-            <p id="assignee-readonly" class="mt-1 text-sm font-bold">—</p>
-            <p class="mt-1 text-[11px] leading-4 text-muted-foreground">İş bir odada teslim alındığında sorumlu otomatik olarak teslim alan teknisyen olur. Gerekirse buradan değiştirebilirsiniz.</p>
-            <div id="assignee-edit" class="mt-2 hidden gap-2">
-              <select id="job-assignee" class="h-11 min-w-0 flex-1 rounded-theme border border-border bg-input px-3 text-sm">
-                <option value="">Atanmadı</option>
-              </select>
-              <button onclick="zkSaveAssignee()" class="flex h-11 shrink-0 items-center justify-center rounded-theme border border-border bg-background px-3 text-xs font-bold text-primary">Kaydet</button>
-            </div>
-            <p id="assignee-hint" class="mt-1.5 hidden text-[11px] leading-4 text-muted-foreground"></p>
           </div>
         </section>
 
@@ -230,51 +217,9 @@
           <iconify-icon icon="lucide:arrow-right-circle" class="text-xl"></iconify-icon>
           <span id="advance-label">Sonraki aşamaya taşı</span>
         </button>
-        <!-- Yalnızca laboratuvar sahibi (organizasyon yöneticisi) görür -->
-        <p id="job-lock-note" class="mt-2 hidden rounded-theme border border-border bg-background px-3 py-2.5 text-[11px] leading-4 text-muted-foreground">
-          <iconify-icon icon="lucide:lock" class="align-[-2px] text-sm"></iconify-icon>
-          Tamamlanan iş kilitlidir: geri alınamaz, iptal edilemez, silinemez. Faturası, personel hakedişi ve stok düşümü kesinleşmiştir.
-        </p>
-        <div id="owner-actions" class="mt-2 hidden gap-2">
-          <button id="revert-btn" class="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-theme border border-border bg-background text-xs font-bold text-foreground">
-            <iconify-icon icon="lucide:undo-2" class="text-base"></iconify-icon>Geri al
-          </button>
-          <button id="cancel-job-btn" class="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-theme bg-accent/10 text-xs font-bold text-accent">
-            <iconify-icon icon="lucide:ban" class="text-base"></iconify-icon>İptal et
-          </button>
-          <button id="delete-job-btn" class="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-theme bg-destructive/10 text-xs font-bold text-destructive">
-            <iconify-icon icon="lucide:trash-2" class="text-base"></iconify-icon>Sil
-          </button>
-        </div>
       </div>
     </div>
   </div>
-  <!-- İptal sebebi sheet'i — kusur seçilirse laboratuvar sahibine bildirim gider -->
-  <div id="cancel-sheet" class="fixed inset-0 z-40 hidden">
-    <div class="absolute inset-0 bg-black/40" onclick="zkCloseCancel()"></div>
-    <div class="absolute bottom-0 left-0 w-full rounded-t-theme bg-card p-5 pb-8">
-      <p class="font-heading text-lg font-bold">İşi iptal et</p>
-      <p class="mt-1 text-xs leading-5 text-muted-foreground">Kayıt ve geçmiş silinmez. Faturası iptal olur, personel hakedişi iptal olur, ayrılan stok iade edilir.</p>
-      <label class="mt-4 block">
-        <span class="mb-1.5 block text-xs font-bold text-card-foreground">İptal sebebi *</span>
-        <select id="cx-category" onchange="zkCancelHint()" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
-          <option value="kusur">Üretim kusuru / hatalı iş</option>
-          <option value="doktor">Doktor iptal etti</option>
-          <option value="yanlis_kayit">Yanlış kayıt / mükerrer iş</option>
-          <option value="diger">Diğer</option>
-        </select>
-        <span id="cx-hint" class="mt-1.5 block text-[11px] leading-4 text-accent">Kusur seçildiğinde laboratuvar sahibine bildirim gönderilir.</span>
-      </label>
-      <label class="mt-3 block">
-        <span class="mb-1.5 block text-xs font-bold text-card-foreground">Açıklama</span>
-        <textarea id="cx-note" rows="2" placeholder="Örn. Zirkonyum kırıldı, yeniden yapılacak" class="w-full rounded-theme border border-border bg-input px-3.5 py-2.5 text-sm"></textarea>
-      </label>
-      <p id="cx-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
-      <button id="cx-btn" onclick="zkSubmitCancel()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-destructive/10 text-sm font-bold text-destructive">İşi iptal et</button>
-      <button onclick="zkCloseCancel()" class="mt-2 flex h-11 w-full items-center justify-center rounded-theme border border-border bg-background text-xs font-bold text-foreground">Vazgeç</button>
-    </div>
-  </div>
-
   <script>
     (function() {
       var els = document.querySelectorAll('iconify-icon');
@@ -288,6 +233,28 @@
       })(els[i]);
     })();
   </script>
+
+  <!-- İşi iptal et (yalnız yönetici) -->
+  <div id="cancel-job-sheet" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkCloseCancelJob()"></div>
+    <div class="absolute bottom-0 left-0 flex max-h-[85vh] w-full flex-col rounded-t-theme bg-card p-5 pb-8">
+      <h2 class="font-heading text-lg font-bold text-destructive">İşi iptal et</h2>
+      <p class="mt-1 text-xs text-muted-foreground">Bu işlem faturayı ve varsa personel hakedişini de iptal eder, tüketilen stoğu iade eder. Geri alınamaz.</p>
+
+      <p class="mt-4 text-xs font-bold">İptal nedeni</p>
+      <div id="cancel-category-options" class="mt-2 grid grid-cols-2 gap-2"></div>
+
+      <p class="mt-4 text-xs font-bold">Açıklama <span class="font-normal text-muted-foreground">(opsiyonel)</span></p>
+      <textarea id="cancel-reason" rows="3" class="mt-2 w-full rounded-theme border border-border bg-input px-3 py-2 text-sm" placeholder="Detay ekleyin…"></textarea>
+
+      <p id="cancel-error" class="mt-3 hidden text-xs font-semibold text-destructive"></p>
+
+      <div class="mt-4 grid grid-cols-2 gap-2">
+        <button onclick="zkCloseCancelJob()" class="flex h-12 items-center justify-center rounded-theme border border-border bg-input text-sm font-bold">Vazgeç</button>
+        <button id="cancel-job-submit-btn" onclick="zkSubmitCancelJob()" class="flex h-12 items-center justify-center rounded-theme bg-destructive text-sm font-bold text-destructive-foreground">İşi İptal Et</button>
+      </div>
+    </div>
+  </div>
 
   <div id="zk-toast" style="position:fixed;left:50%;bottom:96px;transform:translate(-50%,16px);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;background:#17242C;color:#fff;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;padding:10px 16px;border-radius:12px;z-index:9999;max-width:86%;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.18);"></div>
   <script>
@@ -310,9 +277,7 @@
   <script src="supabase-client.js"></script>
   <script src="js/zk-guard.js"></script>
   <script>
-        // 2026-09-05: tüm tutarlar USD üzerinden gösteriliyor (fiyat listesi de
-    // dolar cinsinden tutuluyor). Sayı biçimi Türkçe ayraçlarla kalır: $1.234,00
-    var USD = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+    var TL = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 });
     function escapeHtml(s) {
       return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
         return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -378,21 +343,9 @@
       document.getElementById('job-tooth-count').textContent = j.unit_count || '—';
       document.getElementById('job-teeth').textContent = j.teeth_numbers || '—';
       document.getElementById('job-delivery').textContent = j.requested_delivery_at ? new Date(j.requested_delivery_at).toLocaleDateString('tr-TR') : 'Belirtilmedi';
-      if (!zkStaffCache.length) {
-        ZirkonikData.listStaff().then(function (r) {
-          zkStaffCache = (r.data || []).filter(function (u) {
-            return u.status === 'approved' && u.role !== 'doktor';
-          });
-          renderAssignee();
-        });
-      } else {
-        renderAssignee();
-      }
-      document.getElementById('job-patient').textContent = j.patient_name || '—';
-      document.getElementById('job-protocol').textContent = j.clinic_protocol_no || '—';
       document.getElementById('job-reference').textContent = j.patient_reference || '—';
       document.getElementById('job-lab').textContent = j.laboratories ? j.laboratories.name : '—';
-      document.getElementById('job-price').textContent = j.price != null ? USD.format(j.price) : 'Belirtilmedi';
+      document.getElementById('job-price').textContent = j.price != null ? TL.format(j.price) : 'Belirtilmedi';
       document.getElementById('job-payment-status').textContent = PAYMENT_LABELS[j.payment_status] || j.payment_status;
 
       if (j.is_priority) document.getElementById('priority-badge').classList.remove('hidden');
@@ -405,6 +358,85 @@
       renderWorkForm();
       renderStageTrack();
       renderAdvanceButton();
+      renderCancelState();
+    }
+
+    var CANCEL_CATEGORIES = [
+      { key: 'kusur', label: 'Üretim kusuru' },
+      { key: 'doktor', label: 'Doktor talebi' },
+      { key: 'yanlis_kayit', label: 'Yanlış kayıt' },
+      { key: 'diger', label: 'Diğer' }
+    ];
+    var cancelCategory = 'kusur';
+    var isAdminViewer = false;
+
+    function renderCancelState() {
+      var j = currentJob;
+      var banner = document.getElementById('cancelled-banner');
+      var iconBtn = document.getElementById('cancel-job-icon-btn');
+
+      if (j.status === 'cancelled') {
+        banner.classList.remove('hidden');
+        var catLabel = (CANCEL_CATEGORIES.filter(function (c) { return c.key === j.cancel_category; })[0] || {}).label || 'Belirtilmedi';
+        var when = j.cancelled_at ? new Date(j.cancelled_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
+        document.getElementById('cancelled-detail').textContent = catLabel + ' · ' + when + (j.cancel_reason ? ' · ' + j.cancel_reason : '');
+        iconBtn.classList.add('hidden');
+        return;
+      }
+      banner.classList.add('hidden');
+
+      if (j.status === 'completed') {
+        iconBtn.classList.add('hidden');
+        return;
+      }
+
+      ZirkonikAuth.me().then(function (me) {
+        isAdminViewer = me.role === 'yonetici';
+        iconBtn.classList.toggle('hidden', !isAdminViewer);
+      });
+    }
+
+    function renderCancelCategoryOptions() {
+      document.getElementById('cancel-category-options').innerHTML = CANCEL_CATEGORIES.map(function (c) {
+        var active = c.key === cancelCategory;
+        return '<button type="button" onclick="zkSetCancelCategory(\'' + c.key + '\')" class="flex h-11 items-center justify-center rounded-theme border text-xs font-bold ' +
+          (active ? 'border-destructive bg-destructive/10 text-destructive' : 'border-border bg-background text-muted-foreground') + '">' + c.label + '</button>';
+      }).join('');
+    }
+    function zkSetCancelCategory(key) {
+      cancelCategory = key;
+      renderCancelCategoryOptions();
+    }
+    function zkOpenCancelJob() {
+      if (!isAdminViewer) return;
+      cancelCategory = 'kusur';
+      renderCancelCategoryOptions();
+      document.getElementById('cancel-reason').value = '';
+      document.getElementById('cancel-error').classList.add('hidden');
+      document.getElementById('cancel-job-sheet').classList.remove('hidden');
+    }
+    function zkCloseCancelJob() {
+      document.getElementById('cancel-job-sheet').classList.add('hidden');
+    }
+    function zkSubmitCancelJob() {
+      var errEl = document.getElementById('cancel-error');
+      var btn = document.getElementById('cancel-job-submit-btn');
+      errEl.classList.add('hidden');
+      btn.disabled = true;
+      btn.classList.add('opacity-60');
+      var reason = document.getElementById('cancel-reason').value.trim();
+      ZirkonikData.cancelJob(jobId, reason, cancelCategory).then(function (res) {
+        if (res.error) throw res.error;
+        zkCloseCancelJob();
+        zkToast('İş iptal edildi.');
+        loadJob();
+      }).catch(function (err) {
+        errEl.textContent = err.message || 'İptal edilemedi.';
+        errEl.classList.remove('hidden');
+      }).finally(function () {
+        btn.disabled = false;
+        btn.classList.remove('opacity-60');
+      });
     }
 
     function renderWorkForm() {
@@ -454,134 +486,20 @@
       document.getElementById('stage-track').innerHTML = html;
     }
 
-    /* Laboratuvar sahibine ait aksiyonlar (Geri al / İptal et / Sil) işin
-     * durumundan bağımsız gösterilir. Önceden bu blok ilerletme düğmesinin
-     * mantığı içindeydi ve "tamamlandı" dalında erken return edildiği için
-     * tamamlanmış bir iş ne iptal edilebiliyor ne geri alınabiliyordu. */
-    /* Sorumlu teknisyen: iş tamamlanınca hakediş bu kişiye yazılır
-     * (diş başına ücret × diş sayısı). Yalnızca laboratuvar sahibi atar. */
-    var zkStaffCache = [];
-
-    function renderAssignee() {
-      var ro = document.getElementById('assignee-readonly');
-      var box = document.getElementById('assignee-edit');
-      var hint = document.getElementById('assignee-hint');
-      var kisi = zkStaffCache.find(function (u) { return u.id === currentJob.assigned_user_id; });
-      ro.textContent = kisi ? kisi.full_name : 'Atanmadı';
-
-      ZirkonikAuth.me().then(function (me) {
-        // Tamamlanan iş kilitli; iptal edilen işte de değiştirilecek bir şey yok.
-        if (!me || me.role !== 'yonetici'
-            || currentJob.status === 'cancelled' || currentJob.status === 'completed') return;
-        box.classList.remove('hidden');
-        box.classList.add('flex');
-        ro.classList.add('hidden');
-        var sel = document.getElementById('job-assignee');
-        if (sel.options.length <= 1) {
-          zkStaffCache.forEach(function (u) {
-            var opt = document.createElement('option');
-            opt.value = u.id;
-            var disli = u.pay_type === 'dis' || u.pay_type === 'maas_dis';
-            opt.textContent = u.full_name + (
-              u.position === 'Yardımcı Teknisyen' ? ' — yardımcı teknisyen (maaşlı)'
-              : u.pay_type === 'maas' ? ' — maaşlı'
-              : disli && u.piece_rate ? ' — diş başına ' + u.piece_rate + ' $'
-              : ' — ücret tanımsız');
-            sel.appendChild(opt);
-          });
-        }
-        sel.value = currentJob.assigned_user_id || '';
-        // Maaşlı personelde diş başına hakediş yazılmaz; ipucu bunu söylesin.
-        var disKapsam = kisi && (kisi.pay_type === 'dis' || kisi.pay_type === 'maas_dis');
-        var oran = disKapsam && kisi.piece_rate ? Number(kisi.piece_rate) : 0;
-        hint.textContent = (kisi && kisi.position === 'Yardımcı Teknisyen')
-          ? 'Yardımcı teknisyen diş başına ücret almaz; maaşlı çalışır — bu işten hakediş yazılmaz.'
-          : (kisi && kisi.pay_type === 'maas')
-          ? 'Bu personel maaşlı çalışıyor — bu işten ayrıca diş başına hakediş yazılmaz.'
-          : currentJob.status === 'completed'
-            ? (oran ? 'İş tamamlandı; hakediş yazıldı.' : 'Bu personelin diş başına ücreti tanımlı değil — hakediş oluşmaz.')
-            : (oran
-                ? 'İş tamamlandığında hakediş: ' + oran + ' $ × ' + (currentJob.unit_count || 1) + ' diş = ' + (oran * (currentJob.unit_count || 1)) + ' $'
-                : 'Hakediş yazılması için Ekip ekranından çalışma şekli ve diş başına ücret tanımlanmalı.');
-        hint.classList.remove('hidden');
-      });
-    }
-
-    function zkSaveAssignee() {
-      var errEl = document.getElementById('advance-error');
-      errEl.classList.add('hidden');
-      var val = document.getElementById('job-assignee').value || null;
-      ZirkonikAuth.client().from('jobs').update({ assigned_user_id: val }).eq('id', jobId).select().single()
-        .then(function (res) {
-          if (res.error) throw res.error;
-          currentJob.assigned_user_id = val;
-          zkToast(val ? 'Sorumlu teknisyen kaydedildi.' : 'Teknisyen ataması kaldırıldı.');
-          renderAssignee();
-        }).catch(function (err) {
-          errEl.textContent = 'Atama kaydedilemedi: ' + (err.message || err);
-          errEl.classList.remove('hidden');
-        });
-    }
-
-    function renderOwnerActions() {
-      var ownerBox = document.getElementById('owner-actions');
-      var revertBtn = document.getElementById('revert-btn');
-      var cancelBtn = document.getElementById('cancel-job-btn');
-      var deleteBtn = document.getElementById('delete-job-btn');
-
-      var lockNote = document.getElementById('job-lock-note');
-      lockNote.classList.add('hidden');
-
-      // İptal edilen işte yapılacak bir şey yok.
-      // Tamamlanan iş ise kilitlidir (kullanıcı kararı, 2026-09-05): tamamlanma
-      // anında fatura kesiliyor, hakediş yazılıyor ve stok düşülüyor — geri alma
-      // veya iptal bu üç kaydı da bozardı. Veritabanı da aynı kilidi uyguluyor.
-      if (currentJob.status === 'cancelled' || currentJob.status === 'completed') {
-        ownerBox.classList.add('hidden');
-        ownerBox.classList.remove('flex');
-        if (currentJob.status === 'completed') lockNote.classList.remove('hidden');
-        return;
-      }
-
-      ZirkonikAuth.me().then(function (me) {
-        if (!me || me.role !== 'yonetici') return;
-        ownerBox.classList.remove('hidden');
-        ownerBox.classList.add('flex');
-
-        // Geri alma yalnızca bir odada duran iş için anlamlı; sebebi
-        // görünsün diye düğme pasifken açıklama başlığa yazılıyor.
-        var canRevert = !!currentJob.current_room_id;
-        revertBtn.disabled = !canRevert;
-        revertBtn.classList.toggle('opacity-50', !canRevert);
-        revertBtn.title = canRevert
-          ? 'İşi bir önceki odaya geri al'
-          : 'Bu iş henüz bir odaya girmemiş — geri alınacak aşama yok.';
-        cancelBtn.title = 'Faturayı ve hakedişi iptal eder, ayrılan stoğu iade eder. Kayıt silinmez.';
-        deleteBtn.title = 'Yalnızca hiçbir fatura/hakediş/stok kaydı olmayan işlerde mümkün.';
-      });
-    }
-
     function renderAdvanceButton() {
       var btn = document.getElementById('advance-btn');
       var label = document.getElementById('advance-label');
       var errEl = document.getElementById('advance-error');
       errEl.classList.add('hidden');
-      renderOwnerActions();
 
-      if (currentJob.status === 'cancelled') {
-        var SEBEP = { kusur: 'Üretim kusuru', doktor: 'Doktor iptal etti', yanlis_kayit: 'Yanlış kayıt', diger: 'Diğer' };
-        label.textContent = 'Bu iş iptal edildi'
-          + (currentJob.cancel_category ? ' — ' + (SEBEP[currentJob.cancel_category] || '') : '');
-        if (currentJob.cancel_reason) {
-          errEl.textContent = 'İptal notu: ' + currentJob.cancel_reason;
-          errEl.classList.remove('hidden');
-        }
+      if (currentJob.status === 'completed') {
+        label.textContent = 'İş tamamlandı';
         btn.disabled = true;
         btn.classList.add('opacity-50');
         return;
       }
-      if (currentJob.status === 'completed') {
-        label.textContent = 'İş tamamlandı';
+      if (currentJob.status === 'cancelled') {
+        label.textContent = 'İş iptal edildi';
         btn.disabled = true;
         btn.classList.add('opacity-50');
         return;
@@ -772,106 +690,6 @@
         }).join('');
       });
     }
-
-    // Geri al: işi bir önceki odaya döndürür. Geçmiş kaydı silinmez,
-    // yanlış giriş "geri alındı" notuyla kapatılır.
-    document.getElementById('revert-btn').addEventListener('click', function () {
-      var errEl = document.getElementById('advance-error');
-      errEl.classList.add('hidden');
-      if (!currentJob.current_room_id) {
-        errEl.textContent = 'Bu iş henüz bir odaya girmemiş — geri alınacak bir aşama yok.';
-        errEl.classList.remove('hidden');
-        return;
-      }
-      var currentIdx = rooms.findIndex(function (r) { return r.id === currentJob.current_room_id; });
-      var prevRoom = currentIdx > 0 ? rooms[currentIdx - 1] : null;
-      var hedef = prevRoom ? ('"' + prevRoom.name + '" odasına') : 'başlangıca (henüz odaya girmemiş haline)';
-      if (!confirm('İş ' + hedef + ' geri alınacak. Devam edilsin mi?')) return;
-
-      var btn = this;
-      btn.disabled = true;
-      ZirkonikData.revertJobStage(jobId, currentJob.current_room_id, prevRoom ? prevRoom.id : null)
-        .then(function (res) {
-          btn.disabled = false;
-          if (res && res.error) throw res.error;
-          zkToast(prevRoom ? ('İş "' + prevRoom.name + '" odasına geri alındı.') : 'İş başlangıca geri alındı.');
-          loadJob();
-        }).catch(function (err) {
-          btn.disabled = false;
-          errEl.textContent = 'Geri alınamadı: ' + err.message;
-          errEl.classList.remove('hidden');
-        });
-    });
-
-    /* İşi iptal et — silmenin yapamadığını yapar: kayıt durur, faturası ve
-     * hakedişi iptal olur, ayrılan stok iade edilir. Silme yalnızca hiçbir
-     * bağlı kaydı olmayan işlerde mümkün; iptal her zaman doğru seçenektir. */
-    document.getElementById('cancel-job-btn').addEventListener('click', function () {
-      document.getElementById('cx-error').classList.add('hidden');
-      document.getElementById('cx-note').value = '';
-      document.getElementById('cx-category').value = 'kusur';
-      zkCancelHint();
-      document.getElementById('cancel-sheet').classList.remove('hidden');
-    });
-    function zkCloseCancel() { document.getElementById('cancel-sheet').classList.add('hidden'); }
-    function zkCancelHint() {
-      var kusur = document.getElementById('cx-category').value === 'kusur';
-      document.getElementById('cx-hint').textContent = kusur
-        ? 'Kusur seçildiğinde laboratuvar sahibine bildirim gönderilir.'
-        : 'Bu sebep için bildirim gönderilmez; iptal kaydı geçmişte görünür.';
-    }
-
-    function zkSubmitCancel() {
-      var errEl = document.getElementById('cx-error');
-      var btn = document.getElementById('cx-btn');
-      errEl.classList.add('hidden');
-      var kategori = document.getElementById('cx-category').value;
-      var not = document.getElementById('cx-note').value.trim() || null;
-
-      btn.disabled = true;
-      ZirkonikData.cancelJob(jobId, not, kategori).then(function (res) {
-        btn.disabled = false;
-        if (res.error) throw res.error;
-        var o = res.data || {};
-        zkCloseCancel();
-        zkToast('İş iptal edildi · ' + (o.iptal_edilen_fatura || 0) + ' fatura, '
-          + (o.iptal_edilen_hakedis || 0) + ' hakediş iptal, '
-          + (o.iade_edilen_stok_hareketi || 0) + ' stok hareketi iade edildi.'
-          + (kategori === 'kusur' ? ' Laboratuvar sahibine bildirim gönderildi.' : ''));
-        loadJob();
-      }).catch(function (err) {
-        btn.disabled = false;
-        errEl.textContent = 'İptal edilemedi: ' + (err.message || err);
-        errEl.classList.remove('hidden');
-      });
-    }
-
-    // İşi sil: yalnızca yönetici. Faturası/hakedişi/stok hareketi olan iş
-    // veritabanı kısıtı nedeniyle silinemez — mesajı anlaşılır hale getiriyoruz.
-    document.getElementById('delete-job-btn').addEventListener('click', function () {
-      var errEl = document.getElementById('advance-error');
-      errEl.classList.add('hidden');
-      if (!confirm('Bu iş kalıcı olarak silinecek. Bu işlem geri alınamaz. Devam edilsin mi?')) return;
-
-      var btn = this;
-      btn.disabled = true;
-      ZirkonikData.deleteJob(jobId).then(function (res) {
-        btn.disabled = false;
-        if (res.error) throw res.error;
-        if (!res.data || !res.data.length) {
-          errEl.textContent = 'İş silinemedi: bu işlem için laboratuvar sahibi yetkisi gerekiyor.';
-          errEl.classList.remove('hidden');
-          return;
-        }
-        window.location.href = 'retim.html';
-      }).catch(function (err) {
-        var msg = String(err.message || '');
-        errEl.textContent = /foreign key|violates|ihlal/i.test(msg)
-          ? 'Bu iş silinemez: işe bağlı fatura, personel hakedişi veya stok hareketi var. Bunun yerine "İptal et" kullanın — kayıt kalır, fatura ve hakediş iptal olur, stok iade edilir.'
-          : 'Silinemedi: ' + msg;
-        errEl.classList.remove('hidden');
-      });
-    });
 
     document.getElementById('advance-btn').addEventListener('click', function () {
       var errEl = document.getElementById('advance-error');
