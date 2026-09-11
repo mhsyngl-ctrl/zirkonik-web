@@ -378,3 +378,30 @@ body::after {
   font-family: var(--font-body, sans-serif); font-size: 14px; font-weight: 700;
   cursor: pointer;
 }
+
+/* ================== Akıcı geçişler (2026-09-11) ================== */
+/* Sayfa açılışı: sert kesme yerine hafif bir belirme. */
+body { animation: zkPageIn .2s ease both; }
+@keyframes zkPageIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Sayfadan sayfaya geçiş: tarayıcı destekliyorsa (Cross-Document View
+ * Transitions) otomatik yumuşak geçiş uygulanır; desteklemiyorsa sessizce
+ * hiçbir şey yapmaz — mevcut anlık geçiş aynen kalır, güvenli/geri uyumlu. */
+@view-transition { navigation: auto; }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: .18s; }
+
+/* "-sheet" ile biten TÜM alt-sayfa/modal panelleri (projede tutarlı bir
+ * isimlendirme kuralı) su gibi akan bir açılış/kapanışla gelsin. Yalnızca bu
+ * kalıba özel — .hidden sınıfının GENEL davranışını bozmaz (hata mesajları,
+ * diğer basit göster/gizle'ler display:none olarak aynen kalır). */
+[id$="-sheet"] { transition: opacity .15s ease; }
+[id$="-sheet"].hidden { display: block !important; opacity: 0; pointer-events: none; }
+[id$="-sheet"]:not(.hidden) { opacity: 1; }
+[id$="-sheet"] .rounded-t-theme {
+  transition: transform .2s cubic-bezier(.32,.72,0,1);
+  transform: translateY(0);
+}
+[id$="-sheet"].hidden .rounded-t-theme { transform: translateY(16px); }
