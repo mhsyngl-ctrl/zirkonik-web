@@ -199,6 +199,58 @@
 // ---- Akış animasyonları (kart "seri seri" akışı + yönlü panel geçişi) ----
 // Tüm sayfalarda zaten yüklü olduğundan render fonksiyonlarına eklenecek
 // tek satırlık çağrılarla kullanılır — yeni bir <script> etiketi gerekmez.
+// ---- Yazım güvenliği: yanlış-alfabe karakter düzeltme + benzer-ad uyarısı ----
+// Rumence ș/ț (Türkçe ş/ç ile kolayca karışan eski bir Unicode/klavye
+// hatası) ve görünüşte Latin harflerine özdeş Kiril harfleri (kopyala-
+// yapıştır ya da yanlış klavye düzeninden sızar) sessizce düzeltilir —
+// kayıt anında, kullanıcıya sormadan. Aynı düzeltme veritabanı
+// tetikleyicisinde de tekrarlanır (fix_confusable_chars fonksiyonu),
+// hangi yoldan veri gelirse gelsin garanti olsun diye.
+var ZK_CONFUSABLE_MAP = {
+  'ș': 'ş', 'Ș': 'Ş', // Rumence ș/Ș -> Türkçe ş/Ş
+  'ț': 'ç', 'Ț': 'Ç', // Rumence ț/Ț -> Türkçe ç/Ç
+  'а': 'a', 'е': 'e', 'о': 'o', 'с': 'c', 'р': 'p', // Kiril а е о с р
+  'А': 'A', 'Е': 'E', 'О': 'O', 'С': 'C', 'Р': 'P',
+  ' ': ' ' // bölünmez boşluk -> normal boşluk
+};
+function zkFixConfusables(str) {
+  if (!str) return str;
+  var out = '';
+  for (var i = 0; i < str.length; i++) {
+    var c = str.charAt(i);
+    out += ZK_CONFUSABLE_MAP[c] || c;
+  }
+  return out.replace(/ {2,}/g, ' ').trim();
+}
+function zkLevenshtein(a, b) {
+  var m = a.length, n = b.length;
+  var d = [];
+  for (var i = 0; i <= m; i++) d[i] = [i];
+  for (var j = 0; j <= n; j++) d[0][j] = j;
+  for (i = 1; i <= m; i++) {
+    for (j = 1; j <= n; j++) {
+      d[i][j] = a.charAt(i - 1) === b.charAt(j - 1)
+        ? d[i - 1][j - 1]
+        : Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + 1);
+    }
+  }
+  return d[m][n];
+}
+// "Bunu mu demek istediniz" eşiği: tek-iki harf sapma, çok kısa adlarda
+// (yanlış pozitif riski yüksek) ve zaten aynı addaysa devre dışı.
+function zkFindSimilarName(name, existingNames) {
+  var a = (name || '').toLocaleLowerCase('tr');
+  if (a.length < 4) return null;
+  for (var i = 0; i < existingNames.length; i++) {
+    var b = (existingNames[i] || '').toLocaleLowerCase('tr');
+    if (!b || b === a) continue;
+    var maxLen = Math.max(a.length, b.length);
+    var dist = zkLevenshtein(a, b);
+    if (dist > 0 && dist <= 2 && dist / maxLen <= 0.3) return existingNames[i];
+  }
+  return null;
+}
+
 window.zkFlow = {
   // container.innerHTML = ... satırından HEMEN SONRA çağrılır. Her doğrudan
   // alt öğeye artan bir animation-delay verir, 5. öğeden sonra gecikme
