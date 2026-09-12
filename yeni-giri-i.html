@@ -237,6 +237,10 @@
     var doctors = [];
     var priceItems = [];
     var priceOverrides = [];
+    // 2026-09-12: fiyat listesinden gelen tutar, finans yetkisi olmayan personel
+    // tarafından elle ezilebiliyordu. Sipariş onay ekranında bu mümkün değil;
+    // iki ekran aynı işe farklı fiyat üretebiliyordu.
+    var canOverridePrice = false;
 
     ZkWorkForm.render(document.getElementById('wf-container'));
     ZkWorkForm.onTeethChange = function (teeth) {
@@ -266,7 +270,11 @@
       var doctorId = document.getElementById('f-doctor').value || null;
       var labId = document.getElementById('f-lab').value || null;
       var unit = ZirkonikData.resolveUnitPrice(item, priceOverrides, doctorId, labId);
+      var priceEl = document.getElementById('f-price');
       if (unit == null) {
+        // Fiyatı tanımlı olmayan kalem: elle girilmesi tek yol, alan açık kalır.
+        priceEl.readOnly = false;
+        priceEl.classList.remove('bg-muted', 'text-muted-foreground');
         hint.textContent = 'Bu kalem için birim fiyat tanımlı değil — tutarı elle girin.';
         hint.classList.remove('hidden');
         return;
@@ -275,7 +283,12 @@
       var listPrice = item.unit_price != null ? Number(item.unit_price) : null;
       var isSpecial = listPrice == null || unit !== listPrice;
       var total = unit * count;
-      document.getElementById('f-price').value = total;
+      priceEl.value = total;
+      // Fiyat listesinden bir tutar geldiyse yalnız yönetici/finans yetkilisi
+      // değiştirebilir; diğerleri için alan salt okunur.
+      priceEl.readOnly = !canOverridePrice;
+      priceEl.classList.toggle('bg-muted', !canOverridePrice);
+      priceEl.classList.toggle('text-muted-foreground', !canOverridePrice);
 
       // Doktora/lokasyona özel fiyat genel listeyi ezdiği için, iş ekranında
       // fiyat listesindekinden farklı bir rakam çıkabiliyordu ve sebebi
@@ -297,6 +310,12 @@
     ZirkonikAuth.requireAuth().then(function (session) {
       if (!session) return;
       var client = ZirkonikAuth.client();
+
+      ZirkonikAuth.me().then(function (me) {
+        var perms = (me.user_permissions && me.user_permissions[0]) || me.user_permissions || {};
+        canOverridePrice = me.role === 'yonetici' || !!perms.can_view_finance;
+        zkRecalcPrice();
+      });
 
       ZirkonikData.listPriceOverrides().then(function (r) {
         priceOverrides = r.data || [];

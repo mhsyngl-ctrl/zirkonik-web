@@ -76,7 +76,8 @@
             <article class="rounded-theme border border-border bg-card p-4">
               <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary text-primary"><iconify-icon icon="lucide:arrow-down-left" class="text-base"></iconify-icon></span>
               <p id="stat-invoiced" class="mt-4 font-heading text-xl font-bold tabular-nums">—</p>
-              <p class="mt-1 text-xs text-muted-foreground">Toplam faturalanan</p>
+              <p class="mt-1 text-xs text-muted-foreground">Toplam alacak kaydı</p>
+              <p id="stat-invoiced-split" class="mt-1 text-xs text-muted-foreground">—</p>
             </article>
             <article class="rounded-theme border border-border bg-card p-4">
               <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-success/10 text-success"><iconify-icon icon="lucide:check-circle-2" class="text-base"></iconify-icon></span>
@@ -107,6 +108,21 @@
           <div id="lab-revenue" class="mt-3 space-y-2.5">
             <p class="text-xs text-muted-foreground">Yükleniyor…</p>
           </div>
+        </section>
+
+        <!-- 2026-09-12: blok açık haldeyken uzundu ve verisi sonradan geldiği
+             için sayfa kayarken altındaki her şeyi aşağı itiyordu ("yerinden
+             oynuyor"). Artık tek satır: dokununca açılıyor. -->
+        <section id="unbilled-section" class="mt-6 hidden px-5">
+          <button type="button" id="unbilled-toggle" class="flex w-full items-center gap-3 rounded-theme border border-destructive/30 bg-destructive/10 p-3.5 text-left">
+            <iconify-icon icon="lucide:triangle-alert" class="shrink-0 text-lg text-destructive"></iconify-icon>
+            <span class="min-w-0 flex-1">
+              <span id="unbilled-summary" class="block text-sm font-bold text-destructive">—</span>
+              <span class="block text-xs text-muted-foreground">Fiyatı var, faturası yok — hiçbir cariye yansımıyor</span>
+            </span>
+            <iconify-icon id="unbilled-chevron" icon="lucide:chevron-down" class="shrink-0 text-base text-destructive"></iconify-icon>
+          </button>
+          <div id="unbilled-list" class="mt-2 hidden space-y-2"></div>
         </section>
 
         <section class="mt-6 border-y border-border bg-card px-5 py-5">
@@ -238,7 +254,7 @@
         <input id="sup-op-note" type="text" placeholder="Not (ops.)" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
       </div>
       <p id="sup-op-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
-      <button onclick="zkSubmitSupOp()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
+      <button id="sup-op-submit" onclick="zkSubmitSupOp()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
     </div>
   </div>
 
@@ -258,28 +274,31 @@
         </select>
       </div>
       <p id="pay-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
-      <button onclick="zkSubmitPayment()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
+      <button id="pay-submit" onclick="zkSubmitPayment()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
     </div>
   </div>
 
   <div id="handover-sheet" class="fixed inset-0 z-40 hidden">
     <div class="absolute inset-0 bg-black/40" onclick="zkCloseHandover()"></div>
-    <div class="absolute bottom-0 left-0 max-h-[85vh] w-full overflow-y-auto rounded-t-theme bg-card p-5 pb-8">
+    <!-- 2026-09-12: panelin TAMAMI kayıyordu; tahsilat listesi uzayınca alttaki
+         toplam ve "Teslim talebi oluştur" butonu ekrandan kaçıyordu. Cari
+         panelindeki desene geçildi: yalnız liste kayar, özet ve buton sabit. -->
+    <div class="absolute bottom-0 left-0 flex max-h-[85vh] w-full flex-col rounded-t-theme bg-card p-5 pb-8">
       <p class="font-heading text-lg font-bold">Kasa teslimi yap</p>
       <p class="mt-1 text-xs text-muted-foreground">Henüz teslim/onaya dahil etmediğiniz tahsilatlar</p>
-      <div id="handover-cash-list" class="mt-4 space-y-2">
+      <div id="handover-cash-list" class="mt-4 min-h-0 flex-1 space-y-2 overflow-y-auto">
         <p class="text-xs text-muted-foreground">Yükleniyor…</p>
       </div>
-      <div class="mt-4 rounded-theme border border-border bg-background px-3.5 py-3">
+      <div class="mt-4 shrink-0 rounded-theme border border-border bg-background px-3.5 py-3">
         <div class="flex items-center justify-between">
           <span class="text-xs font-semibold text-muted-foreground">Toplam</span>
           <span id="handover-total" class="font-heading text-lg font-bold tabular-nums">—</span>
         </div>
         <p id="handover-breakdown" class="mt-1 text-[11px] text-muted-foreground"></p>
       </div>
-      <input id="handover-note" type="text" placeholder="Not (opsiyonel)" class="mt-3 h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+      <input id="handover-note" type="text" placeholder="Not (opsiyonel)" class="mt-3 h-12 w-full shrink-0 rounded-theme border border-border bg-input px-3.5 text-sm">
       <p id="handover-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
-      <button id="handover-submit" onclick="zkSubmitHandover()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Teslim talebi oluştur</button>
+      <button id="handover-submit" onclick="zkSubmitHandover()" class="mt-4 flex h-12 w-full shrink-0 items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Teslim talebi oluştur</button>
     </div>
   </div>
 
@@ -435,6 +454,13 @@
       errEl.classList.add('hidden');
       var amount = Number(document.getElementById('sup-op-amount').value);
       if (!(amount > 0)) { errEl.textContent = 'Geçerli bir tutar girin.'; errEl.classList.remove('hidden'); return; }
+
+      // 2026-09-12: tahsilat butonuyla ayni acik — kilit yoktu, ustelik hic
+      // .catch() yoktu: hata atarsa kullanici hicbir sey gormuyordu.
+      var btn = document.getElementById('sup-op-submit');
+      if (btn.disabled) return;
+      btn.disabled = true;
+
       var isInv = document.getElementById('sup-op-type').value === 'fatura';
       ZirkonikAuth.me().then(function (me) {
         if (isInv) {
@@ -455,6 +481,7 @@
           performed_by: me.id
         });
       }).then(function (res) {
+        btn.disabled = false;
         if (res.error) { errEl.textContent = 'Kaydedilemedi: ' + res.error.message; errEl.classList.remove('hidden'); return; }
         zkCloseSupOp();
         document.getElementById('sup-op-amount').value = '';
@@ -462,6 +489,10 @@
         document.getElementById('sup-op-note').value = '';
         zkToast(isInv ? 'Alış faturası kaydedildi.' : 'Tedarikçi ödemesi kaydedildi.');
         loadSuppliers();
+      }).catch(function (err) {
+        btn.disabled = false;
+        errEl.textContent = 'Kaydedilemedi: ' + err.message;
+        errEl.classList.remove('hidden');
       });
     }
 
@@ -487,25 +518,77 @@
           paidByInvoice[p.invoice_id] = (paidByInvoice[p.invoice_id] || 0) + Number(p.amount);
         });
 
-        client.from('invoices').select('id, amount, status').then(function (ir) {
-          var rows = ir.data || [];
+        client.from('invoices').select('id, amount, status, billing_mode').then(function (ir) {
+          // 2026-09-12: iptal edilmis faturalar "Faturalanan" toplamina
+          // giriyordu — canlida 4 iptal isin 385 TL'si ciroya sayiliyordu.
+          var rows = (ir.data || []).filter(function (x) { return x.status !== 'cancelled'; });
           function remaining(inv) { return Math.max(0, Number(inv.amount) - (paidByInvoice[inv.id] || 0)); }
           var invoiced = rows.reduce(function (s, x) { return s + Number(x.amount); }, 0);
           var outstanding = rows.filter(function (x) { return x.status !== 'paid'; }).reduce(function (s, x) { return s + remaining(x); }, 0);
           var overdue = rows.filter(function (x) { return x.status === 'overdue'; }).reduce(function (s, x) { return s + remaining(x); }, 0);
           document.getElementById('stat-invoiced').textContent = TL.format(invoiced);
+          // 2026-09-12: bazı doktorlarla faturalı, bazılarıyla faturasız
+          // çalışılıyor. Toplam ikisini de kapsar — hiçbir tutar gizlenmiyor —
+          // ama kırılım ayrı gösteriliyor.
+          var faturaliT = rows.filter(function (x) { return x.billing_mode !== 'faturasiz'; })
+            .reduce(function (t, x) { return t + Number(x.amount); }, 0);
+          var faturasizT = invoiced - faturaliT;
+          document.getElementById('stat-invoiced-split').textContent =
+            faturasizT > 0
+              ? 'Faturalı ' + TL.format(faturaliT) + ' · Faturasız ' + TL.format(faturasizT)
+              : 'Tamamı faturalı';
           document.getElementById('stat-outstanding').textContent = TL.format(outstanding);
           document.getElementById('stat-overdue').textContent = TL.format(overdue);
         });
 
         loadReceivablesList();
+        loadUnbilledJobs();
       });
+
+      // Uyarıya dokununca liste açılıp kapanır.
+      document.getElementById('unbilled-toggle').addEventListener('click', function () {
+        var list = document.getElementById('unbilled-list');
+        var open = list.classList.toggle('hidden') === false;
+        document.getElementById('unbilled-chevron')
+          .setAttribute('icon', open ? 'lucide:chevron-up' : 'lucide:chevron-down');
+      });
+
+      // 2026-09-12: is kaydi ile fatura ayri iki adim (tek islem degil), fatura
+      // adimi hata alirsa is faturasiz kaliyor ve bunu yakalayan hicbir ekran
+      // yoktu. Canlida boyle 6 is bulundu (320 TL). Bu kontrol onlari gosterir.
+      function loadUnbilledJobs() {
+        var sec = document.getElementById('unbilled-section');
+        client.from('jobs').select('id, job_number, price, status').not('price', 'is', null).neq('status', 'cancelled')
+          .then(function (jr) {
+            var jobs = jr.data || [];
+            if (!jobs.length) return;
+            return client.from('invoices').select('job_id').not('job_id', 'is', null).then(function (ir) {
+              var billed = {};
+              (ir.data || []).forEach(function (i) { billed[i.job_id] = true; });
+              var orphans = jobs.filter(function (j) { return !billed[j.id]; });
+              if (!orphans.length) return;
+              var total = orphans.reduce(function (sum, j) { return sum + Number(j.price || 0); }, 0);
+              document.getElementById('unbilled-summary').textContent =
+                orphans.length + ' faturasız iş · ' + TL.format(total);
+              document.getElementById('unbilled-list').innerHTML =
+                orphans.slice(0, 10).map(function (j) {
+                  return '<button onclick="location.href=\'detay.html?id=' + j.id + '\'" class="flex w-full items-center justify-between rounded-theme border border-border bg-card px-3 py-2.5 text-left">' +
+                    '<span class="truncate text-sm font-bold">' + escapeHtml(j.job_number || '—') + '</span>' +
+                    '<span class="text-sm font-bold tabular-nums">' + TL.format(j.price) + '</span></button>';
+                }).join('') +
+                (orphans.length > 10 ? '<p class="text-xs text-muted-foreground">İlk 10 tanesi listelendi.</p>' : '');
+              sec.classList.remove('hidden');
+            });
+          });
+      }
 
       client.from('laboratories').select('id, name').then(function (labsRes) {
         var labs = labsRes.data || [];
         if (!labs.length) { document.getElementById('lab-revenue').innerHTML = '<p class="text-xs text-muted-foreground">Henüz laboratuvar yok.</p>'; return; }
         Promise.all(labs.map(function (lab) {
-          return client.from('jobs').select('price').eq('laboratory_id', lab.id).then(function (r) {
+          // 2026-09-12: iptal edilen isler de ciroya sayiliyordu (Zirkonik Lab
+          // 1.525 TL gorunuyordu, gercegi 1.140 TL).
+          return client.from('jobs').select('price').eq('laboratory_id', lab.id).neq('status', 'cancelled').then(function (r) {
             var revenue = (r.data || []).reduce(function (s, x) { return s + Number(x.price || 0); }, 0);
             return { lab: lab, revenue: revenue };
           });
@@ -520,7 +603,9 @@
 
       function loadReceivablesList() {
         ZirkonikData.listInvoices().then(function (r) {
-          var rows = (r.data || []).filter(function (x) { return x.status !== 'paid'; }).slice(0, 10);
+          // 2026-09-12: 'paid' disindaki her sey bekleyen sayiliyordu, iptal
+          // faturalar da listede ve tahsilat acilir menusunde cikiyordu.
+          var rows = (r.data || []).filter(function (x) { return x.status !== 'paid' && x.status !== 'cancelled'; }).slice(0, 10);
           var el = document.getElementById('receivables-list');
           var sel = document.getElementById('pay-invoice');
           if (!rows.length) {
@@ -532,23 +617,30 @@
           el.innerHTML = rows.map(function (inv) {
             var isOverdue = inv.status === 'overdue';
             var remaining = Math.max(0, Number(inv.amount) - (paidByInvoice[inv.id] || 0));
+            // 2026-09-12: iş numarası yalnız açılır menüde vardı; aynı doktorun
+            // birden fazla bekleyen faturası varsa hangisi olduğu görünmüyordu.
+            var jobNo = inv.jobs && inv.jobs.job_number ? inv.jobs.job_number : '';
+            var alt = [escapeHtml(inv.doctors ? inv.doctors.clinic_name || '' : ''), escapeHtml(jobNo)].filter(Boolean).join(' · ');
             return '<div class="flex items-center gap-3 py-3">' +
               '<div class="flex h-9 w-9 items-center justify-center rounded-lg ' + (isOverdue ? 'bg-destructive/10 text-destructive' : 'bg-accent/10 text-accent') + '"><iconify-icon icon="lucide:receipt-text" class="text-lg"></iconify-icon></div>' +
               '<div class="min-w-0 flex-1"><p class="truncate text-sm font-bold">' + escapeHtml(inv.doctors ? inv.doctors.full_name : '') + '</p>' +
-              '<p class="truncate text-xs text-muted-foreground">' + escapeHtml(inv.doctors ? inv.doctors.clinic_name || '' : '') + '</p></div>' +
+              '<p class="truncate text-xs text-muted-foreground">' + alt + '</p></div>' +
               '<div class="text-right"><p class="text-sm font-bold tabular-nums">' + TL.format(remaining) + '</p>' +
               '<span class="text-[10px] font-bold ' + (isOverdue ? 'text-destructive' : 'text-accent') + '">' + (STATUS_LABELS[inv.status] || inv.status) + '</span></div></div>';
           }).join('');
           sel.innerHTML = '<option value="">Fatura seçin</option>' + rows.map(function (inv) {
             var remaining = Math.max(0, Number(inv.amount) - (paidByInvoice[inv.id] || 0));
-            return '<option value="' + inv.id + '">' + escapeHtml(inv.doctors ? inv.doctors.full_name : '') + ' — ' + TL.format(remaining) + ' kaldı</option>';
+            var jobNo = inv.jobs && inv.jobs.job_number ? ' (' + inv.jobs.job_number + ')' : '';
+            return '<option value="' + inv.id + '">' + escapeHtml(inv.doctors ? inv.doctors.full_name : '') + escapeHtml(jobNo) + ' — ' + TL.format(remaining) + ' kaldı</option>';
           }).join('');
         });
       }
 
       Promise.all([
         ZirkonikData.listStaffEarnings(),
-        client.from('app_users').select('id, full_name, monthly_salary').eq('compensation_type', 'maas').eq('status', 'approved')
+        // 2026-09-12: "maas_dis" (maaş + diş başı) modeli eklendi; maaş toplamına
+        // o modeldeki personel de girmeli, yoksa maaşı hiç sayılmıyordu.
+        client.from('app_users').select('id, full_name, monthly_salary').in('compensation_type', ['maas', 'maas_dis']).eq('status', 'approved')
       ]).then(function (res) {
         var rows = res[0].data || [];
         var salaried = res[1].data || [];
@@ -583,6 +675,14 @@
       var amount = document.getElementById('pay-amount').value;
       if (!invoiceId || !amount) { errEl.textContent = 'Fatura ve tutar zorunludur.'; errEl.classList.remove('hidden'); return; }
 
+      // 2026-09-12: buton cift tiklamaya karsi korumasizdi — 10 Eylul'de ayni
+      // faturaya 1,14 saniye arayla iki kez 200 TL tahsilat islendi. Asagidaki
+      // zincir 3 ayri async adim, her biri gecikme payi. Kasa teslim butonuyla
+      // ayni desen: islem bitene kadar kilitli.
+      var btn = document.getElementById('pay-submit');
+      if (btn.disabled) return;
+      btn.disabled = true;
+
       var client = ZirkonikAuth.client();
       var invoiceAmount = 0;
 
@@ -609,10 +709,13 @@
         var newStatus = totalPaid >= invoiceAmount ? 'paid' : 'partial';
         return client.from('invoices').update({ status: newStatus }).eq('id', invoiceId);
       }).then(function () {
+        // Basarili yolda kilidi ACMIYORUZ: sayfa 600 ms sonra yenileniyor,
+        // o aralikta ikinci tiklamanin onune geciyor.
         zkClosePayment();
         zkToast('Tahsilat kaydedildi.');
         setTimeout(function () { location.reload(); }, 600);
       }).catch(function (err) {
+        btn.disabled = false;
         errEl.textContent = 'Kaydedilemedi: ' + err.message;
         errEl.classList.remove('hidden');
       });

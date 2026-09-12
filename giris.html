@@ -180,7 +180,10 @@
     function zkRouteByRole() {
       ZirkonikAuth.me().then(function (me) {
         try {
-          var p = (me && me.user_permissions && me.user_permissions[0]) || {};
+          // 2026-09-12: ilişki tekil olduğu için [0] boş kalıyor ve girişten
+          // sonraki ilk sayfada menü yetkisiz görünüyordu.
+          var p = (me && me.user_permissions) || {};
+          if (Object.prototype.toString.call(p) === '[object Array]') p = p[0] || {};
           localStorage.setItem('zk-guard', JSON.stringify({
             role: me ? me.role : null,
             can_manage_stock: !!p.can_manage_stock,

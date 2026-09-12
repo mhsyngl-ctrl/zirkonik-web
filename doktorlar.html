@@ -18,7 +18,7 @@
   <script src="https://code.iconify.design/iconify-icon/2.3.0/iconify-icon.min.js"></script>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap">
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf-autotable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 
   <style>
   :root {
@@ -123,23 +123,54 @@
   <!-- Cari geçmişi (işveren görünümü): tüm işler + fatura + tahsilat -->
   <div id="cari-sheet" class="fixed inset-0 z-40 hidden">
     <div class="absolute inset-0 bg-black/40" onclick="zkCloseDoctorCari()"></div>
-    <div class="absolute bottom-0 left-0 flex max-h-[88vh] w-full flex-col rounded-t-theme bg-card p-5 pb-8">
+    <div class="absolute bottom-0 left-0 flex h-[93vh] w-full flex-col rounded-t-theme bg-card px-5 pb-6 pt-4">
       <div class="flex items-center justify-between">
         <p id="cari-doc-title" class="font-heading text-lg font-bold">Cari geçmişi</p>
         <button onclick="zkCloseDoctorCari()" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Kapat"><iconify-icon icon="lucide:x" class="text-sm"></iconify-icon></button>
       </div>
-      <div class="mt-3 rounded-theme border border-border bg-background p-3.5">
+      <div class="mt-2 rounded-theme border border-border bg-background px-3.5 py-2.5">
         <p id="cari-balance" class="font-heading text-2xl font-bold tabular-nums">—</p>
-        <div class="mt-2 grid grid-cols-2 gap-2 border-t border-border pt-2">
-          <div><p class="text-[11px] text-muted-foreground">Toplam fatura</p><p id="cari-inv-total" class="mt-0.5 text-sm font-bold tabular-nums">—</p></div>
-          <div><p class="text-[11px] text-muted-foreground">Toplam ödeme</p><p id="cari-pay-total" class="mt-0.5 text-sm font-bold tabular-nums text-success">—</p></div>
+        <p class="mt-0.5 text-xs text-muted-foreground">Fatura <span id="cari-inv-total" class="font-bold text-foreground tabular-nums">—</span> · Ödeme <span id="cari-pay-total" class="font-bold text-success tabular-nums">—</span></p>
+      </div>
+
+      <!-- Dönem seçimi: istatistikler VE alttaki liste bu döneme göre süzülür -->
+      <div id="cari-period" class="mt-2 grid grid-cols-4 gap-1 rounded-theme bg-muted p-1">
+        <button type="button" data-period="week" class="cari-per-btn h-8 rounded-lg text-xs font-bold">Hafta</button>
+        <button type="button" data-period="month" class="cari-per-btn h-8 rounded-lg text-xs font-bold">Ay</button>
+        <button type="button" data-period="year" class="cari-per-btn h-8 rounded-lg text-xs font-bold">Yıl</button>
+        <button type="button" data-period="all" class="cari-per-btn h-8 rounded-lg text-xs font-bold">Tümü</button>
+      </div>
+
+      <!-- 2026-09-12: kutular üç satırdı ve listeye çok az yer kalıyordu;
+           alt açıklama satırı etiketin içine alındı, iki satıra indi. -->
+      <div class="mt-2 grid grid-cols-2 gap-1.5">
+        <div class="rounded-theme border border-border bg-background px-3 py-2">
+          <p class="text-xs text-muted-foreground">Yapılan diş · <span id="cari-st-jobs">—</span></p>
+          <p id="cari-st-teeth" class="font-heading text-base font-bold tabular-nums">—</p>
+        </div>
+        <div class="rounded-theme border border-border bg-background px-3 py-2">
+          <p class="text-xs text-muted-foreground">Ciro · faturalanan</p>
+          <p id="cari-st-rev" class="font-heading text-base font-bold tabular-nums">—</p>
+        </div>
+        <div class="rounded-theme border border-border bg-background px-3 py-2">
+          <p class="text-xs text-muted-foreground">Alınan ödeme · <span id="cari-st-paid-n">—</span></p>
+          <p id="cari-st-paid" class="font-heading text-base font-bold tabular-nums text-success">—</p>
+        </div>
+        <div class="rounded-theme border border-border bg-background px-3 py-2">
+          <p class="text-xs text-muted-foreground">Dönem farkı · ciro − ödeme</p>
+          <p id="cari-st-diff" class="font-heading text-base font-bold tabular-nums">—</p>
         </div>
       </div>
-      <div class="mt-4 min-h-0 flex-1 overflow-y-auto">
-        <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Tüm işler</p>
-        <div id="cari-jobs-list" class="mt-2 space-y-2"><p class="text-xs text-muted-foreground">Yükleniyor…</p></div>
-        <p class="mt-4 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Hesap hareketleri</p>
-        <div id="cari-moves-list" class="mt-2 space-y-2"></div>
+
+      <!-- Liste ikiye bölündü: ikisi alt alta olunca çok uzuyordu -->
+      <div class="mt-2 grid grid-cols-2 gap-1 rounded-theme bg-muted p-1">
+        <button type="button" data-tab="moves" class="cari-tab-btn h-8 rounded-lg text-xs font-bold">Hesap hareketleri</button>
+        <button type="button" data-tab="jobs" class="cari-tab-btn h-8 rounded-lg text-xs font-bold">İşler</button>
+      </div>
+
+      <div class="mt-2 min-h-0 flex-1 overflow-y-auto">
+        <div id="cari-moves-list" class="space-y-2"><p class="text-sm text-muted-foreground">Yükleniyor…</p></div>
+        <div id="cari-jobs-list" class="hidden space-y-2"></div>
       </div>
     </div>
   </div>
@@ -188,6 +219,14 @@
         <select id="nd-lab" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
           <option value="">Sorumlu laboratuvar (opsiyonel)</option>
         </select>
+        <label class="block">
+          <span class="mb-1.5 block text-xs font-bold">Çalışma şekli</span>
+          <select id="nd-billing" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+            <option value="faturali">Faturalı çalışılıyor</option>
+            <option value="faturasiz">Faturasız çalışılıyor</option>
+          </select>
+          <span class="mt-1 block text-xs text-muted-foreground">Faturasız seçilse de alacak ve tahsilat kaydı tutulmaya devam eder; yalnızca kayıtlar "fatura" yerine "borç kaydı" olarak adlandırılır.</span>
+        </label>
       </div>
       <p id="nd-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
       <button onclick="zkSubmitAddDoctor()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
@@ -204,6 +243,14 @@
         <input id="ed-clinic" type="text" placeholder="Klinik adı" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         <input id="ed-phone" type="tel" placeholder="Telefon" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         <input id="ed-email" type="email" placeholder="E-posta" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <label class="block">
+          <span class="mb-1.5 block text-xs font-bold">Çalışma şekli</span>
+          <select id="ed-billing" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+            <option value="faturali">Faturalı çalışılıyor</option>
+            <option value="faturasiz">Faturasız çalışılıyor</option>
+          </select>
+          <span class="mt-1 block text-xs text-muted-foreground">Faturasız seçilse de alacak ve tahsilat kaydı tutulmaya devam eder; yalnızca kayıtlar "fatura" yerine "borç kaydı" olarak adlandırılır.</span>
+        </label>
       </div>
       <p id="ed-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
       <button onclick="zkSubmitEditDoctor()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
@@ -361,7 +408,8 @@
       return '<div onclick="zkOpenDoctorCari(\'' + d.id + '\',\'' + nameEsc + '\')" class="flex items-center gap-3 rounded-theme border border-border bg-card p-3 active:opacity-70">' +
         '<div class="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground">' + escapeHtml((d.full_name || '?').charAt(0)) + '</div>' +
         '<div class="min-w-0 flex-1"><p class="truncate text-sm font-bold">Dr. ' + escapeHtml(d.full_name) + '</p>' +
-        '<p class="truncate text-xs text-muted-foreground">' + escapeHtml(d.clinic_name || '—') + '</p></div>' +
+        '<p class="truncate text-xs text-muted-foreground">' + escapeHtml(d.clinic_name || '—') +
+          (d.billing_mode === 'faturasiz' ? ' <span class="font-bold text-accent">· Faturasız</span>' : '') + '</p></div>' +
         '<button onclick="event.stopPropagation();zkOpenEditDoctor(\'' + d.id + '\')" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Bilgileri düzenle" title="Bilgileri düzenle"><iconify-icon icon="lucide:pencil" class="text-sm"></iconify-icon></button>' +
         accountBtn +
         '<button onclick="event.stopPropagation();zkOpenStatement(\'' + d.id + '\',\'' + nameEsc + '\')" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-primary" aria-label="Ekstre gönder"><iconify-icon icon="lucide:send" class="text-sm"></iconify-icon></button>' +
@@ -436,6 +484,7 @@
       document.getElementById('ed-clinic').value = d.clinic_name || '';
       document.getElementById('ed-phone').value = d.phone || '';
       document.getElementById('ed-email').value = d.email || '';
+      document.getElementById('ed-billing').value = d.billing_mode || 'faturali';
       document.getElementById('ed-error').classList.add('hidden');
       document.getElementById('edit-doctor-sheet').classList.remove('hidden');
     }
@@ -450,7 +499,8 @@
         full_name: name,
         clinic_name: document.getElementById('ed-clinic').value.trim() || null,
         phone: document.getElementById('ed-phone').value.trim() || null,
-        email: document.getElementById('ed-email').value.trim() || null
+        email: document.getElementById('ed-email').value.trim() || null,
+        billing_mode: document.getElementById('ed-billing').value || 'faturali'
       }).then(function (res) {
         if (res.error) { errEl.textContent = 'Kaydedilemedi: ' + res.error.message; errEl.classList.remove('hidden'); return; }
         zkCloseEditDoctor();
@@ -478,7 +528,8 @@
           clinic_name: document.getElementById('nd-clinic').value.trim() || null,
           phone: document.getElementById('nd-phone').value.trim() || null,
           email: document.getElementById('nd-email').value.trim() || null,
-          primary_laboratory_id: document.getElementById('nd-lab').value || null
+          primary_laboratory_id: document.getElementById('nd-lab').value || null,
+          billing_mode: document.getElementById('nd-billing').value || 'faturali'
         });
       }).then(function (res) {
         if (res.error) throw res.error;
@@ -531,6 +582,9 @@
     document.querySelectorAll('.statement-format-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
         selectedFormat = btn.getAttribute('data-format');
+        // 2026-09-12: önceki denemenin hatası ekranda kalıyordu; PDF'te hata
+        // alıp Excel'e geçince hâlâ eski hata görünüyordu.
+        document.getElementById('statement-error').classList.add('hidden');
         document.querySelectorAll('.statement-format-btn').forEach(function (b) {
           var active = b === btn;
           b.className = 'statement-format-btn flex h-11 items-center justify-center gap-1.5 rounded-theme border-2 text-sm font-semibold ' +
@@ -546,15 +600,24 @@
 
     function zkOpenDoctorCari(doctorId, doctorName) {
       cariPaymentsById = {};
+      // Her açılışta baştan: bu ay + hesap hareketleri.
+      cariData = null;
+      cariPeriod = 'month';
+      cariTab = 'moves';
       document.getElementById('cari-doc-title').textContent = 'Dr. ' + doctorName + ' — Cari geçmişi';
-      document.getElementById('cari-jobs-list').innerHTML = '<p class="text-xs text-muted-foreground">Yükleniyor…</p>';
-      document.getElementById('cari-moves-list').innerHTML = '';
+      document.getElementById('cari-moves-list').innerHTML = '<p class="text-sm text-muted-foreground">Yükleniyor…</p>';
+      document.getElementById('cari-moves-list').classList.remove('hidden');
+      document.getElementById('cari-jobs-list').innerHTML = '';
+      document.getElementById('cari-jobs-list').classList.add('hidden');
       document.getElementById('cari-sheet').classList.remove('hidden');
 
       var client = ZirkonikAuth.client();
       Promise.all([
         client.from('jobs').select('id, job_number, restoration_type, unit_count, status, created_at, completed_at').eq('doctor_id', doctorId).order('created_at', { ascending: false }),
-        client.from('invoices').select('id, amount, status, issued_at, jobs(job_number, restoration_type)').eq('doctor_id', doctorId).order('issued_at', { ascending: false }),
+        // 2026-09-12: iptal edilen fatura ne bakiyeye ne hareket listesine
+        // girer — cancel_job faturayi 'cancelled' isaretliyor, doktordan
+        // tahsil edilmeyecek.
+        client.from('invoices').select('id, amount, status, issued_at, billing_mode, jobs(job_number, restoration_type)').eq('doctor_id', doctorId).neq('status', 'cancelled').order('issued_at', { ascending: false }),
         client.from('payments').select('id, amount, method, received_at, note, app_users:received_by(full_name)').eq('doctor_id', doctorId).order('received_at', { ascending: false })
       ]).then(function (res) {
         var jobs = res[0].data || [];
@@ -570,32 +633,108 @@
         document.getElementById('cari-inv-total').textContent = TL.format(invTotal);
         document.getElementById('cari-pay-total').textContent = TL.format(payTotal);
 
-        document.getElementById('cari-jobs-list').innerHTML = jobs.length ? jobs.map(function (j) {
-          return '<button onclick="location.href=\'detay.html?id=' + j.id + '\'" class="flex w-full items-center justify-between gap-3 rounded-theme border border-border bg-background p-2.5 text-left">' +
-            '<div class="min-w-0"><p class="text-xs font-bold">' + escapeHtml(j.job_number) + '</p>' +
-            '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + escapeHtml(j.restoration_type || '') + ' · ' + (j.unit_count || 0) + ' diş</p></div>' +
-            '<span class="shrink-0 text-[10px] font-bold ' + (j.status === 'completed' ? 'text-success' : (j.status === 'cancelled' ? 'text-destructive' : 'text-primary')) + '">' + (JOB_STATUS_LABELS[j.status] || j.status) + '</span></button>';
-        }).join('') : '<p class="text-xs text-muted-foreground">Henüz iş yok.</p>';
-
-        var moves = invoices.map(function (x) {
-          return { at: x.issued_at, html: '<div class="flex items-center justify-between rounded-theme border border-border bg-background p-2.5">' +
-            '<div class="min-w-0"><p class="text-xs font-bold">Fatura' + (x.jobs ? ' · ' + escapeHtml(x.jobs.job_number) : '') + '</p>' +
-            '<p class="mt-0.5 text-[11px] text-muted-foreground">' + new Date(x.issued_at).toLocaleDateString('tr-TR') + '</p></div>' +
-            '<p class="shrink-0 text-xs font-bold tabular-nums text-accent">' + TL.format(Number(x.amount || 0)) + '</p></div>' };
-        }).concat(payments.map(function (p) {
-          cariPaymentsById[p.id] = p;
-          return { at: p.received_at, html: '<button onclick="zkOpenPaymentDetail(\'' + p.id + '\')" class="flex w-full items-center justify-between rounded-theme border border-border bg-background p-2.5 text-left">' +
-            '<div class="min-w-0"><p class="text-xs font-bold">Ödeme</p>' +
-            '<p class="mt-0.5 text-[11px] text-muted-foreground">' + new Date(p.received_at).toLocaleDateString('tr-TR') + (p.method ? ' · ' + escapeHtml(p.method) : '') + '</p></div>' +
-            '<p class="shrink-0 text-xs font-bold tabular-nums text-success">−' + TL.format(Number(p.amount || 0)) + '</p></button>' };
-        }));
-        moves.sort(function (a, b) { return new Date(b.at) - new Date(a.at); });
-        document.getElementById('cari-moves-list').innerHTML = moves.length
-          ? moves.map(function (m) { return m.html; }).join('')
-          : '<p class="text-xs text-muted-foreground">Henüz hesap hareketi yok.</p>';
+        cariData = { jobs: jobs, invoices: invoices, payments: payments };
+        zkRenderCari();
       });
     }
+
+    // ---- Dönem istatistikleri + süzülmüş liste ----
+    // 2026-09-12: liste tek parça ve çok uzundu; ayrıca dönem bazlı hiçbir
+    // özet yoktu. Dönem seçimi hem istatistikleri hem listeyi süzüyor.
+    var cariData = null;
+    var cariPeriod = 'month';
+    var cariTab = 'moves';
+
+    function zkPeriodStart(period) {
+      if (period === 'all') return null;
+      var d = new Date(); d.setHours(0, 0, 0, 0);
+      if (period === 'week') { var dow = (d.getDay() + 6) % 7; d.setDate(d.getDate() - dow); return d; }
+      if (period === 'month') return new Date(d.getFullYear(), d.getMonth(), 1);
+      return new Date(d.getFullYear(), 0, 1);
+    }
+
+    function zkSetCariPeriod(period) { cariPeriod = period; zkRenderCari(); }
+    function zkSetCariTab(tab) { cariTab = tab; zkRenderCari(); }
+
+    function zkRenderCari() {
+      if (!cariData) return;
+      var from = zkPeriodStart(cariPeriod);
+      function inRange(v) { return !from || new Date(v) >= from; }
+
+      // Düğmelerin seçili görünümü
+      Array.prototype.forEach.call(document.querySelectorAll('.cari-per-btn'), function (b) {
+        var on = b.getAttribute('data-period') === cariPeriod;
+        b.className = 'cari-per-btn h-8 rounded-lg text-xs font-bold ' +
+          (on ? 'bg-card text-foreground' : 'text-muted-foreground');
+      });
+      Array.prototype.forEach.call(document.querySelectorAll('.cari-tab-btn'), function (b) {
+        var on = b.getAttribute('data-tab') === cariTab;
+        b.className = 'cari-tab-btn h-8 rounded-lg text-xs font-bold ' +
+          (on ? 'bg-card text-foreground' : 'text-muted-foreground');
+      });
+
+      // İptal edilen iş ne diş sayısına ne ciroya girer.
+      var pJobs = cariData.jobs.filter(function (j) { return j.status !== 'cancelled' && inRange(j.created_at); });
+      var pInv = cariData.invoices.filter(function (x) { return inRange(x.issued_at); });
+      var pPay = cariData.payments.filter(function (x) { return inRange(x.received_at); });
+
+      var teeth = pJobs.reduce(function (s, j) { return s + Number(j.unit_count || 0); }, 0);
+      var rev = pInv.reduce(function (s, x) { return s + Number(x.amount || 0); }, 0);
+      var paid = pPay.reduce(function (s, x) { return s + Number(x.amount || 0); }, 0);
+      var diff = rev - paid;
+
+      document.getElementById('cari-st-teeth').textContent = teeth;
+      document.getElementById('cari-st-jobs').textContent = pJobs.length + ' iş';
+      document.getElementById('cari-st-rev').textContent = TL.format(rev);
+      document.getElementById('cari-st-paid').textContent = TL.format(paid);
+      document.getElementById('cari-st-paid-n').textContent = pPay.length + ' tahsilat';
+      var diffEl = document.getElementById('cari-st-diff');
+      diffEl.textContent = TL.format(Math.abs(diff));
+      diffEl.className = 'font-heading text-base font-bold tabular-nums ' +
+        (diff > 0 ? 'text-accent' : (diff < 0 ? 'text-success' : ''));
+
+      var bos = cariPeriod === 'all' ? '' : ' Dönemi genişletmek için Tümü\'ne dokunun.';
+
+      document.getElementById('cari-jobs-list').innerHTML = pJobs.length ? pJobs.map(function (j) {
+        return '<button onclick="location.href=\'detay.html?id=' + j.id + '\'" class="flex w-full items-center justify-between gap-3 rounded-theme border border-border bg-background p-3 text-left">' +
+          '<div class="min-w-0"><p class="text-sm font-bold">' + escapeHtml(j.job_number) + '</p>' +
+          '<p class="mt-0.5 truncate text-xs text-muted-foreground">' + escapeHtml(j.restoration_type || '') + ' · ' + (j.unit_count || 0) + ' diş</p></div>' +
+          '<span class="shrink-0 text-xs font-bold ' + (j.status === 'completed' ? 'text-success' : 'text-primary') + '">' + (JOB_STATUS_LABELS[j.status] || j.status) + '</span></button>';
+      }).join('') : '<p class="text-sm text-muted-foreground">Bu dönemde iş yok.' + bos + '</p>';
+
+      var moves = pInv.map(function (x) {
+        // 2026-09-12: faturasız çalışılan doktorda kayıt "fatura" değil "borç
+        // kaydı"dır. Damga kaydın kendisinde durur, doktorun güncel ayarında değil.
+        var kayitAdi = x.billing_mode === 'faturasiz' ? 'Borç kaydı' : 'Fatura';
+        return { at: x.issued_at, html: '<div class="flex items-center justify-between rounded-theme border border-border bg-background p-3">' +
+          '<div class="min-w-0"><p class="text-sm font-bold">' + kayitAdi + (x.jobs ? ' · ' + escapeHtml(x.jobs.job_number) : '') + '</p>' +
+          '<p class="mt-0.5 text-xs text-muted-foreground">' + new Date(x.issued_at).toLocaleDateString('tr-TR') + '</p></div>' +
+          '<p class="shrink-0 text-sm font-bold tabular-nums text-accent">' + TL.format(Number(x.amount || 0)) + '</p></div>' };
+      }).concat(pPay.map(function (p) {
+        cariPaymentsById[p.id] = p;
+        return { at: p.received_at, html: '<button onclick="zkOpenPaymentDetail(\'' + p.id + '\')" class="flex w-full items-center justify-between rounded-theme border border-border bg-background p-3 text-left">' +
+          '<div class="min-w-0"><p class="text-sm font-bold">Ödeme</p>' +
+          '<p class="mt-0.5 text-xs text-muted-foreground">' + new Date(p.received_at).toLocaleDateString('tr-TR') + (p.method ? ' · ' + escapeHtml(p.method) : '') + '</p></div>' +
+          '<p class="shrink-0 text-sm font-bold tabular-nums text-success">−' + TL.format(Number(p.amount || 0)) + '</p></button>' };
+      }));
+      moves.sort(function (a, b) { return new Date(b.at) - new Date(a.at); });
+      document.getElementById('cari-moves-list').innerHTML = moves.length
+        ? moves.map(function (m) { return m.html; }).join('')
+        : '<p class="text-sm text-muted-foreground">Bu dönemde hesap hareketi yok.' + bos + '</p>';
+
+      document.getElementById('cari-moves-list').classList.toggle('hidden', cariTab !== 'moves');
+      document.getElementById('cari-jobs-list').classList.toggle('hidden', cariTab !== 'jobs');
+    }
     function zkCloseDoctorCari() { document.getElementById('cari-sheet').classList.add('hidden'); }
+
+    // Dönem ve sekme düğmeleri (delegasyon: panel her açılışta yeniden çizilmiyor)
+    document.getElementById('cari-period').addEventListener('click', function (e) {
+      var b = e.target.closest('.cari-per-btn');
+      if (b) zkSetCariPeriod(b.getAttribute('data-period'));
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.cari-tab-btn'), function (b) {
+      b.addEventListener('click', function () { zkSetCariTab(b.getAttribute('data-tab')); });
+    });
 
     function zkOpenPaymentDetail(paymentId) {
       var p = cariPaymentsById[paymentId];
@@ -641,7 +780,9 @@
       var payRows = payments.map(function (p) {
         return ['Tahsilat', (p.received_at || '').slice(0, 10), csvSafe(p.method || 'Tahsilat'), p.amount].join(',');
       }).join('\n');
-      var blob = new Blob([header + invRows + (invRows && payRows ? '\n' : '') + payRows], { type: 'text/csv;charset=utf-8;' });
+      // 2026-09-12: BOM olmadan Excel dosyayı Windows-1254 sanıp Türkçe
+      // karakterleri bozuk gösteriyordu.
+      var blob = new Blob(['\ufeff' + header + invRows + (invRows && payRows ? '\n' : '') + payRows], { type: 'text/csv;charset=utf-8;' });
       return { blob: blob, filename: name.replace(/[^a-zA-Z0-9-_]+/g, '-') + '-ekstre.csv' };
     }
 
@@ -689,10 +830,15 @@
       var errEl = document.getElementById('statement-error');
       errEl.classList.add('hidden');
       var btn = this;
+      // 2026-09-12: kilit veriler geldikten SONRA konuyordu; arada ikinci kez
+      // basılırsa aynı ekstre iki kez gönderiliyordu. Kilit en başa alındı.
+      if (btn.disabled) return;
+      btn.disabled = true;
       var client = ZirkonikAuth.client();
 
       Promise.all([
-        client.from('invoices').select('amount, issued_at, jobs(job_number, restoration_type)').eq('doctor_id', statementDoctorId).order('issued_at'),
+        // 2026-09-12: iptal edilen fatura ekstreye girmez.
+        client.from('invoices').select('amount, issued_at, jobs(job_number, restoration_type)').eq('doctor_id', statementDoctorId).neq('status', 'cancelled').order('issued_at'),
         client.from('payments').select('amount, method, received_at').eq('doctor_id', statementDoctorId).order('received_at'),
         client.from('doctors').select('email').eq('id', statementDoctorId).single()
       ]).then(function (results) {

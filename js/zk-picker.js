@@ -17,6 +17,7 @@
   var GUNLER = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
 
   var overlay = null;
+  var openedAt = 0;   // alt-sayfanın açıldığı an (hayalet tıklama koruması)
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -30,17 +31,31 @@
 
   function openSheet(titleText, bodyHtml) {
     closeSheet();
+    openedAt = Date.now();
     overlay = document.createElement('div');
     overlay.className = 'zk-picker-overlay';
+    // 2026-09-12: Liste uzun olunca kullanici sikisip kaliyordu — alt-sayfa
+    // ekranin cogunu kapatiyor, arka plana dokunacak yer kalmiyor ve liste
+    // kaymazsa cikis yolu hic yok. Basliga her zaman gorunen bir Kapat
+    // dugmesi konuldu: kaydirma ne olursa olsun cikis garanti.
     overlay.innerHTML =
       '<div class="zk-picker-backdrop"></div>' +
       '<div class="zk-picker-sheet">' +
         '<div class="zk-picker-grab"></div>' +
-        '<p class="zk-picker-title">' + esc(titleText) + '</p>' +
+        '<div class="zk-picker-head">' +
+          '<p class="zk-picker-title">' + esc(titleText) + '</p>' +
+          '<button type="button" class="zk-picker-close" aria-label="Kapat">✕</button>' +
+        '</div>' +
         '<div class="zk-picker-body">' + bodyHtml + '</div>' +
       '</div>';
     document.body.appendChild(overlay);
-    overlay.querySelector('.zk-picker-backdrop').addEventListener('click', closeSheet);
+    overlay.querySelector('.zk-picker-backdrop').addEventListener('click', function () {
+      if (!isGhost()) closeSheet();
+    });
+    overlay.querySelector('.zk-picker-close').addEventListener('click', function () {
+      if (!isGhost()) closeSheet();
+    });
+
     return overlay;
   }
 
@@ -77,6 +92,7 @@
     var ov = openSheet(title, html || '<p class="zk-picker-empty">Seçenek yok.</p>');
     ov.querySelectorAll('.zk-picker-row').forEach(function (row) {
       row.addEventListener('click', function () {
+        if (isGhost()) return;
         sel.value = row.getAttribute('data-val');
         sel.dispatchEvent(new Event('change', { bubbles: true }));
         closeSheet();
@@ -125,6 +141,7 @@
     function bind(ov) {
       ov.querySelectorAll('.zk-cal-nav').forEach(function (b) {
         b.addEventListener('click', function () {
+          if (isGhost()) return;
           viewMonth += Number(b.getAttribute('data-nav'));
           if (viewMonth < 0) { viewMonth = 11; viewYear--; }
           if (viewMonth > 11) { viewMonth = 0; viewYear++; }
@@ -134,6 +151,7 @@
       });
       ov.querySelectorAll('.zk-cal-day').forEach(function (b) {
         b.addEventListener('click', function () {
+          if (isGhost()) return;
           input.value = b.getAttribute('data-date');
           input.dispatchEvent(new Event('change', { bubbles: true }));
           closeSheet();
@@ -141,6 +159,7 @@
       });
       var clear = ov.querySelector('.zk-cal-clear');
       if (clear) clear.addEventListener('click', function () {
+        if (isGhost()) return;
         input.value = '';
         input.dispatchEvent(new Event('change', { bubbles: true }));
         closeSheet();
@@ -151,33 +170,67 @@
     bind(ov);
   }
 
-  // Belge düzeyinde yakala: yerli seçici hiç açılmadan bizimki açılır.
-  // Dokunmatikte touchend'e preventDefault koymak WebKit'in üreteceği sahte
-  // mousedown'ı da iptal eder — bu yüzden sayfa HER İKİ olayda da açılır;
-  // lastOpenAt koruması aynı dokunuş için iki kez açılmasını engeller.
-  var lastOpenAt = 0;
+  // ---- Dokunma/tıklama yakalama ----
+  // ÖNEMLİ: iOS'ta touchend'de preventDefault çağrılınca WebKit ardından
+  // gelen mousedown/click olaylarını hiç üretmez. Eskiden sayfayı yalnızca
+  // mousedown açtığı için iPhone'da ne yerleşik çark ne de bizim alt-sayfamız
+  // açılıyordu (seçimler tıklanamaz görünüyordu). Artık dokunmayı touchend'in
+  // kendisi açıyor; mousedown/click masaüstü ve yedek yol olarak duruyor.
+  var touchStart = null;
+
+  function pickerTarget(e) {
+    var t = e.target;
+    if (!t || !t.closest) return null;
+    var sel = t.closest('select');
+    if (sel && !sel.disabled) return sel;
+    var inp = t.closest('input[type="date"]');
+    if (inp && !inp.disabled && !inp.readOnly) return inp;
+    return null;
+  }
+
   function openFor(el) {
-    var now = Date.now();
-    if (now - lastOpenAt < 500) return;
-    lastOpenAt = now;
     if (el.tagName === 'SELECT') openSelectSheet(el);
     else openCalendarSheet(el);
   }
-  ['mousedown', 'touchend'].forEach(function (evName) {
-    document.addEventListener(evName, function (e) {
-      var sel = e.target.closest ? e.target.closest('select') : null;
-      if (sel && !sel.disabled) {
-        e.preventDefault();
-        openFor(sel);
-        return;
-      }
-      var inp = e.target.closest ? e.target.closest('input[type="date"]') : null;
-      if (inp && !inp.disabled && !inp.readOnly) {
-        e.preventDefault();
-        openFor(inp);
-      }
-    }, true);
-  });
+
+  // Alt-sayfa açıldıktan hemen sonra gelen "hayalet" tıklamanın listeden
+  // rastgele bir satır seçmesini / sayfayı kapatmasını engelle.
+  function isGhost() { return Date.now() - openedAt < 400; }
+
+  document.addEventListener('touchstart', function (e) {
+    touchStart = (e.touches && e.touches.length === 1)
+      ? { x: e.touches[0].clientX, y: e.touches[0].clientY, el: pickerTarget(e) }
+      : null;
+  }, true);
+
+  document.addEventListener('touchend', function (e) {
+    var start = touchStart;
+    touchStart = null;
+    if (!start || !start.el || pickerTarget(e) !== start.el) return;
+    var t = e.changedTouches && e.changedTouches[0];
+    // Parmak kaydıysa bu bir sayfa kaydırmasıdır, seçim değil.
+    if (t && (Math.abs(t.clientX - start.x) > 10 || Math.abs(t.clientY - start.y) > 10)) return;
+    e.preventDefault(); // yerleşik iOS çarkı açılmasın
+    if (overlay) return;
+    openFor(start.el);
+  }, { capture: true, passive: false });
+
+  document.addEventListener('mousedown', function (e) {
+    var el = pickerTarget(e);
+    if (!el) return;
+    e.preventDefault();
+    if (overlay || isGhost()) return;
+    openFor(el);
+  }, true);
+
+  // Yedek yol: mousedown hiç gelmeyen ortamlarda (bazı WebView'ler) tıklama.
+  document.addEventListener('click', function (e) {
+    var el = pickerTarget(e);
+    if (!el) return;
+    e.preventDefault();
+    if (overlay || isGhost()) return;
+    openFor(el);
+  }, true);
 
   window.ZkPicker = { close: closeSheet };
 })();

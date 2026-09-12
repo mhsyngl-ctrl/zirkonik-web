@@ -287,6 +287,10 @@
     var jobId = new URLSearchParams(location.search).get('id');
     var PAYMENT_LABELS = { unpaid: 'Bekliyor', partial: 'Kısmi ödendi', paid: 'Tahsil edildi', overdue: 'Gecikti' };
     var currentJob = null;
+    // 2026-09-12: jobs.payment_status uygulamanin hicbir yerinde guncellenmiyor
+    // (hicbir UPDATE yok), bu yuzden ekranda fatura tahsil edilmis olsa bile
+    // hep "Bekliyor" yaziyordu. Gercek durum invoices.status'ta tutuluyor.
+    var currentInvoice = null;
     var rooms = [];
     var currentStage = null;
     var advanceMode = 'advance';
@@ -328,6 +332,9 @@
 
         return stagePromise.then(function (stageRes) {
           currentStage = stageRes.data || null;
+          return client.from('invoices').select('id, amount, status').eq('job_id', jobId).limit(1);
+        }).then(function (invRes) {
+          currentInvoice = (invRes && invRes.data && invRes.data[0]) || null;
           renderJob();
           loadHistory();
         });
@@ -346,7 +353,15 @@
       document.getElementById('job-reference').textContent = j.patient_reference || '—';
       document.getElementById('job-lab').textContent = j.laboratories ? j.laboratories.name : '—';
       document.getElementById('job-price').textContent = j.price != null ? TL.format(j.price) : 'Belirtilmedi';
-      document.getElementById('job-payment-status').textContent = PAYMENT_LABELS[j.payment_status] || j.payment_status;
+      var payEl = document.getElementById('job-payment-status');
+      if (!currentInvoice) {
+        // Fiyati olup faturasi olmayan is: canlida 6 tane var (320 TL).
+        payEl.textContent = j.price != null ? 'Faturalanmadı' : '—';
+      } else if (currentInvoice.status === 'cancelled') {
+        payEl.textContent = 'Fatura iptal edildi';
+      } else {
+        payEl.textContent = PAYMENT_LABELS[currentInvoice.status] || currentInvoice.status;
+      }
 
       if (j.is_priority) document.getElementById('priority-badge').classList.remove('hidden');
 

@@ -275,7 +275,8 @@
       cariPaymentsById = {};
       var client = ZirkonikAuth.client();
       Promise.all([
-        client.from('invoices').select('id, amount, status, issued_at, due_date, jobs(job_number, restoration_type)').eq('doctor_id', doctor.id).order('issued_at', { ascending: false }),
+        // 2026-09-12: doktorun kendi cari ekraninda iptal fatura gorunmez.
+        client.from('invoices').select('id, amount, status, issued_at, due_date, jobs(job_number, restoration_type)').eq('doctor_id', doctor.id).neq('status', 'cancelled').order('issued_at', { ascending: false }),
         client.from('payments').select('id, amount, method, received_at, note, app_users:received_by(full_name)').eq('doctor_id', doctor.id).order('received_at', { ascending: false })
       ]).then(function (res) {
         var invs = res[0].data || [];

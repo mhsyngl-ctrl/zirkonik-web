@@ -142,7 +142,28 @@
       });
     },
 
-    clearMeCache: function () { _meCache = null; }
+    clearMeCache: function () { _meCache = null; },
+
+    /* 2026-09-12: giris.html, sifre-sifirla.html ve profil.html bu fonksiyonu
+     * çağırıyordu ama HİÇBİR yerde tanımlı değildi — canlı web sürümünde giriş
+     * ya da kayıt hatası olunca hatayı gösterecek satırın KENDİSİ patlıyor,
+     * kullanıcı hiçbir mesaj görmüyordu (sessiz başarısızlık).
+     * Supabase'in İngilizce/teknik mesajlarını Türkçeleştirir. */
+    errorText: function (err) {
+      var m = (err && (err.message || err.error_description || err.msg)) || String(err || '');
+      var t = m.toLowerCase();
+      if (t.indexOf('invalid login credentials') >= 0) return 'E-posta veya şifre hatalı.';
+      if (t.indexOf('email not confirmed') >= 0) return 'E-posta adresiniz henüz doğrulanmamış.';
+      if (t.indexOf('user already registered') >= 0 || t.indexOf('already been registered') >= 0) return 'Bu e-posta ile zaten bir hesap var.';
+      if (t.indexOf('password should be at least') >= 0) return 'Şifre çok kısa — en az 6 karakter olmalı.';
+      if (t.indexOf('weak password') >= 0 || t.indexOf('pwned') >= 0) return 'Bu şifre çok yaygın/zayıf, daha güçlü bir şifre seçin.';
+      if (t.indexOf('rate limit') >= 0 || t.indexOf('too many requests') >= 0) return 'Çok fazla deneme yapıldı, birkaç dakika sonra tekrar deneyin.';
+      if (t.indexOf('user is banned') >= 0 || t.indexOf('banned') >= 0) return 'Bu hesap kapatılmış. Laboratuvar yöneticinizle görüşün.';
+      if (t.indexOf('token has expired') >= 0 || t.indexOf('invalid token') >= 0 || t.indexOf('expired') >= 0) return 'Bağlantının süresi dolmuş, yeni bir bağlantı isteyin.';
+      if (t.indexOf('failed to fetch') >= 0 || t.indexOf('networkerror') >= 0 || t.indexOf('network') >= 0) return 'İnternet bağlantısı kurulamadı, bağlantınızı kontrol edin.';
+      if (t.indexOf('email address is invalid') >= 0 || t.indexOf('invalid email') >= 0) return 'E-posta adresi geçersiz.';
+      return m || 'Bilinmeyen bir hata oluştu.';
+    }
   };
 
   var Data = {
@@ -201,7 +222,13 @@
       return client().from('app_users').select('*, user_permissions(*)').order('created_at');
     },
     updatePermissions: function (userId, perms) {
-      return client().from('user_permissions').update(perms).eq('user_id', userId);
+      // 2026-09-12: UPDATE, satır yoksa hiçbir şey yazmadan "başarılı" dönüyordu
+      // ve ekran "kaydedildi" diyordu. user_id birincil anahtar olduğu için
+      // upsert satırı yoksa oluşturur. .select() eklendi ki gerçekten yazılan
+      // satır geri dönsün, sessiz başarısızlık mümkün olmasın.
+      var row = { user_id: userId };
+      Object.keys(perms).forEach(function (k) { row[k] = perms[k]; });
+      return client().from('user_permissions').upsert(row, { onConflict: 'user_id' }).select();
     },
     // "Silme" yerine akıllı çıkarma (delete-staff-account edge function):
     // hiç geçmişi (iş/kasa/hakediş/stok...) olmayan biri tamamen silinir;
@@ -417,7 +444,10 @@
     // ---- Finans ----
     listInvoices: function (filters) {
       filters = filters || {};
-      var q = client().from('invoices').select('*, doctors(full_name, clinic_name)').order('issued_at', { ascending: false });
+      // 2026-09-12: tahsilat acilir menusunde yalniz doktor adi vardi; ayni
+      // doktorun birden fazla bekleyen faturasi varsa hangisi oldugu
+      // anlasilmiyordu. Is numarasi da getiriliyor.
+      var q = client().from('invoices').select('*, doctors(full_name, clinic_name), jobs(job_number)').order('issued_at', { ascending: false });
       if (filters.status) q = q.eq('status', filters.status);
       return q;
     },

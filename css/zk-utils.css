@@ -126,9 +126,20 @@
   display: flex; flex-direction: column; background: var(--color-card);
   border-radius: 18px 18px 0 0; padding: 8px 16px calc(env(safe-area-inset-bottom) + 18px);
   box-shadow: 0 -12px 40px rgba(8,30,39,.25); }
-.zk-picker-grab { width: 40px; height: 4px; margin: 4px auto 10px; border-radius: 2px; background: var(--color-border); }
-.zk-picker-title { margin: 0 0 8px; font-family: var(--font-heading); font-size: 15px; font-weight: 800; }
-.zk-picker-body { min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.zk-picker-grab { flex: 0 0 auto; width: 40px; height: 4px; margin: 4px auto 10px; border-radius: 2px; background: var(--color-border); }
+/* 2026-09-12: baslik satiri artik Kapat dugmesini de tasiyor. Baslik ve tutamak
+   flex icinde EZILMEMELI (flex-shrink:0), yoksa uzun listede govde yerine onlar
+   kuculuyor ve liste kaydirilamiyor gibi gorunuyor. */
+.zk-picker-head { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.zk-picker-title { margin: 0; font-family: var(--font-heading); font-size: 15px; font-weight: 800; }
+.zk-picker-close { flex: 0 0 auto; display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border: none; border-radius: 10px; background: var(--color-muted);
+  color: var(--color-muted-foreground); font-size: 15px; font-weight: 800; line-height: 1; }
+/* Govde tek kaydirilan alan: acik yukseklik + kendi kaydirmasini kapsa.
+   overscroll-behavior olmadan iOS kaydirmayi arkadaki sayfaya devrediyor ve
+   liste yerinde cakili duruyordu. */
+.zk-picker-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  touch-action: pan-y; -webkit-overflow-scrolling: touch; }
 .zk-picker-group { margin: 12px 0 4px; font-size: 10px; font-weight: 800; letter-spacing: .12em;
   text-transform: uppercase; color: var(--color-accent); }
 .zk-picker-row { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 8px;
@@ -478,3 +489,146 @@ body { animation: zkPageIn .2s ease both; }
   from { opacity: 0; transform: translateX(-14px); }
   to { opacity: 1; transform: none; }
 }
+
+/* ============================================================
+   2026-09-12 — Derlenmiş Tailwind'de EKSİK kalan yardımcı sınıflar
+   css/tailwind.css 15 Ağustos'ta üretilmiş; o tarihten sonra yazılan
+   köşeli parantezli (arbitrary value) sınıfların hiçbiri derlenmemiş.
+   En görünür sonucu: max-h-[88vh] hiç uygulanmadığı için Doktorlar
+   ekranında doktora basınca açılan cari sayfası yükseklik sınırı
+   almıyor, içindeki liste kaydırılamıyor ve kullanıcı sıkışıyordu.
+   Kurallar Tailwind'in kendi çıktısından alındı; tailwind.css'e
+   dokunulmadı ki mevcut stiller kaybolmasın.
+   ============================================================ */
+.bottom-\[76px\] {
+  bottom: 76px;
+}
+.h-\[72px\] {
+  height: 72px;
+}
+.max-h-\[80vh\] {
+  max-height: 80vh;
+}
+.max-h-\[85vh\] {
+  max-height: 85vh;
+}
+.max-h-\[88vh\] {
+  max-height: 88vh;
+}
+.max-w-\[260px\] {
+  max-width: 260px;
+}
+.max-w-\[290px\] {
+  max-width: 290px;
+}
+.min-w-\[45px\] {
+  min-width: 45px;
+}
+.min-w-\[48px\] {
+  min-width: 48px;
+}
+.min-w-\[50px\] {
+  min-width: 50px;
+}
+.min-w-\[54px\] {
+  min-width: 54px;
+}
+.min-w-\[55px\] {
+  min-width: 55px;
+}
+.min-w-\[62px\] {
+  min-width: 62px;
+}
+.min-w-\[68px\] {
+  min-width: 68px;
+}
+.min-w-\[74px\] {
+  min-width: 74px;
+}
+.text-\[10px\] {
+  font-size: 12px;
+}
+.text-\[11px\] {
+  font-size: 13px;
+}
+.text-\[17px\] {
+  font-size: 17px;
+}
+.text-\[19px\] {
+  font-size: 19px;
+}
+.text-\[21px\] {
+  font-size: 21px;
+}
+.text-\[22px\] {
+  font-size: 22px;
+}
+.text-\[23px\] {
+  font-size: 23px;
+}
+.text-\[25px\] {
+  font-size: 25px;
+}
+.text-\[9px\] {
+  font-size: 11px;
+}
+.tracking-\[0\.14em\] {
+  letter-spacing: 0.14em;
+}
+.tracking-\[0\.16em\] {
+  letter-spacing: 0.16em;
+}
+.tracking-\[0\.18em\] {
+  letter-spacing: 0.18em;
+}
+.tracking-\[0\.1em\] {
+  letter-spacing: 0.1em;
+}
+.shadow-\[0_-8px_24px_rgba\(23\,36\,44\,0\.06\)\] {
+  --tw-shadow: 0 -8px 24px rgba(23,36,44,0.06);
+  box-shadow: 0 -8px 24px rgba(23,36,44,0.06);
+}
+
+/* iOS/WKWebView: bir alt-sayfa içindeki liste sona geldiğinde kaydırma
+   arkadaki sayfaya devrediliyor ve liste yerinde çakılı kalmış gibi
+   görünüyordu. Kaydırmayı kendi kutusunda tut. */
+.overflow-y-auto { overscroll-behavior: contain; }
+
+/* 2026-09-12: cari paneli 88vh'de üstte gereksiz boşluk bırakıyor, listeye
+   az yer kalıyordu. */
+.max-h-\[93vh\] { max-height: 93vh; }
+
+/* Faturasız işler uyarısının kenarlığı — derlenmiş Tailwind'de yoktu. */
+.border-destructive\/30 { border-color: rgb(179 38 45 / 0.3); }
+
+/* 2026-09-12: cari paneli önce "Yükleniyor" boyutunda açılıp veri gelince
+   uzuyordu; panel alta sabitli olduğu için üst kenarı iki aşamada yukarı
+   zıplıyor, "ortada takılıp sonra devam ediyor" gibi görünüyordu.
+   Yükseklik sabitlendi: içerik dolunca panel büyümüyor, yalnız içindeki
+   liste uzuyor. */
+.h-\[93vh\] { height: 93vh; }
+
+/* 2026-09-12: Küçük yazılar telefonda okunmuyordu. Bunlar dün "eksik Tailwind
+   sınıfları" düzeltilene kadar hiç uygulanmıyordu; çalışmaya başlayınca
+   gerçekten 9-11 px oldular ve fazla küçük kaldılar. Bir tık büyütüldü:
+   9→11, 10→12, 11→13 px (yukarıda). Standart küçük boyut da bir adım arttı.
+   Orta ve büyük boyutlara (text-sm ve üstü) DOKUNULMADI. */
+.text-xs { font-size: 13px; line-height: 1.15rem; }
+
+/* 2026-09-12 (tasarım raporu): derlenmiş Tailwind'de olmayan iki sınıf daha.
+   border-destructive/40 → gecikmiş hakediş kartı renksiz kalıyordu.
+   active:opacity-70     → doktor kartında dokunma geri bildirimi çalışmıyordu. */
+.border-destructive\/40 { border-color: rgb(179 38 45 / 0.4); }
+.active\:opacity-70:active { opacity: 0.7; }
+
+/* Fiyat satırındaki "Genel 25" etiketi tek satırda kalsın. */
+.whitespace-nowrap { white-space: nowrap; }
+
+/* 2026-09-13: web sürümünden uygulamaya alınan ekranların (profil, stok, giriş,
+   kullanım kılavuzu) kullandığı, derlenmiş Tailwind'de bulunmayan sınıflar.
+   Renkler tailwind.css'in eski paletiyle değil, canlı tema değişkeniyle uyumlu
+   (--color-primary: #3D7CDC). */
+.accent-primary { accent-color: var(--color-primary); }
+.rounded { border-radius: 0.25rem; }
+.border-primary\/40 { border-color: rgba(61, 124, 220, 0.4); }
+.border-white\/20 { border-color: rgba(255, 255, 255, 0.2); }
