@@ -86,6 +86,7 @@
 
         <section class="mt-4 flex items-center justify-between rounded-theme border border-border bg-card px-4 py-3">
           <div>
+<div id="focus-chip" class="mb-2 hidden"></div>
             <p id="results-summary" class="text-xs font-semibold text-muted-foreground">Yükleniyor…</p>
           </div>
           <button id="report-btn" onclick="zkGenerateReport()" class="flex items-center gap-1.5 rounded-theme border border-border bg-background px-3 py-2 text-xs font-bold text-primary">
@@ -146,6 +147,34 @@
     }
 
     var currentTab = new URLSearchParams(location.search).get('status') === 'completed' ? 'completed' : 'active';
+
+    /* 2026-09-19: ana ekrandaki kartlar ya hic tiklanmiyordu ("Bugün teslim",
+       "Kalite kontrolde" duz div'di) ya da genel listeye gidiyordu — karttaki
+       SAYIYA denk gelen liste degil. Artik her kart kendi odagiyla geliyor ve
+       burada ayni kosul uygulaniyor. Sorgular retim.html'deki sayac
+       sorgulariyla birebir ayni; yoksa sayi ile liste tutmazdi. */
+    var ODAK = {
+      'due-today': 'Bugün teslim edilecek işler',
+      'overdue': 'Teslim tarihi geçmiş işler',
+      'qc': 'Kalite kontroldeki işler'
+    };
+    var currentFocus = new URLSearchParams(location.search).get('focus');
+    if (!ODAK[currentFocus]) currentFocus = null;
+
+    function zkOdakTemizle() {
+      currentFocus = null;
+      zkOdakCiz();
+      loadJobs();
+    }
+    function zkOdakCiz() {
+      var el = document.getElementById('focus-chip');
+      if (!el) return;
+      if (!currentFocus) { el.classList.add('hidden'); el.innerHTML = ''; return; }
+      el.classList.remove('hidden');
+      el.innerHTML = '<span class="flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary">' +
+        escapeHtml(ODAK[currentFocus]) +
+        '<button type="button" onclick="zkOdakTemizle()" aria-label="Filtreyi kaldır" class="text-primary">✕</button></span>';
+    }
     var currentJobs = [];
 
     function zkSetTab(tab) {
@@ -184,6 +213,8 @@
       });
     }
 
+    zkOdakCiz();
+
     function loadJobs() {
       var el = document.getElementById('jobs-list');
       el.innerHTML = '<p class="text-xs text-muted-foreground">Yükleniyor…</p>';
@@ -207,17 +238,40 @@
           renderJobs();
           return;
         }
-        var q = client.from('jobs')
-          .select('id, job_number, restoration_type, unit_count, status, created_at, completed_at, requested_delivery_at, doctors(full_name, clinic_name), laboratories(name)')
-          .eq('status', currentTab);
-        if (labId) q = q.eq('laboratory_id', labId);
-        if (doctorId) q = q.eq('doctor_id', doctorId);
-        if (staffJobIds) q = q.in('id', staffJobIds);
-        q = q.order(currentTab === 'completed' ? 'completed_at' : 'created_at', { ascending: false }).limit(200);
+        // Kalite kontrol odaginda once QC odalarini bulmak gerekiyor.
+        var qcPromise = (currentFocus === 'qc')
+          ? client.from('rooms').select('id').eq('is_quality_control', true)
+              .then(function (rr) { return (rr.data || []).map(function (x) { return x.id; }); })
+          : Promise.resolve(null);
 
-        q.then(function (r) {
-          currentJobs = r.data || [];
-          renderJobs();
+        qcPromise.then(function (qcIds) {
+          if (currentFocus === 'qc' && (!qcIds || !qcIds.length)) {
+            currentJobs = []; renderJobs(); return;
+          }
+          var q = client.from('jobs')
+            .select('id, job_number, restoration_type, unit_count, status, created_at, completed_at, requested_delivery_at, doctors(full_name, clinic_name), laboratories(name)')
+            .eq('status', currentTab);
+          if (labId) q = q.eq('laboratory_id', labId);
+          if (doctorId) q = q.eq('doctor_id', doctorId);
+          if (staffJobIds) q = q.in('id', staffJobIds);
+
+          // retim.html'deki sayac sorgulariyla BIREBIR ayni kosullar.
+          if (currentFocus === 'due-today') {
+            var g0 = new Date(); g0.setHours(0,0,0,0);
+            var g1 = new Date(); g1.setHours(23,59,59,999);
+            q = q.gte('requested_delivery_at', g0.toISOString()).lte('requested_delivery_at', g1.toISOString());
+          } else if (currentFocus === 'overdue') {
+            var b0 = new Date(); b0.setHours(0,0,0,0);
+            q = q.lt('requested_delivery_at', b0.toISOString());
+          } else if (currentFocus === 'qc') {
+            q = q.in('current_room_id', qcIds);
+          }
+
+          q = q.order(currentTab === 'completed' ? 'completed_at' : 'created_at', { ascending: false }).limit(200);
+          q.then(function (r) {
+            currentJobs = r.data || [];
+            renderJobs();
+          });
         });
       });
     }
