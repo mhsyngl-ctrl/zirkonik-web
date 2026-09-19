@@ -645,3 +645,26 @@ body { animation: zkPageIn .2s ease both; }
 .rounded { border-radius: 0.25rem; }
 .border-primary\/40 { border-color: rgba(61, 124, 220, 0.4); }
 .border-white\/20 { border-color: rgba(255, 255, 255, 0.2); }
+
+/* ============ Aşağıya çek, güncelle (zk-ptr.js) ============ */
+/* Gösterge sayfanın en üstünde, ortada; parmakla çekildikçe aşağı iner.
+   Yalnız dokunmatik cihazlarda kurulur (bkz. zk-ptr.js). */
+#zk-ptr {
+  position: fixed; top: 0; left: 50%; z-index: 80;
+  transform: translate(-50%, 0); opacity: 0; pointer-events: none;
+  display: flex; align-items: center; gap: 8px;
+  margin-top: calc(env(safe-area-inset-top) + 6px);
+  padding: 8px 14px; border-radius: 9999px;
+  background: var(--color-card); border: 1px solid var(--color-border);
+  box-shadow: 0 10px 28px -10px rgba(0,0,0,.55);
+  font-family: var(--font-body); font-size: 12px; font-weight: 700;
+  color: var(--color-muted-foreground); white-space: nowrap;
+}
+#zk-ptr.zk-ptr-hazir { color: var(--color-primary); }
+.zk-ptr-cark {
+  width: 14px; height: 14px; border-radius: 9999px; flex: 0 0 auto;
+  border: 2px solid var(--color-border); border-top-color: var(--color-primary);
+}
+#zk-ptr.zk-ptr-hazir .zk-ptr-cark { border-color: var(--color-primary); border-top-color: transparent; }
+#zk-ptr.zk-ptr-donuyor .zk-ptr-cark { animation: zk-ptr-don .7s linear infinite; }
+@keyframes zk-ptr-don { to { transform: rotate(360deg); } }
