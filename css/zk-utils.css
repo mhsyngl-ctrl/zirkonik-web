@@ -797,3 +797,37 @@ body { animation: zkPageIn .2s ease both; }
 :root[data-theme="light"] .border-accent\/40 { border-color: rgba(185, 112, 12, 0.40) !important; }
 :root[data-theme="light"] .border-destructive\/25 { border-color: rgba(194, 53, 47, 0.25) !important; }
 :root[data-theme="light"] .border-primary\/15 { border-color: rgba(44, 98, 184, 0.15) !important; }
+
+/* ============ Alt menü (tek biçim) ============
+   2026-09-19: alt menü altı sayfada ÜÇ ayrı biçimdeydi —
+     retim/finans/stok/laboratuvarlar : flex, sabit h-[72px], bg-card, blursuz
+     doktorlar                        : grid-cols-6, pb-5 pt-2, z-20, bg-card/95
+     ekip                             : sarmalayıcı grid, pb-5 pt-2, z-30
+   Yükseklikler ve zeminler farklı olduğu için sayfadan sayfaya geçerken menü
+   gözle görülür şekilde aşağı yukarı zıplıyordu. Ayrıca 72px'lik olanlarda
+   alt güvenli alan payı yoktu: çentikli telefonda yazılar ana çubuğun
+   üstüne biniyordu. Hepsi tek sınıfa alındı. */
+.zk-tabbar {
+  position: fixed; bottom: 0; left: 0; z-index: 30; width: 100%;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-card);
+  padding: 8px 8px calc(env(safe-area-inset-bottom) + 8px);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  backdrop-filter: saturate(180%) blur(12px);
+}
+.zk-tabbar-inner {
+  display: grid; align-items: end; gap: 4px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+/* Sekmeler <a>. ekip.html'de href="#" vardı ve tarayıcı bağlantıların
+   ALTINI ÇİZİYORDU; diğer sayfalarda href olmadığı için çizgi yoktu. Artık
+   hiçbirinde çizgi yok, sayfalar arası fark da kalmadı. */
+.zk-tabbar a, .zk-tabbar [data-fv-tab] {
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  gap: 4px; min-width: 0; padding: 6px 2px; border-radius: var(--radius);
+  text-decoration: none; color: var(--color-muted-foreground);
+  -webkit-tap-highlight-color: transparent;
+}
+.zk-tabbar [data-fv-tab-active="true"] { background: var(--color-secondary); color: var(--color-primary); }
+.zk-tabbar [data-fv-tab] span { font-size: 9px; font-weight: 600; line-height: 1.1; text-align: center; }
+.zk-tabbar [data-fv-tab] iconify-icon { font-size: 21px; }

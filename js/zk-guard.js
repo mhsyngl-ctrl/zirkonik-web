@@ -145,7 +145,8 @@
       var kap = document.querySelector('[data-fv-tabbar]');
       if (kap) {
         // Izgara ya nav'in kendisinde ya da icindeki sarmalayicida.
-        var izgara = /grid/.test(kap.className) ? kap : kap.querySelector('.grid');
+        var izgara = kap.querySelector('.zk-tabbar-inner') ||
+                     (/grid/.test(kap.className) ? kap : kap.querySelector('.grid'));
         if (izgara) izgara.style.gridTemplateColumns = 'repeat(' + gorunen + ', minmax(0, 1fr))';
       }
     }
