@@ -131,9 +131,23 @@
       'Doktorlar': !!p.can_view_doctors
     };
     var tabs = document.querySelectorAll('[data-fv-tab]');
+    var gorunen = 0;
     for (var i = 0; i < tabs.length; i++) {
       var t = tabs[i].getAttribute('data-fv-tab');
       if (t in TABS && !TABS[t]) tabs[i].style.display = 'none';
+      else gorunen++;
+    }
+    /* 2026-09-19: sekme gizlenince alt menu sola KAYIYORDU. Bazi ekranlarda
+       menu "grid-cols-6" ile sabit alti sutun; display:none olan sekme
+       izgaradan tamamen cikinca kalanlar ilk sutunlara doluyor ve sagda bos
+       sutun kaliyordu. Sutun sayisini gorunen sekmeye esitliyoruz. */
+    if (gorunen && gorunen !== tabs.length) {
+      var kap = document.querySelector('[data-fv-tabbar]');
+      if (kap) {
+        // Izgara ya nav'in kendisinde ya da icindeki sarmalayicida.
+        var izgara = /grid/.test(kap.className) ? kap : kap.querySelector('.grid');
+        if (izgara) izgara.style.gridTemplateColumns = 'repeat(' + gorunen + ', minmax(0, 1fr))';
+      }
     }
     // Yönetici sayfalarına götüren kısayollar
     var sel = 'a[href*="yeni-giri-i"],[onclick*="yeni-giri-i"],' +

@@ -775,3 +775,25 @@ body { animation: zkPageIn .2s ease both; }
 :root[data-theme="light"] .zk-stat-amber .zk-stat-icon { color: #B9700C; background: rgba(185,112,12,.10); }
 :root[data-theme="light"] .zk-stat-amber .zk-stat-ghost { color: #B9700C; }
 :root[data-theme="light"] .zk-stat-amber .zk-stat-value { text-shadow: none; color: #8A560A; }
+
+/* ---- Açık temada saydamlık türevleri ----
+   Yukarıdaki blok (satır ~320) tailwind'in /NN türevlerini KOYU paletin RGB
+   değerleriyle ve !important ile sabitliyor. Açık temaya geçince alt menü
+   (doktorlar ve ekip ekranları bg-card/95 kullanıyor) siyah kalıyordu ve
+   vurgu/kenarlık türevleri de koyu paletin renklerindeydi. Aynı türevler
+   burada açık paletin değerleriyle yeniden tanımlanıyor; seçici daha
+   özgül (:root[data-theme="light"] öneki) olduğu için o blok ezilir. */
+:root[data-theme="light"] .bg-card\/95 { background-color: rgba(255, 255, 255, 0.95) !important; }
+:root[data-theme="light"] .bg-accent\/10 { background-color: rgba(185, 112, 12, 0.10) !important; }
+:root[data-theme="light"] .bg-accent\/5 { background-color: rgba(185, 112, 12, 0.05) !important; }
+:root[data-theme="light"] .bg-destructive\/10 { background-color: rgba(194, 53, 47, 0.10) !important; }
+:root[data-theme="light"] .bg-primary\/10 { background-color: rgba(44, 98, 184, 0.10) !important; }
+:root[data-theme="light"] .bg-primary\/5 { background-color: rgba(44, 98, 184, 0.05) !important; }
+:root[data-theme="light"] .bg-success\/10 { background-color: rgba(10, 124, 85, 0.10) !important; }
+:root[data-theme="light"] .border-accent\/20 { border-color: rgba(185, 112, 12, 0.20) !important; }
+:root[data-theme="light"] .border-accent\/25 { border-color: rgba(185, 112, 12, 0.25) !important; }
+:root[data-theme="light"] .border-accent\/30 { border-color: rgba(185, 112, 12, 0.30) !important; }
+:root[data-theme="light"] .border-accent\/35 { border-color: rgba(185, 112, 12, 0.35) !important; }
+:root[data-theme="light"] .border-accent\/40 { border-color: rgba(185, 112, 12, 0.40) !important; }
+:root[data-theme="light"] .border-destructive\/25 { border-color: rgba(194, 53, 47, 0.25) !important; }
+:root[data-theme="light"] .border-primary\/15 { border-color: rgba(44, 98, 184, 0.15) !important; }
