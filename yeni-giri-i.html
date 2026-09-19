@@ -265,6 +265,17 @@
         el.style.transform = 'translate(-50%,16px)';
       }, 2200);
     }
+    /* 2026-09-19: bu sayfa escapeHtml'i 4 yerde cagiriyordu ama diger
+     * sayfalarin aksine HICBIR yerde tanimlamiyordu. Sonuc: "Seçili dişleri
+     * kalem olarak ekle"ye basinca zkRenderLegend ReferenceError atiyor, hata
+     * ZkWorkForm.setTeeth([]) cagrisindan yukari firliyor ve hemen ardindaki
+     * zkRenderDraftItems() HIC calismiyordu — onceki kalemlerin disleri
+     * diyagrama bir daha boyanmadigi icin sema tertemiz gorunuyordu. */
+    function escapeHtml(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
   </script>
 
   <script src="vendor/supabase-js.min.js"></script>
@@ -283,7 +294,11 @@
     // tür kendi oda rotasını izler ama sipariş/doktor/fatura tektir.
     // Renk kullanıcı tarafından seçilir (kararı böyle verildi); sıradaki boş
     // renk önceden seçili gelir, umursamayan tek dokunuşla geçer.
-    var ZK_ITEM_COLORS = ['#3D7CDC', '#F0A03C', '#10B981', '#A855F7', '#EF5350'];
+    // Sekiz renk: bir siparis 5-6 kalemi bulabiliyor; palet kalem
+    // sayisindan kucuk olursa iki kalem ayni rengi alir ve diyagramda
+    // hangi disin hangi ise ait oldugu okunamaz.
+    var ZK_ITEM_COLORS = ['#3D7CDC', '#F0A03C', '#10B981', '#A855F7', '#EF5350',
+                          '#14B8A6', '#EC4899', '#84CC16'];
     var draftItems = [];
     var draftColorIdx = 0;
 

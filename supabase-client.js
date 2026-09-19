@@ -564,6 +564,22 @@
       return q;
     },
 
+    /** Girisli kullanicinin kendi hakedisleri (profil.html).
+     *  2026-09-19: profil.html bunu cagiriyordu ama HICBIR yerde tanimli
+     *  degildi — cagri bir .then() icinde oldugu icin sessizce reddediliyor,
+     *  personel profilinde ucret modeli, hakedisler ve is istatistiklerinin
+     *  TAMAMI gorunmuyordu. */
+    listMyEarnings: function () {
+      return client().auth.getUser().then(function (r) {
+        var uid = r.data && r.data.user ? r.data.user.id : null;
+        if (!uid) return { data: [] };
+        return client().from('staff_earnings')
+          .select('*, jobs(job_number, restoration_type)')
+          .eq('user_id', uid)
+          .order('period', { ascending: false });
+      });
+    },
+
     // ---- Personel iş/diş özeti (çalışan+işveren profil görünümü) ----
     // Bir işi birden fazla oda/personel işleyebildiği için job_stage_history
     // üzerinden aynı job_id birden fazla kez gelebilir — diş sayısını

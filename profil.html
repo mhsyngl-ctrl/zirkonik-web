@@ -256,7 +256,6 @@
     /* Personel kendi hakedişini burada görür — "teknisyen iş başına ayrılan
      * ücreti nasıl görecek" (2026-09-05). Yalnızca kendi kayıtları; RLS
      * başkasının hakedişini zaten vermez. */
-    var USD_PF = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
     var DURUM_ETIKET = { pending: 'Bekliyor', approved: 'Onaylandı', paid: 'Ödendi', cancelled: 'İptal' };
 
     /* Personel kendi çalışma şeklini de görsün: maaşlı mı, diş başına mı,
@@ -267,10 +266,10 @@
       if (!me || !me.pay_type) return;
       var parcalar = [];
       if (me.pay_type === 'maas' || me.pay_type === 'maas_dis') {
-        parcalar.push('Aylık maaş: ' + USD_PF.format(me.salary || 0));
+        parcalar.push('Aylık maaş: ' + ZirkonikMoney.format(me.monthly_salary || me.salary || 0, me.salary_currency, 2));
       }
       if (me.pay_type === 'dis' || me.pay_type === 'maas_dis') {
-        parcalar.push('Diş başına: ' + USD_PF.format(me.piece_rate || 0));
+        parcalar.push('Diş başına: ' + ZirkonikMoney.format(me.per_tooth_rate || me.piece_rate || 0, me.per_tooth_currency, 2));
       }
       el.textContent = parcalar.join(' · ');
       // Sadece maaşlıysa hakediş kaydı olmasa da bölüm görünsün.
@@ -282,15 +281,17 @@
         var rows = (r.data || []).filter(function (e) { return e.status !== 'cancelled'; });
         if (!rows.length) return;
         document.getElementById('pf-earnings-section').classList.remove('hidden');
-        var toplam = rows.reduce(function (t, e) { return t + Number(e.amount || 0); }, 0);
-        document.getElementById('pf-earnings-total').textContent = USD_PF.format(toplam);
+        // Hakedisler para birimi basina ayri toplaniyor: personelin ucreti
+        // donem icinde degismis olabilir, kayitlar kendi damgasini tasir.
+        document.getElementById('pf-earnings-total').textContent =
+          ZirkonikMoney.totalText(rows, 'amount', 'currency', 2);
         document.getElementById('pf-earnings-list').innerHTML = rows.slice(0, 20).map(function (e) {
           var is = e.jobs || {};
           return '<div class="flex items-center justify-between rounded-theme border border-border bg-background px-3 py-2.5">' +
             '<div class="min-w-0"><p class="truncate text-xs font-bold">' + (is.job_number || 'İş') + '</p>' +
             '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + (is.restoration_type || '') +
-            ' · ' + e.tooth_count + ' diş × ' + USD_PF.format(e.unit_rate) + ' · ' + (DURUM_ETIKET[e.status] || e.status) + '</p></div>' +
-            '<p class="shrink-0 text-sm font-bold tabular-nums">' + USD_PF.format(e.amount) + '</p></div>';
+            ' · ' + e.tooth_count + ' diş × ' + ZirkonikMoney.format(e.unit_rate, e.currency, 2) + ' · ' + (DURUM_ETIKET[e.status] || e.status) + '</p></div>' +
+            '<p class="shrink-0 text-sm font-bold tabular-nums">' + ZirkonikMoney.format(e.amount, e.currency, 2) + '</p></div>';
         }).join('');
       }).catch(function () {});
     }
