@@ -709,3 +709,66 @@ body { animation: zkPageIn .2s ease both; }
 /* Diş şeması: koyu temada kron beyaz çiziliyor, açık zeminde kenarlık şart. */
 :root[data-theme="light"] #wf-container [data-crown] { stroke-width: 1.2; }
 
+
+/* ---- Açık temada koyu kalan bileşenler ----
+   Arı kovanı, istatistik kartları ve grafik çubukları renklerini jetondan
+   değil doğrudan koyu değerlerden alıyor (koyu tema için elle ayarlanmış
+   degradeler). Açık temaya geçilince bunlar kara kalıyordu. Burada aynı
+   bileşenlerin açık karşılıkları tanımlanıyor — vurgu renkleri (mavi/turuncu)
+   korunuyor, yalnızca zemin ve yazı açık zemine uyarlanıyor. */
+:root[data-theme="light"] .zk-stat {
+  background: linear-gradient(160deg, rgba(44,98,184,.10), rgba(44,98,184,.02)), #FFFFFF;
+  border-color: rgba(44,98,184,.28);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 10px 22px -16px rgba(16,25,45,.35);
+}
+:root[data-theme="light"] .zk-stat::after { border-color: rgba(44,98,184,.20); outline-color: rgba(44,98,184,.10); }
+:root[data-theme="light"] .zk-stat-label { color: var(--color-muted-foreground); }
+
+/* Kovan: boş petek açık gri, dolu/seçili/acil petekler kendi renklerini
+   korur ama iç zemin açık kalır ki sayı okunabilsin. */
+:root[data-theme="light"] .zk-hex { filter: drop-shadow(0 6px 10px rgba(16,25,45,.16)); }
+:root[data-theme="light"] .zk-hex-inner { background: #FFFFFF; }
+:root[data-theme="light"] .zk-hex-name { color: var(--color-muted-foreground); }
+:root[data-theme="light"] .zk-hex-count { color: #8A93A0; }
+:root[data-theme="light"] .zk-hex-sub { color: #8A93A0; }
+
+:root[data-theme="light"] .zk-hex-busy { background: linear-gradient(160deg, #3D7CDC, #2C62B8); }
+:root[data-theme="light"] .zk-hex-busy .zk-hex-inner { background: linear-gradient(160deg, #EAF1FC, #DCE8F9); }
+:root[data-theme="light"] .zk-hex-busy .zk-hex-name { color: #24405F; }
+:root[data-theme="light"] .zk-hex-busy .zk-hex-count { color: #1B4E9B; text-shadow: none; }
+:root[data-theme="light"] .zk-hex-busy .zk-hex-sub { color: #2C62B8; }
+
+:root[data-theme="light"] .zk-hex-selected { background: linear-gradient(160deg, #E08A24, #B9700C); }
+:root[data-theme="light"] .zk-hex-selected .zk-hex-inner { background: linear-gradient(160deg, #FDF1DF, #F8E4C6); }
+:root[data-theme="light"] .zk-hex-selected .zk-hex-name { color: #5A3C0B; }
+:root[data-theme="light"] .zk-hex-selected .zk-hex-count { color: #8A560A; text-shadow: none; }
+
+:root[data-theme="light"] .zk-hex-hot { background: linear-gradient(160deg, #E8722A, #C25E0C); }
+:root[data-theme="light"] .zk-hex-hot .zk-hex-inner { background: linear-gradient(160deg, #FDE8D8, #F9D8BE); }
+:root[data-theme="light"] .zk-hex-hot .zk-hex-name { color: #5A2E0B; }
+:root[data-theme="light"] .zk-hex-hot .zk-hex-count { color: #A34A08; text-shadow: none; }
+:root[data-theme="light"] .zk-hex-hot .zk-hex-sub { color: #A34A08; }
+
+/* Haftalık sütun grafik ve personel doluluk çubuğu: degradeler açık zeminde
+   fazla parlaktı, biraz koyultuldu ki beyaz üstünde okunsun. */
+:root[data-theme="light"] .zk-col-bar { background: linear-gradient(180deg, #3D7CDC, #2B57A8); }
+:root[data-theme="light"] .zk-col-today .zk-col-bar { background: linear-gradient(180deg, #E08A24, #B9700C); box-shadow: none; }
+:root[data-theme="light"] .zk-staff-fill { background: linear-gradient(90deg, #2C62B8, #4A86E0); }
+
+/* Kalan koyu bilesenler: kart degerleri, yesil/turuncu kart cesitleri ve
+   cevrimdisi/yukleme ortu zemini. */
+:root[data-theme="light"] .zk-stat-value { color: var(--color-foreground); text-shadow: none; }
+:root[data-theme="light"] .zk-stat-green {
+  background: linear-gradient(160deg, rgba(10,124,85,.12), rgba(10,124,85,.03)), #FFFFFF;
+  border-color: rgba(10,124,85,.30);
+}
+:root[data-theme="light"] .zk-stat-green .zk-stat-icon { color: #0A7C55; background: rgba(10,124,85,.10); }
+:root[data-theme="light"] .zk-stat-green .zk-stat-ghost { color: #0A7C55; }
+:root[data-theme="light"] .zk-stat-green .zk-stat-value { text-shadow: none; color: #086243; }
+:root[data-theme="light"] .zk-stat-amber {
+  background: linear-gradient(160deg, rgba(185,112,12,.13), rgba(185,112,12,.03)), #FFFFFF;
+  border-color: rgba(185,112,12,.32);
+}
+:root[data-theme="light"] .zk-stat-amber .zk-stat-icon { color: #B9700C; background: rgba(185,112,12,.10); }
+:root[data-theme="light"] .zk-stat-amber .zk-stat-ghost { color: #B9700C; }
+:root[data-theme="light"] .zk-stat-amber .zk-stat-value { text-shadow: none; color: #8A560A; }

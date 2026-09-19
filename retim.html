@@ -307,9 +307,22 @@
       });
     }
 
+    /* Selamlama saate gore. 2026-09-19: "Günaydın" SABIT yazilmisti, gunun
+       her saati oyle diyordu — aksam 22:00'de bile.
+
+       Saat CIHAZIN saati (kullanici karari). Sabit bir saat dilimi
+       zorlanmiyor: telefon nerede ve kacsa selamlama ona uyar. */
+    function zkSelamlama() {
+      var saat = new Date().getHours();
+      if (saat >= 5 && saat < 12) return 'Günaydın';
+      if (saat >= 12 && saat < 18) return 'İyi günler';
+      if (saat >= 18 && saat < 22) return 'İyi akşamlar';
+      return 'İyi geceler';
+    }
+
     function loadDashboard() {
       ZirkonikAuth.me().then(function (me) {
-        document.getElementById('greeting').textContent = 'Günaydın, ' + (me ? me.full_name : '');
+        document.getElementById('greeting').textContent = zkSelamlama() + ', ' + (me ? me.full_name : '');
       });
 
       var todayStart = new Date(); todayStart.setHours(0,0,0,0);
