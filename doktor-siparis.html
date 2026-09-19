@@ -98,6 +98,12 @@
 
           <div class="mt-4" id="wf-container"></div>
 
+          <!-- Canlı lejant. Kalem eklerken hangi dişi hangi türe verdiğini
+               diyagramın HEMEN altında görmek gerekiyor; liste aşağıda
+               kalınca ilerledikçe kafa karışıyordu. Şu an eklenmekte olan
+               seçim de en sonda ayrı gösteriliyor. -->
+          <div id="o-legend" class="mt-2 flex flex-wrap gap-1.5"></div>
+
           <!-- Toplu seçim. Diyagramın ortasına konmadı: orası anatomik olarak
                damak/dil bölgesi, düğme oraya konsa diş seçerken yanlışlıkla
                basılırdı. -->
@@ -276,9 +282,10 @@
     zkDocRenderItems();
     // Tur degisince renk etiketi tazelensin — renk tek basina anlamsiz,
     // hangi ise verildigi yazmali.
-    document.getElementById('o-type').addEventListener('change', zkDocRenderColors);
+    document.getElementById('o-type').addEventListener('change', function () { zkDocRenderColors(); zkDocRenderLegend(); });
     ZkWorkForm.onTeethChange = function (teeth) {
       if (teeth.length) document.getElementById('o-count').value = teeth.length;
+      zkDocRenderLegend();
     };
 
     // ---- Bildirim rozeti ----
@@ -361,7 +368,7 @@
       var item = priceItems.find(function (p) { return p.id === (sel && sel.value); });
       if (lbl) lbl.textContent = item ? item.name : '';
     }
-    function zkDocPickColor(i) { docColorIdx = i; zkDocRenderColors(); }
+    function zkDocPickColor(i) { docColorIdx = i; zkDocRenderColors(); zkDocRenderLegend(); }
 
     function zkDocUsedTeeth() {
       var m = {};
@@ -389,6 +396,38 @@
         }).join('');
       }
       if (window.ZkWorkForm && ZkWorkForm.setUsedTeeth) ZkWorkForm.setUsedTeeth(zkDocUsedTeeth());
+      zkDocRenderLegend();
+    }
+
+    // Diyagramın altındaki canlı lejant: eklenmiş her kalem kendi rengi,
+    // iş türü ve dişleriyle; en sonda "şu an seçili" olanlar. Kullanıcı
+    // ilerlerken önceki adımlarda ne yaptığını görmeden kalıyordu.
+    function zkDocRenderLegend() {
+      var el = document.getElementById('o-legend');
+      if (!el) return;
+      var parts = docItems.map(function (it) {
+        var c = ZK_DOC_COLORS[it.color_index % ZK_DOC_COLORS.length];
+        return '<span class="flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-semibold">' +
+          '<span class="h-2 w-2 shrink-0 rounded-full" style="background:' + c + '"></span>' +
+          escapeHtml(it.restoration_type) +
+          (it.teeth.length ? ' <span class="font-normal text-muted-foreground">' + it.teeth.join(', ') + '</span>' : '') +
+          '</span>';
+      });
+
+      // Şu an diyagramda seçili olup henüz eklenmemiş dişler.
+      var simdi = (window.ZkWorkForm && ZkWorkForm.getTeeth) ? ZkWorkForm.getTeeth() : [];
+      if (simdi.length) {
+        var sel = document.getElementById('o-type');
+        var tur = priceItems.find(function (p) { return p.id === (sel && sel.value); });
+        var cc = ZK_DOC_COLORS[docColorIdx % ZK_DOC_COLORS.length];
+        parts.push('<span class="flex items-center gap-1.5 rounded-full border border-dashed border-primary bg-primary/5 px-2.5 py-1 text-[11px] font-semibold">' +
+          '<span class="h-2 w-2 shrink-0 rounded-full" style="background:' + cc + '"></span>' +
+          (tur ? escapeHtml(tur.name) : 'Tür seçilmedi') +
+          ' <span class="font-normal text-muted-foreground">' + simdi.join(', ') + '</span>' +
+          ' <span class="text-primary">· ekleniyor</span></span>');
+      }
+
+      el.innerHTML = parts.join('');
     }
 
     function zkDocRemoveItem(i) { docItems.splice(i, 1); zkDocRenderItems(); }
@@ -591,6 +630,7 @@
         zkDocRenderItems();
         ZkWorkForm.onTeethChange = function (teeth) {
           if (teeth.length) document.getElementById('o-count').value = teeth.length;
+          zkDocRenderLegend();
         };
         docItems = [];
         docColorIdx = 0;
