@@ -311,6 +311,42 @@
     completeJob: function (jobId) {
       return client().from('jobs').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', jobId);
     },
+
+    // ---- Kalemler (job_items) ----
+    // Bir siparis birden cok calisma turu icerebilir ve her tur KENDI oda
+    // rotasini izler; odalarda dolasan birim artik kalem. jobs.current_room_id
+    // ayna olarak guncel tutuluyor (en geride olan aktif kalemin odasi), bu
+    // sayede hakedis/stok/bildirim tetikleyicileri bugunku gibi calisiyor.
+    listJobItems: function (jobId) {
+      return client().from('job_items')
+        .select('*, rooms:current_room_id(name), price_list_items(name)')
+        .eq('job_id', jobId).order('sort_order').order('created_at');
+    },
+    listActiveItems: function (laboratoryId) {
+      var q = client().from('job_items')
+        .select('*, jobs!inner(id, job_number, laboratory_id, doctor_id, is_priority, requested_delivery_at, patient_name, clinic_protocol_no, status, doctors(full_name))')
+        .eq('status', 'active').eq('jobs.status', 'active');
+      if (laboratoryId) q = q.eq('jobs.laboratory_id', laboratoryId);
+      return q;
+    },
+    createJobItem: function (fields) {
+      return client().from('job_items').insert(fields).select().single();
+    },
+    // Tek RPC: onceki asamayi kapat, yenisini ac, kalemi tasi, aynayi
+    // guncelle. Istemciden uc ayri cagri yapilsa yari kalmis hal olusabilirdi.
+    advanceJobItem: function (itemId, toRoomId, note) {
+      return client().rpc('advance_job_item', {
+        p_item_id: itemId, p_to_room_id: toRoomId, p_note: note || null
+      });
+    },
+    confirmJobItemStage: function (itemId, roomId) {
+      return client().rpc('confirm_job_item_stage', { p_item_id: itemId, p_room_id: roomId });
+    },
+    listItemStages: function (itemId) {
+      return client().from('job_stage_history')
+        .select('*, rooms(name), handler:handled_by(full_name)')
+        .eq('job_item_id', itemId).order('entered_at');
+    },
     // Yalnız yönetici çağırabilir (cancel_job RPC içinde is_org_admin kontrolü var).
     // Tahsilat işlenmiş veya hakediş ödenmiş işler reddedilir; faturalar ve
     // hakedişler iptal edilir, tüketilen stok geri iade edilir.

@@ -650,24 +650,48 @@
     function loadActiveBoard(lab, el) {
       Promise.all([
         ZirkonikData.listRooms(lab.id),
-        ZirkonikData.listJobs({ status: 'active', laboratoryId: lab.id })
+        // Petekte artik KALEMLER duruyor, isler degil. Bir siparis birden
+        // cok calisma turu icerebiliyor ve her tur kendi rotasini izliyor,
+        // yani ayni siparis ayni anda iki odada bulunabilir. Tek kalemli
+        // islerde (bugunku tum isler) gorunum birebir ayni kaliyor.
+        ZirkonikData.listActiveItems(lab.id)
       ]).then(function (results) {
         var rooms = results[0].data || [];
-        var jobs = results[1].data || [];
+        // Kalemi ust isin alanlariyla duzlestiriyoruz ki asagidaki petek
+        // mantigi ayni alan adlariyla calismaya devam etsin.
+        var jobs = (results[1].data || []).map(function (it) {
+          var p = it.jobs || {};
+          return {
+            id: it.id,                 // kalem kimligi (teslim onayi bunun uzerinden)
+            job_id: p.id,              // detay sayfasi bunu kullanir
+            current_room_id: it.current_room_id,
+            planned_route: it.planned_route,
+            restoration_type: it.restoration_type,
+            teeth: it.teeth,
+            job_number: p.job_number,
+            is_priority: p.is_priority,
+            requested_delivery_at: p.requested_delivery_at,
+            patient_name: p.patient_name,
+            clinic_protocol_no: p.clinic_protocol_no,
+            doctors: p.doctors
+          };
+        });
         if (!rooms.length) {
           el.style.minHeight = '';
           el.innerHTML = '<p class="text-xs text-muted-foreground">Bu laboratuvarda henüz oda tanımlanmamış.</p>';
           return;
         }
 
-        var jobIds = jobs.map(function (j) { return j.id; });
-        var stagesPromise = jobIds.length
-          ? ZirkonikAuth.client().from('job_stage_history').select('job_id, confirmed_at').in('job_id', jobIds).is('exited_at', null)
+        // Teslim onayi artik KALEM bazinda: ayni siparisin bir kalemi teslim
+        // alinmis, digeri alinmamis olabilir.
+        var itemIds = jobs.map(function (j) { return j.id; });
+        var stagesPromise = itemIds.length
+          ? ZirkonikAuth.client().from('job_stage_history').select('job_item_id, confirmed_at').in('job_item_id', itemIds).is('exited_at', null)
           : Promise.resolve({ data: [] });
 
         stagesPromise.then(function (stageRes) {
           var confirmedMap = {};
-          (stageRes.data || []).forEach(function (s) { confirmedMap[s.job_id] = !!s.confirmed_at; });
+          (stageRes.data || []).forEach(function (s) { confirmedMap[s.job_item_id] = !!s.confirmed_at; });
 
           // Arı kovanı görünümü: her istasyon (oda) bir altıgen petek;
           // dokununca o istasyonun işleri peteğin altında listelenir.
@@ -681,6 +705,12 @@
           hiveWaitRoomId = waitRoom ? waitRoom.id : null;
           hiveJobs = jobs;
           hiveConfirmedMap = confirmedMap;
+          // Hangi siparislerin birden cok kalemi var? Kartta tur/dis
+          // bilgisini yalnizca onlarda gostermek icin.
+          var perJob = {};
+          jobs.forEach(function (it) { perJob[it.job_id] = (perJob[it.job_id] || 0) + 1; });
+          hiveMultiItem = {};
+          Object.keys(perJob).forEach(function (k) { if (perJob[k] > 1) hiveMultiItem[k] = true; });
           // Gelen iş baskısı: her işin rotasındaki BİR SONRAKİ durağı bul,
           // istasyon başına "buraya gelmekte olan iş" sayısını çıkar.
           var defaultRoute = rooms.map(function (r) { return r.id; });
@@ -720,6 +750,10 @@
     }
 
     var hiveSections = [], hiveJobs = [], hiveConfirmedMap = {}, hiveIncomingMap = {}, hiveSelectedIdx = 0, hiveContainer = null, hiveWaitRoomId = null, hiveUserSelId;
+    // job_id -> true, eger o siparisin panoda birden cok kalemi varsa.
+    // Kart uzerinde calisma turu/dis bilgisi YALNIZCA bu durumda gosteriliyor;
+    // tek kalemli islerde gorunum bugunkuyle birebir ayni kaliyor.
+    var hiveMultiItem = {};
 
     // İş bu peteğe mi ait? Bekleyen peteği odasız işleri de kapsar.
     function hiveJobInSection(j, sec) {
@@ -804,9 +838,17 @@
             // Oda değişince teslim onaylanana kadar "Teslim bekliyor"
             // rozeti — iki taraflı iş teslimi (bkz. detay.html).
             var pending = sel.id !== null && hiveConfirmedMap[j.id] === false;
-            return '<button onclick="location.href=\'detay.html?id=' + j.id + '\'" class="flex w-full items-center justify-between gap-3 rounded-theme border ' + (pending ? 'border-accent/40' : 'border-border') + ' bg-background p-2.5 text-left">' +
+            // j.id KALEM kimligi, detay sayfasi ise is kimligi bekliyor.
+            // Cok kalemli siparislerde teknisyenin elindeki parcayi ayirt
+            // edebilmesi icin calisma turu ve disler de yaziliyor; tek
+            // kalemli islerde bu satir cikmiyor (bugunku gorunum korunuyor).
+            return '<button onclick="location.href=\'detay.html?id=' + j.job_id + '\'" class="flex w-full items-center justify-between gap-3 rounded-theme border ' + (pending ? 'border-accent/40' : 'border-border') + ' bg-background p-2.5 text-left">' +
               '<div class="min-w-0">' +
               '<p class="text-xs font-bold">' + escapeHtml(j.job_number) + (j.is_priority ? ' <span class="text-accent">●</span>' : '') + '</p>' +
+              (hiveMultiItem[j.job_id]
+                ? '<p class="mt-0.5 truncate text-[11px] font-semibold text-primary">' + escapeHtml(j.restoration_type || '') +
+                  ((j.teeth && j.teeth.length) ? ' (' + j.teeth.join(', ') + ')' : '') + '</p>'
+                : '') +
               // Hasta adı: giriş formunda toplanıyordu ama uygulamada hiçbir
               // ekran okumuyordu — teknisyen elindeki işin hangi hastaya ait
               // olduğunu göremiyordu. Ad yoksa protokol numarasına düşülür.

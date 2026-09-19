@@ -117,6 +117,12 @@
             <span id="stage-progress-label" class="rounded-full bg-secondary px-2.5 py-1 text-[10px] font-bold text-secondary-foreground">— / —</span>
           </div>
 
+          <!-- Kalem seçici. Bir sipariş birden çok çalışma türü içerebilir
+               (ör. 10 dişin 5'i zirkonyum kron, 5'i başka tür) ve her tür
+               kendi oda rotasını izler. Aşağıdaki akış SEÇİLİ kaleme aittir.
+               Tek kalemli işlerde bu satır hiç görünmez. -->
+          <div id="item-tabs" class="mt-4 hidden flex-wrap gap-1.5"></div>
+
           <div id="stage-track" class="mt-5 overflow-x-auto pb-1" style="-webkit-overflow-scrolling:touch;">
             <p class="text-xs text-muted-foreground">Yükleniyor…</p>
           </div>
@@ -299,6 +305,16 @@
     var currentStage = null;
     var advanceMode = 'advance';
 
+    // ---- Kalemler ----
+    // Bir siparis birden cok calisma turu icerebiliyor ve her tur KENDI oda
+    // rotasini izliyor (ornek: 10 disin 5'i zirkonyum kron, 5'i baska tur —
+    // ayri surecler, tek siparis, tek doktor). Bu yuzden asama takibi, teslim
+    // onayi ve ilerletme artik SECILI KALEM uzerinden yurur.
+    // Tek kalemli islerde secici hic gorunmez ve davranis bugunkuyle
+    // birebir aynidir.
+    var jobItems = [];
+    var currentItem = null;
+
     ZirkonikAuth.requireAuth().then(function (session) {
       if (!session) return;
       if (!jobId) {
@@ -308,30 +324,78 @@
       loadJob();
     });
 
+
+    // Asama mantigi icin "bulunulan oda": kalem varsa kalemin odasi.
+    // Geri dolum her ise bir kalem olusturdugu icin currentItem pratikte
+    // her zaman dolu; yine de ise dusuluyor.
+    function zkCurRoom() {
+      return currentItem ? currentItem.current_room_id : currentJob.current_room_id;
+    }
+
+    // Kalem sekmeleri. Yalnizca birden cok kalem varsa gorunur; renk, girisde
+    // kullanicinin o kalem icin sectigi paletten gelir (color_index).
+    var ZK_ITEM_COLORS = ['#3D7CDC', '#F0A03C', '#10B981', '#A855F7', '#EF5350'];
+
+    function renderItemTabs() {
+      var el = document.getElementById('item-tabs');
+      if (!el) return;
+      if (!jobItems.length || jobItems.length < 2) { el.classList.add('hidden'); el.innerHTML = ''; return; }
+      el.classList.remove('hidden');
+      el.className = 'mt-4 flex flex-wrap gap-1.5';
+      el.innerHTML = jobItems.map(function (it, idx) {
+        var sel = currentItem && it.id === currentItem.id;
+        var col = ZK_ITEM_COLORS[(it.color_index || 0) % ZK_ITEM_COLORS.length];
+        var dis = (it.teeth && it.teeth.length) ? ' (' + it.teeth.length + ' diş)' : '';
+        var bitti = it.status === 'completed';
+        return '<button type="button" onclick="zkSelectItem(' + idx + ')" class="flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[11px] font-bold ' +
+          (sel ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground') + '">' +
+          '<span class="h-2 w-2 rounded-full" style="background:' + col + '"></span>' +
+          escapeHtml(it.restoration_type || 'Kalem') + dis +
+          (bitti ? ' <span class="text-success">✓</span>' : '') +
+          '</button>';
+      }).join('');
+    }
+
+    function zkSelectItem(idx) {
+      if (!jobItems[idx]) return;
+      currentItem = jobItems[idx];
+      loadJob();
+    }
+
     function loadJob() {
       var client = ZirkonikAuth.client();
       ZirkonikData.getJob(jobId).then(function (jobRes) {
         if (jobRes.error || !jobRes.data) throw jobRes.error || new Error('İş bulunamadı');
         currentJob = jobRes.data;
-        return client.from('rooms').select('id, name, sort_order, is_delivery').eq('laboratory_id', currentJob.laboratory_id).order('sort_order');
+        return ZirkonikData.listJobItems(jobId);
+      }).then(function (itemsRes) {
+        jobItems = itemsRes.data || [];
+        // Secili kalemi koru (yenileme sonrasi kullanici basa donmesin).
+        var keep = currentItem && jobItems.filter(function (i) { return i.id === currentItem.id; })[0];
+        currentItem = keep || jobItems[0] || null;
+        return ZirkonikAuth.client().from('rooms').select('id, name, sort_order, is_delivery').eq('laboratory_id', currentJob.laboratory_id).order('sort_order');
       }).then(function (roomsRes) {
         rooms = roomsRes.data || [];
-        // İşin planlı rotası varsa aşama takibi tüm odalar yerine o rotayı izler.
-        if (currentJob.planned_route && currentJob.planned_route.length) {
+        // Rota ve bulunulan oda artik KALEMDEN okunuyor. Kalem yoksa (teorik
+        // olarak olmamali, geri dolum hepsini olusturdu) ise dusulur.
+        var route = (currentItem && currentItem.planned_route) || currentJob.planned_route;
+        var curRoom = currentItem ? currentItem.current_room_id : currentJob.current_room_id;
+        if (route && route.length) {
           var byId = {};
           rooms.forEach(function (r) { byId[r.id] = r; });
-          var routed = currentJob.planned_route.map(function (id) { return byId[id]; }).filter(Boolean);
-          // İş rotada olmayan bir odaya (ör. yönetici müdahalesi) taşınmışsa
+          var routed = route.map(function (id) { return byId[id]; }).filter(Boolean);
+          // Rotada olmayan bir odaya (ör. yönetici müdahalesi) taşınmışsa
           // o odayı da görünür kılmak için rotaya geçici olarak ekle.
-          if (currentJob.current_room_id && !routed.some(function (r) { return r.id === currentJob.current_room_id; }) && byId[currentJob.current_room_id]) {
-            routed.push(byId[currentJob.current_room_id]);
+          if (curRoom && !routed.some(function (r) { return r.id === curRoom; }) && byId[curRoom]) {
+            routed.push(byId[curRoom]);
           }
           if (routed.length) rooms = routed;
         }
 
-        var stagePromise = currentJob.current_room_id
+        var stagePromise = curRoom
           ? client.from('job_stage_history').select('confirmed_at')
-              .eq('job_id', jobId).eq('room_id', currentJob.current_room_id).is('exited_at', null).maybeSingle()
+              .eq(currentItem ? 'job_item_id' : 'job_id', currentItem ? currentItem.id : jobId)
+              .eq('room_id', curRoom).is('exited_at', null).maybeSingle()
           : Promise.resolve({ data: null });
 
         return stagePromise.then(function (stageRes) {
@@ -348,6 +412,7 @@
     }
 
     function renderJob() {
+      renderItemTabs();
       var j = currentJob;
       document.getElementById('job-number').textContent = j.job_number;
       document.getElementById('job-type').textContent = j.restoration_type || '—';
@@ -497,7 +562,7 @@
     }
 
     function renderStageTrack() {
-      var currentIdx = rooms.findIndex(function (r) { return r.id === currentJob.current_room_id; });
+      var currentIdx = rooms.findIndex(function (r) { return r.id === zkCurRoom(); });
       document.getElementById('stage-progress-label').textContent = (currentIdx >= 0 ? currentIdx + 1 : 0) + ' / ' + rooms.length;
 
       var html = '<div class="flex items-start" style="min-width:' + Math.max(320, rooms.length * 85) + 'px">' + rooms.map(function (r, i) {
@@ -537,10 +602,10 @@
 
       // İş, bulunduğu odada henüz "teslim alınmadı" ise (confirmed_at null)
       // ilerletme değil, teslim alma butonu gösterilir — iki taraflı akış.
-      var needsAccept = !!(currentJob.current_room_id && currentStage && !currentStage.confirmed_at);
+      var needsAccept = !!(zkCurRoom() && currentStage && !currentStage.confirmed_at);
       advanceMode = needsAccept ? 'accept' : 'advance';
 
-      var currentIdx = rooms.findIndex(function (r) { return r.id === currentJob.current_room_id; });
+      var currentIdx = rooms.findIndex(function (r) { return r.id === zkCurRoom(); });
       var isLast = currentIdx === rooms.length - 1;
       label.textContent = needsAccept ? 'Teslim Al' : (isLast ? 'Teslimatı tamamla' : 'Sonraki aşamaya taşı');
 
@@ -559,8 +624,8 @@
         var perms = me.user_permissions;
         perms = (perms && perms[0]) || perms || {};
         var client = ZirkonikAuth.client();
-        var roomCheck = currentJob.current_room_id
-          ? client.rpc('has_room_access', { rm_id: currentJob.current_room_id })
+        var roomCheck = zkCurRoom()
+          ? client.rpc('has_room_access', { rm_id: zkCurRoom() })
           : Promise.resolve({ data: true });
         return roomCheck.then(function (rr) {
           if (rr.data && perms.can_change_job_status) {
@@ -696,7 +761,12 @@
 
     function loadHistory() {
       var client = ZirkonikAuth.client();
-      client.from('job_stage_history').select('*, rooms(name), app_users:handled_by(full_name)').eq('job_id', jobId).order('entered_at').then(function (r) {
+      // Cok kalemli siparişte geçmiş SEÇİLİ KALEME ait olmalı; hepsi bir
+      // arada gösterilse hangi aşamanın hangi parçaya ait olduğu
+      // anlaşılmazdı.
+      var hq = client.from('job_stage_history').select('*, rooms(name), app_users:handled_by(full_name)');
+      hq = (currentItem && jobItems.length > 1) ? hq.eq('job_item_id', currentItem.id) : hq.eq('job_id', jobId);
+      hq.order('entered_at').then(function (r) {
         var rowsData = r.data || [];
         historyRows = rowsData;
         var el = document.getElementById('stage-history');
@@ -725,11 +795,16 @@
       var errEl = document.getElementById('advance-error');
       errEl.classList.add('hidden');
 
+      // Teslim onayi ve ilerletme SECILI KALEM uzerinden. Kalem yoksa eski
+      // is bazli yola dusulur (teorik; geri dolum her ise bir kalem yaratti).
       if (advanceMode === 'accept') {
-        ZirkonikAuth.me().then(function (me) {
-          return ZirkonikData.confirmJobStage(jobId, currentJob.current_room_id, me.id);
-        }).then(function (res) {
-          if (res.error) throw res.error;
+        var acceptP = currentItem
+          ? ZirkonikData.confirmJobItemStage(currentItem.id, zkCurRoom())
+          : ZirkonikAuth.me().then(function (me) {
+              return ZirkonikData.confirmJobStage(jobId, zkCurRoom(), me.id);
+            });
+        acceptP.then(function (res) {
+          if (res && res.error) throw res.error;
           loadJob();
         }).catch(function (err) {
           errEl.textContent = 'Teslim alınamadı: ' + err.message;
@@ -738,14 +813,37 @@
         return;
       }
 
-      var currentIdx = rooms.findIndex(function (r) { return r.id === currentJob.current_room_id; });
+      var currentIdx = rooms.findIndex(function (r) { return r.id === zkCurRoom(); });
       var isLast = currentIdx === rooms.length - 1;
       var nextRoom = rooms[currentIdx + 1];
 
       if (isLast || !nextRoom) {
-        ZirkonikData.completeJob(jobId).then(function (res) {
-          if (res.error) throw res.error;
-          window.location.href = 'retim.html';
+        // Kalem bitti. Siparis ancak TUM kalemleri bitince tamamlanir —
+        // yoksa bir kalem teslime gelince digerleri hala uretimdeyken is
+        // kapanir ve kilitlenirdi (tamamlanan is degistirilemiyor).
+        var finishP = currentItem
+          ? ZirkonikAuth.client().from('job_items')
+              .update({ status: 'completed' }).eq('id', currentItem.id)
+              .then(function (r) {
+                if (r.error) throw r.error;
+                return ZirkonikData.listJobItems(jobId);
+              }).then(function (r) {
+                var kalan = (r.data || []).filter(function (i) { return i.status === 'active'; });
+                if (kalan.length) return { done: false };
+                return ZirkonikData.completeJob(jobId).then(function (cr) {
+                  if (cr.error) throw cr.error;
+                  return { done: true };
+                });
+              })
+          : ZirkonikData.completeJob(jobId).then(function (cr) {
+              if (cr.error) throw cr.error;
+              return { done: true };
+            });
+
+        finishP.then(function (out) {
+          if (out.done) { window.location.href = 'retim.html'; return; }
+          zkToast('Bu kalem tamamlandı. Siparişin diğer kalemleri sürüyor.');
+          loadJob();
         }).catch(function (err) {
           errEl.textContent = 'İşlem başarısız: ' + err.message;
           errEl.classList.remove('hidden');
@@ -753,7 +851,11 @@
         return;
       }
 
-      ZirkonikData.advanceJobStage(jobId, currentJob.current_room_id, nextRoom.id).then(function () {
+      var advP = currentItem
+        ? ZirkonikData.advanceJobItem(currentItem.id, nextRoom.id)
+        : ZirkonikData.advanceJobStage(jobId, zkCurRoom(), nextRoom.id);
+      advP.then(function (res) {
+        if (res && res.error) throw res.error;
         loadJob();
       }).catch(function (err) {
         errEl.textContent = 'İşlem başarısız: ' + err.message;
