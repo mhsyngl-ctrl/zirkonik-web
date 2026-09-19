@@ -275,7 +275,7 @@
               ((s.phone || s.email) ? '<p class="mt-0.5 text-[11px] text-muted-foreground">' + escapeHtml([s.phone, s.email].filter(Boolean).join(' · ')) + '</p>' : '') +
               '</div></div>' + statusBadge + '</div>' +
               '<div class="mt-4 grid grid-cols-2 gap-y-3 border-t border-border pt-3">' +
-              '<div><p class="text-[11px] text-muted-foreground">Görev kapsamı</p><p class="mt-1 text-xs font-bold">' + describePermissions(s.user_permissions) + '</p></div>' +
+              '<div><p class="text-[11px] text-muted-foreground">Görev kapsamı</p><p class="mt-1 text-xs font-bold">' + describePermissions(s) + '</p></div>' +
               '<div><p class="text-[11px] text-muted-foreground">Aktif işler</p><p class="mt-1 text-xs font-bold tabular-nums">' + (counts[s.id] || 0) + ' iş</p></div>' +
               '</div>' +
               '<button onclick="location.href=\'rol-ve-yetki-detay.html?user=' + s.id + '\'" class="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-muted py-2.5 text-xs font-bold text-primary">' +
@@ -296,7 +296,17 @@
       loadTeam();
     });
 
-    function describePermissions(perms) {
+    /* 2026-09-19: bu fonksiyon YALNIZ izin bayraklarina bakiyordu, role hic
+       bakmiyordu. Yonetici/isveren tanimi geregi tam yetkilidir —
+       has_permission() yoneticide izin satirina bakmadan true doner — ama
+       kartta izin satirindan turetilmis personel etiketi ("Operasyon ve
+       finans") gorunuyordu. Isveren icin yanlis ve kafa karistiriciydi. */
+    function describePermissions(kisi) {
+      if (kisi && kisi.role === 'yonetici') {
+        return (kisi.position === 'İşveren' ? 'İşveren' : 'Yönetici') + ' · tam yetki';
+      }
+      if (kisi && kisi.role === 'doktor') return 'Doktor portalı';
+      var perms = (kisi && kisi.user_permissions) || {};
       perms = (perms && perms[0]) || perms || {};
       if (perms.can_view_finance && perms.can_manage_stock && perms.can_approve_users) return 'Operasyon ve finans';
       if (perms.can_change_job_status) return 'Üretim durumu';

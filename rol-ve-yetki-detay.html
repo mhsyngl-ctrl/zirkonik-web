@@ -91,7 +91,7 @@
         <section id="admin-notice" class="hidden px-5 pt-5">
           <div class="flex items-start gap-2.5 rounded-theme border border-primary/15 bg-secondary px-3.5 py-3">
             <iconify-icon icon="lucide:info" class="mt-0.5 shrink-0 text-base text-primary"></iconify-icon>
-            <p class="text-xs leading-5 text-secondary-foreground">Yönetici rolü her zaman tam erişime sahiptir — bu tablodaki ayarlar yöneticiyi kısıtlamaz.</p>
+            <p class="text-xs leading-5 text-secondary-foreground">Yönetici/işveren her şeye yetkilidir: tüm laboratuvarlar, tüm odalar ve tüm finans. Yetki ve oda ayarı gerektirmez, bu yüzden burada gösterilmez. Kişisel bilgiler ve şifre aşağıdan düzenlenebilir.</p>
           </div>
         </section>
 
@@ -356,7 +356,16 @@
         }
 
         if (u.role === 'yonetici') {
+          /* 2026-09-19: yoneticiye izin matrisi ve oda/laboratuvar secimi
+             gosteriliyordu. Yonetici tanimi geregi tam yetkili —
+             has_permission() onda izin satirina bakmadan true doner,
+             has_lab_access/has_room_access de kurulusun tum lab ve odalarini
+             kapsar. Yani o kartlar hicbir seyi degistirmiyor, yalnizca
+             "isveren kisitlanabilir" izlenimi veriyordu. Artik gizli;
+             kisisel bilgiler ve sifre sifirlama duruyor. */
           document.getElementById('admin-notice').classList.remove('hidden');
+          document.getElementById('permissions-section').style.display = 'none';
+          document.getElementById('access-section').style.display = 'none';
         } else if (u.role === 'doktor') {
           // Doktor yalnız kendi siparişlerini/işlerini takip eder —
           // izin matrisi ve laboratuvar/oda erişimi ona uygulanmaz.
@@ -547,10 +556,17 @@
       }
 
       var accessVisible = !document.getElementById('access-section').classList.contains('hidden');
-      chain = chain.then(function () { return ZirkonikData.updatePermissions(userId, payload); }).then(function (res) {
-        if (res.error) throw res.error;
-        if (!res.data || !res.data.length) throw new Error('Yetkiler yazılamadı (yetkiniz olmayabilir).');
-      });
+      // Yoneticide izin satiri yazmak anlamsiz: her zaman tam yetkili ve
+      // matris gizli oldugu icin payload eski/bos degerlerden olusurdu.
+      // Yalnizca kisisel bilgiler kaydedilir.
+      var izinYazilsin = !document.getElementById('permissions-section') ||
+                         document.getElementById('permissions-section').style.display !== 'none';
+      if (izinYazilsin) {
+        chain = chain.then(function () { return ZirkonikData.updatePermissions(userId, payload); }).then(function (res) {
+          if (res.error) throw res.error;
+          if (!res.data || !res.data.length) throw new Error('Yetkiler yazılamadı (yetkiniz olmayabilir).');
+        });
+      }
 
       if (accessVisible) {
         var labIds = Array.prototype.slice.call(document.querySelectorAll('.acc-lab-cb:checked')).map(function (cb) { return cb.value; });
