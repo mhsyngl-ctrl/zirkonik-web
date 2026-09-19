@@ -178,7 +178,10 @@
             <div class="mt-4 rounded-theme border border-border bg-background p-3.5">
               <div class="flex items-center justify-between gap-3">
                 <p class="text-xs font-bold">Bu siparişteki kalemler</p>
-                <div id="f-color-row" class="flex gap-1.5"></div>
+                <div class="flex items-center gap-2">
+                  <span id="f-color-label" class="max-w-[110px] truncate text-[10px] font-semibold text-muted-foreground"></span>
+                  <div id="f-color-row" class="flex gap-1.5"></div>
+                </div>
               </div>
               <div id="f-items" class="mt-2.5 space-y-1.5"></div>
               <button type="button" onclick="zkAddDraftItem()" class="mt-2.5 flex h-11 w-full items-center justify-center gap-2 rounded-theme bg-secondary text-xs font-bold text-secondary-foreground">
@@ -286,6 +289,11 @@
           'class="h-5 w-5 rounded-full border-2 ' + (sel ? 'border-foreground' : 'border-transparent') + '" ' +
           'style="background:' + c + '"></button>';
       }).join('');
+      // Rengin hangi iş türüne verileceği yazsın — renk tek başına anlamsız.
+      var lbl = document.getElementById('f-color-label');
+      var sel = document.getElementById('f-type');
+      var it = priceItems.find(function (p) { return p.id === (sel && sel.value); });
+      if (lbl) lbl.textContent = it ? it.name : '';
     }
     function zkPickColor(i) { draftColorIdx = i; zkRenderColorRow(); }
 
@@ -390,6 +398,7 @@
     ZkWorkForm.render(document.getElementById('wf-container'));
     zkRenderColorRow();
     zkRenderDraftItems();
+    document.getElementById('f-type').addEventListener('change', zkRenderColorRow);
     ZkWorkForm.onTeethChange = function (teeth) {
       document.getElementById('f-teeth').value = teeth.join(', ');
       if (teeth.length) document.getElementById('f-tooth-count').value = teeth.length;

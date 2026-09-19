@@ -340,7 +340,56 @@
               }).then(function (jobRes) {
                 if (jobRes.error) throw jobRes.error;
                 var job = jobRes.data;
-                var invoicePromise = price
+
+                // KALEMLER. Üretim panosu artık işleri değil kalemleri
+                // listeliyor; kalem oluşturulmazsa onaylanan sipariş panoda
+                // hiç görünmezdi. Doktor birden çok çalışma türü girdiyse
+                // orders.items dolu gelir; tek türlü eski siparişlerde boş
+                // olur ve tekil kolonlardan tek kalem üretilir.
+                var kalemler = (o.items && o.items.length) ? o.items : [{
+                  price_item_id: o.price_item_id,
+                  restoration_type: o.restoration_type,
+                  teeth: (o.teeth_numbers || '').match(/\d+/g) || [],
+                  unit_count: o.unit_count,
+                  color_index: 0
+                }];
+                // Her kalem KENDİ rotasını kendi fiyat kaleminden almalı —
+                // hepsine aynı rotayı verirsek veneer, kronun odalarını
+                // dolaşır. Rotalar bu laboratuvarın odalarına indirgeniyor.
+                var kalemIds = kalemler.map(function (k) { return k.price_item_id; }).filter(Boolean);
+                var itemsPromise = Promise.all([
+                  client.from('rooms').select('id').eq('laboratory_id', labId),
+                  kalemIds.length
+                    ? client.from('price_list_items').select('id, route_room_ids').in('id', kalemIds)
+                    : Promise.resolve({ data: [] })
+                ]).then(function (rres) {
+                  var labRoomIds = (rres[0].data || []).map(function (r) { return r.id; });
+                  var routeById = {};
+                  (rres[1].data || []).forEach(function (p) {
+                    var f = (p.route_room_ids || []).filter(function (id) { return labRoomIds.indexOf(id) >= 0; });
+                    routeById[p.id] = f.length ? f : null;
+                  });
+                  return client.from('job_items').insert(kalemler.map(function (it, i) {
+                    return {
+                      job_id: job.id,
+                      organization_id: job.organization_id,
+                      price_item_id: it.price_item_id || null,
+                      restoration_type: it.restoration_type || o.restoration_type,
+                      teeth: (it.teeth || []).map(Number),
+                      unit_count: Math.max(1, Number(it.unit_count) || 1),
+                      // Siparişte fiyat kalem bazında tutulmuyor (doktor fiyat
+                      // girmiyor); tutar iş üzerinde, ilk kaleme yazılıyor.
+                      price: i === 0 ? price : null,
+                      planned_route: routeById[it.price_item_id] || plannedRoute,
+                      color_index: it.color_index || i,
+                      sort_order: i
+                    };
+                  }));
+                }).then(function (ir) {
+                  if (ir && ir.error) zkToast('İş oluşturuldu ama kalemler eklenemedi: ' + ir.error.message);
+                });
+
+                var invoicePromise = itemsPromise.then(function () { return price
                   ? client.from('doctors').select('payment_terms_days').eq('id', o.doctor_id).single().then(function (docRes) {
                       var days = (docRes.data && docRes.data.payment_terms_days) || 30;
                       var due = new Date(); due.setDate(due.getDate() + days);
@@ -351,7 +400,7 @@
                     }).then(function (invRes) {
                       if (invRes.error) zkToast('İş oluşturuldu ama fatura eklenemedi: ' + invRes.error.message);
                     })
-                  : Promise.resolve();
+                  : Promise.resolve(); });
                 return invoicePromise.then(function () {
                   return ZirkonikData.reviewOrder(o.id, {
                     status: 'approved', job_id: job.id,
