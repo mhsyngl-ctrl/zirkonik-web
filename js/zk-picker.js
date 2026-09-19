@@ -17,7 +17,18 @@
   var GUNLER = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
 
   var overlay = null;
-  var openedAt = 0;   // alt-sayfanın açıldığı an (hayalet tıklama koruması)
+  // Hayalet tıklama koruması. Dokunmatik ekranda touchend'den sonra tarayıcı
+  // AYNI noktaya sentetik bir 'click' daha yollar; alt-sayfa o arada açıldığı
+  // için bu tıklama yeni açılan listeye düşer ve rastgele bir satır seçilirdi.
+  //
+  // 2026-09-19: koruma "açılıştan sonraki 400 ms boyunca HİÇBİR tıklamayı
+  // kabul etme" şeklindeydi. Kullanıcı listeyi ezberleyip hızlandığında
+  // (3-4-5. kalemde) gerçek seçimi de yutuyordu: seçiyorsun, hiçbir şey
+  // olmuyor, kutu boş kalıyor. Artık ZAMANA DEĞİL KONUMA bakıyor — hayalet
+  // tıklama açılış dokunuşuyla aynı noktadadır, gerçek seçim başka noktada.
+  var sonNokta = null;   // { t, x, y }
+  var GHOST_MS = 700;    // konum da tuttugu icin pencere genis olabilir
+  var GHOST_PX = 24;
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -31,7 +42,6 @@
 
   function openSheet(titleText, bodyHtml) {
     closeSheet();
-    openedAt = Date.now();
     overlay = document.createElement('div');
     overlay.className = 'zk-picker-overlay';
     // 2026-09-12: Liste uzun olunca kullanici sikisip kaliyordu — alt-sayfa
@@ -49,11 +59,11 @@
         '<div class="zk-picker-body">' + bodyHtml + '</div>' +
       '</div>';
     document.body.appendChild(overlay);
-    overlay.querySelector('.zk-picker-backdrop').addEventListener('click', function () {
-      if (!isGhost()) closeSheet();
+    overlay.querySelector('.zk-picker-backdrop').addEventListener('click', function (e) {
+      if (!isGhost(e)) closeSheet();
     });
-    overlay.querySelector('.zk-picker-close').addEventListener('click', function () {
-      if (!isGhost()) closeSheet();
+    overlay.querySelector('.zk-picker-close').addEventListener('click', function (e) {
+      if (!isGhost(e)) closeSheet();
     });
 
     return overlay;
@@ -91,10 +101,13 @@
 
     var ov = openSheet(title, html || '<p class="zk-picker-empty">Seçenek yok.</p>');
     ov.querySelectorAll('.zk-picker-row').forEach(function (row) {
-      row.addEventListener('click', function () {
-        if (isGhost()) return;
+      row.addEventListener('click', function (e) {
+        if (isGhost(e)) return;
         sel.value = row.getAttribute('data-val');
         sel.dispatchEvent(new Event('change', { bubbles: true }));
+        // Alt-sayfa kapandiktan sonra ayni noktaya gelen sentetik tiklama
+        // altta kalan baska bir alani acmasin.
+        noktaIsaretle(e);
         closeSheet();
       });
     });
@@ -140,8 +153,8 @@
 
     function bind(ov) {
       ov.querySelectorAll('.zk-cal-nav').forEach(function (b) {
-        b.addEventListener('click', function () {
-          if (isGhost()) return;
+        b.addEventListener('click', function (e) {
+          if (isGhost(e)) return;
           viewMonth += Number(b.getAttribute('data-nav'));
           if (viewMonth < 0) { viewMonth = 11; viewYear--; }
           if (viewMonth > 11) { viewMonth = 0; viewYear++; }
@@ -150,16 +163,17 @@
         });
       });
       ov.querySelectorAll('.zk-cal-day').forEach(function (b) {
-        b.addEventListener('click', function () {
-          if (isGhost()) return;
+        b.addEventListener('click', function (e) {
+          if (isGhost(e)) return;
           input.value = b.getAttribute('data-date');
           input.dispatchEvent(new Event('change', { bubbles: true }));
+          noktaIsaretle(e);
           closeSheet();
         });
       });
       var clear = ov.querySelector('.zk-cal-clear');
-      if (clear) clear.addEventListener('click', function () {
-        if (isGhost()) return;
+      if (clear) clear.addEventListener('click', function (e) {
+        if (isGhost(e)) return;
         input.value = '';
         input.dispatchEvent(new Event('change', { bubbles: true }));
         closeSheet();
@@ -195,7 +209,24 @@
 
   // Alt-sayfa açıldıktan hemen sonra gelen "hayalet" tıklamanın listeden
   // rastgele bir satır seçmesini / sayfayı kapatmasını engelle.
-  function isGhost() { return Date.now() - openedAt < 400; }
+  /* Olay hayalet mi? Yalnizca (a) son etkilesimden hemen sonra geldiyse VE
+   * (b) tam ayni noktadaysa. Koordinatsiz olaylar (klavye, programatik)
+   * hicbir zaman hayalet sayilmaz — aksi halde gercek secim yutulur. */
+  function isGhost(e) {
+    if (!sonNokta) return false;
+    if (Date.now() - sonNokta.t >= GHOST_MS) return false;
+    if (!e || typeof e.clientX !== 'number') return false;
+    if (e.clientX === 0 && e.clientY === 0) return false;   // sentetik/koordinatsiz
+    return Math.abs(e.clientX - sonNokta.x) <= GHOST_PX &&
+           Math.abs(e.clientY - sonNokta.y) <= GHOST_PX;
+  }
+  function noktaIsaretle(e) {
+    var t = e && e.changedTouches && e.changedTouches[0];
+    if (t) { sonNokta = { t: Date.now(), x: t.clientX, y: t.clientY }; return; }
+    sonNokta = (e && typeof e.clientX === 'number')
+      ? { t: Date.now(), x: e.clientX, y: e.clientY }
+      : null;
+  }
 
   document.addEventListener('touchstart', function (e) {
     touchStart = (e.touches && e.touches.length === 1)
@@ -212,6 +243,7 @@
     if (t && (Math.abs(t.clientX - start.x) > 10 || Math.abs(t.clientY - start.y) > 10)) return;
     e.preventDefault(); // yerleşik iOS çarkı açılmasın
     if (overlay) return;
+    noktaIsaretle(e);
     openFor(start.el);
   }, { capture: true, passive: false });
 
@@ -219,7 +251,8 @@
     var el = pickerTarget(e);
     if (!el) return;
     e.preventDefault();
-    if (overlay || isGhost()) return;
+    if (overlay || isGhost(e)) return;
+    noktaIsaretle(e);
     openFor(el);
   }, true);
 
@@ -228,7 +261,8 @@
     var el = pickerTarget(e);
     if (!el) return;
     e.preventDefault();
-    if (overlay || isGhost()) return;
+    if (overlay || isGhost(e)) return;
+    noktaIsaretle(e);
     openFor(el);
   }, true);
 
