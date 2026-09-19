@@ -36,11 +36,51 @@
     });
   }
 
+  /* Masaustu: fare var ve ekran genis. Orada alt-sayfa yanlis duruyor —
+   * form 840 px'lik ortalanmis bir sutunda, liste ise ekranin tamamina
+   * yayilip sola kayiyor. Bu genislikte liste alanin ALTINDA acilmali. */
+  function masaustuMu() {
+    return window.matchMedia &&
+      window.matchMedia('(min-width: 640px) and (hover: hover) and (pointer: fine)').matches;
+  }
+
+  var konumlaFn = null;
   function closeSheet() {
+    if (konumlaFn) {
+      window.removeEventListener('resize', konumlaFn);
+      window.removeEventListener('scroll', konumlaFn, true);
+      konumlaFn = null;
+    }
     if (overlay) { overlay.remove(); overlay = null; }
   }
 
-  function openSheet(titleText, bodyHtml) {
+  /* Listeyi tetikleyen alanin altina yerlestirir. Asagida yer yoksa alanin
+   * ustune tasar; iki yana da ekran disina tasmaz. */
+  function alanaYerlestir(sheet, anchor) {
+    var r = anchor.getBoundingClientRect();
+    var bosluk = 6, kenar = 12;
+    var genislik = Math.max(r.width, 260);
+    genislik = Math.min(genislik, window.innerWidth - 2 * kenar);
+
+    var altta = window.innerHeight - r.bottom - bosluk - kenar;
+    var ustte = r.top - bosluk - kenar;
+    var yukariAc = altta < 200 && ustte > altta;
+    var yukseklik = Math.min(yukariAc ? ustte : altta, window.innerHeight * 0.6);
+
+    var sol = Math.min(Math.max(r.left, kenar), window.innerWidth - genislik - kenar);
+    sheet.style.width = genislik + 'px';
+    sheet.style.left = sol + 'px';
+    sheet.style.maxHeight = Math.max(yukseklik, 160) + 'px';
+    if (yukariAc) {
+      sheet.style.top = 'auto';
+      sheet.style.bottom = (window.innerHeight - r.top + bosluk) + 'px';
+    } else {
+      sheet.style.bottom = 'auto';
+      sheet.style.top = (r.bottom + bosluk) + 'px';
+    }
+  }
+
+  function openSheet(titleText, bodyHtml, anchor) {
     closeSheet();
     overlay = document.createElement('div');
     overlay.className = 'zk-picker-overlay';
@@ -59,6 +99,17 @@
         '<div class="zk-picker-body">' + bodyHtml + '</div>' +
       '</div>';
     document.body.appendChild(overlay);
+
+    if (anchor && masaustuMu()) {
+      var sheet = overlay.querySelector('.zk-picker-sheet');
+      overlay.classList.add('zk-picker-anchored');
+      alanaYerlestir(sheet, anchor);
+      // Sayfa kayar ya da pencere boyu degisirse liste alandan kopmasin.
+      konumlaFn = function () { if (overlay) alanaYerlestir(sheet, anchor); };
+      window.addEventListener('resize', konumlaFn);
+      window.addEventListener('scroll', konumlaFn, true);
+    }
+
     overlay.querySelector('.zk-picker-backdrop').addEventListener('click', function (e) {
       if (!isGhost(e)) closeSheet();
     });
@@ -99,7 +150,7 @@
       }
     });
 
-    var ov = openSheet(title, html || '<p class="zk-picker-empty">Seçenek yok.</p>');
+    var ov = openSheet(title, html || '<p class="zk-picker-empty">Seçenek yok.</p>', sel);
     ov.querySelectorAll('.zk-picker-row').forEach(function (row) {
       row.addEventListener('click', function (e) {
         if (isGhost(e)) return;
@@ -180,7 +231,7 @@
       });
     }
 
-    var ov = openSheet(title, calHtml());
+    var ov = openSheet(title, calHtml(), input);
     bind(ov);
   }
 

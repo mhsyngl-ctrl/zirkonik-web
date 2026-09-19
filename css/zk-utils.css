@@ -149,6 +149,19 @@
 .zk-picker-row-on { color: var(--color-primary); font-weight: 800; }
 .zk-picker-check { color: var(--color-primary); font-weight: 800; }
 .zk-picker-empty { padding: 16px 0; text-align: center; font-size: 13px; color: var(--color-muted-foreground); }
+/* 2026-09-19: masaustunde alt-sayfa yanlis duruyordu — form 840 px'lik
+   ortalanmis bir sutunda, liste ise ekranin tamamina yayilip sola kayiyordu.
+   Fare + genis ekranda liste alanin ALTINDA, alanla ayni hizada aciliyor
+   (konum zk-picker.js/alanaYerlestir'den geliyor). Dokunmatikte alt-sayfa
+   oldugu gibi kaliyor: parmakla en rahat erisilen yer ekranin alti. */
+.zk-picker-overlay.zk-picker-anchored .zk-picker-backdrop { background: transparent; }
+.zk-picker-overlay.zk-picker-anchored .zk-picker-sheet {
+  border-radius: 14px;
+  padding: 10px 14px 12px;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 18px 44px -12px rgba(0,0,0,.55);
+}
+.zk-picker-overlay.zk-picker-anchored .zk-picker-grab { display: none; }
 
 .zk-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .zk-cal-month { margin: 0; font-family: var(--font-heading); font-size: 14px; font-weight: 800; }
