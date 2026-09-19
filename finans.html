@@ -377,7 +377,6 @@
   <script src="js/zk-guard.js"></script>
   <script src="js/zk-picker.js"></script>
   <script>
-    var TL = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 });
     function escapeHtml(s) {
       return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
         return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -401,22 +400,44 @@
           el.innerHTML = '<p class="text-xs text-muted-foreground">Henüz tedarikçi yok. "Tedarikçi ekle" ile başlayın.</p>';
           return;
         }
+        // Tedarikciyle de USD ya da TL calisilabiliyor; bakiye para birimi
+        // basina ayri tutuluyor (ornek: "$1.200 borç · ₺300 alacak").
         var invTot = {}, payTot = {}, overdue = {};
         (res[1].data || []).forEach(function (x) {
-          invTot[x.supplier_id] = (invTot[x.supplier_id] || 0) + Number(x.amount);
+          var m = invTot[x.supplier_id] = invTot[x.supplier_id] || {};
+          var c = ZirkonikMoney.normalize(x.currency);
+          m[c] = (m[c] || 0) + Number(x.amount);
           if (x.status === 'overdue') overdue[x.supplier_id] = true;
         });
         (res[2].data || []).forEach(function (x) {
-          payTot[x.supplier_id] = (payTot[x.supplier_id] || 0) + Number(x.amount);
+          var m = payTot[x.supplier_id] = payTot[x.supplier_id] || {};
+          var c = ZirkonikMoney.normalize(x.currency);
+          m[c] = (m[c] || 0) + Number(x.amount);
         });
         el.innerHTML = supList.map(function (s) {
-          var bal = (invTot[s.id] || 0) - (payTot[s.id] || 0);
-          var balTxt = bal > 0 ? (TL.format(bal) + ' borç') : (bal < 0 ? (TL.format(-bal) + ' alacak') : 'Bakiye 0');
+          var iv = invTot[s.id] || {}, py = payTot[s.id] || {};
+          var balG = {};
+          Object.keys(iv).forEach(function (c) { balG[c] = iv[c]; });
+          Object.keys(py).forEach(function (c) { balG[c] = (balG[c] || 0) - py[c]; });
+
+          var parcalar = [];
+          var yon = 0;
+          Object.keys(balG).forEach(function (c) {
+            var v = balG[c];
+            if (Math.round(v) === 0) return;
+            parcalar.push(ZirkonikMoney.format(Math.abs(v), c, 0) + (v > 0 ? ' borç' : ' alacak'));
+            var i = v > 0 ? 1 : -1;
+            yon = yon === 0 ? i : (yon === i ? yon : 2);
+          });
+          var balTxt = parcalar.length ? parcalar.join(' · ') : 'Bakiye 0';
+          // Karisik yonde (bir para biriminde borc, digerinde alacak) tek
+          // renk yaniltici olurdu; notr birakiliyor.
+          var balRenk = yon === 1 ? 'text-accent' : (yon === -1 ? 'text-success' : '');
           return '<div class="rounded-theme border ' + (overdue[s.id] ? 'border-destructive/40' : 'border-border') + ' bg-card p-3.5">' +
             '<div class="flex items-center justify-between gap-2">' +
             '<div class="min-w-0"><p class="truncate text-sm font-bold">' + escapeHtml(s.name) + '</p>' +
             '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + escapeHtml([s.contact_name, s.phone].filter(Boolean).join(' · ') || '—') + '</p></div>' +
-            '<p class="shrink-0 text-sm font-bold tabular-nums ' + (bal > 0 ? 'text-accent' : 'text-success') + '">' + balTxt +
+            '<p class="shrink-0 text-sm font-bold tabular-nums ' + balRenk + '">' + balTxt +
             (overdue[s.id] ? ' <span class="ml-1 rounded-full bg-destructive/10 px-1.5 py-0.5 text-[9px] font-bold text-destructive">VADESİ GEÇTİ</span>' : '') + '</p></div>' +
             '<div class="mt-3 grid grid-cols-2 gap-2">' +
             '<button onclick="zkOpenSupOp(\'' + s.id + '\',\'fatura\')" class="flex h-9 items-center justify-center gap-1 rounded-theme border border-border bg-background text-[11px] font-bold"><iconify-icon icon="lucide:file-plus-2" class="text-xs"></iconify-icon>Fatura</button>' +
@@ -527,38 +548,49 @@
       // (üstteki istatistikler, liste, tahsilat ekle dropdown'ı) bunu kullanıyoruz.
       var paidByInvoice = {};
 
-      client.from('payments').select('invoice_id, amount').then(function (r) {
+      client.from('payments').select('invoice_id, amount, currency').then(function (r) {
         var payments = r.data || [];
-        var received = payments.reduce(function (s, x) { return s + Number(x.amount); }, 0);
-        document.getElementById('stat-received').textContent = TL.format(received);
-        document.getElementById('stat-net').textContent = TL.format(received);
+        // Doktorlarla anlasma USD de TL de olabiliyor; kurlar degisken oldugu
+        // icin tutarlar birbirine cevrilmiyor, her para birimi kendi toplamiyla
+        // yan yana yaziliyor.
+        var receivedG = ZirkonikMoney.groupTotals(payments, 'amount', 'currency');
+        var receivedTxt = ZirkonikMoney.formatTotals(receivedG, 0);
+        document.getElementById('stat-received').textContent = receivedTxt;
+        document.getElementById('stat-net').textContent = receivedTxt;
 
         payments.forEach(function (p) {
           if (!p.invoice_id) return;
           paidByInvoice[p.invoice_id] = (paidByInvoice[p.invoice_id] || 0) + Number(p.amount);
         });
 
-        client.from('invoices').select('id, amount, status, billing_mode').then(function (ir) {
+        client.from('invoices').select('id, amount, currency, status, billing_mode').then(function (ir) {
           // 2026-09-12: iptal edilmis faturalar "Faturalanan" toplamina
           // giriyordu — canlida 4 iptal isin 385 TL'si ciroya sayiliyordu.
           var rows = (ir.data || []).filter(function (x) { return x.status !== 'cancelled'; });
           function remaining(inv) { return Math.max(0, Number(inv.amount) - (paidByInvoice[inv.id] || 0)); }
-          var invoiced = rows.reduce(function (s, x) { return s + Number(x.amount); }, 0);
-          var outstanding = rows.filter(function (x) { return x.status !== 'paid'; }).reduce(function (s, x) { return s + remaining(x); }, 0);
-          var overdue = rows.filter(function (x) { return x.status === 'overdue'; }).reduce(function (s, x) { return s + remaining(x); }, 0);
-          document.getElementById('stat-invoiced').textContent = TL.format(invoiced);
+          // Kalan bakiyeler de para birimi basina ayri: kalani sifir olan
+          // fatura hic toplama girmesin diye once eleniyor.
+          function kalanlar(list) {
+            return list.map(function (x) { return { amount: remaining(x), currency: x.currency }; })
+              .filter(function (x) { return x.amount > 0; });
+          }
+          var invoicedG = ZirkonikMoney.groupTotals(rows, 'amount', 'currency');
+          document.getElementById('stat-invoiced').textContent =
+            ZirkonikMoney.formatTotals(invoicedG, 0);
           // 2026-09-12: bazı doktorlarla faturalı, bazılarıyla faturasız
           // çalışılıyor. Toplam ikisini de kapsar — hiçbir tutar gizlenmiyor —
           // ama kırılım ayrı gösteriliyor.
-          var faturaliT = rows.filter(function (x) { return x.billing_mode !== 'faturasiz'; })
-            .reduce(function (t, x) { return t + Number(x.amount); }, 0);
-          var faturasizT = invoiced - faturaliT;
+          var faturali = rows.filter(function (x) { return x.billing_mode !== 'faturasiz'; });
+          var faturasiz = rows.filter(function (x) { return x.billing_mode === 'faturasiz'; });
           document.getElementById('stat-invoiced-split').textContent =
-            faturasizT > 0
-              ? 'Faturalı ' + TL.format(faturaliT) + ' · Faturasız ' + TL.format(faturasizT)
+            faturasiz.length
+              ? 'Faturalı ' + ZirkonikMoney.totalText(faturali, 'amount', 'currency', 0) +
+                ' · Faturasız ' + ZirkonikMoney.totalText(faturasiz, 'amount', 'currency', 0)
               : 'Tamamı faturalı';
-          document.getElementById('stat-outstanding').textContent = TL.format(outstanding);
-          document.getElementById('stat-overdue').textContent = TL.format(overdue);
+          document.getElementById('stat-outstanding').textContent =
+            ZirkonikMoney.totalText(kalanlar(rows.filter(function (x) { return x.status !== 'paid'; })), 'amount', 'currency', 0);
+          document.getElementById('stat-overdue').textContent =
+            ZirkonikMoney.totalText(kalanlar(rows.filter(function (x) { return x.status === 'overdue'; })), 'amount', 'currency', 0);
         });
 
         loadReceivablesList();
@@ -578,7 +610,7 @@
       // yoktu. Canlida boyle 6 is bulundu (320 TL). Bu kontrol onlari gosterir.
       function loadUnbilledJobs() {
         var sec = document.getElementById('unbilled-section');
-        client.from('jobs').select('id, job_number, price, status').not('price', 'is', null).neq('status', 'cancelled')
+        client.from('jobs').select('id, job_number, price, currency, status').not('price', 'is', null).neq('status', 'cancelled')
           .then(function (jr) {
             var jobs = jr.data || [];
             if (!jobs.length) return;
@@ -587,14 +619,13 @@
               (ir.data || []).forEach(function (i) { billed[i.job_id] = true; });
               var orphans = jobs.filter(function (j) { return !billed[j.id]; });
               if (!orphans.length) return;
-              var total = orphans.reduce(function (sum, j) { return sum + Number(j.price || 0); }, 0);
               document.getElementById('unbilled-summary').textContent =
-                orphans.length + ' faturasız iş · ' + TL.format(total);
+                orphans.length + ' faturasız iş · ' + ZirkonikMoney.totalText(orphans, 'price', 'currency', 0);
               document.getElementById('unbilled-list').innerHTML =
                 orphans.slice(0, 10).map(function (j) {
                   return '<button onclick="location.href=\'detay.html?id=' + j.id + '\'" class="flex w-full items-center justify-between rounded-theme border border-border bg-card px-3 py-2.5 text-left">' +
                     '<span class="truncate text-sm font-bold">' + escapeHtml(j.job_number || '—') + '</span>' +
-                    '<span class="text-sm font-bold tabular-nums">' + TL.format(j.price) + '</span></button>';
+                    '<span class="text-sm font-bold tabular-nums">' + ZirkonikMoney.format(j.price, j.currency, 0) + '</span></button>';
                 }).join('') +
                 (orphans.length > 10 ? '<p class="text-xs text-muted-foreground">İlk 10 tanesi listelendi.</p>' : '');
               sec.classList.remove('hidden');
@@ -608,15 +639,16 @@
         Promise.all(labs.map(function (lab) {
           // 2026-09-12: iptal edilen isler de ciroya sayiliyordu (Zirkonik Lab
           // 1.525 TL gorunuyordu, gercegi 1.140 TL).
-          return client.from('jobs').select('price').eq('laboratory_id', lab.id).neq('status', 'cancelled').then(function (r) {
-            var revenue = (r.data || []).reduce(function (s, x) { return s + Number(x.price || 0); }, 0);
-            return { lab: lab, revenue: revenue };
+          return client.from('jobs').select('price, currency').eq('laboratory_id', lab.id).neq('status', 'cancelled').then(function (r) {
+            // Ayni laboratuvarda hem USD hem TL is olabilir; ciro para birimi
+            // basina ayri yaziliyor.
+            return { lab: lab, revenue: ZirkonikMoney.totalText(r.data || [], 'price', 'currency', 0) };
           });
         })).then(function (rows) {
           document.getElementById('lab-revenue').innerHTML = rows.map(function (row) {
             return '<div class="rounded-theme border border-border bg-card p-3.5"><div class="flex items-center justify-between">' +
               '<p class="text-sm font-bold">' + escapeHtml(row.lab.name) + '</p>' +
-              '<p class="font-heading text-base font-bold tabular-nums">' + TL.format(row.revenue) + '</p></div></div>';
+              '<p class="font-heading text-base font-bold tabular-nums">' + row.revenue + '</p></div></div>';
           }).join('');
         });
       });
@@ -665,13 +697,13 @@
               '<div class="flex h-9 w-9 items-center justify-center rounded-lg ' + (isOverdue ? 'bg-destructive/10 text-destructive' : 'bg-accent/10 text-accent') + '"><iconify-icon icon="lucide:receipt-text" class="text-lg"></iconify-icon></div>' +
               '<div class="min-w-0 flex-1"><p class="truncate text-sm font-bold">' + escapeHtml(inv.doctors ? inv.doctors.full_name : '') + '</p>' +
               '<p class="truncate text-xs text-muted-foreground">' + alt + '</p></div>' +
-              '<div class="text-right"><p class="text-sm font-bold tabular-nums">' + TL.format(remaining) + '</p>' +
+              '<div class="text-right"><p class="text-sm font-bold tabular-nums">' + ZirkonikMoney.format(remaining, inv.currency, 0) + '</p>' +
               '<span class="text-[10px] font-bold ' + (isOverdue ? 'text-destructive' : 'text-accent') + '">' + (STATUS_LABELS[inv.status] || inv.status) + '</span></div></div>';
           }).join('');
           sel.innerHTML = '<option value="">Fatura seçin</option>' + rows.map(function (inv) {
             var remaining = Math.max(0, Number(inv.amount) - (paidByInvoice[inv.id] || 0));
             var jobNo = inv.jobs && inv.jobs.job_number ? ' (' + inv.jobs.job_number + ')' : '';
-            return '<option value="' + inv.id + '">' + escapeHtml(inv.doctors ? inv.doctors.full_name : '') + escapeHtml(jobNo) + ' — ' + TL.format(remaining) + ' kaldı</option>';
+            return '<option value="' + inv.id + '">' + escapeHtml(inv.doctors ? inv.doctors.full_name : '') + escapeHtml(jobNo) + ' — ' + ZirkonikMoney.format(remaining, inv.currency, 0) + ' kaldı</option>';
           }).join('');
         });
       }
@@ -680,23 +712,27 @@
         ZirkonikData.listStaffEarnings(),
         // 2026-09-12: "maas_dis" (maaş + diş başı) modeli eklendi; maaş toplamına
         // o modeldeki personel de girmeli, yoksa maaşı hiç sayılmıyordu.
-        client.from('app_users').select('id, full_name, monthly_salary').in('compensation_type', ['maas', 'maas_dis']).eq('status', 'approved')
+        client.from('app_users').select('id, full_name, monthly_salary, salary_currency').in('compensation_type', ['maas', 'maas_dis']).eq('status', 'approved')
       ]).then(function (res) {
         var rows = res[0].data || [];
         var salaried = res[1].data || [];
-        var earningsTotal = rows.reduce(function (s, x) { return s + Number(x.amount); }, 0);
-        var salaryTotal = salaried.reduce(function (s, x) { return s + Number(x.monthly_salary || 0); }, 0);
-        document.getElementById('stat-earnings-total').textContent = TL.format(earningsTotal + salaryTotal);
+        // Personellerin bir kismi TL, bir kismi USD aliyor; bazilarinin maasi
+        // ile dis basi primi bile farkli para biriminde olabiliyor. Bu yuzden
+        // maas ve hakedis ayri gruplanip tek toplam metninde birlestiriliyor.
+        var toplam = ZirkonikMoney.groupTotals(rows, 'amount', 'currency');
+        var maasG = ZirkonikMoney.groupTotals(salaried, 'monthly_salary', 'salary_currency');
+        Object.keys(maasG).forEach(function (c) { toplam[c] = (toplam[c] || 0) + maasG[c]; });
+        document.getElementById('stat-earnings-total').textContent = ZirkonikMoney.formatTotals(toplam, 0);
         var el = document.getElementById('earnings-list');
         var salaryRows = salaried.map(function (s) {
           return '<div class="flex items-center justify-between px-4 py-3">' +
             '<span class="text-xs font-semibold text-muted-foreground">' + escapeHtml(s.full_name) + ' <span class="text-[10px] font-bold text-primary">· Maaşlı</span></span>' +
-            '<span class="text-xs font-bold tabular-nums">' + TL.format(s.monthly_salary) + '/ay</span></div>';
+            '<span class="text-xs font-bold tabular-nums">' + ZirkonikMoney.format(s.monthly_salary, s.salary_currency, 0) + '/ay</span></div>';
         });
         var earningsRows = rows.slice(0, 10).map(function (e) {
           return '<div class="flex items-center justify-between px-4 py-3">' +
             '<span class="text-xs font-semibold text-muted-foreground">' + escapeHtml(e.app_users ? e.app_users.full_name : '') + ' <span class="text-[10px] font-bold text-accent">· Diş başı</span></span>' +
-            '<span class="text-xs font-bold tabular-nums">' + TL.format(e.amount) + '</span></div>';
+            '<span class="text-xs font-bold tabular-nums">' + ZirkonikMoney.format(e.amount, e.currency, 0) + '</span></div>';
         });
         var all = salaryRows.concat(earningsRows);
         el.innerHTML = all.length ? '<div class="divide-y divide-border">' + all.join('') + '</div>' : '<p class="p-4 text-xs text-muted-foreground">Henüz hakediş/maaş kaydı yok.</p>';
@@ -860,7 +896,7 @@
               '<div class="min-w-0"><p class="text-sm font-bold">' + escapeHtml(staffName) + '</p>' +
               '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + new Date(h.created_at).toLocaleDateString('tr-TR') + (h.note ? ' · ' + escapeHtml(h.note) : '') + '</p></div>' +
               '<div class="shrink-0 text-right">' +
-              '<p class="text-sm font-bold tabular-nums">' + TL.format(h.amount) + '</p>' +
+              '<p class="text-sm font-bold tabular-nums">' + ZirkonikMoney.format(h.amount, h.currency, 0) + '</p>' +
               (isPending && canConfirm
                 ? '<button onclick="zkConfirmHandover(\'' + h.id + '\')" class="mt-1 rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold text-primary-foreground">Teslim alındı işaretle</button>'
                 : '<span class="text-[10px] font-bold ' + (isPending ? 'text-accent' : 'text-success') + '">' + (isPending ? 'Onay bekliyor' : 'Teslim alındı') + '</span>') +
@@ -881,7 +917,7 @@
           handoverCashRows = r.data || [];
           if (!handoverCashRows.length) {
             listEl.innerHTML = '<p class="text-xs text-muted-foreground">Teslim edilecek nakit tahsilatınız yok.</p>';
-            document.getElementById('handover-total').textContent = TL.format(0);
+            document.getElementById('handover-total').textContent = ZirkonikMoney.format(0, null, 0);
             return;
           }
           var HO_METHOD_LABELS = { nakit: 'Nakit', kart: 'Kart', havale: 'EFT' };
@@ -890,7 +926,7 @@
             return '<label class="flex items-center justify-between gap-2 rounded-theme border border-border bg-background px-3 py-2.5">' +
               '<span class="flex items-center gap-2 text-xs"><input type="checkbox" class="ho-cash-cb" value="' + p.id + '" checked onchange="zkRecalcHandoverTotal()">' +
               escapeHtml(p.doctors ? p.doctors.full_name : '') + ' <span class="text-[10px] font-bold text-muted-foreground">· ' + escapeHtml(methodLabel) + '</span></span>' +
-              '<span class="text-xs font-bold tabular-nums">' + TL.format(p.amount) + '</span></label>';
+              '<span class="text-xs font-bold tabular-nums">' + ZirkonikMoney.format(p.amount, p.currency, 0) + '</span></label>';
           }).join('');
           zkRecalcHandoverTotal();
         });
@@ -901,14 +937,14 @@
     function zkRecalcHandoverTotal() {
       var checked = Array.prototype.slice.call(document.querySelectorAll('.ho-cash-cb:checked')).map(function (cb) { return cb.value; });
       var selected = handoverCashRows.filter(function (p) { return checked.indexOf(p.id) >= 0; });
-      var total = selected.reduce(function (s, p) { return s + Number(p.amount); }, 0);
-      document.getElementById('handover-total').textContent = TL.format(total);
+      document.getElementById('handover-total').textContent =
+        ZirkonikMoney.totalText(selected, 'amount', 'currency', 0);
 
       var HO_METHOD_LABELS = { nakit: 'Nakit', kart: 'Kart', havale: 'EFT' };
       var byMethod = {};
-      selected.forEach(function (p) { byMethod[p.method] = (byMethod[p.method] || 0) + Number(p.amount); });
+      selected.forEach(function (p) { (byMethod[p.method] = byMethod[p.method] || []).push(p); });
       var parts = Object.keys(byMethod).map(function (m) {
-        return (HO_METHOD_LABELS[m] || m) + ' ' + TL.format(byMethod[m]);
+        return (HO_METHOD_LABELS[m] || m) + ' ' + ZirkonikMoney.totalText(byMethod[m], 'amount', 'currency', 0);
       });
       document.getElementById('handover-breakdown').textContent = parts.join(' · ');
     }
@@ -918,18 +954,41 @@
       errEl.classList.add('hidden');
       var checked = Array.prototype.slice.call(document.querySelectorAll('.ho-cash-cb:checked')).map(function (cb) { return cb.value; });
       if (!checked.length) { errEl.textContent = 'En az bir tahsilat seçmelisiniz.'; errEl.classList.remove('hidden'); return; }
-      var total = handoverCashRows.filter(function (p) { return checked.indexOf(p.id) >= 0; }).reduce(function (s, p) { return s + Number(p.amount); }, 0);
+      var secili = handoverCashRows.filter(function (p) { return checked.indexOf(p.id) >= 0; });
       var note = document.getElementById('handover-note').value.trim();
+
+      // Bir teslim fisinin tutari tek sayidir; USD ve TL tahsilatlar toplanamaz.
+      // Bu yuzden secim para birimine gore ayriliyor ve her biri icin ayri
+      // teslim olusturuluyor (veritabaninda trg_guard_handover_currency ayni
+      // kurali zorluyor).
+      var gruplar = {};
+      secili.forEach(function (p) {
+        var sym = ZirkonikMoney.normalize(p.currency);
+        (gruplar[sym] = gruplar[sym] || []).push(p);
+      });
 
       var btn = document.getElementById('handover-submit');
       btn.disabled = true;
       ZirkonikAuth.me().then(function (me) {
-        return ZirkonikData.createCashHandover(me.organization_id, me.id, checked, total, note);
-      }).then(function (res) {
+        return Object.keys(gruplar).reduce(function (zincir, sym) {
+          // Sirayla: hepsi ayni anda gonderilirse hata mesajinda hangi para
+          // biriminin takildigi kaybolur.
+          return zincir.then(function () {
+            var grup = gruplar[sym];
+            var toplam = grup.reduce(function (t, p) { return t + Number(p.amount); }, 0);
+            return ZirkonikData.createCashHandover(
+              me.organization_id, me.id,
+              grup.map(function (p) { return p.id; }),
+              toplam, note, sym
+            ).then(function (res) { if (res.error) throw res.error; });
+          });
+        }, Promise.resolve());
+      }).then(function () {
         btn.disabled = false;
-        if (res.error) throw res.error;
         zkCloseHandover();
-        zkToast('Kasa teslim talebi oluşturuldu.');
+        zkToast(Object.keys(gruplar).length > 1
+          ? 'Para birimi başına ayrı kasa teslim talebi oluşturuldu.'
+          : 'Kasa teslim talebi oluşturuldu.');
         loadHandovers();
       }).catch(function (err) {
         btn.disabled = false;

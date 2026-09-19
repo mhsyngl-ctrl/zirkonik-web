@@ -422,12 +422,30 @@
         return;
       }
 
+      // Anlasma doktora/laboratuvara ozel olabilir ve kalemin genel para
+      // biriminden farkli olabilir; kaleme damgalanan para birimi
+      // cozumlenmis olandir.
+      var itemCur = ZirkonikData.resolveUnitCurrency(
+        item, priceOverrides,
+        document.getElementById('f-doctor').value || null,
+        document.getElementById('f-lab').value || null);
+
+      // Siparisin toplam tutari tek sayidir ve fatura siparis bazinda
+      // kesiliyor; farkli para birimindeki kalemler toplanamaz. Bu durumda
+      // ayri siparis acilmali.
+      if (draftItems.length && draftItems[0].currency !== itemCur) {
+        errEl.textContent = 'Bu kalemin anlaşması ' + itemCur + ', siparişteki diğer kalemler ' +
+          draftItems[0].currency + '. Farklı para birimleri için ayrı sipariş açın.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+
       var priceVal = document.getElementById('f-price').value;
       draftItems.push({
         price_item_id: item.id,
         name: item.name,
         route_room_ids: item.route_room_ids || null,
-        currency: item.currency || '$',
+        currency: itemCur,
         teeth: teeth,
         unit_count: Math.max(1, Number(document.getElementById('f-tooth-count').value) || teeth.length),
         price: priceVal ? Number(priceVal) : null,
@@ -469,18 +487,19 @@
       warn.classList.add('hidden');
       if (!item) { hint.classList.add('hidden'); return; }
 
-      // İş, fatura ve tahsilat kayıtlarının tamamı USD üzerinden tutuluyor
-      // (detay/finans/stok ekranları $ biçimlendirir). Fiyat listesindeki
-      // kalem başka bir para biriminde tanımlıysa tutar sessizce dolara
-      // dönüşmüş gibi görünür — bu yüzden uyarıyoruz.
-      if (item.currency && item.currency !== '$') {
-        warn.textContent = 'Bu kalem fiyat listesinde ' + item.currency + ' cinsinden tanımlı, ancak iş ve fatura tutarları $ olarak kaydedilir. Aşağıdaki tutarı dolar karşılığıyla girin.';
-        warn.classList.remove('hidden');
-      }
       var count = Math.max(1, Number(document.getElementById('f-tooth-count').value) || 1);
       var doctorId = document.getElementById('f-doctor').value || null;
       var labId = document.getElementById('f-lab').value || null;
       var unit = ZirkonikData.resolveUnitPrice(item, priceOverrides, doctorId, labId);
+      // Anlasma para birimi kalemin genel para biriminden farkliysa bunu
+      // acikca soyle: tutar artik cevrilmiyor, oldugu gibi kaydediliyor.
+      var anlasmaCur = ZirkonikData.resolveUnitCurrency(item, priceOverrides, doctorId, labId);
+      if (anlasmaCur !== ZirkonikMoney.normalize(item.currency)) {
+        warn.textContent = 'Bu doktor/laboratuvar için anlaşma ' + anlasmaCur +
+          ' cinsinden; genel liste ' + ZirkonikMoney.normalize(item.currency) +
+          '. Tutar ' + anlasmaCur + ' olarak kaydedilir.';
+        warn.classList.remove('hidden');
+      }
       var priceEl = document.getElementById('f-price');
       if (unit == null) {
         // Fiyatı tanımlı olmayan kalem: elle girilmesi tek yol, alan açık kalır.
@@ -490,7 +509,7 @@
         hint.classList.remove('hidden');
         return;
       }
-      var cur = item.currency || '$';
+      var cur = anlasmaCur;
       var listPrice = item.unit_price != null ? Number(item.unit_price) : null;
       var isSpecial = listPrice == null || unit !== listPrice;
       var total = unit * count;
@@ -617,7 +636,7 @@
           price_item_id: priceItem.id,
           name: priceItem.name,
           route_room_ids: priceItem.route_room_ids || null,
-          currency: priceItem.currency || '$',
+          currency: ZirkonikData.resolveUnitCurrency(priceItem, priceOverrides, doctorId, labId),
           teeth: autoTeeth,
           unit_count: Math.max(1, Number(document.getElementById('f-tooth-count').value) || autoTeeth.length || 1),
           price: autoPrice ? Number(autoPrice) : null,

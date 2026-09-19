@@ -302,7 +302,6 @@
        kullanılmıyor, yalnızca şema çiziliyor. -->
   <script src="js/work-form.js"></script>
   <script>
-    var TL = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 });
     function escapeHtml(s) {
       return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
         return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -493,7 +492,11 @@
       }
       document.getElementById('job-reference').textContent = j.patient_reference || '—';
       document.getElementById('job-lab').textContent = j.laboratories ? j.laboratories.name : '—';
-      document.getElementById('job-price').textContent = j.price != null ? TL.format(j.price) : 'Belirtilmedi';
+      // Tutar isin KENDI para biriminde. Secili kalem varsa onunki, yoksa
+      // isinki; ikisi de yoksa varsayilan ($).
+      var paraBirimi = (currentItem && currentItem.currency) || j.currency;
+      document.getElementById('job-price').textContent =
+        j.price != null ? ZirkonikMoney.format(j.price, paraBirimi, 0) : 'Belirtilmedi';
       var payEl = document.getElementById('job-payment-status');
       if (!currentInvoice) {
         // Fiyati olup faturasi olmayan is: canlida 6 tane var (320 TL).

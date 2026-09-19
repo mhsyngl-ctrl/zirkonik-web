@@ -150,14 +150,22 @@
                 <option value="maas">Maaşlı (sabit aylık)</option>
               </select>
             </label>
+            <!-- Diş başı ücret ile maaşın para birimi AYRI seçiliyor: bazı
+                 personel maaşını TL, primini USD alıyor. -->
             <label id="pi-comp-rate-wrap" class="hidden block">
-              <span class="mb-1.5 block text-xs font-bold text-card-foreground">Diş başı ücret (₺)</span>
-              <input id="pi-comp-rate" type="number" min="0" step="0.01" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+              <span class="mb-1.5 block text-xs font-bold text-card-foreground">Diş başı ücret</span>
+              <div class="flex gap-2">
+                <input id="pi-comp-rate" type="number" min="0" step="0.01" class="h-12 min-w-0 flex-1 rounded-theme border border-border bg-input px-3.5 text-sm">
+                <select id="pi-comp-rate-cur" class="h-12 w-20 rounded-theme border border-border bg-input px-2 text-center text-sm"></select>
+              </div>
               <span class="mt-1 block text-[11px] text-muted-foreground">Bu kişi bir işin herhangi bir aşamasını teslim aldığında, işin diş sayısı × bu ücret otomatik hakedişe yazılır.</span>
             </label>
             <label id="pi-comp-salary-wrap" class="hidden block">
-              <span class="mb-1.5 block text-xs font-bold text-card-foreground">Aylık maaş (₺)</span>
-              <input id="pi-comp-salary" type="number" min="0" step="0.01" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+              <span class="mb-1.5 block text-xs font-bold text-card-foreground">Aylık maaş</span>
+              <div class="flex gap-2">
+                <input id="pi-comp-salary" type="number" min="0" step="0.01" class="h-12 min-w-0 flex-1 rounded-theme border border-border bg-input px-3.5 text-sm">
+                <select id="pi-comp-salary-cur" class="h-12 w-20 rounded-theme border border-border bg-input px-2 text-center text-sm"></select>
+              </div>
             </label>
             <label class="block">
               <span class="mb-1.5 block text-xs font-bold text-card-foreground">Telefon</span>
@@ -323,6 +331,8 @@
           document.getElementById('pi-comp-type').value = u.compensation_type || '';
           document.getElementById('pi-comp-rate').value = u.per_tooth_rate || '';
           document.getElementById('pi-comp-salary').value = u.monthly_salary || '';
+          zkDoldurParaBirimi('pi-comp-rate-cur', u.per_tooth_currency);
+          zkDoldurParaBirimi('pi-comp-salary-cur', u.salary_currency);
           zkCompTypeChanged();
 
           // job_stage_history RLS'i laboratuvar erişimine göre çalışır, tek
@@ -446,6 +456,16 @@
       });
     }
 
+    /** Para birimi seçicisini doldurur. Kayıtlı değer yoksa varsayılan. */
+    function zkDoldurParaBirimi(elId, deger) {
+      var sel = document.getElementById(elId);
+      if (!sel) return;
+      var sec = ZirkonikMoney.normalize(deger);
+      sel.innerHTML = ZirkonikMoney.SYMBOLS.map(function (sym) {
+        return '<option value="' + sym + '"' + (sym === sec ? ' selected' : '') + '>' + sym + '</option>';
+      }).join('');
+    }
+
     function zkCompTypeChanged() {
       // 2026-09-12: "maas_dis" modelinde iki alan birden açık kalır.
       var t = document.getElementById('pi-comp-type').value;
@@ -514,7 +534,11 @@
             role: (pos === 'Yönetici' || pos === 'İşveren') ? 'yonetici' : 'personel',
             compensation_type: compType,
             per_tooth_rate: (compType === 'dis_basi' || compType === 'maas_dis') ? (Number(document.getElementById('pi-comp-rate').value) || null) : null,
-            monthly_salary: (compType === 'maas' || compType === 'maas_dis') ? (Number(document.getElementById('pi-comp-salary').value) || null) : null
+            monthly_salary: (compType === 'maas' || compType === 'maas_dis') ? (Number(document.getElementById('pi-comp-salary').value) || null) : null,
+            // Para birimleri ücret sıfırlansa da korunuyor: model tekrar
+            // açıldığında kişinin anlaşması kaybolmasın.
+            per_tooth_currency: ZirkonikMoney.normalize(document.getElementById('pi-comp-rate-cur').value),
+            salary_currency: ZirkonikMoney.normalize(document.getElementById('pi-comp-salary-cur').value)
           }).eq('id', userId);
         }).then(function (res) { if (res.error) throw res.error; });
       }

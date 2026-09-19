@@ -501,7 +501,6 @@
     };
 
     // ---- Cari: doktorun laboratuvar ile hesap durumu ----
-    var TLc = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 2 });
 
     var cariPaymentsById = {};
     function loadCari() {
@@ -509,33 +508,49 @@
       var client = ZirkonikAuth.client();
       Promise.all([
         // 2026-09-12: doktorun kendi cari ekraninda iptal fatura gorunmez.
-        client.from('invoices').select('id, amount, status, issued_at, due_date, jobs(job_number, restoration_type)').eq('doctor_id', doctor.id).neq('status', 'cancelled').order('issued_at', { ascending: false }),
-        client.from('payments').select('id, amount, method, received_at, note, app_users:received_by(full_name)').eq('doctor_id', doctor.id).order('received_at', { ascending: false })
+        client.from('invoices').select('id, amount, currency, status, issued_at, due_date, jobs(job_number, restoration_type)').eq('doctor_id', doctor.id).neq('status', 'cancelled').order('issued_at', { ascending: false }),
+        client.from('payments').select('id, amount, currency, method, received_at, note, app_users:received_by(full_name)').eq('doctor_id', doctor.id).order('received_at', { ascending: false })
       ]).then(function (res) {
         var invs = res[0].data || [];
         var pays = res[1].data || [];
-        var invTotal = invs.reduce(function (s, x) { return s + Number(x.amount || 0); }, 0);
-        var payTotal = pays.reduce(function (s, x) { return s + Number(x.amount || 0); }, 0);
-        var balance = invTotal - payTotal;
+        // Anlasma USD de TL de olabilir; para birimleri toplanmiyor, her biri
+        // kendi bakiyesiyle yan yana yaziliyor.
+        var invG = ZirkonikMoney.groupTotals(invs, 'amount', 'currency');
+        var payG = ZirkonikMoney.groupTotals(pays, 'amount', 'currency');
+        var balG = {};
+        Object.keys(invG).forEach(function (c) { balG[c] = invG[c]; });
+        Object.keys(payG).forEach(function (c) { balG[c] = (balG[c] || 0) - payG[c]; });
+
+        var parcalar = [];
+        var yon = 0;
+        Object.keys(balG).forEach(function (c) {
+          var v = balG[c];
+          if (Math.round(v) === 0) return;
+          parcalar.push(ZirkonikMoney.format(Math.abs(v), c, 0) + (v > 0 ? ' borç' : ' alacak'));
+          var i = v > 0 ? 1 : -1;
+          yon = yon === 0 ? i : (yon === i ? yon : 2);
+        });
+
         var balEl = document.getElementById('cari-balance');
-        balEl.textContent = TLc.format(Math.abs(balance)) + (balance > 0 ? ' borç' : (balance < 0 ? ' alacak' : ''));
-        balEl.className = 'mt-2 font-heading text-2xl font-bold tabular-nums ' + (balance > 0 ? 'text-accent' : 'text-success');
-        document.getElementById('cari-inv-total').textContent = TLc.format(invTotal);
-        document.getElementById('cari-pay-total').textContent = TLc.format(payTotal);
+        balEl.textContent = parcalar.length ? parcalar.join(' · ') : 'Bakiye kapalı';
+        balEl.className = 'mt-2 font-heading text-2xl font-bold tabular-nums ' +
+          (yon === 1 ? 'text-accent' : (yon === -1 ? 'text-success' : ''));
+        document.getElementById('cari-inv-total').textContent = ZirkonikMoney.formatTotals(invG, 0);
+        document.getElementById('cari-pay-total').textContent = ZirkonikMoney.formatTotals(payG, 0);
 
         var moves = invs.map(function (x) {
           return { at: x.issued_at, html: '<div class="flex items-center justify-between gap-3 rounded-theme border border-border bg-card p-3">' +
             '<div class="flex items-center gap-2.5"><span class="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-accent"><iconify-icon icon="lucide:file-text" class="text-sm"></iconify-icon></span>' +
             '<div><p class="text-xs font-bold">Fatura' + (x.jobs ? ' · ' + escapeHtml(x.jobs.job_number) : '') + '</p>' +
             '<p class="mt-0.5 text-[11px] text-muted-foreground">' + new Date(x.issued_at).toLocaleDateString('tr-TR') + (x.jobs && x.jobs.restoration_type ? ' · ' + escapeHtml(x.jobs.restoration_type) : '') + '</p></div></div>' +
-            '<p class="shrink-0 text-sm font-bold tabular-nums">' + TLc.format(Number(x.amount || 0)) + '</p></div>' };
+            '<p class="shrink-0 text-sm font-bold tabular-nums">' + ZirkonikMoney.format(Number(x.amount || 0), x.currency, 0) + '</p></div>' };
         }).concat(pays.map(function (x) {
           cariPaymentsById[x.id] = x;
           return { at: x.received_at, html: '<button onclick="zkOpenPaymentDetail(\'' + x.id + '\')" class="flex w-full items-center justify-between gap-3 rounded-theme border border-border bg-card p-3 text-left">' +
             '<div class="flex items-center gap-2.5"><span class="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-success"><iconify-icon icon="lucide:circle-dollar-sign" class="text-sm"></iconify-icon></span>' +
             '<div><p class="text-xs font-bold">Ödeme</p>' +
             '<p class="mt-0.5 text-[11px] text-muted-foreground">' + new Date(x.received_at).toLocaleDateString('tr-TR') + (x.method ? ' · ' + escapeHtml(x.method) : '') + '</p></div></div>' +
-            '<p class="shrink-0 text-sm font-bold tabular-nums text-success">−' + TLc.format(Number(x.amount || 0)) + '</p></button>' };
+            '<p class="shrink-0 text-sm font-bold tabular-nums text-success">−' + ZirkonikMoney.format(Number(x.amount || 0), x.currency, 0) + '</p></button>' };
         }));
         moves.sort(function (a, b) { return new Date(b.at) - new Date(a.at); });
         var cariListEl = document.getElementById('cari-list');
@@ -551,7 +566,7 @@
       if (!p) return;
       var d = new Date(p.received_at);
       var rows = [
-        ['Tutar', TLc.format(Number(p.amount || 0))],
+        ['Tutar', ZirkonikMoney.format(Number(p.amount || 0), p.currency, 0)],
         ['Tarih', d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })],
         ['Saat', d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })],
         ['Yöntem', p.method ? escapeHtml(p.method) : '—'],
@@ -680,11 +695,14 @@
         el.innerHTML = Object.keys(byCat).map(function (cat) {
           var rows = byCat[cat].map(function (p) {
             var unit = ZirkonikData.resolveUnitPrice(p, ovs, doctor.id, null);
+            // Anlasma bu doktorla farkli para biriminde olabilir; listede
+            // gosterilen sembol de anlasmanin kendi para birimi.
+            var cur = ZirkonikData.resolveUnitCurrency(p, ovs, doctor.id, null);
             var special = unit != null && (p.unit_price == null || unit !== Number(p.unit_price));
             return '<div class="flex items-center justify-between gap-2 border-b border-border py-2.5 last:border-b-0">' +
               '<p class="min-w-0 flex-1 text-sm font-semibold">' + escapeHtml(p.name) + '</p>' +
               '<span class="text-sm font-bold tabular-nums ' + (special ? 'text-primary' : '') + '">' +
-                (unit != null ? unit + ' ' + (p.currency || '$') : 'Fiyat sorunuz') +
+                (unit != null ? unit + ' ' + cur : 'Fiyat sorunuz') +
               (special ? ' <span class="text-[10px] font-bold text-primary">· anlaşmalı</span>' : '') + '</span></div>';
           }).join('');
           return '<section class="mb-5 rounded-theme border border-border bg-card p-4">' +
@@ -906,10 +924,7 @@
         row('Diş numaraları', j.teeth_numbers);
         row('Teslim tarihi', j.requested_delivery_at ? new Date(j.requested_delivery_at).toLocaleDateString('tr-TR') : null);
         row('Laboratuvar', j.laboratories ? j.laboratories.name : null);
-        // Sayfanın geri kalanıyla aynı biçimlendirici kullanılıyor. Para
-        // birimi zinciri (jobs.currency) henüz uygulanmadı; o iş bitince
-        // bu sayfadaki TÜM tutarlar tek seferde ZirkonikMoney'e geçecek.
-        if (j.price != null) row('Tutar', TLc.format(Number(j.price)));
+        if (j.price != null) row('Tutar', ZirkonikMoney.format(Number(j.price), j.currency, 0));
         if (info.length) html += '<div class="grid grid-cols-2 gap-2">' + info.join('') + '</div>';
 
         // --- Üretim akışı ---

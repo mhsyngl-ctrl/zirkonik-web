@@ -372,7 +372,10 @@
       return client().from('price_overrides').select('*');
     },
     // price null/'' ise kapsamdaki özel fiyat silinir (taban listeye dönülür).
-    setPriceOverride: function (orgId, itemId, doctorId, labId, price) {
+    /** Anlasma kalemin genel para biriminden farkli olabilir: genel liste $
+     *  olsa da bir doktorla TL uzerinden anlasilabiliyor. currency verilmezse
+     *  kalemin kendi para birimi devralinir. */
+    setPriceOverride: function (orgId, itemId, doctorId, labId, price, currency) {
       var q = client().from('price_overrides').delete().eq('price_item_id', itemId);
       q = doctorId ? q.eq('doctor_id', doctorId) : q.is('doctor_id', null);
       q = labId ? q.eq('laboratory_id', labId) : q.is('laboratory_id', null);
@@ -382,12 +385,13 @@
         return client().from('price_overrides').insert({
           organization_id: orgId, price_item_id: itemId,
           doctor_id: doctorId || null, laboratory_id: labId || null,
-          unit_price: Number(price)
+          unit_price: Number(price),
+          currency: window.ZirkonikMoney.normalize(currency)
         });
       });
     },
     // Öncelik: doktor+lab > doktor > lab > taban liste fiyatı.
-    resolveUnitPrice: function (item, overrides, doctorId, labId) {
+    findPriceOverride: function (item, overrides, doctorId, labId) {
       var best = null, bestScore = -1;
       (overrides || []).forEach(function (o) {
         if (o.price_item_id !== item.id) return;
@@ -396,8 +400,18 @@
         var score = (o.doctor_id ? 2 : 0) + (o.laboratory_id ? 1 : 0);
         if (score > bestScore) { bestScore = score; best = o; }
       });
+      return best;
+    },
+    resolveUnitPrice: function (item, overrides, doctorId, labId) {
+      var best = Data.findPriceOverride(item, overrides, doctorId, labId);
       if (best) return Number(best.unit_price);
       return item.unit_price != null ? Number(item.unit_price) : null;
+    },
+    /** Tutarla birlikte para birimi de anlasmadan geliyor; yoksa kalemin
+     *  genel para birimi gecerli. */
+    resolveUnitCurrency: function (item, overrides, doctorId, labId) {
+      var best = Data.findPriceOverride(item, overrides, doctorId, labId);
+      return window.ZirkonikMoney.normalize(best ? best.currency : item.currency);
     },
 
     // ---- Doktor siparişleri (dijital çalışma formu) ----
@@ -515,13 +529,16 @@
     /** Bu kullanıcının henüz bir teslime dahil edilmemiş tahsilatları
      *  (nakit + kart + EFT/havale — hepsi teslim/onay listesinde görünür). */
     listMyPendingCash: function (userId) {
-      return client().from('payments').select('id, amount, doctor_id, method, received_at, doctors(full_name)')
+      return client().from('payments').select('id, amount, currency, doctor_id, method, received_at, doctors(full_name)')
         .eq('received_by', userId).is('handover_id', null)
         .order('received_at', { ascending: false });
     },
-    createCashHandover: function (organizationId, staffId, paymentIds, amount, note) {
+    /** Bir teslim fisi tek para birimindedir; cagiran taraf secimi para
+     *  birimine gore ayirip her biri icin ayri cagirir. */
+    createCashHandover: function (organizationId, staffId, paymentIds, amount, note, currency) {
       return client().from('cash_handovers').insert({
-        organization_id: organizationId, staff_id: staffId, amount: amount, note: note || null
+        organization_id: organizationId, staff_id: staffId, amount: amount,
+        currency: window.ZirkonikMoney.normalize(currency), note: note || null
       }).select().single().then(function (res) {
         if (res.error) return res;
         return client().from('payments').update({ handover_id: res.data.id }).in('id', paymentIds).then(function (updRes) {

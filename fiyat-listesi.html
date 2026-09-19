@@ -276,6 +276,16 @@
             var priceCell = canEdit
               ? '<input data-price-for="' + p.id + '" type="number" min="0" step="0.01" value="' + shownVal + '" placeholder="' + ph + '" class="h-10 w-24 rounded-theme border ' + (ov ? 'border-primary' : 'border-border') + ' bg-input px-2.5 text-right text-sm tabular-nums">'
               : '<span class="text-sm font-bold tabular-nums">' + (p.unit_price != null ? p.unit_price : 'Sorunuz') + '</span>';
+            // Anlasma kalemin genel para biriminden farkli olabiliyor: genel
+            // liste $ olsa da bir doktorla TL uzerinden anlasilabiliyor. Bu
+            // yuzden kapsam secildiginde para birimi de satirda secilebilir.
+            var curVal = ZirkonikMoney.normalize(ov ? ov.currency : p.currency);
+            var curCell = (inScope && canEdit)
+              ? '<select data-currency-for="' + p.id + '" class="h-10 w-14 rounded-theme border ' + (ov ? 'border-primary' : 'border-border') + ' bg-input px-1 text-center text-sm">' +
+                  ZirkonikMoney.SYMBOLS.map(function (sym) {
+                    return '<option value="' + sym + '"' + (sym === curVal ? ' selected' : '') + '>' + sym + '</option>';
+                  }).join('') + '</select>'
+              : '<span class="w-5 text-sm text-muted-foreground">' + curVal + '</span>';
             var hasRoute = p.route_room_ids && p.route_room_ids.length;
             // 2026-09-12: Üretim rotası kalemin KENDİ özelliğidir; doktora/
             // lokasyona özel fiyat yazarken de aynı rota geçerli. Kapsam
@@ -295,7 +305,7 @@
             return '<div class="flex items-center justify-between gap-2 border-b border-border py-2.5 last:border-b-0">' +
               '<p class="min-w-0 flex-1 text-sm font-semibold">' + escapeHtml(p.name) + '</p>' +
               '<div class="flex items-center gap-1.5">' + recipeBtn + routeBtn + genelEtiket + priceCell +
-              '<span class="w-5 text-sm text-muted-foreground">' + (p.currency || '$') + '</span></div></div>';
+              curCell + '</div></div>';
           }).join('');
           sec.innerHTML = '<p class="mb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-primary">' + escapeHtml(cat) + '</p>' + rows;
           main.appendChild(sec);
@@ -305,17 +315,34 @@
         }
 
         if (canEdit) {
+          function anlasmaKaydet(id) {
+            var inp = main.querySelector('[data-price-for="' + id + '"]');
+            var sel = main.querySelector('[data-currency-for="' + id + '"]');
+            var val = (!inp || inp.value === '') ? null : Number(inp.value);
+            var cur = sel ? sel.value : null;
+            // Doktora/lokasyona özel fiyat — boş bırakmak genel listeye döndürür.
+            ZirkonikData.setPriceOverride(orgId, id, scopeDoctorId, scopeLabId, val, cur).then(function (res) {
+              if (res.error) { zkToast('Kaydedilemedi: ' + res.error.message); return; }
+              zkToast(val == null ? 'Özel fiyat kaldırıldı, genel liste geçerli.' : 'Anlaşmalı fiyat kaydedildi.');
+              loadList();
+            });
+          }
+          main.querySelectorAll('[data-currency-for]').forEach(function (sel) {
+            sel.addEventListener('change', function () {
+              var id = sel.getAttribute('data-currency-for');
+              var inp = main.querySelector('[data-price-for="' + id + '"]');
+              // Tutar girilmeden para birimi degistirilirse kaydedilecek bir
+              // anlasma yok; secim ekranda kalir, tutar girilince yazilir.
+              if (!inp || inp.value === '') return;
+              anlasmaKaydet(id);
+            });
+          });
           main.querySelectorAll('[data-price-for]').forEach(function (inp) {
             inp.addEventListener('change', function () {
               var id = inp.getAttribute('data-price-for');
               var val = inp.value === '' ? null : Number(inp.value);
               if (scopeDoctorId || scopeLabId) {
-                // Doktora/lokasyona özel fiyat — boş bırakmak genel listeye döndürür.
-                ZirkonikData.setPriceOverride(orgId, id, scopeDoctorId, scopeLabId, val).then(function (res) {
-                  if (res.error) { zkToast('Kaydedilemedi: ' + res.error.message); return; }
-                  zkToast(val == null ? 'Özel fiyat kaldırıldı, genel liste geçerli.' : 'Anlaşmalı fiyat kaydedildi.');
-                  loadList();
-                });
+                anlasmaKaydet(id);
                 return;
               }
               ZirkonikData.updatePriceItem(id, { unit_price: val }).then(function (res) {

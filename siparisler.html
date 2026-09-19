@@ -162,7 +162,8 @@
       };
       var unit = ZirkonikData.resolveUnitPrice(item, priceOverrides, o.doctor_id, labId || null);
       if (unit == null) return null;
-      return { total: unit * o.unit_count, unit: unit, currency: item.currency || '$',
+      return { total: unit * o.unit_count, unit: unit,
+               currency: ZirkonikData.resolveUnitCurrency(item, priceOverrides, o.doctor_id, labId || null),
                isSpecial: item.unit_price == null || unit !== Number(item.unit_price) };
     }
 
@@ -314,6 +315,11 @@
               // Doktora/lokasyona özel anlaşmalı fiyat varsa fatura ona göre kesilir.
               var unit = item ? ZirkonikData.resolveUnitPrice(item, allOverrides, o.doctor_id, labId) : null;
               var price = unit != null ? unit * o.unit_count : null;
+              // Anlasma TL de USD de olabilir; is, kalem ve fatura ayni para
+              // birimiyle damgalanmali, yoksa cari yanlis toplanir.
+              var paraBirimi = item
+                ? ZirkonikData.resolveUnitCurrency(item, allOverrides, o.doctor_id, labId)
+                : ZirkonikMoney.DEFAULT;
               return ZirkonikData.createJob({
                 organization_id: o.organization_id,
                 laboratory_id: labId,
@@ -336,6 +342,7 @@
                 unit_count: o.unit_count,
                 requested_delivery_at: deliveryVal ? new Date(deliveryVal).toISOString() : null,
                 price: price,
+                currency: paraBirimi,
                 created_by: me.id
               }).then(function (jobRes) {
                 if (jobRes.error) throw jobRes.error;
@@ -380,6 +387,7 @@
                       // Siparişte fiyat kalem bazında tutulmuyor (doktor fiyat
                       // girmiyor); tutar iş üzerinde, ilk kaleme yazılıyor.
                       price: i === 0 ? price : null,
+                      currency: paraBirimi,
                       planned_route: routeById[it.price_item_id] || plannedRoute,
                       color_index: it.color_index || i,
                       sort_order: i
@@ -395,7 +403,8 @@
                       var due = new Date(); due.setDate(due.getDate() + days);
                       return client.from('invoices').insert({
                         organization_id: o.organization_id, doctor_id: o.doctor_id, job_id: job.id,
-                        amount: price, due_date: due.toISOString().slice(0, 10), status: 'unpaid'
+                        amount: price, currency: paraBirimi,
+                        due_date: due.toISOString().slice(0, 10), status: 'unpaid'
                       });
                     }).then(function (invRes) {
                       if (invRes.error) zkToast('İş oluşturuldu ama fatura eklenemedi: ' + invRes.error.message);
