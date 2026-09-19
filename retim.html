@@ -807,7 +807,15 @@
             return '<button onclick="location.href=\'detay.html?id=' + j.id + '\'" class="flex w-full items-center justify-between gap-3 rounded-theme border ' + (pending ? 'border-accent/40' : 'border-border') + ' bg-background p-2.5 text-left">' +
               '<div class="min-w-0">' +
               '<p class="text-xs font-bold">' + escapeHtml(j.job_number) + (j.is_priority ? ' <span class="text-accent">●</span>' : '') + '</p>' +
-              '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + escapeHtml(j.doctors ? j.doctors.full_name : '') + '</p>' +
+              // Hasta adı: giriş formunda toplanıyordu ama uygulamada hiçbir
+              // ekran okumuyordu — teknisyen elindeki işin hangi hastaya ait
+              // olduğunu göremiyordu. Ad yoksa protokol numarasına düşülür.
+              (function () {
+                var hasta = j.patient_name || j.clinic_protocol_no || '';
+                var doktor = j.doctors ? j.doctors.full_name : '';
+                var alt = hasta && doktor ? hasta + ' · ' + doktor : (hasta || doktor);
+                return alt ? '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + escapeHtml(alt) + '</p>' : '';
+              })() +
               '</div>' +
               '<div class="shrink-0 text-right">' +
               (pending ? '<p class="text-[10px] font-bold text-accent">Teslim bekliyor</p>' : '') +

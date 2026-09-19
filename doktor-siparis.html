@@ -103,9 +103,24 @@
             <input id="o-count" type="number" min="1" step="1" value="1" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
           </label>
 
+          <!-- Önceden tek bir "Hasta referansı / not" alanı vardı ve iki işi
+               birden görüyordu; doktor kendi kovanına baktığında hangi
+               hastası olduğunu göremiyordu. Üçe ayrıldı. Hasta adı ve
+               referans isteğe bağlı — kişisel veri yazmak istemeyen doktor
+               yalnızca kendi protokol numarasını girebilir. -->
           <label class="mt-3 block">
-            <span class="mb-1.5 block text-xs font-bold">Hasta referansı / not</span>
-            <input id="o-note" type="text" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="Örn. Hasta A. Y. — üst çene">
+            <span class="mb-1.5 block text-xs font-bold">Hasta adı</span>
+            <input id="o-patient" type="text" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="Örn. Ahmet Y. (isteğe bağlı)">
+          </label>
+
+          <label class="mt-3 block">
+            <span class="mb-1.5 block text-xs font-bold">Hasta referans / protokol no</span>
+            <input id="o-ref" type="text" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="Kendi dosya numaranız (isteğe bağlı)">
+          </label>
+
+          <label class="mt-3 block">
+            <span class="mb-1.5 block text-xs font-bold">Not</span>
+            <input id="o-note" type="text" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="Laboratuvara iletmek istediğiniz açıklama">
           </label>
 
           <p id="o-error" class="mt-3 hidden text-xs font-semibold text-destructive"></p>
@@ -170,6 +185,28 @@
         <button onclick="zkClosePaymentDetail()" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Kapat"><iconify-icon icon="lucide:x" class="text-sm"></iconify-icon></button>
       </div>
       <div id="pay-detail-rows" class="mt-3"></div>
+    </div>
+  </div>
+
+  <!-- Doktorun kendi işini SALT OKUNUR izlediği detay sayfası.
+       detay.html'e doktor alınmadı bilerek: orası aşama ilerletme, fiyat
+       düzenleme, iş iptali gibi yönetici eylemleriyle dolu ve iç referans /
+       personel isimleri gibi doktorun görmesi gerekmeyen alanlar içeriyor.
+       Burada hiçbir yazma eylemi yok; RLS zaten yazmayı engelliyor ama
+       ekranda da hiç düğme bulunmaması karışıklığı baştan önlüyor. -->
+  <div id="job-detail-sheet" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkDocCloseJob()"></div>
+    <div class="absolute bottom-0 left-0 max-h-[88vh] w-full overflow-y-auto rounded-t-theme bg-card p-5 pb-8" style="-webkit-overflow-scrolling:touch;">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <p id="jd-patient" class="font-heading text-lg font-bold">—</p>
+          <p id="jd-sub" class="mt-0.5 truncate text-xs text-muted-foreground"></p>
+        </div>
+        <button onclick="zkDocCloseJob()" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Kapat"><iconify-icon icon="lucide:x" class="text-sm"></iconify-icon></button>
+      </div>
+      <div id="jd-body" class="mt-4">
+        <p class="text-xs text-muted-foreground">Yükleniyor…</p>
+      </div>
     </div>
   </div>
 
@@ -384,6 +421,12 @@
         teeth_numbers: teeth.length ? teeth.join(', ') : null,
         unit_count: Math.max(1, Number(document.getElementById('o-count').value) || 1),
         work_form: ZkWorkForm.getData(),
+        // orders.patient_name ve clinic_protocol_no 05.09.2026'da eklenmişti
+        // ama forma hiç bağlanmamıştı (canlıda ikisi de 0 kayıtta dolu).
+        // Yeni kolon açmak yerine mevcut olanlar kullanılıyor; laboratuvar
+        // giriş formu da aynı iki alanı zaten böyle dolduruyor.
+        patient_name: document.getElementById('o-patient').value.trim() || null,
+        clinic_protocol_no: document.getElementById('o-ref').value.trim() || null,
         note: document.getElementById('o-note').value.trim() || null
       }).then(function (res) {
         btn.disabled = false;
@@ -399,6 +442,8 @@
           zkRecalc();
         };
         document.getElementById('o-count').value = 1;
+        document.getElementById('o-patient').value = '';
+        document.getElementById('o-ref').value = '';
         document.getElementById('o-note').value = '';
         document.getElementById('o-type').value = '';
         zkRecalc();
@@ -449,7 +494,7 @@
     function loadDoctorHive() {
       var client = ZirkonikAuth.client();
       Promise.all([
-        client.from('jobs').select('id, job_number, restoration_type, current_room_id, planned_route, laboratory_id')
+        client.from('jobs').select('id, job_number, restoration_type, current_room_id, planned_route, laboratory_id, patient_name, clinic_protocol_no')
           .eq('doctor_id', doctor.id).eq('status', 'active'),
         client.from('rooms').select('id, name, laboratory_id, sort_order').order('sort_order')
       ]).then(function (res) {
@@ -517,14 +562,149 @@
             var route = j.planned_route || [];
             var pos = j.current_room_id ? route.indexOf(j.current_room_id) : 0;
             var nextName = (pos >= 0 && route[pos + 1]) ? dhRoomName[route[pos + 1]] : null;
-            return '<div class="flex items-center justify-between gap-3 py-1.5">' +
-              '<div><p class="text-xs font-bold">' + escapeHtml(j.job_number || '') + '</p>' +
-              '<p class="mt-0.5 text-[11px] text-muted-foreground">' + escapeHtml(j.restoration_type || '') + '</p></div>' +
-              (nextName ? '<p class="shrink-0 text-[10px] font-semibold text-primary">Sıradaki: ' + escapeHtml(nextName) + '</p>' : '') +
-              '</div>';
+            // Hasta bilgisi en üstte: doktorun asıl aradığı bu. Önceden
+            // yalnızca iş numarası ve tür vardı, doktor "DY-2481" görüp
+            // hangi hastası olduğunu anlayamıyordu. Ad yoksa protokol
+            // numarasına düşülür; ikisi de yoksa eski düzen korunur.
+            var hasta = j.patient_name || j.clinic_protocol_no || '';
+            // Satırın tamamı tıklanabilir: hastaya basınca salt okunur iş
+            // takibi açılır. Düzenleme yok — yalnız izleme.
+            return '<button type="button" onclick="zkDocOpenJob(\'' + j.id + '\')" class="flex w-full items-center justify-between gap-3 py-1.5 text-left active:opacity-70">' +
+              '<div class="min-w-0">' +
+              (hasta
+                ? '<p class="truncate text-xs font-bold">' + escapeHtml(hasta) + '</p>' +
+                  '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + escapeHtml(j.job_number || '') + ' · ' + escapeHtml(j.restoration_type || '') + '</p>'
+                : '<p class="text-xs font-bold">' + escapeHtml(j.job_number || '') + '</p>' +
+                  '<p class="mt-0.5 text-[11px] text-muted-foreground">' + escapeHtml(j.restoration_type || '') + '</p>') +
+              '</div>' +
+              '<div class="flex shrink-0 items-center gap-1.5">' +
+              (nextName ? '<p class="text-[10px] font-semibold text-primary">Sıradaki: ' + escapeHtml(nextName) + '</p>' : '') +
+              '<iconify-icon icon="lucide:chevron-right" class="text-sm text-muted-foreground"></iconify-icon>' +
+              '</div></button>';
           }).join('') + '</div>';
       }
       el.innerHTML = html;
+    }
+
+    // ---- Salt okunur iş takibi ----
+    // Doktor kovandaki hastaya basınca açılır. Hiçbir yazma eylemi yok.
+    // RLS zaten doktorun yalnızca kendi işlerini okumasına izin veriyor
+    // (job_select ve stage_history_select politikalarında doctor_id şartı
+    // var), burada ayrıca filtre koymuyoruz — sunucu tarafı tek doğru yer.
+    function zkDocCloseJob() {
+      document.getElementById('job-detail-sheet').classList.add('hidden');
+    }
+
+    function zkDocOpenJob(jobId) {
+      var sheet = document.getElementById('job-detail-sheet');
+      var body = document.getElementById('jd-body');
+      document.getElementById('jd-patient').textContent = '—';
+      document.getElementById('jd-sub').textContent = '';
+      body.innerHTML = '<p class="text-xs text-muted-foreground">Yükleniyor…</p>';
+      sheet.classList.remove('hidden');
+
+      var client = ZirkonikAuth.client();
+      Promise.all([
+        client.from('jobs').select('*, laboratories(name), rooms:current_room_id(name)').eq('id', jobId).single(),
+        client.from('job_stage_history').select('room_id, entered_at, exited_at, confirmed_at, rooms(name)').eq('job_id', jobId).order('entered_at'),
+        client.from('rooms').select('id, name')
+      ]).then(function (res) {
+        if (res[0].error) {
+          body.innerHTML = '<p class="text-xs text-destructive">Açılamadı: ' + escapeHtml(res[0].error.message) + '</p>';
+          return;
+        }
+        var j = res[0].data;
+        var stages = res[1].data || [];
+        var roomName = {};
+        (res[2].data || []).forEach(function (r) { roomName[r.id] = r.name; });
+
+        document.getElementById('jd-patient').textContent = j.patient_name || j.clinic_protocol_no || j.job_number || '—';
+        var sub = [j.job_number, j.restoration_type].filter(Boolean).join(' · ');
+        document.getElementById('jd-sub').textContent = sub;
+
+        var html = '';
+
+        // --- Künye ---
+        var info = [];
+        function row(label, val) {
+          if (val == null || val === '') return;
+          info.push('<div class="rounded-theme border border-border bg-background px-3 py-2.5">' +
+            '<p class="text-[10px] text-muted-foreground">' + label + '</p>' +
+            '<p class="mt-0.5 text-sm font-bold">' + escapeHtml(String(val)) + '</p></div>');
+        }
+        row('Hasta protokol no', j.clinic_protocol_no);
+        row('Çalışma türü', j.restoration_type);
+        row('Diş sayısı', j.unit_count);
+        row('Diş numaraları', j.teeth_numbers);
+        row('Teslim tarihi', j.requested_delivery_at ? new Date(j.requested_delivery_at).toLocaleDateString('tr-TR') : null);
+        row('Laboratuvar', j.laboratories ? j.laboratories.name : null);
+        // Sayfanın geri kalanıyla aynı biçimlendirici kullanılıyor. Para
+        // birimi zinciri (jobs.currency) henüz uygulanmadı; o iş bitince
+        // bu sayfadaki TÜM tutarlar tek seferde ZirkonikMoney'e geçecek.
+        if (j.price != null) row('Tutar', TLc.format(Number(j.price)));
+        if (info.length) html += '<div class="grid grid-cols-2 gap-2">' + info.join('') + '</div>';
+
+        // --- Üretim akışı ---
+        // Rota planned_route'tan çiziliyor; geçmiş kayıtları hangi aşamanın
+        // ne zaman tamamlandığını gösteriyor. Doktor yalnız izler.
+        var route = (j.planned_route && j.planned_route.length) ? j.planned_route.slice() : [];
+        if (!route.length && j.current_room_id) route = [j.current_room_id];
+        if (route.length) {
+          var stageByRoom = {};
+          stages.forEach(function (s) { stageByRoom[s.room_id] = s; });
+          var curIdx = j.current_room_id ? route.indexOf(j.current_room_id) : -1;
+          html += '<p class="mt-4 text-xs font-bold">Üretim akışı</p>' +
+            '<div class="mt-2 space-y-1.5">' +
+            route.map(function (rid, i) {
+              var st = stageByRoom[rid];
+              var done = st && st.exited_at;
+              var current = j.current_room_id === rid;
+              var dot = done ? 'bg-success' : (current ? 'bg-primary' : 'bg-muted');
+              var when = done ? new Date(st.exited_at).toLocaleDateString('tr-TR')
+                        : (current && st && st.entered_at ? new Date(st.entered_at).toLocaleDateString('tr-TR') : '');
+              var durum = done ? 'Tamamlandı' : (current ? 'Şu anda burada' : (curIdx >= 0 && i < curIdx ? 'Geçildi' : 'Sırada'));
+              return '<div class="flex items-center gap-2.5 rounded-theme border border-border bg-background px-3 py-2">' +
+                '<span class="h-2 w-2 shrink-0 rounded-full ' + dot + '"></span>' +
+                '<p class="min-w-0 flex-1 truncate text-xs font-bold">' + escapeHtml(roomName[rid] || 'Oda') + '</p>' +
+                '<p class="shrink-0 text-[10px] ' + (current ? 'font-bold text-primary' : 'text-muted-foreground') + '">' + durum + (when ? ' · ' + when : '') + '</p>' +
+                '</div>';
+            }).join('') + '</div>';
+        }
+
+        // --- Çalışma formu (doktorun kendi girdiği) ---
+        var wf = j.work_form || {};
+        var wfRows = [];
+        function wfAdd(label, val) {
+          if (val == null || val === '' || (Array.isArray(val) && !val.length)) return;
+          wfRows.push('<div class="rounded-theme border border-border bg-background px-3 py-2.5">' +
+            '<p class="text-[10px] text-muted-foreground">' + label + '</p>' +
+            '<p class="mt-0.5 text-sm font-bold">' + escapeHtml(Array.isArray(val) ? val.join(', ') : val) + '</p></div>');
+        }
+        wfAdd('Renk / Shade', wf.renk);
+        wfAdd('Gingiva', wf.gingiva);
+        wfAdd('DVO', wf.dvo);
+        wfAdd('Prova / Final', wf.prova_final);
+        wfAdd('Diş boyu', wf.dis_boyu);
+        wfAdd('Gülüş tasarımı', wf.gulus);
+        wfAdd('Gönderilen materyaller', wf.materyaller);
+        if (wfRows.length) {
+          html += '<p class="mt-4 text-xs font-bold">Çalışma formu</p>' +
+            '<div class="mt-2 grid grid-cols-2 gap-2">' + wfRows.join('') + '</div>';
+        }
+        if (wf.ozel_istek) {
+          html += '<div class="mt-2 rounded-theme border border-border bg-background px-3 py-2.5">' +
+            '<p class="text-[10px] text-muted-foreground">Özel istek</p>' +
+            '<p class="mt-0.5 text-sm font-bold">' + escapeHtml(wf.ozel_istek) + '</p></div>';
+        }
+
+        if (j.clinical_notes) {
+          html += '<div class="mt-2 rounded-theme border border-border bg-background px-3 py-2.5">' +
+            '<p class="text-[10px] text-muted-foreground">Notunuz</p>' +
+            '<p class="mt-0.5 text-sm font-bold">' + escapeHtml(j.clinical_notes) + '</p></div>';
+        }
+
+        body.innerHTML = html || '<p class="text-xs text-muted-foreground">Gösterilecek ayrıntı yok.</p>';
+      });
     }
 
     function loadOrders() {

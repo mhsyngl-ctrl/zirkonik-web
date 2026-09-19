@@ -323,7 +323,15 @@
                 price_item_id: o.price_item_id,
                 work_form: o.work_form,
                 planned_route: plannedRoute,
-                patient_reference: o.note,
+                // Önceden doktorun NOTU patient_reference'a yazılıyordu: iki
+                // ayrı şey aynı kolona giriyordu ve doktor kaynaklı işlerde
+                // patient_name hiç dolmuyordu — doktor kendi kovanına bakınca
+                // hangi hastası olduğunu göremiyordu. Artık hasta adını ve
+                // protokol numarasını doktor kendisi giriyor, not da kendi
+                // alanına (clinical_notes) düşüyor.
+                patient_name: o.patient_name,
+                clinic_protocol_no: o.clinic_protocol_no,
+                clinical_notes: o.note,
                 teeth_numbers: o.teeth_numbers,
                 unit_count: o.unit_count,
                 requested_delivery_at: deliveryVal ? new Date(deliveryVal).toISOString() : null,
