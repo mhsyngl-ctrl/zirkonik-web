@@ -406,7 +406,10 @@
       var matOpts = '<option value="">Malzeme seçin</option>' + recipeMaterials.map(function (m) {
         return '<option value="' + m.id + '">' + escapeHtml(m.name) + ' (' + escapeHtml(m.unit || 'adet') + ')</option>';
       }).join('');
-      var roomOpts = '<option value="">Oda (ops. — lab havuzu)</option>' + allRooms.map(function (rm) {
+      // allRooms recete sayfasi acilirken dolduruluyor; henuz gelmediyse
+      // (ya da baska bir yoldan cagrildiysa) oda listesi bos kalsin, satir
+      // ekleme yine calissin — burasi null'a .map deyip patliyordu.
+      var roomOpts = '<option value="">Oda (ops. — lab havuzu)</option>' + (allRooms || []).map(function (rm) {
         return '<option value="' + rm.id + '">' + escapeHtml(rm.name) + '</option>';
       }).join('');
       document.getElementById('recipe-rows').innerHTML = recipeRows.map(function (r, i) {

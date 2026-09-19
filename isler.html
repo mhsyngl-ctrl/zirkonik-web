@@ -243,6 +243,14 @@
 
     function zkGenerateReport() {
       if (!currentJobs.length) { zkToast('Rapor oluşturulacak iş yok.'); return; }
+      // jsPDF harici bir CDN'den geliyor. Internet yoksa ya da CDN'e
+      // ulasilamazsa window.jspdf hic tanimlanmiyor ve bu satir sessizce
+      // patliyordu: kullanici dugmeye basiyor, hicbir sey olmuyor, dugme
+      // olu gorunuyordu. Artik sebebi soyluyoruz.
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        zkToast('PDF oluşturucu yüklenemedi — internet bağlantınızı kontrol edip sayfayı yenileyin.');
+        return;
+      }
       var jsPDFCtor = window.jspdf.jsPDF;
       var doc = new jsPDFCtor();
       var title = currentTab === 'active' ? 'Aktif İşler Raporu' : 'Tamamlanan İşler Raporu';
