@@ -315,6 +315,7 @@
     // (hicbir UPDATE yok), bu yuzden ekranda fatura tahsil edilmis olsa bile
     // hep "Bekliyor" yaziyordu. Gercek durum invoices.status'ta tutuluyor.
     var currentInvoice = null;
+    var jobInvoices = [];
     var rooms = [];
     var currentStage = null;
     var advanceMode = 'advance';
@@ -459,9 +460,12 @@
 
         return stagePromise.then(function (stageRes) {
           currentStage = stageRes.data || null;
-          return client.from('invoices').select('id, amount, status').eq('job_id', jobId).limit(1);
+          // Karisik para birimli sipariste is basina BIRDEN FAZLA fatura
+          // olur (para birimi basina bir tane); hepsi gerekiyor.
+          return client.from('invoices').select('id, amount, currency, status').eq('job_id', jobId);
         }).then(function (invRes) {
-          currentInvoice = (invRes && invRes.data && invRes.data[0]) || null;
+          jobInvoices = (invRes && invRes.data) || [];
+          currentInvoice = jobInvoices[0] || null;
           renderJob();
           loadHistory();
         });
@@ -492,19 +496,28 @@
       }
       document.getElementById('job-reference').textContent = j.patient_reference || '—';
       document.getElementById('job-lab').textContent = j.laboratories ? j.laboratories.name : '—';
-      // Tutar isin KENDI para biriminde. Secili kalem varsa onunki, yoksa
-      // isinki; ikisi de yoksa varsayilan ($).
-      var paraBirimi = (currentItem && currentItem.currency) || j.currency;
+      // Tutar: bir siparisin kalemleri farkli para birimlerinde olabiliyor
+      // (kalem bazinda ayri anlasma). Toplam kalemlerden, para birimi basina
+      // ayri yaziliyor; jobs.price yalnizca kalem yoksa kullaniliyor cunku
+      // tek sayi olarak karisik siparisin tamamini gosteremez.
+      var fiyatliKalemler = jobItems.filter(function (k) { return k.price != null; });
       document.getElementById('job-price').textContent =
-        j.price != null ? ZirkonikMoney.format(j.price, paraBirimi, 0) : 'Belirtilmedi';
+        fiyatliKalemler.length ? ZirkonikMoney.totalText(fiyatliKalemler, 'price', 'currency', 0)
+          : (j.price != null ? ZirkonikMoney.format(j.price, j.currency, 0) : 'Belirtilmedi');
+
       var payEl = document.getElementById('job-payment-status');
-      if (!currentInvoice) {
-        // Fiyati olup faturasi olmayan is: canlida 6 tane var (320 TL).
-        payEl.textContent = j.price != null ? 'Faturalanmadı' : '—';
-      } else if (currentInvoice.status === 'cancelled') {
-        payEl.textContent = 'Fatura iptal edildi';
+      var acikFaturalar = jobInvoices.filter(function (x) { return x.status !== 'cancelled'; });
+      if (!acikFaturalar.length) {
+        // Fiyati olup faturasi olmayan is: canlida 6 tane var.
+        payEl.textContent = jobInvoices.length ? 'Fatura iptal edildi'
+          : (fiyatliKalemler.length || j.price != null ? 'Faturalanmadı' : '—');
+      } else if (acikFaturalar.length === 1) {
+        payEl.textContent = PAYMENT_LABELS[acikFaturalar[0].status] || acikFaturalar[0].status;
       } else {
-        payEl.textContent = PAYMENT_LABELS[currentInvoice.status] || currentInvoice.status;
+        // Para birimi basina ayri fatura: durumlari farkli olabilir.
+        payEl.textContent = acikFaturalar.map(function (x) {
+          return ZirkonikMoney.normalize(x.currency) + ' ' + (PAYMENT_LABELS[x.status] || x.status);
+        }).join(' · ');
       }
 
       if (j.is_priority) document.getElementById('priority-badge').classList.remove('hidden');

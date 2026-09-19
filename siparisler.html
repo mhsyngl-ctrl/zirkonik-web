@@ -134,18 +134,24 @@
     // fatura anlasmali fiyat (price_overrides) uzerinden kesiliyordu. Personel
     // onayladigi isin gercek tutarini hic gormuyordu.
     var priceOverrides = [];
+    // Cok turlu siparislerde her kalemin kendi fiyat kalemi var; onay
+    // oncesi tutari dogru gosterebilmek icin hepsi gerekiyor (siparis
+    // iliskisi yalniz siparis duzeyindeki kalemi getiriyor).
+    var priceItemsById = {};
 
     ZirkonikAuth.requireAuth().then(function (session) {
       if (!session) return;
       ZirkonikAuth.client().from('laboratories').select('id, name').order('name').then(function (r) {
         labs = r.data || [];
       });
-      // Anlasmali fiyatlar gelmeden liste ciziliyordu; tek sefer, hata olsa
-      // bile liste yine yuklensin diye iki dallı.
-      ZirkonikData.listPriceOverrides().then(function (r) {
-        priceOverrides = r.data || [];
-        loadOrders();
-      }, function () {
+      // Anlasmali fiyatlar ve fiyat kalemleri gelmeden liste ciziliyordu; tek
+      // sefer, hata olsa bile liste yine yuklensin diye ayri yakalaniyor.
+      Promise.all([
+        ZirkonikData.listPriceOverrides().then(function (r) { return r.data || []; }, function () { return []; }),
+        ZirkonikData.listPriceItems().then(function (r) { return r.data || []; }, function () { return []; })
+      ]).then(function (res) {
+        priceOverrides = res[0];
+        res[1].forEach(function (p) { priceItemsById[p.id] = p; });
         loadOrders();
       });
     });
@@ -154,17 +160,41 @@
     // doktor bazli/genel anlasmali fiyat uygulanir (laboratuvara ozel fiyat
     // ancak onay ekraninda laboratuvar secilince belli olur).
     function zkOrderPrice(o, labId) {
-      if (!o.price_item_id || !o.price_list_items) return null;
-      var item = {
-        id: o.price_item_id,
-        unit_price: o.price_list_items.unit_price,
-        currency: o.price_list_items.currency
+      // Siparisin kalemleri: cok turlu siparislerde orders.items dolu, eski
+      // tek turlu siparislerde siparis duzeyindeki kalem tek basina.
+      var kalemler = (o.items && o.items.length) ? o.items : (o.price_item_id ? [{
+        price_item_id: o.price_item_id, unit_count: o.unit_count
+      }] : []);
+      if (!kalemler.length) return null;
+
+      // Her kalem KENDI fiyat kaleminden fiyatlanir; anlasma kalem bazinda
+      // farkli para biriminde olabilir, bu yuzden toplamlar para birimine
+      // gore gruplaniyor.
+      var gruplar = {};
+      var satirlar = [];
+      var anlasmali = false;
+      var fiyatsiz = 0;
+      kalemler.forEach(function (k) {
+        var pi = priceItemsById[k.price_item_id] ||
+          (k.price_item_id === o.price_item_id && o.price_list_items
+            ? { id: o.price_item_id, unit_price: o.price_list_items.unit_price, currency: o.price_list_items.currency }
+            : null);
+        var adet = Math.max(1, Number(k.unit_count) || 1);
+        if (!pi) { fiyatsiz++; return; }
+        var unit = ZirkonikData.resolveUnitPrice(pi, priceOverrides, o.doctor_id, labId || null);
+        if (unit == null) { fiyatsiz++; return; }
+        var cur = ZirkonikData.resolveUnitCurrency(pi, priceOverrides, o.doctor_id, labId || null);
+        gruplar[cur] = (gruplar[cur] || 0) + unit * adet;
+        satirlar.push(ZirkonikMoney.format(unit, cur, 2) + ' × ' + adet + ' diş');
+        if (pi.unit_price == null || unit !== Number(pi.unit_price)) anlasmali = true;
+      });
+      if (!Object.keys(gruplar).length) return null;
+      return {
+        totalText: ZirkonikMoney.formatTotals(gruplar, 2),
+        detay: satirlar.join(' · '),
+        isSpecial: anlasmali,
+        fiyatsiz: fiyatsiz
       };
-      var unit = ZirkonikData.resolveUnitPrice(item, priceOverrides, o.doctor_id, labId || null);
-      if (unit == null) return null;
-      return { total: unit * o.unit_count, unit: unit,
-               currency: ZirkonikData.resolveUnitCurrency(item, priceOverrides, o.doctor_id, labId || null),
-               isSpecial: item.unit_price == null || unit !== Number(item.unit_price) };
     }
 
     function zkSetTab(tab) {
@@ -219,7 +249,7 @@
           var wfBits = wfSummary(o);
           var pr = zkOrderPrice(o, null);
           var priceInfo = pr
-            ? pr.total + ' ' + pr.currency + (pr.isSpecial ? ' (anlaşmalı)' : '')
+            ? pr.totalText + (pr.isSpecial ? ' (anlaşmalı)' : '')
             : 'Fiyat sorunuz';
           var actions = o.status === 'pending'
             ? '<div class="mt-3 grid grid-cols-2 gap-2">' +
@@ -273,8 +303,9 @@
         note.textContent = 'Bu kalem için fiyat yok; iş faturasız oluşur, sonradan fatura eklenemez.';
         return;
       }
-      el.textContent = pr.total + ' ' + pr.currency;
-      note.textContent = pr.unit + ' ' + pr.currency + ' × ' + o.unit_count + ' diş' + (pr.isSpecial ? ' · anlaşmalı fiyat' : '');
+      el.textContent = pr.totalText;
+      note.textContent = pr.detay + (pr.isSpecial ? ' · anlaşmalı fiyat' : '') +
+        (pr.fiyatsiz ? ' · ' + pr.fiyatsiz + ' kalemin fiyatı tanımlı değil' : '');
     }
     function zkCloseApprove() { document.getElementById('approve-sheet').classList.add('hidden'); }
 
@@ -293,128 +324,150 @@
       var client = ZirkonikAuth.client();
 
       ZirkonikAuth.me().then(function (me) {
-        // Fiyat kalemi + rota bilgisi (sipariş ilişkisinde rota yok, tazele)
-        var itemPromise = o.price_item_id
-          ? client.from('price_list_items').select('id, unit_price, currency, route_room_ids').eq('id', o.price_item_id).maybeSingle()
-          : Promise.resolve({ data: null });
-        var ovPromise = ZirkonikData.listPriceOverrides();
-        return Promise.all([itemPromise, ovPromise]).then(function (results) {
-          var ir = results[0];
-          var allOverrides = results[1].data || [];
-          var item = ir.data;
-          var routePromise = (item && item.route_room_ids && item.route_room_ids.length)
-            ? client.from('rooms').select('id').eq('laboratory_id', labId).then(function (rr) {
-                var labRoomIds = (rr.data || []).map(function (r) { return r.id; });
-                var filtered = item.route_room_ids.filter(function (id) { return labRoomIds.indexOf(id) >= 0; });
-                return filtered.length ? filtered : null;
-              })
-            : Promise.resolve(null);
-          return routePromise.then(function (plannedRoute) {
-            return ZirkonikData.nextJobNumber(labId).then(function (jobNumber) {
-              var deliveryVal = document.getElementById('ap-delivery').value;
-              // Doktora/lokasyona özel anlaşmalı fiyat varsa fatura ona göre kesilir.
-              var unit = item ? ZirkonikData.resolveUnitPrice(item, allOverrides, o.doctor_id, labId) : null;
-              var price = unit != null ? unit * o.unit_count : null;
-              // Anlasma TL de USD de olabilir; is, kalem ve fatura ayni para
-              // birimiyle damgalanmali, yoksa cari yanlis toplanir.
-              var paraBirimi = item
-                ? ZirkonikData.resolveUnitCurrency(item, allOverrides, o.doctor_id, labId)
-                : ZirkonikMoney.DEFAULT;
-              return ZirkonikData.createJob({
-                organization_id: o.organization_id,
-                laboratory_id: labId,
-                job_number: jobNumber,
-                doctor_id: o.doctor_id,
-                restoration_type: o.restoration_type,
-                price_item_id: o.price_item_id,
-                work_form: o.work_form,
-                planned_route: plannedRoute,
-                // Önceden doktorun NOTU patient_reference'a yazılıyordu: iki
-                // ayrı şey aynı kolona giriyordu ve doktor kaynaklı işlerde
-                // patient_name hiç dolmuyordu — doktor kendi kovanına bakınca
-                // hangi hastası olduğunu göremiyordu. Artık hasta adını ve
-                // protokol numarasını doktor kendisi giriyor, not da kendi
-                // alanına (clinical_notes) düşüyor.
-                patient_name: o.patient_name,
-                clinic_protocol_no: o.clinic_protocol_no,
-                clinical_notes: o.note,
-                teeth_numbers: o.teeth_numbers,
-                unit_count: o.unit_count,
-                requested_delivery_at: deliveryVal ? new Date(deliveryVal).toISOString() : null,
-                price: price,
-                currency: paraBirimi,
-                created_by: me.id
-              }).then(function (jobRes) {
-                if (jobRes.error) throw jobRes.error;
-                var job = jobRes.data;
+        // Kalemler. Doktor birden cok calisma turu girdiyse orders.items dolu
+        // gelir; tek turlu eski siparislerde bos olur ve tekil kolonlardan tek
+        // kalem uretilir.
+        var kalemler = (o.items && o.items.length) ? o.items : [{
+          price_item_id: o.price_item_id,
+          restoration_type: o.restoration_type,
+          teeth: (o.teeth_numbers || '').match(/\d+/g) || [],
+          unit_count: o.unit_count,
+          color_index: 0
+        }];
+        var kalemIds = kalemler.map(function (k) { return k.price_item_id; }).filter(Boolean);
+        if (o.price_item_id && kalemIds.indexOf(o.price_item_id) < 0) kalemIds.push(o.price_item_id);
 
-                // KALEMLER. Üretim panosu artık işleri değil kalemleri
-                // listeliyor; kalem oluşturulmazsa onaylanan sipariş panoda
-                // hiç görünmezdi. Doktor birden çok çalışma türü girdiyse
-                // orders.items dolu gelir; tek türlü eski siparişlerde boş
-                // olur ve tekil kolonlardan tek kalem üretilir.
-                var kalemler = (o.items && o.items.length) ? o.items : [{
-                  price_item_id: o.price_item_id,
-                  restoration_type: o.restoration_type,
-                  teeth: (o.teeth_numbers || '').match(/\d+/g) || [],
-                  unit_count: o.unit_count,
-                  color_index: 0
-                }];
-                // Her kalem KENDİ rotasını kendi fiyat kaleminden almalı —
-                // hepsine aynı rotayı verirsek veneer, kronun odalarını
-                // dolaşır. Rotalar bu laboratuvarın odalarına indirgeniyor.
-                var kalemIds = kalemler.map(function (k) { return k.price_item_id; }).filter(Boolean);
-                var itemsPromise = Promise.all([
-                  client.from('rooms').select('id').eq('laboratory_id', labId),
-                  kalemIds.length
-                    ? client.from('price_list_items').select('id, route_room_ids').in('id', kalemIds)
-                    : Promise.resolve({ data: [] })
-                ]).then(function (rres) {
-                  var labRoomIds = (rres[0].data || []).map(function (r) { return r.id; });
-                  var routeById = {};
-                  (rres[1].data || []).forEach(function (p) {
-                    var f = (p.route_room_ids || []).filter(function (id) { return labRoomIds.indexOf(id) >= 0; });
-                    routeById[p.id] = f.length ? f : null;
-                  });
-                  return client.from('job_items').insert(kalemler.map(function (it, i) {
+        return Promise.all([
+          kalemIds.length
+            ? client.from('price_list_items').select('id, unit_price, currency, route_room_ids').in('id', kalemIds)
+            : Promise.resolve({ data: [] }),
+          ZirkonikData.listPriceOverrides(),
+          client.from('rooms').select('id').eq('laboratory_id', labId)
+        ]).then(function (results) {
+          var fiyatKalemleri = results[0].data || [];
+          var allOverrides = results[1].data || [];
+          var labRoomIds = (results[2].data || []).map(function (r) { return r.id; });
+          var kalemById = {};
+          fiyatKalemleri.forEach(function (p) { kalemById[p.id] = p; });
+
+          function rotaFor(ids) {
+            var f = (ids || []).filter(function (id) { return labRoomIds.indexOf(id) >= 0; });
+            return f.length ? f : null;
+          }
+
+          // HER kalem KENDI fiyat kaleminden fiyatlaniyor. Onceden siparisin
+          // tek price_item_id'si tum tutari belirliyordu ve cok turlu
+          // siparislerde veneer, kron fiyatiyla faturalaniyordu.
+          // Doktora/lokasyona ozel anlasma varsa o gecerli; anlasma USD de TL
+          // de olabilir, para birimi kalemle birlikte damgalaniyor.
+          var hazirKalemler = kalemler.map(function (k, i) {
+            var pi = kalemById[k.price_item_id];
+            var adet = Math.max(1, Number(k.unit_count) || 1);
+            var birim = pi ? ZirkonikData.resolveUnitPrice(pi, allOverrides, o.doctor_id, labId) : null;
+            return {
+              ham: k,
+              sira: i,
+              price: birim != null ? birim * adet : null,
+              currency: pi ? ZirkonikData.resolveUnitCurrency(pi, allOverrides, o.doctor_id, labId) : ZirkonikMoney.DEFAULT,
+              unit_count: adet,
+              // Her kalem KENDI rotasini kendi fiyat kaleminden almali —
+              // hepsine ayni rotayi verirsek veneer, kronun odalarini dolasir.
+              route: pi ? rotaFor(pi.route_room_ids) : null
+            };
+          });
+
+          // Tutarlar para birimine gore gruplaniyor; her grup icin AYRI fatura.
+          var tutarGruplari = {};
+          hazirKalemler.forEach(function (k) {
+            if (k.price == null) return;
+            var c = ZirkonikMoney.normalize(k.currency);
+            tutarGruplari[c] = (tutarGruplari[c] || 0) + k.price;
+          });
+          var paraBirimleri = Object.keys(tutarGruplari).filter(function (c) { return tutarGruplari[c]; });
+
+          // jobs.price/jobs.currency ESKI toplama alanlari: tek sayi
+          // tutuyorlar, farkli para birimleri toplanamaz. Yalnizca isin kendi
+          // para birimindeki (ilk kalemin) tutari yaziliyor — karisik
+          // siparislerde gercek toplam job_items'ta ve faturalarda.
+          var isParaBirimi = ZirkonikMoney.normalize(hazirKalemler[0] && hazirKalemler[0].currency);
+          var isTutari = tutarGruplari[isParaBirimi] || null;
+          var plannedRoute = (hazirKalemler[0] && hazirKalemler[0].route) ||
+            (kalemById[o.price_item_id] ? rotaFor(kalemById[o.price_item_id].route_room_ids) : null);
+
+          return ZirkonikData.nextJobNumber(labId).then(function (jobNumber) {
+            var deliveryVal = document.getElementById('ap-delivery').value;
+            return ZirkonikData.createJob({
+              organization_id: o.organization_id,
+              laboratory_id: labId,
+              job_number: jobNumber,
+              doctor_id: o.doctor_id,
+              restoration_type: o.restoration_type,
+              price_item_id: o.price_item_id,
+              work_form: o.work_form,
+              planned_route: plannedRoute,
+              // Önceden doktorun NOTU patient_reference'a yazılıyordu: iki
+              // ayrı şey aynı kolona giriyordu ve doktor kaynaklı işlerde
+              // patient_name hiç dolmuyordu — doktor kendi kovanına bakınca
+              // hangi hastası olduğunu göremiyordu. Artık hasta adını ve
+              // protokol numarasını doktor kendisi giriyor, not da kendi
+              // alanına (clinical_notes) düşüyor.
+              patient_name: o.patient_name,
+              clinic_protocol_no: o.clinic_protocol_no,
+              clinical_notes: o.note,
+              teeth_numbers: o.teeth_numbers,
+              unit_count: o.unit_count,
+              requested_delivery_at: deliveryVal ? new Date(deliveryVal).toISOString() : null,
+              price: isTutari,
+              currency: isParaBirimi,
+              created_by: me.id
+            }).then(function (jobRes) {
+              if (jobRes.error) throw jobRes.error;
+              var job = jobRes.data;
+
+              // Uretim panosu artik isleri degil kalemleri listeliyor; kalem
+              // olusturulmazsa onaylanan siparis panoda hic gorunmezdi.
+              var itemsPromise = client.from('job_items').insert(hazirKalemler.map(function (k) {
+                return {
+                  job_id: job.id,
+                  organization_id: job.organization_id,
+                  price_item_id: k.ham.price_item_id || null,
+                  restoration_type: k.ham.restoration_type || o.restoration_type,
+                  teeth: (k.ham.teeth || []).map(Number),
+                  unit_count: k.unit_count,
+                  price: k.price,
+                  currency: k.currency,
+                  planned_route: k.route || plannedRoute,
+                  color_index: k.ham.color_index || k.sira,
+                  sort_order: k.sira
+                };
+              })).then(function (ir) {
+                if (ir && ir.error) zkToast('İş oluşturuldu ama kalemler eklenemedi: ' + ir.error.message);
+              });
+
+              var invoicePromise = itemsPromise.then(function () {
+                if (!paraBirimleri.length) return;
+                return client.from('doctors').select('payment_terms_days').eq('id', o.doctor_id).single().then(function (docRes) {
+                  var days = (docRes.data && docRes.data.payment_terms_days) || 30;
+                  var due = new Date(); due.setDate(due.getDate() + days);
+                  // Para birimi basina AYRI fatura: bir faturanin tutari tek
+                  // sayidir ve odemeler fatura para birimiyle eslesmek
+                  // zorunda (trg_guard_payment_currency).
+                  return client.from('invoices').insert(paraBirimleri.map(function (c) {
                     return {
-                      job_id: job.id,
-                      organization_id: job.organization_id,
-                      price_item_id: it.price_item_id || null,
-                      restoration_type: it.restoration_type || o.restoration_type,
-                      teeth: (it.teeth || []).map(Number),
-                      unit_count: Math.max(1, Number(it.unit_count) || 1),
-                      // Siparişte fiyat kalem bazında tutulmuyor (doktor fiyat
-                      // girmiyor); tutar iş üzerinde, ilk kaleme yazılıyor.
-                      price: i === 0 ? price : null,
-                      currency: paraBirimi,
-                      planned_route: routeById[it.price_item_id] || plannedRoute,
-                      color_index: it.color_index || i,
-                      sort_order: i
+                      organization_id: o.organization_id, doctor_id: o.doctor_id, job_id: job.id,
+                      amount: tutarGruplari[c], currency: c,
+                      due_date: due.toISOString().slice(0, 10), status: 'unpaid'
                     };
                   }));
-                }).then(function (ir) {
-                  if (ir && ir.error) zkToast('İş oluşturuldu ama kalemler eklenemedi: ' + ir.error.message);
+                }).then(function (invRes) {
+                  if (invRes.error) zkToast('İş oluşturuldu ama fatura eklenemedi: ' + invRes.error.message);
                 });
+              });
 
-                var invoicePromise = itemsPromise.then(function () { return price
-                  ? client.from('doctors').select('payment_terms_days').eq('id', o.doctor_id).single().then(function (docRes) {
-                      var days = (docRes.data && docRes.data.payment_terms_days) || 30;
-                      var due = new Date(); due.setDate(due.getDate() + days);
-                      return client.from('invoices').insert({
-                        organization_id: o.organization_id, doctor_id: o.doctor_id, job_id: job.id,
-                        amount: price, currency: paraBirimi,
-                        due_date: due.toISOString().slice(0, 10), status: 'unpaid'
-                      });
-                    }).then(function (invRes) {
-                      if (invRes.error) zkToast('İş oluşturuldu ama fatura eklenemedi: ' + invRes.error.message);
-                    })
-                  : Promise.resolve(); });
-                return invoicePromise.then(function () {
-                  return ZirkonikData.reviewOrder(o.id, {
-                    status: 'approved', job_id: job.id,
-                    reviewed_by: me.id, reviewed_at: new Date().toISOString()
-                  });
+              return invoicePromise.then(function () {
+                return ZirkonikData.reviewOrder(o.id, {
+                  status: 'approved', job_id: job.id,
+                  reviewed_by: me.id, reviewed_at: new Date().toISOString()
                 });
               });
             });

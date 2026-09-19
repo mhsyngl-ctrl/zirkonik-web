@@ -445,16 +445,6 @@
         document.getElementById('f-doctor').value || null,
         document.getElementById('f-lab').value || null);
 
-      // Siparisin toplam tutari tek sayidir ve fatura siparis bazinda
-      // kesiliyor; farkli para birimindeki kalemler toplanamaz. Bu durumda
-      // ayri siparis acilmali.
-      if (draftItems.length && draftItems[0].currency !== itemCur) {
-        errEl.textContent = 'Bu kalemin anlaşması ' + itemCur + ', siparişteki diğer kalemler ' +
-          draftItems[0].currency + '. Farklı para birimleri için ayrı sipariş açın.';
-        errEl.classList.remove('hidden');
-        return;
-      }
-
       var priceVal = document.getElementById('f-price').value;
       draftItems.push({
         price_item_id: item.id,
@@ -704,7 +694,22 @@
           // Tutar ve diş sayısı ise TÜM kalemlerin toplamı — fatura sipariş
           // bazında kesiliyor.
           priceItem = { id: first.price_item_id, name: first.name };
-          var toplamFiyat = draftItems.reduce(function (s, x) { return s + (Number(x.price) || 0); }, 0);
+
+          // Bir siparis hem USD hem TL kalem tasiyabiliyor (doktorla kalem
+          // bazinda farkli anlasma olabilir). Tutarlar para birimine gore
+          // gruplaniyor; her grup icin AYRI fatura kesiliyor.
+          var tutarGruplari = {};
+          draftItems.forEach(function (x) {
+            if (x.price == null) return;
+            var c = ZirkonikMoney.normalize(x.currency);
+            tutarGruplari[c] = (tutarGruplari[c] || 0) + Number(x.price);
+          });
+          // jobs.price/jobs.currency ESKI toplama alanlari: tek sayi
+          // tutuyorlar, farkli para birimleri toplanamaz. Bu yuzden yalnizca
+          // isin kendi para birimindeki (ilk kalemin) tutari yaziliyor —
+          // karisik siparislerde gercek toplam job_items'ta ve faturalarda.
+          var isParaBirimi = ZirkonikMoney.normalize(first.currency);
+          var toplamFiyat = tutarGruplari[isParaBirimi] || 0;
           var toplamDis = draftItems.reduce(function (s, x) { return s + (Number(x.unit_count) || 0); }, 0);
           var tumDisler = draftItems.reduce(function (a, x) { return a.concat(x.teeth || []); }, []);
         // job_number veritabanındaki trg_set_job_number tetikleyicisi tarafından
@@ -749,26 +754,36 @@
             };
           })).then(function (ir) {
             if (ir.error) throw ir.error;
-            return { data: job };
+            return { data: job, tutarGruplari: tutarGruplari };
           });
         });
         });
       }).then(function (res) {
         if (res.error) throw res.error;
         var job = res.data;
-        if (job.price) {
+        var gruplar = res.tutarGruplari || {};
+        var paraBirimleri = Object.keys(gruplar).filter(function (c) { return gruplar[c]; });
+        if (paraBirimleri.length) {
           // İş kaydı burada zaten oluştu — fatura eklenirken bir hata olursa
           // (ör. finans yetkisi olmayan personel) bunu iş oluşturma hatasıymış
           // gibi göstermemek için ayrı yakalıyoruz; iş yine de kaydedilmiş olur.
           return client.from('doctors').select('payment_terms_days').eq('id', job.doctor_id).single().then(function (docRes) {
             var days = (docRes.data && docRes.data.payment_terms_days) || 30;
             var due = new Date(); due.setDate(due.getDate() + days);
-            return client.from('invoices').insert({
-              organization_id: job.organization_id, doctor_id: job.doctor_id, job_id: job.id,
-              amount: job.price, due_date: due.toISOString().slice(0, 10), status: 'unpaid'
-            });
+            // Para birimi basina AYRI fatura: bir faturanin tutari tek sayidir
+            // ve odemeler fatura para birimiyle eslesmek zorunda
+            // (trg_guard_payment_currency). Karisik siparis tek faturaya
+            // sigdirilamazdi.
+            return client.from('invoices').insert(paraBirimleri.map(function (c) {
+              return {
+                organization_id: job.organization_id, doctor_id: job.doctor_id, job_id: job.id,
+                amount: gruplar[c], currency: c,
+                due_date: due.toISOString().slice(0, 10), status: 'unpaid'
+              };
+            }));
           }).then(function (invRes) {
             if (invRes.error) zkToast('İş oluşturuldu ama fatura eklenemedi: ' + invRes.error.message);
+            else if (paraBirimleri.length > 1) zkToast('Para birimi başına ayrı fatura kesildi.');
             return job;
           });
         }

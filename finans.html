@@ -610,27 +610,68 @@
       // yoktu. Canlida boyle 6 is bulundu (320 TL). Bu kontrol onlari gosterir.
       function loadUnbilledJobs() {
         var sec = document.getElementById('unbilled-section');
-        client.from('jobs').select('id, job_number, price, currency, status').not('price', 'is', null).neq('status', 'cancelled')
-          .then(function (jr) {
-            var jobs = jr.data || [];
-            if (!jobs.length) return;
-            return client.from('invoices').select('job_id').not('job_id', 'is', null).then(function (ir) {
-              var billed = {};
-              (ir.data || []).forEach(function (i) { billed[i.job_id] = true; });
-              var orphans = jobs.filter(function (j) { return !billed[j.id]; });
-              if (!orphans.length) return;
-              document.getElementById('unbilled-summary').textContent =
-                orphans.length + ' faturasız iş · ' + ZirkonikMoney.totalText(orphans, 'price', 'currency', 0);
-              document.getElementById('unbilled-list').innerHTML =
-                orphans.slice(0, 10).map(function (j) {
-                  return '<button onclick="location.href=\'detay.html?id=' + j.id + '\'" class="flex w-full items-center justify-between rounded-theme border border-border bg-card px-3 py-2.5 text-left">' +
-                    '<span class="truncate text-sm font-bold">' + escapeHtml(j.job_number || '—') + '</span>' +
-                    '<span class="text-sm font-bold tabular-nums">' + ZirkonikMoney.format(j.price, j.currency, 0) + '</span></button>';
-                }).join('') +
-                (orphans.length > 10 ? '<p class="text-xs text-muted-foreground">İlk 10 tanesi listelendi.</p>' : '');
-              sec.classList.remove('hidden');
+        // Karisik para birimli sipariste is basina para birimi BASINA ayri
+        // fatura kesiliyor. Bu yuzden "is faturalandi mi" yetmez: bir is
+        // $ tarafinda faturali, ₺ tarafinda faturasiz kalabilir. Kontrol
+        // (is, para birimi) cifti uzerinden yapiliyor; tutarlar da
+        // jobs.price'tan degil kalemlerden geliyor, cunku jobs.price tek
+        // sayi olarak karisik siparisin tamamini gosteremiyor.
+        Promise.all([
+          client.from('jobs').select('id, job_number, price, currency, status').neq('status', 'cancelled'),
+          client.from('job_items').select('job_id, price, currency'),
+          client.from('invoices').select('job_id, currency, status').not('job_id', 'is', null)
+        ]).then(function (res) {
+          var jobs = res[0].data || [];
+          if (!jobs.length) return;
+          var jobById = {};
+          jobs.forEach(function (j) { jobById[j.id] = j; });
+
+          // Beklenen tutarlar: kalem varsa kalemlerden, yoksa isin kendisinden.
+          var beklenen = {};   // job_id -> { '$': 120, '₺': 300 }
+          var kalemliIsler = {};
+          (res[1].data || []).forEach(function (k) {
+            if (!jobById[k.job_id] || k.price == null) return;
+            kalemliIsler[k.job_id] = true;
+            var c = ZirkonikMoney.normalize(k.currency);
+            var m = beklenen[k.job_id] = beklenen[k.job_id] || {};
+            m[c] = (m[c] || 0) + Number(k.price);
+          });
+          jobs.forEach(function (j) {
+            if (kalemliIsler[j.id] || j.price == null) return;
+            beklenen[j.id] = {};
+            beklenen[j.id][ZirkonikMoney.normalize(j.currency)] = Number(j.price);
+          });
+
+          // Kesilmis faturalar. Iptal fatura "kesilmis" sayilmaz.
+          var kesilen = {};
+          (res[2].data || []).forEach(function (i) {
+            if (i.status === 'cancelled') return;
+              var k = kesilen[i.job_id] = kesilen[i.job_id] || {};
+            k[ZirkonikMoney.normalize(i.currency)] = true;
+          });
+
+          var eksikler = [];
+          Object.keys(beklenen).forEach(function (jobId) {
+            Object.keys(beklenen[jobId]).forEach(function (c) {
+              if (!beklenen[jobId][c]) return;
+              if (kesilen[jobId] && kesilen[jobId][c]) return;
+              eksikler.push({ job: jobById[jobId], amount: beklenen[jobId][c], currency: c });
             });
           });
+          if (!eksikler.length) return;
+
+          var isSayisi = Object.keys(eksikler.reduce(function (m, x) { m[x.job.id] = 1; return m; }, {})).length;
+          document.getElementById('unbilled-summary').textContent =
+            isSayisi + ' faturasız iş · ' + ZirkonikMoney.totalText(eksikler, 'amount', 'currency', 0);
+          document.getElementById('unbilled-list').innerHTML =
+            eksikler.slice(0, 10).map(function (x) {
+              return '<button onclick="location.href=\'detay.html?id=' + x.job.id + '\'" class="flex w-full items-center justify-between rounded-theme border border-border bg-card px-3 py-2.5 text-left">' +
+                '<span class="truncate text-sm font-bold">' + escapeHtml(x.job.job_number || '—') + '</span>' +
+                '<span class="text-sm font-bold tabular-nums">' + ZirkonikMoney.format(x.amount, x.currency, 0) + '</span></button>';
+            }).join('') +
+            (eksikler.length > 10 ? '<p class="text-xs text-muted-foreground">İlk 10 tanesi listelendi.</p>' : '');
+          sec.classList.remove('hidden');
+        });
       }
 
       client.from('laboratories').select('id, name').then(function (labsRes) {
@@ -639,10 +680,21 @@
         Promise.all(labs.map(function (lab) {
           // 2026-09-12: iptal edilen isler de ciroya sayiliyordu (Zirkonik Lab
           // 1.525 TL gorunuyordu, gercegi 1.140 TL).
-          return client.from('jobs').select('price, currency').eq('laboratory_id', lab.id).neq('status', 'cancelled').then(function (r) {
+          // Ciro kalemlerden hesaplaniyor: karisik para birimli sipariste
+          // jobs.price yalniz birincil para birimini tasidigi icin geri kalan
+          // ciroya hic girmezdi. Kalemi olmayan eski isler jobs'tan gelir.
+          return Promise.all([
+            client.from('jobs').select('id, price, currency').eq('laboratory_id', lab.id).neq('status', 'cancelled'),
+            client.from('job_items').select('job_id, price, currency, jobs!inner(laboratory_id, status)')
+              .eq('jobs.laboratory_id', lab.id).neq('jobs.status', 'cancelled')
+          ]).then(function (r) {
+            var kalemler = (r[1].data || []).filter(function (k) { return k.price != null; });
+            var kalemliIs = {};
+            kalemler.forEach(function (k) { kalemliIs[k.job_id] = true; });
+            var kalemsiz = (r[0].data || []).filter(function (j) { return j.price != null && !kalemliIs[j.id]; });
             // Ayni laboratuvarda hem USD hem TL is olabilir; ciro para birimi
             // basina ayri yaziliyor.
-            return { lab: lab, revenue: ZirkonikMoney.totalText(r.data || [], 'price', 'currency', 0) };
+            return { lab: lab, revenue: ZirkonikMoney.totalText(kalemler.concat(kalemsiz), 'price', 'currency', 0) };
           });
         })).then(function (rows) {
           document.getElementById('lab-revenue').innerHTML = rows.map(function (row) {

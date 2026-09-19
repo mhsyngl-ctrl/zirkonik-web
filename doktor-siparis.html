@@ -897,7 +897,7 @@
         client.from('job_stage_history').select('room_id, entered_at, exited_at, confirmed_at, rooms(name)').eq('job_id', jobId).order('entered_at'),
         client.from('rooms').select('id, name'),
         // Kalemler: cene semasini kendi renkleriyle boyamak icin.
-        client.from('job_items').select('teeth, color_index, restoration_type').eq('job_id', jobId).order('sort_order')
+        client.from('job_items').select('teeth, color_index, restoration_type, price, currency').eq('job_id', jobId).order('sort_order')
       ]).then(function (res) {
         if (res[0].error) {
           body.innerHTML = '<p class="text-xs text-destructive">Açılamadı: ' + escapeHtml(res[0].error.message) + '</p>';
@@ -928,7 +928,11 @@
         row('Diş numaraları', j.teeth_numbers);
         row('Teslim tarihi', j.requested_delivery_at ? new Date(j.requested_delivery_at).toLocaleDateString('tr-TR') : null);
         row('Laboratuvar', j.laboratories ? j.laboratories.name : null);
-        if (j.price != null) row('Tutar', ZirkonikMoney.format(Number(j.price), j.currency, 0));
+        // Kalemler farkli para birimlerinde olabilir (kalem bazinda ayri
+        // anlasma); toplam kalemlerden, para birimi basina ayri yaziliyor.
+        var fiyatli = (res[3].data || []).filter(function (k) { return k.price != null; });
+        if (fiyatli.length) row('Tutar', ZirkonikMoney.totalText(fiyatli, 'price', 'currency', 0));
+        else if (j.price != null) row('Tutar', ZirkonikMoney.format(Number(j.price), j.currency, 0));
         if (info.length) html += '<div class="grid grid-cols-2 gap-2">' + info.join('') + '</div>';
 
         // --- Üretim akışı ---
