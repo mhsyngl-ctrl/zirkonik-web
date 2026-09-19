@@ -216,6 +216,18 @@
     updateDoctor: function (doctorId, fields) {
       return client().from('doctors').update(fields).eq('id', doctorId);
     },
+    // "Silme" yerine akıllı çıkarma (delete-doctor-account edge function):
+    // hiç işi/faturası/tahsilatı yoksa kayıt tamamen silinir; varsa silinemez
+    // (jobs/invoices/payments doctors'a ON DELETE kuralı olmadan bağlı) —
+    // onun yerine durum 'rejected' olur ve portal hesabı varsa banlanır.
+    // Portal hesabını banlamak service_role gerektirdiği için istemciden
+    // yapılamaz, edge function şart.
+    removeDoctor: function (doctorId) {
+      return unwrapFnResult(client().functions.invoke('delete-doctor-account', { body: { doctor_id: doctorId } }));
+    },
+    restoreDoctor: function (doctorId) {
+      return unwrapFnResult(client().functions.invoke('delete-doctor-account', { body: { doctor_id: doctorId, restore: true } }));
+    },
 
     // ---- Personel / Yetki ----
     listStaff: function () {
@@ -603,6 +615,67 @@
 
   window.ZirkonikAuth = Auth;
   window.ZirkonikData = Data;
+
+  // ---- Para birimi ----
+  // Fiyat listesi kalem basina '$', '₺' veya '€' tasiyor; bu secim artik is,
+  // fatura ve odeme kaydina da yaziliyor (migration
+  // 20260919170000_para_birimi_is_fatura_odeme). Onceden her sayfa kendi
+  // icinde sabit TRY bicimlendiricisi tanimliyordu, bu yuzden '$' secilmis
+  // kalemler bile ekranda "₺" gorunuyordu. Artik tek kaynak burasi.
+  //
+  // Farkli para birimleri TOPLANMAZ. Kur kullanmiyoruz ki gecmis toplamlar
+  // kur degistikce kaymasin; karisik listelerde her para birimi kendi
+  // toplamiyla yan yana gosterilir ("$3.200 · ₺12.400").
+  var CURRENCY_CODES = { '$': 'USD', '₺': 'TRY', '€': 'EUR' };
+  var DEFAULT_CURRENCY = '$';
+
+  function normalizeCurrency(sym) {
+    return CURRENCY_CODES[sym] ? sym : DEFAULT_CURRENCY;
+  }
+
+  var Money = {
+    SYMBOLS: ['$', '₺', '€'],
+    DEFAULT: DEFAULT_CURRENCY,
+    normalize: normalizeCurrency,
+
+    /** Tek tutari kendi para biriminde bicimlendirir. */
+    format: function (amount, currency, fractionDigits) {
+      var sym = normalizeCurrency(currency);
+      return new Intl.NumberFormat('tr-TR', {
+        style: 'currency',
+        currency: CURRENCY_CODES[sym],
+        maximumFractionDigits: fractionDigits == null ? 0 : fractionDigits,
+        minimumFractionDigits: 0
+      }).format(Number(amount) || 0);
+    },
+
+    /** Kayitlari para birimine gore toplar -> { '$': 1200, '₺': 300 } */
+    groupTotals: function (rows, amountKey, currencyKey) {
+      var out = {};
+      (rows || []).forEach(function (r) {
+        var sym = normalizeCurrency(r[currencyKey || 'currency']);
+        out[sym] = (out[sym] || 0) + (Number(r[amountKey || 'amount']) || 0);
+      });
+      return out;
+    },
+
+    /** { '$': 1200, '₺': 300 } -> "$1.200 · ₺300"
+     *  Hic kayit yoksa varsayilan para biriminde sifir doner ki ekran bos
+     *  kalmasin. */
+    formatTotals: function (totals, fractionDigits) {
+      var keys = Object.keys(totals || {}).filter(function (k) { return totals[k]; });
+      if (!keys.length) return Money.format(0, DEFAULT_CURRENCY, fractionDigits);
+      keys.sort(function (a, b) { return Money.SYMBOLS.indexOf(a) - Money.SYMBOLS.indexOf(b); });
+      return keys.map(function (k) { return Money.format(totals[k], k, fractionDigits); }).join(' · ');
+    },
+
+    /** Kayit listesini dogrudan "toplam metni"ne cevirir. */
+    totalText: function (rows, amountKey, currencyKey, fractionDigits) {
+      return Money.formatTotals(Money.groupTotals(rows, amountKey, currencyKey), fractionDigits);
+    }
+  };
+
+  window.ZirkonikMoney = Money;
 
   // ---- Cihaz push token kaydı ----
   // Oturum açıksa token bu kullanıcıya kaydedilir (device_tokens); push
