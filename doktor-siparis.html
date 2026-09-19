@@ -389,7 +389,6 @@
         }).join('');
       }
       if (window.ZkWorkForm && ZkWorkForm.setUsedTeeth) ZkWorkForm.setUsedTeeth(zkDocUsedTeeth());
-      zkRecalc();
     }
 
     function zkDocRemoveItem(i) { docItems.splice(i, 1); zkDocRenderItems(); }
@@ -592,7 +591,6 @@
         zkDocRenderItems();
         ZkWorkForm.onTeethChange = function (teeth) {
           if (teeth.length) document.getElementById('o-count').value = teeth.length;
-          zkRecalc();
         };
         docItems = [];
         docColorIdx = 0;
@@ -603,7 +601,6 @@
         document.getElementById('o-ref').value = '';
         document.getElementById('o-note').value = '';
         document.getElementById('o-type').value = '';
-        zkRecalc();
         zkSetTab('list');
       });
     });
