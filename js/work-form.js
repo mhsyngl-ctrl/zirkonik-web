@@ -115,6 +115,25 @@
   var ZkWorkForm = {
     onTeethChange: null,
 
+    /* SALT OKUNUR diş şeması. Sipariş detayında "hangi diş hangi işe ait"
+     * sorusunu tek bakışta cevaplamak için. Tıklanamaz, form alanları yok ve
+     * modül düzeyindeki `container`/`selected` durumuna DOKUNMAZ — aynı
+     * sayfada düzenlenebilir bir form da bulunabilir.
+     * colorMap: { 11: '#3D7CDC', 12: '#F0A03C', ... } */
+    renderChartOnly: function (el, colorMap) {
+      if (!el) return;
+      el.innerHTML = '<div style="pointer-events:none;">' + chartSvg() + '</div>';
+      Object.keys(colorMap || {}).forEach(function (n) {
+        var c = colorMap[n];
+        var crown = el.querySelector('[data-crown="' + n + '"]');
+        var num = el.querySelector('[data-num="' + n + '"]');
+        var fis = el.querySelector('[data-fissure="' + n + '"]');
+        if (crown) { crown.setAttribute('fill', c); crown.setAttribute('stroke', c); }
+        if (num) num.setAttribute('fill', c);
+        if (fis) fis.setAttribute('stroke', 'rgba(255,255,255,0.75)');
+      });
+    },
+
     render: function (el) {
       container = el;
       selected = {};

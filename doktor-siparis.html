@@ -654,7 +654,9 @@
       Promise.all([
         client.from('jobs').select('*, laboratories(name), rooms:current_room_id(name)').eq('id', jobId).single(),
         client.from('job_stage_history').select('room_id, entered_at, exited_at, confirmed_at, rooms(name)').eq('job_id', jobId).order('entered_at'),
-        client.from('rooms').select('id, name')
+        client.from('rooms').select('id, name'),
+        // Kalemler: cene semasini kendi renkleriyle boyamak icin.
+        client.from('job_items').select('teeth, color_index, restoration_type').eq('job_id', jobId).order('sort_order')
       ]).then(function (res) {
         if (res[0].error) {
           body.innerHTML = '<p class="text-xs text-destructive">Açılamadı: ' + escapeHtml(res[0].error.message) + '</p>';
@@ -718,6 +720,23 @@
             }).join('') + '</div>';
         }
 
+        // --- Çene şeması ---
+        // Hangi dişin hangi işe ait olduğunu tek bakışta göstermek için.
+        // Kalemler yoksa (eski işler) serbest metin alanından ayıklanır.
+        var ZK_COLORS = ['#3D7CDC', '#F0A03C', '#10B981', '#A855F7', '#EF5350'];
+        var colorMap = {}, anyTooth = false;
+        (res[3] && res[3].data ? res[3].data : []).forEach(function (it) {
+          var c = ZK_COLORS[(it.color_index || 0) % ZK_COLORS.length];
+          (it.teeth || []).forEach(function (n) { colorMap[n] = c; anyTooth = true; });
+        });
+        if (!anyTooth && j.teeth_numbers) {
+          (j.teeth_numbers.match(/\d+/g) || []).forEach(function (n) { colorMap[n] = ZK_COLORS[0]; anyTooth = true; });
+        }
+        if (anyTooth && window.ZkWorkForm && ZkWorkForm.renderChartOnly) {
+          html += '<p class="mt-4 text-xs font-bold">Diş yerleşimi</p>' +
+            '<div id="jd-chart" class="mt-2 rounded-theme border border-border bg-background p-2"></div>';
+        }
+
         // --- Çalışma formu (doktorun kendi girdiği) ---
         var wf = j.work_form || {};
         var wfRows = [];
@@ -751,6 +770,11 @@
         }
 
         body.innerHTML = html || '<p class="text-xs text-muted-foreground">Gösterilecek ayrıntı yok.</p>';
+        // innerHTML yazildiktan SONRA cizilmeli, once kapsayici DOM'da olmali.
+        var chartEl = document.getElementById('jd-chart');
+        if (chartEl && window.ZkWorkForm && ZkWorkForm.renderChartOnly) {
+          ZkWorkForm.renderChartOnly(chartEl, colorMap);
+        }
       });
     }
 
