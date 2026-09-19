@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://code.iconify.design; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://cuujupeindodpsdjcivm.supabase.co wss://cuujupeindodpsdjcivm.supabase.co https://api.iconify.design https://api.simplesvg.com https://api.unisvg.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <title>Ciro Detayı — Zirkonik</title>
+
+  <link rel="stylesheet" href="css/tailwind.css">
+  <link rel="stylesheet" href="css/ipad.css">
+  <link rel="stylesheet" href="css/zk-utils.css">
+  <script src="js/zk-tema.js"></script>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#F5F7FA">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <script src="https://code.iconify.design/iconify-icon/2.3.0/iconify-icon.min.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap">
+
+  <style>
+  :root {
+    --color-background: #0E1013;
+    --color-foreground: #F2F4F7;
+    --color-primary: #3D7CDC;
+    --color-primary-foreground: #FFFFFF;
+    --color-secondary: #232732;
+    --color-secondary-foreground: #C6CBD6;
+    --color-accent: #F0A03C;
+    --color-accent-foreground: #FFFFFF;
+    --color-muted: #1B1E24;
+    --color-muted-foreground: #98A0AD;
+    --color-card: #15171C;
+    --color-card-foreground: #F2F4F7;
+    --color-border: #262A32;
+    --color-input: #1B1E24;
+    --color-destructive: #EF5350;
+    --color-destructive-foreground: #FFFFFF;
+    --color-success: #10B981;
+    --color-success-foreground: #FFFFFF;
+    --font-heading: 'Plus Jakarta Sans', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --radius: 12px;
+  }
+  html { overflow-x: hidden; }
+  body { font-family: var(--font-body); -webkit-font-smoothing: antialiased; margin: 0; padding: 0; overflow-x: hidden; overscroll-behavior-x: none; }
+  </style>
+</head>
+<body data-page="ciro" class="bg-background text-foreground m-0 p-0">
+  <div class="h-screen w-screen overflow-y-auto">
+    <div class="min-h-screen w-full bg-background text-foreground font-body pb-32">
+      <header class="border-b border-border bg-card px-5 pb-5 pt-12" style="padding-top:max(3rem,calc(env(safe-area-inset-top) + 12px));">
+        <div class="flex items-center justify-between">
+          <button onclick="history.length > 1 ? history.back() : location.href='finans.html'" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-card text-card-foreground" aria-label="Geri">
+            <iconify-icon icon="lucide:arrow-left" class="text-xl"></iconify-icon>
+          </button>
+          <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Finans</p>
+          <div class="h-10 w-10"></div>
+        </div>
+        <div class="mt-6">
+          <h1 class="font-heading text-2xl font-bold tracking-tight">Ciro detayı</h1>
+          <p class="mt-1 text-sm text-muted-foreground">Faturalanan ve tahsil edilen tutarlar; dönem dönem.</p>
+        </div>
+
+        <!-- Donem secimi. Tutarlar para birimi basina ayri gosteriliyor;
+             kurlar degisken oldugu icin USD/TL/EUR birbirine cevrilmiyor. -->
+        <div class="mt-5 grid grid-cols-3 gap-2 rounded-theme border border-border bg-background p-1">
+          <button id="cd-tab-week"  onclick="zkSetGranularity('week')"  class="flex h-10 items-center justify-center rounded-lg text-xs font-bold">Haftalık</button>
+          <button id="cd-tab-month" onclick="zkSetGranularity('month')" class="flex h-10 items-center justify-center rounded-lg text-xs font-bold">Aylık</button>
+          <button id="cd-tab-year"  onclick="zkSetGranularity('year')"  class="flex h-10 items-center justify-center rounded-lg text-xs font-bold">Yıllık</button>
+        </div>
+      </header>
+
+      <main class="px-5 pt-5">
+        <section class="grid grid-cols-2 gap-3">
+          <article class="rounded-theme border border-border bg-card p-4">
+            <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary text-primary"><iconify-icon icon="lucide:file-text" class="text-base"></iconify-icon></span>
+            <p id="cd-invoiced" class="mt-4 font-heading text-lg font-bold tabular-nums">—</p>
+            <p class="mt-1 text-xs text-muted-foreground">Toplam faturalanan</p>
+          </article>
+          <article class="rounded-theme border border-border bg-card p-4">
+            <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-success/10 text-success"><iconify-icon icon="lucide:check-circle-2" class="text-base"></iconify-icon></span>
+            <p id="cd-collected" class="mt-4 font-heading text-lg font-bold tabular-nums">—</p>
+            <p class="mt-1 text-xs text-muted-foreground">Toplam tahsil edilen</p>
+          </article>
+        </section>
+
+        <section class="mt-6">
+          <h2 id="cd-list-title" class="font-heading text-lg font-bold">Aylık döküm</h2>
+          <p class="mt-1 text-xs text-muted-foreground">Her satır o dönemde kesilen fatura ve alınan tahsilatı gösterir.</p>
+          <div id="cd-list" class="mt-3 space-y-2.5">
+            <p class="text-xs text-muted-foreground">Yükleniyor…</p>
+          </div>
+        </section>
+
+        <section class="mt-6">
+          <h2 class="font-heading text-lg font-bold">Laboratuvar bazında</h2>
+          <p class="mt-1 text-xs text-muted-foreground">Tüm zamanlar, iş kalemlerinden hesaplanır.</p>
+          <div id="cd-labs" class="mt-3 space-y-2.5">
+            <p class="text-xs text-muted-foreground">Yükleniyor…</p>
+          </div>
+        </section>
+
+        <section class="mt-6">
+          <h2 class="font-heading text-lg font-bold">Doktor bazında</h2>
+          <p class="mt-1 text-xs text-muted-foreground">Seçili dönemde faturalanan tutara göre sıralı.</p>
+          <div id="cd-doctors" class="mt-3 space-y-2.5">
+            <p class="text-xs text-muted-foreground">Yükleniyor…</p>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div id="zk-toast" style="position:fixed;left:50%;bottom:40px;transform:translate(-50%,16px);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;background:#17242C;color:#fff;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;padding:10px 16px;border-radius:12px;z-index:9999;max-width:86%;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.18);"></div>
+  <script>
+    function zkToast(msg){
+      var el = document.getElementById('zk-toast');
+      if(!el) return;
+      el.textContent = msg;
+      el.style.opacity = '1';
+      el.style.transform = 'translate(-50%,0)';
+      clearTimeout(window.__zkToastTimer);
+      window.__zkToastTimer = setTimeout(function(){
+        el.style.opacity = '0';
+        el.style.transform = 'translate(-50%,16px)';
+      }, 2200);
+    }
+    function escapeHtml(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+  </script>
+
+  <script src="vendor/supabase-js.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="supabase-client.js"></script>
+  <script src="js/zk-guard.js"></script>
+  <script src="js/zk-picker.js"></script>
+  <script src="js/zk-ptr.js"></script>
+  <script src="js/zk-yenile.js"></script>
+  <script>
+    /* Ciro detayi. Finans ekranindaki ciro kartinin "Tümü" dugmesi
+       laboratuvarlar.html'e (laboratuvar/oda yonetimi) gidiyordu — ciro
+       kartindan beklenen yer orasi degildi. Artik buraya geliyor.
+
+       Tutarlar para birimi basina ayri: kurlar degisken oldugu icin
+       USD/TL/EUR birbirine CEVRILMIYOR (bkz. ZirkonikMoney). */
+    var granularity = 'month';
+    var invoices = [];
+    var payments = [];
+    var doctorAdi = {};
+
+    function donemAnahtari(iso, g) {
+      var d = new Date(iso);
+      if (isNaN(d)) return null;
+      var y = d.getFullYear();
+      if (g === 'year') return String(y);
+      if (g === 'month') return y + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      // Hafta: ISO hafta numarasi (pazartesi baslangicli)
+      var t = new Date(Date.UTC(y, d.getMonth(), d.getDate()));
+      var gun = t.getUTCDay() || 7;
+      t.setUTCDate(t.getUTCDate() + 4 - gun);
+      var yilBasi = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+      var hafta = Math.ceil(((t - yilBasi) / 86400000 + 1) / 7);
+      return t.getUTCFullYear() + '-H' + String(hafta).padStart(2, '0');
+    }
+
+    var AYLAR = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+    function donemEtiketi(anahtar, g) {
+      if (g === 'year') return anahtar;
+      if (g === 'month') {
+        var p = anahtar.split('-');
+        return AYLAR[Number(p[1]) - 1] + ' ' + p[0];
+      }
+      var h = anahtar.split('-H');
+      return h[0] + ' · ' + Number(h[1]) + '. hafta';
+    }
+
+    function zkSetGranularity(g) {
+      granularity = g;
+      ['week','month','year'].forEach(function (x) {
+        var b = document.getElementById('cd-tab-' + x);
+        if (!b) return;
+        b.className = 'flex h-10 items-center justify-center rounded-lg text-xs font-bold ' +
+          (x === g ? 'bg-primary text-primary-foreground' : 'text-muted-foreground');
+      });
+      document.getElementById('cd-list-title').textContent =
+        g === 'week' ? 'Haftalık döküm' : (g === 'year' ? 'Yıllık döküm' : 'Aylık döküm');
+      ciz();
+    }
+
+    function ciz() {
+      // Toplamlar
+      document.getElementById('cd-invoiced').textContent =
+        ZirkonikMoney.totalText(invoices, 'amount', 'currency', 0);
+      document.getElementById('cd-collected').textContent =
+        ZirkonikMoney.totalText(payments, 'amount', 'currency', 0);
+
+      // Donem dokumu
+      var kova = {};
+      function ekle(tip, iso, satir) {
+        var k = donemAnahtari(iso, granularity);
+        if (!k) return;
+        var o = kova[k] = kova[k] || { fatura: [], tahsilat: [] };
+        o[tip].push(satir);
+      }
+      invoices.forEach(function (x) { ekle('fatura', x.issued_at, x); });
+      payments.forEach(function (x) { ekle('tahsilat', x.received_at, x); });
+
+      var anahtarlar = Object.keys(kova).sort().reverse();
+      var el = document.getElementById('cd-list');
+      el.innerHTML = anahtarlar.length ? anahtarlar.map(function (k) {
+        var o = kova[k];
+        return '<div class="rounded-theme border border-border bg-card p-3.5">' +
+          '<p class="text-sm font-bold">' + escapeHtml(donemEtiketi(k, granularity)) + '</p>' +
+          '<div class="mt-2 grid grid-cols-2 gap-2">' +
+            '<div><p class="text-[10px] text-muted-foreground">Faturalanan</p>' +
+              '<p class="mt-0.5 text-sm font-bold tabular-nums text-accent">' + ZirkonikMoney.totalText(o.fatura, 'amount', 'currency', 0) + '</p>' +
+              '<p class="text-[10px] text-muted-foreground">' + o.fatura.length + ' fatura</p></div>' +
+            '<div><p class="text-[10px] text-muted-foreground">Tahsil edilen</p>' +
+              '<p class="mt-0.5 text-sm font-bold tabular-nums text-success">' + ZirkonikMoney.totalText(o.tahsilat, 'amount', 'currency', 0) + '</p>' +
+              '<p class="text-[10px] text-muted-foreground">' + o.tahsilat.length + ' tahsilat</p></div>' +
+          '</div></div>';
+      }).join('') : '<p class="text-xs text-muted-foreground">Bu dönemde kayıt yok.</p>';
+
+      // Doktor bazinda (faturalanan)
+      var drKova = {};
+      invoices.forEach(function (x) {
+        (drKova[x.doctor_id] = drKova[x.doctor_id] || []).push(x);
+      });
+      var drEl = document.getElementById('cd-doctors');
+      var drList = Object.keys(drKova).map(function (id) {
+        var satirlar = drKova[id];
+        var toplam = satirlar.reduce(function (s, x) { return s + Number(x.amount || 0); }, 0);
+        return { id: id, satirlar: satirlar, siralama: toplam };
+      }).sort(function (a, b) { return b.siralama - a.siralama; });
+      drEl.innerHTML = drList.length ? drList.map(function (d) {
+        return '<div class="flex items-center justify-between gap-3 rounded-theme border border-border bg-card p-3.5">' +
+          '<p class="min-w-0 flex-1 truncate text-sm font-bold">' + escapeHtml(doctorAdi[d.id] || 'Doktor') + '</p>' +
+          '<p class="shrink-0 text-sm font-bold tabular-nums">' + ZirkonikMoney.totalText(d.satirlar, 'amount', 'currency', 0) + '</p></div>';
+      }).join('') : '<p class="text-xs text-muted-foreground">Fatura yok.</p>';
+    }
+
+    function labCiro() {
+      var client = ZirkonikAuth.client();
+      client.from('laboratories').select('id, name').then(function (labsRes) {
+        var labs = labsRes.data || [];
+        var el = document.getElementById('cd-labs');
+        if (!labs.length) { el.innerHTML = '<p class="text-xs text-muted-foreground">Laboratuvar yok.</p>'; return; }
+        Promise.all(labs.map(function (lab) {
+          // Ciro kalemlerden: karisik para birimli sipariste jobs.price yalniz
+          // birincil para birimini tasiyor, kalan ciroya girmezdi.
+          return Promise.all([
+            client.from('jobs').select('id, price, currency').eq('laboratory_id', lab.id).neq('status', 'cancelled'),
+            client.from('job_items').select('job_id, price, currency, jobs!inner(laboratory_id, status)')
+              .eq('jobs.laboratory_id', lab.id).neq('jobs.status', 'cancelled')
+          ]).then(function (r) {
+            var kalemler = (r[1].data || []).filter(function (k) { return k.price != null; });
+            var kalemliIs = {};
+            kalemler.forEach(function (k) { kalemliIs[k.job_id] = true; });
+            var kalemsiz = (r[0].data || []).filter(function (j) { return j.price != null && !kalemliIs[j.id]; });
+            return { lab: lab, metin: ZirkonikMoney.totalText(kalemler.concat(kalemsiz), 'price', 'currency', 0) };
+          });
+        })).then(function (rows) {
+          el.innerHTML = rows.map(function (row) {
+            return '<div class="flex items-center justify-between gap-3 rounded-theme border border-border bg-card p-3.5">' +
+              '<p class="min-w-0 flex-1 truncate text-sm font-bold">' + escapeHtml(row.lab.name) + '</p>' +
+              '<p class="shrink-0 font-heading text-base font-bold tabular-nums">' + row.metin + '</p></div>';
+          }).join('');
+        });
+      });
+    }
+
+    function loadCiro() {
+      var client = ZirkonikAuth.client();
+      return Promise.all([
+        // Iptal fatura ciroya girmez.
+        client.from('invoices').select('id, amount, currency, status, issued_at, doctor_id').neq('status', 'cancelled'),
+        client.from('payments').select('id, amount, currency, received_at'),
+        client.from('doctors').select('id, full_name')
+      ]).then(function (res) {
+        invoices = res[0].data || [];
+        payments = res[1].data || [];
+        doctorAdi = {};
+        (res[2].data || []).forEach(function (d) { doctorAdi[d.id] = d.full_name; });
+        ciz();
+        labCiro();
+      });
+    }
+
+    ZirkonikAuth.requireAuth().then(function (session) {
+      if (!session) return;
+      zkSetGranularity('month');
+      loadCiro();
+    });
+
+    window.zkRefresh = function () { return loadCiro(); };
+  </script>
+
+</body>
+</html>

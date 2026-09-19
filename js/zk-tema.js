@@ -29,7 +29,11 @@
     if (meta) meta.setAttribute('content', tema === 'light' ? '#F5F7FA' : '#0E1013');
   }
 
-  var mevcut = oku() || 'dark';
+  /* 2026-09-19: varsayilan ACIK oldu (kullanici karari — "uygulamayi tamamen
+     beyaza dondurelim"). Daha once kaydetmis kullanicinin tercihi korunuyor;
+     yalnizca hic secim yapmamis olana acik geliyor. Koyu tema duruyor,
+     Ayarlar > Gorunum'den secilebiliyor. */
+  var mevcut = oku() || 'light';
   uygula(mevcut);
 
   function degistir(tema) {

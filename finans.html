@@ -13,7 +13,7 @@
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#0E1013">
+  <meta name="theme-color" content="#F5F7FA">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <script src="https://code.iconify.design/iconify-icon/2.3.0/iconify-icon.min.js"></script>
@@ -104,7 +104,10 @@
               <h2 class="font-heading text-lg font-bold">Laboratuvar bazında ciro</h2>
               <p class="mt-1 text-xs text-muted-foreground">Fatura tutarlarının toplamı</p>
             </div>
-            <button onclick="location.href='laboratuvarlar.html'" class="text-xs font-bold text-primary">Tümü</button>
+            <!-- 2026-09-19: bu dugme laboratuvar/oda YONETIMINE gidiyordu; ciro
+                 kartindan beklenen yer orasi degil. Artik ciro detayina gidiyor:
+                 haftalik/aylik/yillik dokum, laboratuvar ve doktor bazinda. -->
+            <button onclick="location.href='ciro.html'" class="text-xs font-bold text-primary">Tümü</button>
           </div>
           <div id="lab-revenue" class="mt-3 space-y-2.5">
             <p class="text-xs text-muted-foreground">Yükleniyor…</p>

@@ -127,6 +127,20 @@
     return overlay;
   }
 
+  /* Boş value'lu seçenek YER TUTUCU mu, yoksa gerçek bir seçim mi?
+   *
+   * 2026-09-19: kural "boş value'lu satırı bir şey seçiliyse gizle" idi. Ama
+   * boş value her zaman yer tutucu değil — "Genel fiyat listesi", "Tüm
+   * doktorlar", "Oda (ops.)" gibi GERÇEK seçimler de boş value kullanıyor.
+   * Sonuç: doktora özel fiyat seçtikten sonra genel listeye dönülemiyordu,
+   * filtreler de temizlenemiyordu; listeyi açıyorsun ama seçenek orada yok.
+   *
+   * Ayırt etme ölçütü metin: yer tutucular "... seçin / seçiniz" diye biter.
+   * Diğer her boş seçenek gerçek seçimdir ve listede kalır. */
+  function yerTutucuMu(opt) {
+    return /se[çc]in(iz)?\s*$/i.test((opt.textContent || '').trim());
+  }
+
   // ---- Liste seçici (select yerine) ----
   function openSelectSheet(sel) {
     var title = '';
@@ -151,8 +165,7 @@
         html += '<p class="zk-picker-group">' + esc(child.label) + '</p>';
         Array.prototype.forEach.call(child.children, function (o) { html += optionRow(o); });
       } else if (child.tagName === 'OPTION') {
-        // Boş value'lu "Seçin" placeholder satırını listede gösterme.
-        if (child.value === '' && sel.value !== '') return;
+        if (child.value === '' && sel.value !== '' && yerTutucuMu(child)) return;
         html += optionRow(child);
       }
     });

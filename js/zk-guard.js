@@ -116,7 +116,7 @@
     if (page === 'doktor-siparis') { location.replace('retim.html'); return true; }
     if (ADMIN_PAGES[page]) { location.replace('retim.html'); return true; }
     if (page === 'stok' && !p.can_manage_stock) { location.replace('retim.html'); return true; }
-    if (page === 'finans' && !p.can_view_finance) { location.replace('retim.html'); return true; }
+    if ((page === 'finans' || page === 'ciro') && !p.can_view_finance) { location.replace('retim.html'); return true; }
     if (page === 'doktorlar' && !p.can_view_doctors) { location.replace('retim.html'); return true; }
     return false;
   }
