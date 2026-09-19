@@ -61,17 +61,22 @@
         <div id="rs-loading" class="mx-auto max-w-sm text-center text-sm text-muted-foreground">Bağlantı doğrulanıyor…</div>
 
         <form id="rs-form" class="mx-auto mt-2 hidden max-w-sm space-y-3">
+          <!-- iOS parola yöneticisi "hangi hesabın parolası değişti" bilgisini
+               buradan okur; oturum kurulunca doldurulur. -->
+          <input id="rs-username" type="text" name="username" autocomplete="username"
+                 readonly tabindex="-1" aria-hidden="true"
+                 style="position:absolute;opacity:0;height:0;width:0;pointer-events:none;">
           <label class="block">
             <span class="mb-1.5 block text-xs font-bold text-card-foreground">Yeni şifre</span>
             <div class="relative">
-              <input id="rs-password" type="password" minlength="6" required class="h-12 w-full rounded-theme border border-border bg-input pl-3.5 pr-20 text-sm" placeholder="En az 6 karakter">
+              <input id="rs-password" name="new-password" autocomplete="new-password" type="password" minlength="6" required class="h-12 w-full rounded-theme border border-border bg-input pl-3.5 pr-20 text-sm" placeholder="En az 6 karakter">
               <button type="button" onclick="zkTogglePassword('rs-password', this)" class="absolute right-1 top-1 flex h-10 items-center rounded-lg px-3 text-xs font-bold text-primary">Göster</button>
             </div>
           </label>
           <label class="block">
             <span class="mb-1.5 block text-xs font-bold text-card-foreground">Yeni şifre (tekrar)</span>
             <div class="relative">
-              <input id="rs-password2" type="password" minlength="6" required class="h-12 w-full rounded-theme border border-border bg-input pl-3.5 pr-20 text-sm" placeholder="Şifreyi tekrar girin">
+              <input id="rs-password2" name="new-password" autocomplete="new-password" type="password" minlength="6" required class="h-12 w-full rounded-theme border border-border bg-input pl-3.5 pr-20 text-sm" placeholder="Şifreyi tekrar girin">
               <button type="button" onclick="zkTogglePassword('rs-password2', this)" class="absolute right-1 top-1 flex h-10 items-center rounded-lg px-3 text-xs font-bold text-primary">Göster</button>
             </div>
           </label>
@@ -137,6 +142,9 @@
           document.getElementById('rs-invalid').classList.remove('hidden');
           return;
         }
+        var uEl = document.getElementById('rs-username');
+        var em = res && res.data && res.data.user && res.data.user.email;
+        if (uEl && em) uEl.value = em;
         document.getElementById('rs-form').classList.remove('hidden');
       });
     }

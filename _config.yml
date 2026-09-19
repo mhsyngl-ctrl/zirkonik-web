@@ -1,0 +1,5 @@
+# GitHub Pages (Jekyll) nokta ile baslayan klasorleri varsayilan olarak
+# yayina dahil etmez. iOS parola otomatik doldurma icin gereken
+# /.well-known/apple-app-site-association dosyasinin servis edilmesi sart.
+include:
+  - .well-known
