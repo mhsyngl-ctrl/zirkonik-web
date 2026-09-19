@@ -393,6 +393,15 @@
     }
     function zkCloseRecipe() { document.getElementById('recipe-sheet').classList.add('hidden'); }
 
+    /* "Malzeme ekle" düğmesi bunu çağırıyordu ama fonksiyon hiç yazılmamıştı.
+     * Reçete özelliği şu an rafta (RECIPE_ENABLED=false) olduğu için sheet
+     * açılamıyor ve hata görünmüyor; özellik açıldığı gün düğme ilk basışta
+     * ReferenceError atıp bloğun geri kalanını öldürecekti. */
+    function zkAddRecipeRow() {
+      recipeRows.push({ material_id: '', qty_per_unit: '', room_id: null });
+      renderRecipeRows();
+    }
+
     function renderRecipeRows() {
       var matOpts = '<option value="">Malzeme seçin</option>' + recipeMaterials.map(function (m) {
         return '<option value="' + m.id + '">' + escapeHtml(m.name) + ' (' + escapeHtml(m.unit || 'adet') + ')</option>';
