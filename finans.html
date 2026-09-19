@@ -262,11 +262,31 @@
     <div class="absolute inset-0 bg-black/40" onclick="zkClosePayment()"></div>
     <div class="absolute bottom-0 left-0 w-full rounded-t-theme bg-card p-5 pb-8">
       <p class="font-heading text-lg font-bold">Tahsilat ekle</p>
+
+      <!-- İki mod. Doktor "bana 1000 USD verecek" deyip toplu ödeme
+           yaptığında tek tek hasta/iş seçmek gerçek işleyişe uymuyordu;
+           artık cariye tek kalemde işlenip en eski faturadan başlayarak
+           mahsup ediliyor. Tek bir faturayı kapatmak isteyenler için eski
+           yol da duruyor. -->
+      <div class="mt-3 grid grid-cols-2 gap-2 rounded-theme bg-muted p-1">
+        <button type="button" id="pay-mode-cari" onclick="zkPayMode('cari')" class="h-9 rounded-lg text-xs font-bold">Cariye (toplu)</button>
+        <button type="button" id="pay-mode-inv" onclick="zkPayMode('invoice')" class="h-9 rounded-lg text-xs font-bold">Faturaya</button>
+      </div>
+
       <div class="mt-4 space-y-3">
-        <select id="pay-invoice" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <select id="pay-doctor" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+          <option value="">Doktor seçin</option>
+        </select>
+        <select id="pay-currency" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+          <option value="$">$ — Dolar</option>
+          <option value="₺">₺ — Türk Lirası</option>
+          <option value="€">€ — Euro</option>
+        </select>
+        <p id="pay-balance" class="hidden rounded-theme border border-border bg-background px-3.5 py-2.5 text-xs"></p>
+        <select id="pay-invoice" class="hidden h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
           <option value="">Fatura seçin</option>
         </select>
-        <input id="pay-amount" type="number" min="0" step="0.01" placeholder="Tutar (₺) *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <input id="pay-amount" type="number" min="0" step="0.01" placeholder="Tutar *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         <select id="pay-method" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
           <option value="havale">Havale</option>
           <option value="nakit">Nakit</option>
@@ -601,7 +621,27 @@
         });
       });
 
+      // Cari tahsilat icin doktor listesi. Tahsilat artik fatura degil
+      // doktor bazinda alinabildigi icin gerekli.
+      function loadPaymentDoctors() {
+        ZirkonikData.listDoctors('approved').then(function (r) {
+          var sel = document.getElementById('pay-doctor');
+          if (!sel) return;
+          var rows = (r.data || []).slice().sort(function (a, b) {
+            return (a.full_name || '').localeCompare(b.full_name || '', 'tr');
+          });
+          sel.innerHTML = '<option value="">Doktor seçin</option>' + rows.map(function (d) {
+            var label = 'Dr. ' + d.full_name + (d.clinic_name ? ' — ' + d.clinic_name : '');
+            return '<option value="' + d.id + '">' + escapeHtml(label) + '</option>';
+          }).join('');
+          sel.addEventListener('change', zkPayShowBalance);
+          var cur = document.getElementById('pay-currency');
+          if (cur) cur.addEventListener('change', zkPayShowBalance);
+        });
+      }
+
       function loadReceivablesList() {
+        loadPaymentDoctors();
         ZirkonikData.listInvoices().then(function (r) {
           // 2026-09-12: 'paid' disindaki her sey bekleyen sayiliyordu, iptal
           // faturalar da listede ve tahsilat acilir menusunde cikiyordu.
@@ -665,14 +705,90 @@
       loadHandovers();
     });
 
-    function zkOpenPayment() { document.getElementById('payment-sheet').classList.remove('hidden'); }
+    // ---- Tahsilat: cari (toplu) / faturaya ----
+    // Varsayilan CARI. Doktor toplu odeme yaptiginda tek tek hasta/is
+    // secmek gercek isleyise uymuyordu; cariye tek kalemde islenip en eski
+    // faturadan baslayarak mahsup ediliyor (record_doctor_payment RPC).
+    var payMode = 'cari';
+
+    function zkPayMode(m) {
+      payMode = m;
+      var cariBtn = document.getElementById('pay-mode-cari');
+      var invBtn = document.getElementById('pay-mode-inv');
+      var on = 'h-9 rounded-lg text-xs font-bold bg-card text-foreground shadow-sm';
+      var off = 'h-9 rounded-lg text-xs font-bold text-muted-foreground';
+      cariBtn.className = m === 'cari' ? on : off;
+      invBtn.className = m === 'invoice' ? on : off;
+      document.getElementById('pay-invoice').classList.toggle('hidden', m !== 'invoice');
+      document.getElementById('pay-doctor').classList.toggle('hidden', m !== 'cari');
+      document.getElementById('pay-currency').classList.toggle('hidden', m !== 'cari');
+      if (m !== 'cari') document.getElementById('pay-balance').classList.add('hidden');
+      else zkPayShowBalance();
+    }
+
+    // Secili doktorun o para birimindeki bakiyesi — kullanici ne kadar
+    // tahsil edecegini gorsun diye. Faturaya bagli olsun olmasin tum
+    // odemeler dusuluyor (cari mantigi).
+    function zkPayShowBalance() {
+      var el = document.getElementById('pay-balance');
+      var docId = document.getElementById('pay-doctor').value;
+      var cur = document.getElementById('pay-currency').value;
+      if (!docId) { el.classList.add('hidden'); return; }
+      var client = ZirkonikAuth.client();
+      Promise.all([
+        client.from('invoices').select('amount').eq('doctor_id', docId).eq('currency', cur).neq('status', 'cancelled'),
+        client.from('payments').select('amount').eq('doctor_id', docId).eq('currency', cur)
+      ]).then(function (res) {
+        var inv = (res[0].data || []).reduce(function (s, x) { return s + Number(x.amount || 0); }, 0);
+        var pay = (res[1].data || []).reduce(function (s, x) { return s + Number(x.amount || 0); }, 0);
+        var bal = inv - pay;
+        el.textContent = bal > 0
+          ? 'Açık bakiye: ' + ZirkonikMoney.format(bal, cur, 2)
+          : (bal < 0 ? 'Alacaklı: ' + ZirkonikMoney.format(-bal, cur, 2) : 'Bakiye kapalı');
+        el.className = 'rounded-theme border border-border bg-background px-3.5 py-2.5 text-xs font-bold ' +
+          (bal > 0 ? 'text-accent' : 'text-success');
+      });
+    }
+
+    function zkOpenPayment() {
+      document.getElementById('payment-sheet').classList.remove('hidden');
+      zkPayMode('cari');
+    }
     function zkClosePayment() { document.getElementById('payment-sheet').classList.add('hidden'); }
 
     function zkSubmitPayment() {
       var errEl = document.getElementById('pay-error');
       errEl.classList.add('hidden');
-      var invoiceId = document.getElementById('pay-invoice').value;
       var amount = document.getElementById('pay-amount').value;
+
+      if (payMode === 'cari') {
+        var docId = document.getElementById('pay-doctor').value;
+        var cur = document.getElementById('pay-currency').value;
+        if (!docId || !amount) { errEl.textContent = 'Doktor ve tutar zorunludur.'; errEl.classList.remove('hidden'); return; }
+        var cbtn = document.getElementById('pay-submit');
+        if (cbtn.disabled) return;
+        cbtn.disabled = true;
+        ZirkonikAuth.client().rpc('record_doctor_payment', {
+          p_doctor_id: docId,
+          p_amount: Number(amount),
+          p_currency: cur,
+          p_method: document.getElementById('pay-method').value,
+          p_note: null
+        }).then(function (res) {
+          if (res.error) {
+            cbtn.disabled = false;
+            errEl.textContent = 'Kaydedilemedi: ' + res.error.message;
+            errEl.classList.remove('hidden');
+            return;
+          }
+          zkClosePayment();
+          zkToast('Tahsilat cariye işlendi, faturalar en eskiden başlayarak mahsup edildi.');
+          setTimeout(function () { location.reload(); }, 600);
+        });
+        return;
+      }
+
+      var invoiceId = document.getElementById('pay-invoice').value;
       if (!invoiceId || !amount) { errEl.textContent = 'Fatura ve tutar zorunludur.'; errEl.classList.remove('hidden'); return; }
 
       // 2026-09-12: buton cift tiklamaya karsi korumasizdi — 10 Eylul'de ayni
@@ -686,7 +802,9 @@
       var client = ZirkonikAuth.client();
       var invoiceAmount = 0;
 
-      client.from('invoices').select('doctor_id, amount').eq('id', invoiceId).single().then(function (r) {
+      // currency de cekiliyor: ödeme faturanınkiyle aynı para biriminde
+      // kaydedilmeli, yoksa trg_guard_payment_currency reddeder.
+      client.from('invoices').select('doctor_id, amount, currency').eq('id', invoiceId).single().then(function (r) {
         if (r.error) throw r.error;
         invoiceAmount = Number(r.data.amount);
         return ZirkonikAuth.me().then(function (me) {
@@ -694,6 +812,7 @@
             doctor_id: r.data.doctor_id,
             invoice_id: invoiceId,
             amount: Number(amount),
+            currency: r.data.currency || '$',
             method: document.getElementById('pay-method').value,
             received_by: me.id
           });
