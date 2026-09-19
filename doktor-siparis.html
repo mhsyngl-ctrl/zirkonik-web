@@ -354,6 +354,11 @@
     var docColorIdx = 0;
 
     function zkDocRenderColors() {
+      // Secim de bu kalemin renginde olsun; kalem eklendiginde zaten o renge
+      // donuyor, aradaki mavi ara adim gereksiz.
+      if (window.ZkWorkForm && ZkWorkForm.setSelectionColor) {
+        ZkWorkForm.setSelectionColor(ZK_DOC_COLORS[docColorIdx % ZK_DOC_COLORS.length]);
+      }
       var el = document.getElementById('o-color-row');
       if (!el) return;
       el.innerHTML = ZK_DOC_COLORS.map(function (c, i) {

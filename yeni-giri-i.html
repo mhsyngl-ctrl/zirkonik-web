@@ -305,6 +305,11 @@
     function zkRenderColorRow() {
       var el = document.getElementById('f-color-row');
       if (!el) return;
+      // Secim de bu kalemin renginde olsun; kalem eklendiginde zaten o renge
+      // donuyor, aradaki mavi ara adim gereksiz.
+      if (window.ZkWorkForm && ZkWorkForm.setSelectionColor) {
+        ZkWorkForm.setSelectionColor(ZK_ITEM_COLORS[draftColorIdx % ZK_ITEM_COLORS.length]);
+      }
       el.innerHTML = ZK_ITEM_COLORS.map(function (c, i) {
         var sel = i === draftColorIdx;
         return '<button type="button" onclick="zkPickColor(' + i + ')" aria-label="Renk ' + (i + 1) + '" ' +

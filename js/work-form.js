@@ -15,6 +15,11 @@
   var container = null;
   // Dolu dislerin is turu etiketleri (setUsedTeeth ile gelir).
   var usedLabels = {};
+  // SU AN secilmekte olan kalemin rengi. Kalem eklendiginde disler zaten bu
+  // renge boyaniyordu; secim sirasinda da ayni rengi gostermek icin
+  // (setSelectionColor ile disaridan verilir). null ise varsayilan mavi.
+  var selColor = null;
+  function aktifRenk() { return selColor || 'var(--color-primary)'; }
 
   // Kullanıcının sağladığı React ToothChart tasarımından uyarlanan
   // geometri: 440x560 tek SVG, yarım elips çeneler, kesikli çeyrek
@@ -204,9 +209,9 @@
           selected[n] = true;
           group.classList.add('zk-sel');
           group.setAttribute('aria-checked', 'true');
-          crown.setAttribute('fill', 'var(--color-primary)');
-          crown.setAttribute('stroke', 'var(--color-primary)');
-          num.setAttribute('fill', 'var(--color-primary)');
+          crown.setAttribute('fill', aktifRenk());
+          crown.setAttribute('stroke', aktifRenk());
+          num.setAttribute('fill', aktifRenk());
           if (fis) fis.setAttribute('stroke', 'rgba(255,255,255,0.75)');
         }
         var teeth = ZkWorkForm.getTeeth();
@@ -289,8 +294,8 @@
       if (on) {
         g.classList.add('zk-sel');
         g.setAttribute('aria-checked', 'true');
-        if (crown) { crown.setAttribute('fill', color || 'var(--color-primary)'); crown.setAttribute('stroke', color || 'var(--color-primary)'); }
-        if (num) num.setAttribute('fill', color || 'var(--color-primary)');
+        if (crown) { crown.setAttribute('fill', color || aktifRenk()); crown.setAttribute('stroke', color || aktifRenk()); }
+        if (num) num.setAttribute('fill', color || aktifRenk());
         if (fis) fis.setAttribute('stroke', 'rgba(255,255,255,0.75)');
       } else {
         g.classList.remove('zk-sel');
@@ -339,6 +344,16 @@
         // pointer-events KAPATILMIYOR: dolu dise basinca hangi ise ait
         // oldugu gosterilsin. Secimi toggleTooth'taki data-used kontrolu engelliyor.
       });
+    },
+
+    /* Siradaki kalemin rengi. Kullanici renk paletinden baska bir renk
+     * secince o andan itibaren secilen disler DOGRUDAN o renkte boyanir —
+     * kalem eklendiginde zaten o renge donuyordu, aradaki mavi ara adim
+     * kafa karistiriyordu. Halihazirda secili disler de aninda guncellenir. */
+    setSelectionColor: function (color) {
+      selColor = color || null;
+      if (!container) return;
+      Object.keys(selected).forEach(function (n) { ZkWorkForm.paintTooth(n, true); });
     },
 
     UPPER: UPPER.slice(),
