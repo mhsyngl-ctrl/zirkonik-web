@@ -467,6 +467,11 @@
       sel.value = '';
       document.getElementById('f-price').value = '';
       document.getElementById('f-tooth-count').value = 1;
+      // Tür ve tutar kutuları boşaldı ama altlarındaki fiyat/anlaşma satırı ve
+      // para birimi uyarısı BİR ÖNCEKİ kalemden kalıyordu: boş kutunun altında
+      // "999 ₺ · Dr. X için anlaşmalı fiyat" yazıyor, ekran hangi kalemden
+      // bahsettiği belirsiz görünüyordu. Yeniden hesaplatmak ikisini de temizler.
+      zkRecalcPrice();
       draftColorIdx = draftItems.length % ZK_ITEM_COLORS.length;
       zkRenderColorRow();
       zkRenderDraftItems();
