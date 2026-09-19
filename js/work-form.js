@@ -212,6 +212,74 @@
       return Object.keys(selected).map(Number).sort(function (a, b) { return a - b; });
     },
 
+    /* Bir dişi programatik olarak boyar. toggleTooth ile aynı DOM işini
+     * yapar ama olay tetiklemez — toplu seçim ve "başka kalemde kullanılıyor"
+     * işaretlemesi için gerekli. color null ise seçili değil demektir. */
+    paintTooth: function (n, on, color) {
+      if (!container) return;
+      var g = container.querySelector('[data-tooth="' + n + '"]');
+      if (!g) return;
+      // toggleTooth ile AYNI seçiciler: bu öğeler diş grubunun içinde değil,
+      // kapsayıcıda diş numarasıyla işaretli duruyor.
+      var crown = container.querySelector('[data-crown="' + n + '"]');
+      var num = container.querySelector('[data-num="' + n + '"]');
+      var fis = container.querySelector('[data-fissure="' + n + '"]');
+      if (on) {
+        g.classList.add('zk-sel');
+        g.setAttribute('aria-checked', 'true');
+        if (crown) { crown.setAttribute('fill', color || 'var(--color-primary)'); crown.setAttribute('stroke', color || 'var(--color-primary)'); }
+        if (num) num.setAttribute('fill', color || 'var(--color-primary)');
+        if (fis) fis.setAttribute('stroke', 'rgba(255,255,255,0.75)');
+      } else {
+        g.classList.remove('zk-sel');
+        g.setAttribute('aria-checked', 'false');
+        if (crown) { crown.setAttribute('fill', '#FFFFFF'); crown.setAttribute('stroke', '#94a3b8'); }
+        if (num) num.setAttribute('fill', 'var(--color-foreground)');
+        if (fis) fis.setAttribute('stroke', '#94a3b8');
+      }
+    },
+
+    /* Seçimi programatik olarak değiştirir (toplu seçim düğmeleri). */
+    setTeeth: function (list) {
+      if (!container) return;
+      Object.keys(selected).forEach(function (n) { ZkWorkForm.paintTooth(n, false); });
+      selected = {};
+      (list || []).forEach(function (n) {
+        selected[n] = true;
+        ZkWorkForm.paintTooth(n, true);
+      });
+      var teeth = ZkWorkForm.getTeeth();
+      var c = document.getElementById('zk-wf-count');
+      if (c) c.textContent = teeth.length;
+      var l = document.getElementById('zk-wf-teeth-list');
+      if (l) l.textContent = teeth.join(', ');
+      if (typeof ZkWorkForm.onTeethChange === 'function') ZkWorkForm.onTeethChange(teeth);
+    },
+
+    /* Bu siparişin BAŞKA kalemlerinde kullanılan dişler. Kendi renkleriyle
+     * boyanır ve seçilemez hale gelir — bir diş iki kaleme birden giremez,
+     * yoksa diyagramda hangi dişin hangi işe ait olduğu okunamazdı. */
+    setUsedTeeth: function (map) {
+      if (!container) return;
+      container.querySelectorAll('[data-tooth]').forEach(function (g) {
+        g.removeAttribute('data-used');
+        g.style.opacity = '';
+        g.style.pointerEvents = '';
+      });
+      Object.keys(map || {}).forEach(function (n) {
+        if (selected[n]) return;
+        var g = container.querySelector('[data-tooth="' + n + '"]');
+        if (!g) return;
+        ZkWorkForm.paintTooth(n, true, map[n]);
+        g.setAttribute('data-used', '1');
+        g.style.opacity = '0.55';
+        g.style.pointerEvents = 'none';
+      });
+    },
+
+    UPPER: UPPER.slice(),
+    LOWER: LOWER.slice(),
+
     getData: function () {
       function radioVal(name) {
         var b = container.querySelector('[data-radio="' + name + '"].bg-primary');

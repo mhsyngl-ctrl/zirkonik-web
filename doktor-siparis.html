@@ -501,7 +501,13 @@
         dhJobs = res[0].data || [];
         var rooms = res[1].data || [];
         var el = document.getElementById('doctor-hive');
-        if (!dhJobs.length || !rooms.length) { el.innerHTML = ''; return; }
+        if (!dhJobs.length || !rooms.length) {
+            // Aktif iş yoksa kovan çizilmez ama tamamlananlar yine de
+            // gösterilmeli — yoksa biten işler ekrandan tamamen kaybolurdu.
+            el.innerHTML = '';
+            loadDoctorCompleted();
+            return;
+          }
         dhRoomName = {};
         rooms.forEach(function (r) { dhRoomName[r.id] = r.name; });
         // Yalnızca işlerin bulunduğu laboratuvar(lar)ın odaları
@@ -584,6 +590,47 @@
           }).join('') + '</div>';
       }
       el.innerHTML = html;
+      loadDoctorCompleted();
+    }
+
+    // Tamamlanan işler. Doktor bunları da görebilmeli ama DEĞİŞTİREMEZ —
+    // liste salt okunur, satıra basınca aynı salt okunur takip sayfası
+    // açılıyor. Kovan yalnızca aktif işleri gösterdiği için biten iş
+    // ekrandan tamamen kayboluyordu.
+    function loadDoctorCompleted() {
+      var host = document.getElementById('doctor-hive');
+      if (!host) return;
+      ZirkonikAuth.client()
+        .from('jobs')
+        .select('id, job_number, restoration_type, completed_at, patient_name, clinic_protocol_no')
+        .eq('doctor_id', doctor.id).eq('status', 'completed')
+        .order('completed_at', { ascending: false }).limit(20)
+        .then(function (r) {
+          var rows = r.data || [];
+          var old = document.getElementById('dh-completed');
+          if (old) old.remove();
+          if (!rows.length) return;
+          var box = document.createElement('div');
+          box.id = 'dh-completed';
+          box.className = 'mt-4';
+          box.innerHTML = '<p class="text-xs font-bold">Tamamlanan işler</p>' +
+            '<div class="mt-2 rounded-theme border border-border bg-card p-3.5">' +
+            rows.map(function (j) {
+              var hasta = j.patient_name || j.clinic_protocol_no || '';
+              var tarih = j.completed_at ? new Date(j.completed_at).toLocaleDateString('tr-TR') : '';
+              return '<button type="button" onclick="zkDocOpenJob(\'' + j.id + '\')" class="flex w-full items-center justify-between gap-3 py-1.5 text-left active:opacity-70">' +
+                '<div class="min-w-0">' +
+                '<p class="truncate text-xs font-bold">' + escapeHtml(hasta || j.job_number || '') + '</p>' +
+                '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' +
+                  escapeHtml(j.job_number || '') + ' · ' + escapeHtml(j.restoration_type || '') + '</p>' +
+                '</div>' +
+                '<div class="flex shrink-0 items-center gap-1.5">' +
+                '<span class="rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-bold text-success">Tamamlandı</span>' +
+                (tarih ? '<span class="text-[10px] text-muted-foreground">' + tarih + '</span>' : '') +
+                '</div></button>';
+            }).join('') + '</div>';
+          host.appendChild(box);
+        });
     }
 
     // ---- Salt okunur iş takibi ----
