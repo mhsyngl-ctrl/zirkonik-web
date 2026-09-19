@@ -366,6 +366,19 @@
     updatePriceItem: function (id, fields) {
       return client().from('price_list_items').update(fields).eq('id', id).select().single();
     },
+    /* Fiyat kalemini TAMAMEN siler. Yalniz laboratuvar sahibi yapabilir
+     * (price_items_delete politikasi = is_org_admin).
+     *
+     * Silme guvenli: kaleme bagli her sey ya SET NULL ya CASCADE —
+     *   jobs.price_item_id, job_items.price_item_id, orders.price_item_id
+     *     -> SET NULL (isler ve siparisler duruyor, restoration_type metni
+     *        kayitta kaldigi icin ne yapildigi kaybolmuyor)
+     *   price_overrides, price_item_materials -> CASCADE
+     * Yani doktora ozel anlasmali fiyatlar da bu kalemle birlikte gider;
+     * cagiran taraf kullaniciyi bu konuda uyarmali. */
+    deletePriceItem: function (id) {
+      return client().from('price_list_items').delete().eq('id', id);
+    },
 
     // ---- Doktora / lokasyona özel fiyatlar ----
     listPriceOverrides: function () {

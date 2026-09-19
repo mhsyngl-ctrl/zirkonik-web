@@ -177,6 +177,7 @@
   <script src="js/zk-yenile.js"></script>
   <script>
     var canEdit = false;
+    var canDelete = false;
     var orgId = null;
     var items = [];
     var overrides = [];
@@ -189,6 +190,10 @@
         orgId = me.organization_id;
         var perms = (me.user_permissions && me.user_permissions[0]) || me.user_permissions || {};
         canEdit = me.role === 'yonetici' || !!perms.can_view_finance;
+        // Silme yalniz laboratuvar SAHIBINDE: price_items_delete politikasi
+        // is_org_admin istiyor. Finans yetkisi olan personele dugmeyi
+        // gostermek sessiz basarisizlik olurdu.
+        canDelete = me.role === 'yonetici';
         if (canEdit) document.getElementById('pl-add-bar').classList.remove('hidden');
 
         var client = ZirkonikAuth.client();
@@ -305,10 +310,15 @@
             var recipeBtn = (RECIPE_ENABLED && canEdit && !inScope)
               ? '<button data-recipe-for="' + p.id + '" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-input text-muted-foreground" aria-label="Malzeme reçetesi" title="Malzeme reçetesi (1 diş başına tüketim)"><iconify-icon icon="lucide:flask-conical" class="text-base"></iconify-icon></button>'
               : '';
+            // Silme yalniz GENEL listede: kapsam secilijken kutuyu bosaltmak
+            // zaten o doktora ozel fiyati kaldiriyor, kalemin kendisini degil.
+            var silBtn = (canDelete && !inScope)
+              ? '<button data-del-for="' + p.id + '" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-input text-destructive" aria-label="Kalemi sil" title="Kalemi tamamen sil"><iconify-icon icon="lucide:trash-2" class="text-base"></iconify-icon></button>'
+              : '';
             return '<div class="flex items-center justify-between gap-2 border-b border-border py-2.5 last:border-b-0">' +
               '<p class="min-w-0 flex-1 text-sm font-semibold">' + escapeHtml(p.name) + '</p>' +
               '<div class="flex items-center gap-1.5">' + recipeBtn + routeBtn + genelEtiket + priceCell +
-              curCell + '</div></div>';
+              curCell + silBtn + '</div></div>';
           }).join('');
           sec.innerHTML = '<p class="mb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-primary">' + escapeHtml(cat) + '</p>' + rows;
           main.appendChild(sec);
@@ -353,6 +363,26 @@
                 var item = items.find(function (p) { return p.id === id; });
                 if (item) item.unit_price = val;
                 zkToast('Fiyat güncellendi.');
+              });
+            });
+          });
+          main.querySelectorAll('[data-del-for]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              var id = btn.getAttribute('data-del-for');
+              var kalem = items.find(function (x) { return x.id === id; });
+              var ad = kalem ? kalem.name : 'Bu kalem';
+              // Silmenin gercek sonucu: doktora ozel anlasmali fiyatlar
+              // CASCADE ile gider. Isler ve siparisler DURUR (SET NULL) —
+              // restoration_type metni kayitta kaldigi icin ne yapildigi
+              // kaybolmaz, yalniz fiyat listesiyle bagi kopar.
+              if (!confirm(ad + ' fiyat listesinden tamamen silinsin mi?\n\n' +
+                    '· Bu kaleme tanımlı doktora özel anlaşmalı fiyatlar da silinir.\n' +
+                    '· Geçmiş işler ve siparişler durur, yalnız listeyle bağlantıları kopar.\n' +
+                    '· Geri alınamaz.')) return;
+              ZirkonikData.deletePriceItem(id).then(function (res) {
+                if (res.error) { zkToast('Silinemedi: ' + res.error.message); return; }
+                zkToast(ad + ' silindi.');
+                loadList();
               });
             });
           });
