@@ -151,6 +151,7 @@
                  kalınca ilerledikçe kafa karışıyordu. Şu an eklenmekte olan
                  seçim de en sonda ayrı gösteriliyor. -->
             <div id="f-legend" class="mt-2 flex flex-wrap gap-1.5"></div>
+            <p id="f-toothinfo" class="mt-1.5 min-h-[16px] text-[11px] text-muted-foreground"></p>
 
             <!-- Toplu seçim. Diyagramın ORTASINA konmadı bilerek: orası
                  anatomik olarak damak/dil bölgesi, oraya düğme koymak hem
@@ -333,12 +334,31 @@
             '<iconify-icon icon="lucide:x" class="text-base"></iconify-icon></button></div>';
         }).join('');
       }
-      ZkWorkForm.setUsedTeeth(zkUsedTeethMap());
+      ZkWorkForm.setUsedTeeth(zkUsedTeethMap(), zkUsedLabelMap());
       zkRenderLegend();
     }
 
     // Diyagramın altındaki canlı lejant: eklenmiş her kalem kendi rengi,
     // iş türü ve dişleriyle; en sonda "şu an seçili" olanlar.
+    // Dolu dislerin is turu etiketleri — dise dokununca gosterilir.
+    function zkUsedLabelMap() {
+      var m = {};
+      draftItems.forEach(function (it) {
+        (it.teeth || []).forEach(function (n) { m[n] = it.name; });
+      });
+      return m;
+    }
+
+    ZkWorkForm.onUsedToothTap = function (n, label) {
+      var el = document.getElementById('f-toothinfo');
+      if (!el) return;
+      var map = zkUsedTeethMap();
+      var c = map[n] || 'currentColor';
+      el.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px;">' +
+        '<span style="width:8px;height:8px;border-radius:9999px;background:' + c + ';display:inline-block;"></span>' +
+        '<b>' + escapeHtml(String(n)) + '</b> — ' + escapeHtml(label || 'bu siparişte') + '</span>';
+    };
+
     function zkRenderLegend() {
       var el = document.getElementById('f-legend');
       if (!el) return;

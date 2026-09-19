@@ -13,6 +13,8 @@
 
   var selected = {};
   var container = null;
+  // Dolu dislerin is turu etiketleri (setUsedTeeth ile gelir).
+  var usedLabels = {};
 
   // Kullanıcının sağladığı React ToothChart tasarımından uyarlanan
   // geometri: 440x560 tek SVG, yarım elips çeneler, kesikli çeyrek
@@ -114,16 +116,25 @@
 
   var ZkWorkForm = {
     onTeethChange: null,
+    // Dolu (baska kaleme ait) bir dise dokununca cagrilir: (disNo, etiket)
+    onUsedToothTap: null,
 
     /* SALT OKUNUR diş şeması. Sipariş detayında "hangi diş hangi işe ait"
      * sorusunu tek bakışta cevaplamak için. Tıklanamaz, form alanları yok ve
      * modül düzeyindeki `container`/`selected` durumuna DOKUNMAZ — aynı
      * sayfada düzenlenebilir bir form da bulunabilir.
      * colorMap: { 11: '#3D7CDC', 12: '#F0A03C', ... } */
-    renderChartOnly: function (el, colorMap) {
+    renderChartOnly: function (el, colorMap, labelMap) {
       if (!el) return;
-      el.innerHTML = '<div style="pointer-events:none;">' + chartSvg() + '</div>';
-      Object.keys(colorMap || {}).forEach(function (n) {
+      colorMap = colorMap || {};
+      labelMap = labelMap || {};
+      // Dise basinca hangi ise ait oldugu asagida yazsin. Salt okunur sema
+      // ama tiklama BILGI icin acik; secim yapmiyor, sadece etiketi gosteriyor.
+      el.innerHTML = '<div data-chart>' + chartSvg() + '</div>' +
+        '<p data-chart-info class="mt-2 min-h-[18px] text-center text-[11px] text-muted-foreground">' +
+        (Object.keys(labelMap).length ? 'Bilgi için bir dişe dokunun' : '') + '</p>';
+
+      Object.keys(colorMap).forEach(function (n) {
         var c = colorMap[n];
         var crown = el.querySelector('[data-crown="' + n + '"]');
         var num = el.querySelector('[data-num="' + n + '"]');
@@ -131,6 +142,21 @@
         if (crown) { crown.setAttribute('fill', c); crown.setAttribute('stroke', c); }
         if (num) num.setAttribute('fill', c);
         if (fis) fis.setAttribute('stroke', 'rgba(255,255,255,0.75)');
+      });
+
+      var info = el.querySelector('[data-chart-info]');
+      el.addEventListener('click', function (e) {
+        var g = e.target.closest ? e.target.closest('[data-tooth]') : null;
+        if (!g || !info) return;
+        var n = g.getAttribute('data-tooth');
+        var lbl = labelMap[n];
+        if (!lbl) { info.textContent = n + ' numaralı diş — bu işte yok'; return; }
+        var c = colorMap[n] || 'currentColor';
+        info.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px;">' +
+          '<span style="width:8px;height:8px;border-radius:9999px;background:' + c + ';display:inline-block;"></span>' +
+          '<b>' + n + '</b> — ' + String(lbl).replace(/[&<>"]/g, function (ch) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch];
+          }) + '</span>';
       });
     },
 
@@ -199,12 +225,29 @@
       el.addEventListener('keydown', function (e) {
         if (e.key !== ' ' && e.key !== 'Enter') return;
         var t = e.target.closest ? e.target.closest('[data-tooth]') : null;
-        if (t) { e.preventDefault(); toggleTooth(t); }
+        if (!t) return;
+        e.preventDefault();
+        // Dolu dis klavyeyle de secilemez; yalnizca bilgi verir.
+        if (t.getAttribute('data-used')) {
+          if (typeof ZkWorkForm.onUsedToothTap === 'function') {
+            ZkWorkForm.onUsedToothTap(t.getAttribute('data-tooth'), usedLabels[t.getAttribute('data-tooth')]);
+          }
+          return;
+        }
+        toggleTooth(t);
       });
 
       el.addEventListener('click', function (e) {
         var t = e.target.closest('[data-tooth]');
         if (t) {
+          // Baska bir kaleme verilmis dis secilemez ama hangi ise ait
+          // oldugunu soyler — kullanici "bu dis neydi" diye bakabilsin.
+          if (t.getAttribute('data-used')) {
+            if (typeof ZkWorkForm.onUsedToothTap === 'function') {
+              ZkWorkForm.onUsedToothTap(t.getAttribute('data-tooth'), usedLabels[t.getAttribute('data-tooth')]);
+            }
+            return;
+          }
           toggleTooth(t);
           return;
         }
@@ -278,7 +321,8 @@
     /* Bu siparişin BAŞKA kalemlerinde kullanılan dişler. Kendi renkleriyle
      * boyanır ve seçilemez hale gelir — bir diş iki kaleme birden giremez,
      * yoksa diyagramda hangi dişin hangi işe ait olduğu okunamazdı. */
-    setUsedTeeth: function (map) {
+    setUsedTeeth: function (map, labelMap) {
+      usedLabels = labelMap || {};
       if (!container) return;
       container.querySelectorAll('[data-tooth]').forEach(function (g) {
         g.removeAttribute('data-used');
@@ -292,7 +336,8 @@
         ZkWorkForm.paintTooth(n, true, map[n]);
         g.setAttribute('data-used', '1');
         g.style.opacity = '0.55';
-        g.style.pointerEvents = 'none';
+        // pointer-events KAPATILMIYOR: dolu dise basinca hangi ise ait
+        // oldugu gosterilsin. Secimi toggleTooth'taki data-used kontrolu engelliyor.
       });
     },
 

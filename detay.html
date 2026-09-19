@@ -384,23 +384,29 @@
       var leg = document.getElementById('teeth-legend');
       if (!sec || !map || !window.ZkWorkForm) return;
 
-      var colorMap = {}, any = false;
+      var colorMap = {}, labelMap = {}, any = false;
       jobItems.forEach(function (it) {
         var c = ZK_ITEM_COLORS[(it.color_index || 0) % ZK_ITEM_COLORS.length];
-        (it.teeth || []).forEach(function (n) { colorMap[n] = c; any = true; });
+        (it.teeth || []).forEach(function (n) {
+          colorMap[n] = c;
+          labelMap[n] = it.restoration_type || '';
+          any = true;
+        });
       });
 
       // Kalemlerde diş yoksa eski işlerin serbest metin alanına düş
       // (geri dolumda ayıklanamayan değerler olabilir).
       if (!any && currentJob.teeth_numbers) {
         (currentJob.teeth_numbers.match(/\d+/g) || []).forEach(function (n) {
-          colorMap[n] = ZK_ITEM_COLORS[0]; any = true;
+          colorMap[n] = ZK_ITEM_COLORS[0];
+          labelMap[n] = currentJob.restoration_type || '';
+          any = true;
         });
       }
 
       if (!any) { sec.classList.add('hidden'); return; }
       sec.classList.remove('hidden');
-      ZkWorkForm.renderChartOnly(map, colorMap);
+      ZkWorkForm.renderChartOnly(map, colorMap, labelMap);
 
       // Lejant yalnızca birden çok kalem varsa anlamlı.
       if (jobItems.length > 1) {
