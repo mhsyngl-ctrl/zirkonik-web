@@ -708,13 +708,4 @@ body { animation: zkPageIn .2s ease both; }
 :root[data-theme="light"] .text-white\/70 { color: rgba(255,255,255,.85); }
 /* Diş şeması: koyu temada kron beyaz çiziliyor, açık zeminde kenarlık şart. */
 :root[data-theme="light"] #wf-container [data-crown] { stroke-width: 1.2; }
-/* Yüzen tema anahtarı — sayfa kendi düğmesini koymadıysa. */
-#zk-tema-btn {
-  position: fixed; top: calc(env(safe-area-inset-top) + 10px); right: 10px; z-index: 85;
-  width: 34px; height: 34px; border-radius: 9999px; line-height: 1;
-  display: flex; align-items: center; justify-content: center;
-  border: 1px solid var(--color-border); background: var(--color-card);
-  color: var(--color-muted-foreground); font-size: 15px; cursor: pointer;
-  box-shadow: 0 6px 18px -8px rgba(0,0,0,.45); opacity: .85;
-}
-#zk-tema-btn:hover { opacity: 1; }
+

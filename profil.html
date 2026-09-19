@@ -169,6 +169,21 @@
           </button>
         </section>
 
+        <!-- 2026-09-19: tema anahtari once her ekranda sag ustte yuzen bir
+             dugmeydi; ana ekranda durması hos olmadı, ayarlara alındı. -->
+        <section class="mt-5 rounded-theme border border-border bg-card p-4">
+          <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Görünüm</p>
+          <p class="mt-1 text-xs text-muted-foreground">Tercihiniz bu cihazda saklanır.</p>
+          <div class="mt-3 grid grid-cols-2 gap-2">
+            <button type="button" data-zk-tema="dark" onclick="zkTemaSec('dark')" class="flex h-12 items-center justify-center gap-2 rounded-theme border border-border bg-background text-sm font-bold">
+              <iconify-icon icon="lucide:moon" class="text-base"></iconify-icon>Koyu
+            </button>
+            <button type="button" data-zk-tema="light" onclick="zkTemaSec('light')" class="flex h-12 items-center justify-center gap-2 rounded-theme border border-border bg-background text-sm font-bold">
+              <iconify-icon icon="lucide:sun" class="text-base"></iconify-icon>Açık
+            </button>
+          </div>
+        </section>
+
         <section class="mt-5 rounded-theme border border-border bg-card p-4">
           <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Hesap</p>
           <button onclick="ZirkonikAuth.signOut()" class="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-theme border border-border bg-background text-sm font-bold text-foreground">
@@ -409,6 +424,21 @@
         window.location.href = 'giris.html';
       });
     }
+      /* Görünüm seçimi. Seçili olan düğme vurgulanır. */
+    function zkTemaIsaretle() {
+      var mevcut = window.ZkTema ? ZkTema.mevcut() : 'dark';
+      document.querySelectorAll('[data-zk-tema]').forEach(function (b) {
+        var secili = b.getAttribute('data-zk-tema') === mevcut;
+        b.className = 'flex h-12 items-center justify-center gap-2 rounded-theme border text-sm font-bold ' +
+          (secili ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-background');
+      });
+    }
+    function zkTemaSec(tema) {
+      if (window.ZkTema) ZkTema.degistir(tema);
+      zkTemaIsaretle();
+    }
+    zkTemaIsaretle();
+
   </script>
 
 </body>

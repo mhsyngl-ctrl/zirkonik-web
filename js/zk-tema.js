@@ -39,27 +39,9 @@
     return mevcut;
   }
 
-  /* Sayfaya bir düğme konmadıysa sağ üstte yüzen küçük bir anahtar çıkar;
-     böylece her ekranda tek dokunuşla denenebiliyor. */
-  function dugmeKur() {
-    if (document.getElementById('zk-tema-btn')) return;
-    if (document.querySelector('[data-zk-tema]')) return;   // sayfa kendi düğmesini koymuş
-    var b = document.createElement('button');
-    b.id = 'zk-tema-btn';
-    b.type = 'button';
-    b.setAttribute('aria-label', 'Koyu / açık tema');
-    b.title = 'Koyu / açık tema';
-    b.textContent = mevcut === 'light' ? '☾' : '☀';
-    b.addEventListener('click', function () {
-      b.textContent = degistir() === 'light' ? '☾' : '☀';
-    });
-    document.body.appendChild(b);
-  }
-
-  if (document.body) dugmeKur();
-  else document.addEventListener('DOMContentLoaded', dugmeKur);
-
-  // Sayfalar kendi düğmelerini bağlamak isterse:
-  //   <button data-zk-tema onclick="ZkTema.degistir()">
+  /* 2026-09-19: önce her ekranın sağ üstünde yüzen bir anahtar vardı; ana
+     ekranda durması hoş olmadı. Seçim artık yalnızca Ayarlar ekranında
+     (profil.html > Görünüm). Bu dosya sadece tercihi okuyup uyguluyor —
+     her sayfada çalışması gerekiyor ki açılışta doğru tema gelsin. */
   window.ZkTema = { degistir: degistir, mevcut: function () { return mevcut; } };
 })();
