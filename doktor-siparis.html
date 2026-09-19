@@ -636,24 +636,39 @@
       // gonderemiyordu: sistem olmayan 4. kalem icin tur secmeye zorluyordu.
       // Tur yalniz HIC kalem yokken gerekli — o zaman formdaki secimden
       // otomatik tek kalem uretiliyor.
+      var teeth = ZkWorkForm.getTeeth();
+
+      // CALISMA TURU SECILIYSE DIS ZORUNLU. Onceden tur secili ama hic dis
+      // secilmemisken siparis gonderilebiliyordu: dis listesi bos, dis sayisi
+      // 1 varsayiliyordu. Laboratuvar hangi disin yapilacagini bilemiyordu.
+      if (item && !teeth.length) {
+        errEl.textContent = 'Çalışma türü seçtiniz — diyagramdan diş seçin. Bu kalemi eklemeyecekseniz çalışma türünü boşaltın.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+      if (!item && teeth.length) {
+        errEl.textContent = 'Diyagramda seçili diş var — çalışma türünü seçin ya da diş seçimini temizleyin.';
+        errEl.classList.remove('hidden');
+        return;
+      }
       if (!docItems.length && !item) {
-        errEl.textContent = 'Çalışma türü seçin.';
+        errEl.textContent = 'Çalışma türü seçin ve diyagramdan dişleri işaretleyin.';
         errEl.classList.remove('hidden');
         return;
       }
       var btn = document.getElementById('o-submit');
       btn.disabled = true;
-      var teeth = ZkWorkForm.getTeeth();
-      // "Ekle"ye basılmadan da gönderilebilsin: formda seçili tür + diş
-      // varsa otomatik tek kalem yapılır. Tek türlü siparişte akış
-      // bugünküyle aynı kalır.
-      if (!docItems.length) {
+      // Formda secili tur + dis varsa, kalem listesi DOLU olsa bile kaleme
+      // cevrilir. Onceden yalniz hic kalem yokken cevriliyordu; 3 kalem
+      // ekleyip 4.'yu secip "Ekle"ye basmayi unutan kullanicinin secimi
+      // sessizce kayboluyordu.
+      if (item && teeth.length) {
         docItems.push({
           price_item_id: item.id,
           restoration_type: item.name,
           teeth: teeth,
-          unit_count: Math.max(1, Number(document.getElementById('o-count').value) || teeth.length || 1),
-          color_index: 0
+          unit_count: Math.max(1, Number(document.getElementById('o-count').value) || teeth.length),
+          color_index: docColorIdx
         });
       }
       var ilk = docItems[0];

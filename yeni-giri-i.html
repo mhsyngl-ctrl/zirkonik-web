@@ -643,29 +643,42 @@
         return;
       }
       // Kalemler: "Ekle"ye basılmadan da kaydedilebilsin diye, formda seçili
-      // bir tür + diş varsa kaydederken otomatik kalem yapılır. Tek türlü
-      // sıradan işlerde akış bugünküyle aynı kalır.
-      if (!draftItems.length) {
-        if (!priceItem) {
-          errEl.textContent = 'Çalışma türü seçimi zorunludur.';
-          errEl.classList.remove('hidden');
-          return;
-        }
-        var autoTeeth = ZkWorkForm.getTeeth();
+      // bir tür + diş varsa kaydederken otomatik kalem yapılır.
+      //
+      // 2026-09-19 iki kural:
+      //  1) ÇALIŞMA TÜRÜ SEÇİLİYSE DİŞ ZORUNLU. Önceden tür seçili ama hiç diş
+      //     seçilmemişken iş açılabiliyordu: diş listesi boş, diş sayısı 1
+      //     varsayılıyordu. Hangi dişin yapılacağı belli olmayan iş üretiyordu.
+      //  2) Formda seçili tür + diş varken kalem listesi DOLU olsa bile o seçim
+      //     kaleme çevrilir. Önceden yalnız hiç kalem yokken çevriliyordu;
+      //     kullanıcı 3 kalem ekleyip 4.'yü seçip "Ekle"ye basmayı unutursa o
+      //     diş ve tür sessizce kayboluyordu.
+      var bekleyenDisler = ZkWorkForm.getTeeth();
+      if (priceItem && !bekleyenDisler.length) {
+        errEl.textContent = 'Çalışma türü seçtiniz — diyagramdan diş seçin. Bu kalemi eklemeyecekseniz çalışma türünü boşaltın.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+      if (!priceItem && bekleyenDisler.length) {
+        errEl.textContent = 'Diyagramda seçili diş var — çalışma türünü seçin ya da diş seçimini temizleyin.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+      if (priceItem && bekleyenDisler.length) {
         var autoPrice = document.getElementById('f-price').value;
         draftItems.push({
           price_item_id: priceItem.id,
           name: priceItem.name,
           route_room_ids: priceItem.route_room_ids || null,
           currency: ZirkonikData.resolveUnitCurrency(priceItem, priceOverrides, doctorId, labId),
-          teeth: autoTeeth,
-          unit_count: Math.max(1, Number(document.getElementById('f-tooth-count').value) || autoTeeth.length || 1),
+          teeth: bekleyenDisler,
+          unit_count: Math.max(1, Number(document.getElementById('f-tooth-count').value) || bekleyenDisler.length),
           price: autoPrice ? Number(autoPrice) : null,
-          color_index: 0
+          color_index: draftColorIdx
         });
       }
       if (!draftItems.length) {
-        errEl.textContent = 'En az bir kalem eklemelisiniz.';
+        errEl.textContent = 'En az bir kalem eklemelisiniz — çalışma türünü seçip diyagramdan dişleri işaretleyin.';
         errEl.classList.remove('hidden');
         return;
       }
