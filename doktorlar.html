@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="css/tailwind.css">
   <link rel="stylesheet" href="css/ipad.css">
   <link rel="stylesheet" href="css/zk-utils.css">
+  <script src="js/zk-tema.js"></script>
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
@@ -272,6 +273,25 @@
     </div>
   </div>
 
+  <!-- Doktor şifresi güncelle. 2026-09-19: hesabı OLAN doktorda anahtar simgesi
+       basılamayan bir rozetti ("Uygulama hesabı var"); şifreyi yenilemenin hiçbir
+       yolu yoktu. reset-user-password fonksiyonu doktorlar için de çalışıyordu,
+       yalnızca arayüze bağlanmamıştı. -->
+  <div id="doctor-pass-sheet" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkCloseDoctorPass()"></div>
+    <div class="absolute bottom-0 left-0 w-full rounded-t-2xl bg-card p-5 pb-8">
+      <h2 id="dp-title" class="font-heading text-lg font-bold">Doktor şifresini güncelle</h2>
+      <p class="mt-1 text-xs text-muted-foreground">Yeni şifreyi siz belirleyip doktora iletirsiniz. Doktorun giriş e-postası değişmez.</p>
+      <div class="mt-4 space-y-3">
+        <input id="dp-pass" type="password" autocomplete="new-password" placeholder="Yeni şifre (en az 8 karakter) *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <input id="dp-pass2" type="password" autocomplete="new-password" placeholder="Yeni şifre (tekrar) *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+      </div>
+      <p id="dp-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
+      <p id="dp-ok" class="mt-2 hidden text-xs font-semibold text-success"></p>
+      <button id="dp-btn" onclick="zkSubmitDoctorPass()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Şifreyi güncelle</button>
+    </div>
+  </div>
+
   <script>
     (function() {
       var els = document.querySelectorAll('iconify-icon');
@@ -442,7 +462,7 @@
           '</div>';
       }
       var accountBtn = d.user_id
-        ? '<span class="flex h-8 w-8 items-center justify-center rounded-lg bg-success/10 text-success" title="Uygulama hesabı var"><iconify-icon icon="lucide:key-round" class="text-sm"></iconify-icon></span>'
+        ? '<button onclick="event.stopPropagation();zkOpenDoctorPass(\'' + d.user_id + '\',\'' + escapeHtml(d.full_name).replace(/'/g, "\\'") + '\')" class="flex h-8 w-8 items-center justify-center rounded-lg bg-success/10 text-success" aria-label="Şifreyi güncelle" title="Uygulama hesabı var — şifreyi güncelle"><iconify-icon icon="lucide:key-round" class="text-sm"></iconify-icon></button>'
         : '<button onclick="event.stopPropagation();zkOpenDoctorAccount(\'' + d.id + '\',\'' + escapeHtml(d.full_name).replace(/'/g, "\\'") + '\',\'' + escapeHtml(d.email || '') + '\')" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-accent" aria-label="Uygulama hesabı aç"><iconify-icon icon="lucide:key-round" class="text-sm"></iconify-icon></button>';
       var nameEsc = escapeHtml(d.full_name).replace(/'/g, "\\'");
       return '<div onclick="zkOpenDoctorCari(\'' + d.id + '\',\'' + nameEsc + '\')" class="flex items-center gap-3 rounded-theme border border-border bg-card p-3 active:opacity-70">' +
@@ -467,6 +487,43 @@
       document.getElementById('doctor-account-sheet').classList.remove('hidden');
     }
     function zkCloseDoctorAccount() { document.getElementById('doctor-account-sheet').classList.add('hidden'); }
+
+    // ---- Doktor şifresi güncelle ----
+    var dpUserId = null;
+    function zkOpenDoctorPass(userId, name) {
+      dpUserId = userId;
+      document.getElementById('dp-title').textContent = 'Dr. ' + name + ' — şifreyi güncelle';
+      document.getElementById('dp-pass').value = '';
+      document.getElementById('dp-pass2').value = '';
+      document.getElementById('dp-error').classList.add('hidden');
+      document.getElementById('dp-ok').classList.add('hidden');
+      document.getElementById('doctor-pass-sheet').classList.remove('hidden');
+    }
+    function zkCloseDoctorPass() { document.getElementById('doctor-pass-sheet').classList.add('hidden'); }
+    function zkSubmitDoctorPass() {
+      var errEl = document.getElementById('dp-error');
+      var okEl = document.getElementById('dp-ok');
+      var btn = document.getElementById('dp-btn');
+      errEl.classList.add('hidden'); okEl.classList.add('hidden');
+      var pw = document.getElementById('dp-pass').value;
+      var pw2 = document.getElementById('dp-pass2').value;
+      if (pw.length < 8) { errEl.textContent = 'Şifre en az 8 karakter olmalı.'; errEl.classList.remove('hidden'); return; }
+      if (pw !== pw2) { errEl.textContent = 'İki şifre aynı değil.'; errEl.classList.remove('hidden'); return; }
+      if (!dpUserId) { errEl.textContent = 'Bu doktorun uygulama hesabı yok.'; errEl.classList.remove('hidden'); return; }
+      btn.disabled = true;
+      ZirkonikData.resetStaffPassword(dpUserId, pw).then(function (res) {
+        btn.disabled = false;
+        if (res.error) { errEl.textContent = 'Güncellenemedi: ' + res.error.message; errEl.classList.remove('hidden'); return; }
+        okEl.textContent = 'Şifre güncellendi. Yeni şifreyi doktora iletin.';
+        okEl.classList.remove('hidden');
+        document.getElementById('dp-pass').value = '';
+        document.getElementById('dp-pass2').value = '';
+      }).catch(function (err) {
+        btn.disabled = false;
+        errEl.textContent = 'Güncellenemedi: ' + err.message;
+        errEl.classList.remove('hidden');
+      });
+    }
     function zkGenPassword() {
       var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
       var out = '';

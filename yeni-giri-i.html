@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="css/tailwind.css">
   <link rel="stylesheet" href="css/ipad.css">
   <link rel="stylesheet" href="css/zk-utils.css">
+  <script src="js/zk-tema.js"></script>
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
@@ -355,6 +356,7 @@
             '<div class="min-w-0 flex-1"><p class="truncate text-xs font-bold">' + escapeHtml(it.name) + '</p>' +
             '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + it.teeth.length + ' diş' +
             (it.teeth.length ? ' · ' + it.teeth.join(', ') : '') +
+            (it.work_form && it.work_form.renk ? ' · <span class="font-bold text-accent">' + escapeHtml(it.work_form.renk) + '</span>' : '') +
             (it.price != null ? ' · ' + ZirkonikMoney.format(it.price, it.currency, 2) : '') + '</p></div>' +
             '<button type="button" onclick="zkRemoveDraftItem(' + i + ')" class="shrink-0 text-destructive" aria-label="Kaldır">' +
             '<iconify-icon icon="lucide:x" class="text-base"></iconify-icon></button></div>';
@@ -462,6 +464,11 @@
         name: item.name,
         route_room_ids: item.route_room_ids || null,
         currency: itemCur,
+        // 2026-09-19: calisma formu (VITA rengi, gingiva, DVO, materyaller)
+        // yalnizca GONDERIM aninda bir kez okunuyordu; 3 kaleme 3 ayri renk
+        // secilse bile ucu de SON secilen rengi aliyordu. Form artik kalem
+        // eklendigi anda kopyalaniyor, her kalem kendi rengini tasiyor.
+        work_form: ZkWorkForm.getData(),
         teeth: teeth,
         unit_count: Math.max(1, Number(document.getElementById('f-tooth-count').value) || teeth.length),
         price: priceVal ? Number(priceVal) : null,
@@ -671,6 +678,7 @@
           name: priceItem.name,
           route_room_ids: priceItem.route_room_ids || null,
           currency: ZirkonikData.resolveUnitCurrency(priceItem, priceOverrides, doctorId, labId),
+          work_form: ZkWorkForm.getData(),
           teeth: bekleyenDisler,
           unit_count: Math.max(1, Number(document.getElementById('f-tooth-count').value) || bekleyenDisler.length),
           price: autoPrice ? Number(autoPrice) : null,
@@ -752,7 +760,10 @@
           doctor_id: doctorId,
           restoration_type: priceItem.name,
           price_item_id: priceItem.id,
-          work_form: ZkWorkForm.getData(),
+          // jobs.work_form geriye donuk uyumluluk icin duruyor (bildirimler,
+          // PDF, eski ekranlar okuyor) ve ILK kalemin formunu temsil ediyor.
+          // Kalem bazli gercek formlar job_items.work_form'da.
+          work_form: first.work_form || ZkWorkForm.getData(),
           patient_name: patientName,
           clinic_protocol_no: protocolNo,
           patient_reference: document.getElementById('f-reference').value.trim() || null,
@@ -777,6 +788,7 @@
               unit_count: Math.max(1, Number(it.unit_count) || 1),
               price: it.price,
               currency: it.currency || '$',
+              work_form: it.work_form || null,
               planned_route: it._route,
               color_index: it.color_index || 0,
               sort_order: i

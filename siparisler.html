@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="css/tailwind.css">
   <link rel="stylesheet" href="css/ipad.css">
   <link rel="stylesheet" href="css/zk-utils.css">
+  <script src="js/zk-tema.js"></script>
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
@@ -438,6 +439,10 @@
                   unit_count: k.unit_count,
                   price: k.price,
                   currency: k.currency,
+                  // Kalemin KENDI calisma formu (VITA rengi vb.). Eski tek
+                  // kalemli siparislerde items[] icinde form yok; o zaman
+                  // siparisin formu kullaniliyor.
+                  work_form: k.ham.work_form || o.work_form || null,
                   planned_route: k.route || plannedRoute,
                   color_index: k.ham.color_index || k.sira,
                   sort_order: k.sira

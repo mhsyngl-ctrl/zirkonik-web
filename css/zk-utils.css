@@ -668,3 +668,53 @@ body { animation: zkPageIn .2s ease both; }
 #zk-ptr.zk-ptr-hazir .zk-ptr-cark { border-color: var(--color-primary); border-top-color: transparent; }
 #zk-ptr.zk-ptr-donuyor .zk-ptr-cark { animation: zk-ptr-don .7s linear infinite; }
 @keyframes zk-ptr-don { to { transform: rotate(360deg); } }
+
+/* ============ Açık tema (zk-tema.js) ============ */
+/* Renkler her sayfanın kendi <style> bloğunda :root üstünde tanımlı ve o blok
+   bu dosyadan SONRA geliyor. Bu yüzden basit bir :root ile ezmek işe yaramaz;
+   :root[data-theme="light"] daha yüksek özgüllükte olduğu için 19 sayfanın
+   tamamını tek yerden çeviriyor. Jeton adları aynı kaldığı için hiçbir sayfanın
+   HTML'ine dokunmak gerekmiyor. */
+:root[data-theme="light"] {
+  --color-background: #F5F7FA;
+  --color-foreground: #16191F;
+  --color-primary: #2C62B8;
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: #E7ECF5;
+  --color-secondary-foreground: #33404F;
+  --color-accent: #B9700C;
+  --color-accent-foreground: #FFFFFF;
+  --color-muted: #EDF0F5;
+  --color-muted-foreground: #5C6673;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #16191F;
+  --color-border: #D6DCE5;
+  --color-input: #FFFFFF;
+  --color-destructive: #C2352F;
+  --color-destructive-foreground: #FFFFFF;
+  --color-success: #0A7C55;
+  --color-success-foreground: #FFFFFF;
+  --color-chart1: #2C62B8;
+  --color-chart2: #0A7C55;
+  --color-chart3: #B9700C;
+  --color-chart4: #6438E0;
+  --color-chart5: #3F6D8C;
+}
+/* Koyu temada saydam beyaz kullanan yerler açık zeminde kaybolur. */
+:root[data-theme="light"] .bg-white\/10 { background: rgba(0,0,0,.06); }
+:root[data-theme="light"] .border-white\/25 { border-color: rgba(0,0,0,.18); }
+:root[data-theme="light"] .text-white\/55,
+:root[data-theme="light"] .text-white\/65,
+:root[data-theme="light"] .text-white\/70 { color: rgba(255,255,255,.85); }
+/* Diş şeması: koyu temada kron beyaz çiziliyor, açık zeminde kenarlık şart. */
+:root[data-theme="light"] #wf-container [data-crown] { stroke-width: 1.2; }
+/* Yüzen tema anahtarı — sayfa kendi düğmesini koymadıysa. */
+#zk-tema-btn {
+  position: fixed; top: calc(env(safe-area-inset-top) + 10px); right: 10px; z-index: 85;
+  width: 34px; height: 34px; border-radius: 9999px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--color-border); background: var(--color-card);
+  color: var(--color-muted-foreground); font-size: 15px; cursor: pointer;
+  box-shadow: 0 6px 18px -8px rgba(0,0,0,.45); opacity: .85;
+}
+#zk-tema-btn:hover { opacity: 1; }

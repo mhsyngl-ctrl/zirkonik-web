@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="css/tailwind.css">
   <link rel="stylesheet" href="css/ipad.css">
   <link rel="stylesheet" href="css/zk-utils.css">
+  <script src="js/zk-tema.js"></script>
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
@@ -145,17 +146,19 @@
 
           <!-- Önceden tek bir "Hasta referansı / not" alanı vardı ve iki işi
                birden görüyordu; doktor kendi kovanına baktığında hangi
-               hastası olduğunu göremiyordu. Üçe ayrıldı. Hasta adı ve
-               referans isteğe bağlı — kişisel veri yazmak istemeyen doktor
-               yalnızca kendi protokol numarasını girebilir. -->
+               hastası olduğunu göremiyordu. Üçe ayrıldı.
+               2026-09-19: ikisi de ZORUNLU oldu (kullanıcı kararı). İş kağıdı,
+               ekstre ve klinikle yazışma bu iki bilgiye dayanıyor; laboratuvar
+               giriş ekranında zaten zorunluydu, doktor tarafında değildi ve
+               isimsiz siparişler geliyordu. -->
           <label class="mt-3 block">
-            <span class="mb-1.5 block text-xs font-bold">Hasta adı</span>
-            <input id="o-patient" type="text" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="Örn. Ahmet Y. (isteğe bağlı)">
+            <span class="mb-1.5 block text-xs font-bold">Hasta adı *</span>
+            <input id="o-patient" type="text" required class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="Hastanın adı soyadı">
           </label>
 
           <label class="mt-3 block">
-            <span class="mb-1.5 block text-xs font-bold">Hasta referans / protokol no</span>
-            <input id="o-ref" type="text" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="Kendi dosya numaranız (isteğe bağlı)">
+            <span class="mb-1.5 block text-xs font-bold">Hasta referans / protokol no *</span>
+            <input id="o-ref" type="text" required class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="Kendi dosya / protokol numaranız">
           </label>
 
           <label class="mt-3 block">
@@ -492,6 +495,10 @@
       docItems.push({
         price_item_id: item.id,
         restoration_type: item.name,
+        // 2026-09-19: calisma formu (VITA rengi vb.) yalnizca GONDERIM aninda
+        // bir kez okunuyordu; 3 kaleme 3 ayri renk secilse bile ucu de SON
+        // secilen rengi aliyordu. Form artik kalem eklendigi anda kopyalaniyor.
+        work_form: ZkWorkForm.getData(),
         teeth: teeth,
         unit_count: Math.max(1, Number(document.getElementById('o-count').value) || teeth.length),
         color_index: docColorIdx
@@ -656,6 +663,22 @@
         errEl.classList.remove('hidden');
         return;
       }
+      // Hasta adi ve protokol no zorunlu — laboratuvar isimsiz siparis almasin.
+      var hastaAdi = document.getElementById('o-patient').value.trim();
+      if (!hastaAdi) {
+        errEl.textContent = 'Hasta adı zorunludur.';
+        errEl.classList.remove('hidden');
+        document.getElementById('o-patient').focus();
+        return;
+      }
+      var protokolNo = document.getElementById('o-ref').value.trim();
+      if (!protokolNo) {
+        errEl.textContent = 'Hasta referans / protokol numarası zorunludur.';
+        errEl.classList.remove('hidden');
+        document.getElementById('o-ref').focus();
+        return;
+      }
+
       var btn = document.getElementById('o-submit');
       btn.disabled = true;
       // Formda secili tur + dis varsa, kalem listesi DOLU olsa bile kaleme
@@ -666,6 +689,7 @@
         docItems.push({
           price_item_id: item.id,
           restoration_type: item.name,
+          work_form: ZkWorkForm.getData(),
           teeth: teeth,
           unit_count: Math.max(1, Number(document.getElementById('o-count').value) || teeth.length),
           color_index: docColorIdx
@@ -685,13 +709,15 @@
         teeth_numbers: tumDis.length ? tumDis.join(', ') : null,
         unit_count: Math.max(1, toplamDis),
         items: docItems,
-        work_form: ZkWorkForm.getData(),
+        // Siparis duzeyindeki form ILK kalemi temsil eder; kalem bazli gercek
+        // formlar items[].work_form icinde.
+        work_form: (docItems[0] && docItems[0].work_form) || ZkWorkForm.getData(),
         // orders.patient_name ve clinic_protocol_no 05.09.2026'da eklenmişti
         // ama forma hiç bağlanmamıştı (canlıda ikisi de 0 kayıtta dolu).
         // Yeni kolon açmak yerine mevcut olanlar kullanılıyor; laboratuvar
         // giriş formu da aynı iki alanı zaten böyle dolduruyor.
-        patient_name: document.getElementById('o-patient').value.trim() || null,
-        clinic_protocol_no: document.getElementById('o-ref').value.trim() || null,
+        patient_name: hastaAdi,
+        clinic_protocol_no: protokolNo,
         note: document.getElementById('o-note').value.trim() || null
       }).then(function (res) {
         btn.disabled = false;

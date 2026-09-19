@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="css/tailwind.css">
   <link rel="stylesheet" href="css/ipad.css">
   <link rel="stylesheet" href="css/zk-utils.css">
+  <script src="js/zk-tema.js"></script>
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
@@ -614,7 +615,10 @@
     }
 
     function renderWorkForm() {
-      var wf = currentJob.work_form;
+      // 2026-09-19: calisma formu artik KALEM BAZINDA (job_items.work_form).
+      // Her kalemin kendi VITA rengi olabiliyor; secili kalemin formu
+      // gosteriliyor, yoksa isin formuna dusuluyor (eski kayitlar).
+      var wf = (currentItem && currentItem.work_form) || currentJob.work_form;
       if (!wf) return;
       var rows = [];
       function add(label, val) {
