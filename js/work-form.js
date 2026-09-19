@@ -121,6 +121,10 @@
 
   var ZkWorkForm = {
     onTeethChange: null,
+    /* VITA rengi degisince cagrilir. Renk KALEM BAZINDA kaydedildigi icin
+       (job_items.work_form) kalem kutusunda canli gosterilmesi gerekiyor:
+       kullanici hangi rengin o kaleme yazilacagini eklemeden once gormeli. */
+    onShadeChange: null,
     // Dolu (baska kaleme ait) bir dise dokununca cagrilir: (disNo, etiket)
     onUsedToothTap: null,
 
@@ -227,6 +231,13 @@
         if (typeof ZkWorkForm.onTeethChange === 'function') ZkWorkForm.onTeethChange(teeth);
       }
 
+      var ozelRenk = el.querySelector('#zk-wf-renk');
+      if (ozelRenk) {
+        ozelRenk.addEventListener('input', function () {
+          if (typeof ZkWorkForm.onShadeChange === 'function') ZkWorkForm.onShadeChange(ZkWorkForm.getShade());
+        });
+      }
+
       el.addEventListener('keydown', function (e) {
         if (e.key !== ' ' && e.key !== 'Enter') return;
         var t = e.target.closest ? e.target.closest('[data-tooth]') : null;
@@ -265,6 +276,11 @@
             b.classList.add('bg-input');
           });
           if (!already) { r.classList.remove('bg-input'); r.classList.add('bg-primary', 'text-primary-foreground', 'border-primary'); }
+          // VITA rengi kalem bazinda kaydediliyor; secim degisince kalem
+          // kutusundaki canli gosterge guncellensin.
+          if (group === 'renk' && typeof ZkWorkForm.onShadeChange === 'function') {
+            ZkWorkForm.onShadeChange(ZkWorkForm.getShade());
+          }
           return;
         }
         var c = e.target.closest('[data-check]');
@@ -361,6 +377,29 @@
       selColor = color || null;
       if (!container) return;
       Object.keys(selected).forEach(function (n) { ZkWorkForm.paintTooth(n, true); });
+    },
+
+    /* Su an secili VITA rengi (hazir dugmelerden ya da "diger" kutusundan). */
+    getShade: function () {
+      if (!container) return null;
+      var b = container.querySelector('[data-radio="renk"].bg-primary');
+      if (b) return b.getAttribute('data-value');
+      var i = container.querySelector('#zk-wf-renk');
+      return (i && i.value.trim()) || null;
+    },
+
+    /* Kalem eklendikten sonra rengi temizler. Temizlenmezse sonraki kalem
+       oncekinin rengini sessizce devralir ve kullanici fark etmez — renk
+       kalem bazinda tutuldugu icin bu yanlis veri olurdu. */
+    clearShade: function () {
+      if (!container) return;
+      container.querySelectorAll('[data-radio="renk"]').forEach(function (b) {
+        b.classList.remove('bg-primary', 'text-primary-foreground', 'border-primary');
+        b.classList.add('bg-input');
+      });
+      var i = container.querySelector('#zk-wf-renk');
+      if (i) i.value = '';
+      if (typeof ZkWorkForm.onShadeChange === 'function') ZkWorkForm.onShadeChange(null);
     },
 
     UPPER: UPPER.slice(),

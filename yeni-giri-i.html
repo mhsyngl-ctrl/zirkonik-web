@@ -192,6 +192,7 @@
                 <p class="text-xs font-bold">Bu siparişteki kalemler</p>
                 <div class="flex items-center gap-2">
                   <span id="f-color-label" class="max-w-[110px] truncate text-[10px] font-semibold text-muted-foreground"></span>
+                <span id="f-shade" class="shrink-0 rounded-full border border-dashed border-accent/60 px-2 py-0.5 text-[10px] font-bold text-accent">VITA: —</span>
                   <div id="f-color-row" class="flex gap-1.5"></div>
                 </div>
               </div>
@@ -477,6 +478,7 @@
 
       // Sonraki kalem için hazırla: seçimi temizle, bir sonraki rengi öner.
       ZkWorkForm.setTeeth([]);
+      ZkWorkForm.clearShade();   // sonraki kalem onceki rengi sessizce devralmasin
       sel.value = '';
       document.getElementById('f-price').value = '';
       document.getElementById('f-tooth-count').value = 1;
@@ -496,6 +498,12 @@
     var canOverridePrice = false;
 
     ZkWorkForm.render(document.getElementById('wf-container'));
+    // VITA rengi kalem bazinda kaydediliyor; hangi rengin bu kaleme
+    // yazilacagi kalem kutusunda canli gorunsun.
+    ZkWorkForm.onShadeChange = function (renk) {
+      var el = document.getElementById('f-shade');
+      if (el) el.textContent = 'VITA: ' + (renk || '—');
+    };
     zkRenderColorRow();
     zkRenderDraftItems();
     document.getElementById('f-type').addEventListener('change', function () { zkRenderColorRow(); zkRenderLegend(); });

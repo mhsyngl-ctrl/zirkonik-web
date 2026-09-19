@@ -134,6 +134,7 @@
               <p class="text-xs font-bold">Bu siparişteki kalemler</p>
               <div class="flex items-center gap-2">
                 <span id="o-color-label" class="max-w-[110px] truncate text-[10px] font-semibold text-muted-foreground"></span>
+                <span id="o-shade" class="shrink-0 rounded-full border border-dashed border-accent/60 px-2 py-0.5 text-[10px] font-bold text-accent">VITA: —</span>
                 <div id="o-color-row" class="flex gap-1.5"></div>
               </div>
             </div>
@@ -287,6 +288,12 @@
     var priceItems = [];
 
     ZkWorkForm.render(document.getElementById('wf-container'));
+    // VITA rengi kalem bazinda kaydediliyor; hangi rengin bu kaleme
+    // yazilacagi kalem kutusunda canli gorunsun.
+    ZkWorkForm.onShadeChange = function (renk) {
+      var el = document.getElementById('o-shade');
+      if (el) el.textContent = 'VITA: ' + (renk || '—');
+    };
     // Coklu kalem arayuzunun baslangici burada DEGIL: ZK_DOC_COLORS ve
     // docItems asagida tanimli ve var atamasi hoist edilmiyor. Cagrilar
     // o tanimlardan hemen sonra yapiliyor.
@@ -504,6 +511,7 @@
         color_index: docColorIdx
       });
       ZkWorkForm.setTeeth([]);
+      ZkWorkForm.clearShade();   // sonraki kalem onceki rengi sessizce devralmasin
       sel.value = '';
       document.getElementById('o-count').value = 1;
       docColorIdx = docItems.length % ZK_DOC_COLORS.length;
