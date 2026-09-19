@@ -299,6 +299,7 @@
   <script src="supabase-client.js"></script>
   <script src="js/zk-guard.js"></script>
   <script src="js/zk-ptr.js"></script>
+  <script src="js/zk-yenile.js"></script>
   <!-- Salt okunur diş şeması için (renderChartOnly). Form alanları
        kullanılmıyor, yalnızca şema çiziliyor. -->
   <script src="js/work-form.js"></script>
@@ -940,6 +941,14 @@
         errEl.classList.remove('hidden');
       });
     });
+  
+    /* Yumusak tazeleme: sayfa verisi yalniz acilista cekiliyordu, baskasi
+     * bir sey degistirince ekranda hic gorunmuyordu. Asagiya cek (zk-ptr.js)
+     * ve sekmeye geri donus (zk-yenile.js) bunu cagirir; sayfa yeniden
+     * yuklenmez, yalniz veri tazelenir. */
+    window.zkRefresh = function () {
+      return Promise.all([Promise.resolve(loadJob())]);
+    };
   </script>
 
 </body>

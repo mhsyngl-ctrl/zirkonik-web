@@ -292,6 +292,7 @@
   <script src="js/zk-guard.js"></script>
   <script src="js/zk-picker.js"></script>
   <script src="js/zk-ptr.js"></script>
+  <script src="js/zk-yenile.js"></script>
   <script>
     function zkGoToBoard() {
       var el = document.getElementById('production-board-section');
@@ -939,6 +940,14 @@
       for (var i = 0; i < boardLabs.length; i++) { if (boardLabs[i].id === this.value) { lab = boardLabs[i]; break; } }
       if (lab) loadBoardForLab(lab);
     });
+  
+    /* Yumusak tazeleme: sayfa verisi yalniz acilista cekiliyordu, baskasi
+     * bir sey degistirince ekranda hic gorunmuyordu. Asagiya cek (zk-ptr.js)
+     * ve sekmeye geri donus (zk-yenile.js) bunu cagirir; sayfa yeniden
+     * yuklenmez, yalniz veri tazelenir. */
+    window.zkRefresh = function () {
+      return Promise.all([Promise.resolve(loadDashboard()), Promise.resolve(loadAcceptAlerts()), Promise.resolve(zkLoadNotifBadge()), Promise.resolve(loadBoard())]);
+    };
   </script>
 
 </body>

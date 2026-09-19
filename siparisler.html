@@ -126,6 +126,7 @@
   <script src="js/zk-guard.js"></script>
   <script src="js/zk-picker.js"></script>
   <script src="js/zk-ptr.js"></script>
+  <script src="js/zk-yenile.js"></script>
   <script>
     var curTab = 'pending';
     var orders = [];
@@ -499,6 +500,14 @@
         loadOrders();
       });
     }
+  
+    /* Yumusak tazeleme: sayfa verisi yalniz acilista cekiliyordu, baskasi
+     * bir sey degistirince ekranda hic gorunmuyordu. Asagiya cek (zk-ptr.js)
+     * ve sekmeye geri donus (zk-yenile.js) bunu cagirir; sayfa yeniden
+     * yuklenmez, yalniz veri tazelenir. */
+    window.zkRefresh = function () {
+      return Promise.all([Promise.resolve(loadOrders())]);
+    };
   </script>
 
 </body>

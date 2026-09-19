@@ -277,6 +277,7 @@
   <script src="js/zk-guard.js"></script>
   <script src="js/zk-picker.js"></script>
   <script src="js/zk-ptr.js"></script>
+  <script src="js/zk-yenile.js"></script>
   <script src="js/work-form.js"></script>
   <script>
     var doctor = null;
@@ -629,7 +630,13 @@
       var errEl = document.getElementById('o-error');
       errEl.classList.add('hidden');
       var item = priceItems.find(function (p) { return p.id === document.getElementById('o-type').value; });
-      if (!item) {
+
+      // 2026-09-19: bu kontrol KOSULSUZ calisiyordu. Kalem eklendikten sonra
+      // tur kutusu bilerek bosaldigi icin, 3 kalem eklemis kullanici
+      // gonderemiyordu: sistem olmayan 4. kalem icin tur secmeye zorluyordu.
+      // Tur yalniz HIC kalem yokken gerekli — o zaman formdaki secimden
+      // otomatik tek kalem uretiliyor.
+      if (!docItems.length && !item) {
         errEl.textContent = 'Çalışma türü seçin.';
         errEl.classList.remove('hidden');
         return;
@@ -1060,6 +1067,14 @@
         if (window.zkFlow) window.zkFlow.stagger(el);
       });
     }
+  
+    /* Yumusak tazeleme: sayfa verisi yalniz acilista cekiliyordu, baskasi
+     * bir sey degistirince ekranda hic gorunmuyordu. Asagiya cek (zk-ptr.js)
+     * ve sekmeye geri donus (zk-yenile.js) bunu cagirir; sayfa yeniden
+     * yuklenmez, yalniz veri tazelenir. */
+    window.zkRefresh = function () {
+      return Promise.all([Promise.resolve(zkLoadNotifBadge()), Promise.resolve(loadCari()), Promise.resolve(loadDoctorHive()), Promise.resolve(loadOrders())]);
+    };
   </script>
 
 </body>
