@@ -13,7 +13,7 @@
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#F5F7FA">
+  <meta name="theme-color" content="#FFFFFF">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <script src="https://code.iconify.design/iconify-icon/2.3.0/iconify-icon.min.js"></script>
@@ -120,7 +120,13 @@
           </div>
         </section>
 
-        <section class="mt-5 rounded-theme border border-border bg-card p-4">
+        <!-- 2026-09-19 (kullanici karari): sifre degistirme YALNIZ laboratuvarin
+             isi — hem personel hem doktor icin. Kendi sifresini degistirme
+             bolumu bu iki role kapali; laboratuvar sahibi kendisi icin
+             kullanabiliyor (aksi halde kimse degistiremezdi). Laboratuvar,
+             personel sifresini Ekip > kisi ekranindan, doktor sifresini
+             Doktorlar ekranindaki anahtar dugmesinden yeniliyor. -->
+        <section id="pf-pass-section" class="mt-5 rounded-theme border border-border bg-card p-4">
           <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Şifre</p>
           <form id="pf-pass-form" class="mt-3 space-y-3" onsubmit="event.preventDefault(); zkChangePassword();">
             <!-- iOS parola yöneticisi "hangi hesap" bilgisini bu alandan okur.
@@ -148,6 +154,9 @@
           <p id="pf-pass-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
           <p id="pf-pass-success" class="mt-2 hidden text-xs font-semibold text-success"></p>
           <button id="pf-pass-btn" type="submit" form="pf-pass-form" class="mt-3 flex h-12 w-full items-center justify-center rounded-theme border border-border bg-background text-sm font-bold text-primary">Şifremi güncelle</button>
+          <p id="pf-pass-kapali" class="hidden text-xs leading-5 text-muted-foreground">
+            Şifreniz laboratuvar tarafından belirlenir. Değiştirmek için laboratuvarınıza başvurun.
+          </p>
         </section>
 
         <section id="pf-earnings-section" class="mt-5 hidden rounded-theme border border-border bg-card p-4">
@@ -297,6 +306,12 @@
         // talepleri ana ekrandaki kuyruktan yönetir, kendisi talep açmaz.
         if (me.role === 'personel') {
           document.getElementById('pf-leave-section').classList.remove('hidden');
+        }
+        // Sifre degistirme yalniz laboratuvar sahibinde.
+        if (me.role !== 'yonetici') {
+          document.getElementById('pf-pass-form').classList.add('hidden');
+          document.getElementById('pf-pass-btn').classList.add('hidden');
+          document.getElementById('pf-pass-kapali').classList.remove('hidden');
         }
         if (me.role === 'doktor') {
           // Doktor retim.html'e giremiyor (zk-guard geri atar); geri dugmesi

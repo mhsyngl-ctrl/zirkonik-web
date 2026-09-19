@@ -676,20 +676,23 @@ body { animation: zkPageIn .2s ease both; }
    tamamını tek yerden çeviriyor. Jeton adları aynı kaldığı için hiçbir sayfanın
    HTML'ine dokunmak gerekmiyor. */
 :root[data-theme="light"] {
-  --color-background: #F5F7FA;
+  /* Zemin TAM BEYAZ (kullanici karari). Kart da beyaz oldugu icin kartlar
+     yalniz kenarliktan okunuyor — kenarlik biraz belirgin tutuldu. Giris
+     alanlari ise hafif gri: beyaz zeminde beyaz kutu gorunmez olurdu. */
+  --color-background: #FFFFFF;
   --color-foreground: #16191F;
   --color-primary: #2C62B8;
   --color-primary-foreground: #FFFFFF;
-  --color-secondary: #E7ECF5;
+  --color-secondary: #EEF2F8;
   --color-secondary-foreground: #33404F;
   --color-accent: #B9700C;
   --color-accent-foreground: #FFFFFF;
-  --color-muted: #EDF0F5;
+  --color-muted: #F2F5F9;
   --color-muted-foreground: #5C6673;
   --color-card: #FFFFFF;
   --color-card-foreground: #16191F;
-  --color-border: #D6DCE5;
-  --color-input: #FFFFFF;
+  --color-border: #DDE3EC;
+  --color-input: #F7F9FC;
   --color-destructive: #C2352F;
   --color-destructive-foreground: #FFFFFF;
   --color-success: #0A7C55;
@@ -727,7 +730,7 @@ body { animation: zkPageIn .2s ease both; }
 /* Kovan: boş petek açık gri, dolu/seçili/acil petekler kendi renklerini
    korur ama iç zemin açık kalır ki sayı okunabilsin. */
 :root[data-theme="light"] .zk-hex { filter: drop-shadow(0 6px 10px rgba(16,25,45,.16)); }
-:root[data-theme="light"] .zk-hex-inner { background: #FFFFFF; }
+:root[data-theme="light"] .zk-hex-inner { background: #FBFCFE; }
 :root[data-theme="light"] .zk-hex-name { color: var(--color-muted-foreground); }
 :root[data-theme="light"] .zk-hex-count { color: #8A93A0; }
 :root[data-theme="light"] .zk-hex-sub { color: #8A93A0; }

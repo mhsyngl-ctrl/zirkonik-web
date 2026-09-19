@@ -26,7 +26,7 @@
     document.documentElement.setAttribute('data-theme', tema);
     // iOS durum çubuğu ve tarayıcı arayüzü de temaya uysun.
     var meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', tema === 'light' ? '#F5F7FA' : '#0E1013');
+    if (meta) meta.setAttribute('content', tema === 'light' ? '#FFFFFF' : '#0E1013');
   }
 
   /* 2026-09-19: varsayilan ACIK oldu (kullanici karari — "uygulamayi tamamen
