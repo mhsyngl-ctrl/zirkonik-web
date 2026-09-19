@@ -21,14 +21,19 @@
   // AYNI noktaya sentetik bir 'click' daha yollar; alt-sayfa o arada açıldığı
   // için bu tıklama yeni açılan listeye düşer ve rastgele bir satır seçilirdi.
   //
-  // 2026-09-19: koruma "açılıştan sonraki 400 ms boyunca HİÇBİR tıklamayı
-  // kabul etme" şeklindeydi. Kullanıcı listeyi ezberleyip hızlandığında
-  // (3-4-5. kalemde) gerçek seçimi de yutuyordu: seçiyorsun, hiçbir şey
-  // olmuyor, kutu boş kalıyor. Artık ZAMANA DEĞİL KONUMA bakıyor — hayalet
-  // tıklama açılış dokunuşuyla aynı noktadadır, gerçek seçim başka noktada.
-  var sonNokta = null;   // { t, x, y }
-  var GHOST_MS = 700;    // konum da tuttugu icin pencere genis olabilir
-  var GHOST_PX = 24;
+  // İki yanlış deneme oldu, ikisi de gerçek seçimi yutuyordu:
+  //   1) "Açılıştan sonraki 400 ms hiçbir tıklamayı kabul etme" — kullanıcı
+  //      listeyi ezberleyip hızlanınca (3-4-5. kalem) seçimi de yuttu.
+  //   2) "Açılış dokunuşuyla aynı noktadaki tıklamayı reddet" — alan ekranın
+  //      altındayken (telefonda kalem bölümüne inince tam öyle) dokunulan
+  //      satır o noktanın 24 px yakınına düşüyor ve yine yutuluyordu.
+  //
+  // Doğru ölçüt geometri ya da süre değil: GERÇEK bir satır seçimi her zaman
+  // YENİ bir basıştan (touchstart/mousedown) sonra gelir. Hayalet tıklama ise
+  // alt-sayfayı açan basışın kuyruğudur — arada yeni basış YOKTUR. Aşağıdaki
+  // sayaç tam bunu ölçüyor; zamanlama ve konumdan tamamen bağımsız.
+  var basisSayaci = 0;     // her touchstart/mousedown'da artar
+  var kapiBasisi = -1;     // alt-sayfanın açıldığı/kapandığı andaki sayaç
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -52,6 +57,7 @@
       konumlaFn = null;
     }
     if (overlay) { overlay.remove(); overlay = null; }
+    kapiyiIsaretle();
   }
 
   /* Listeyi tetikleyen alanin altina yerlestirir. Asagida yer yoksa alanin
@@ -82,6 +88,7 @@
 
   function openSheet(titleText, bodyHtml, anchor) {
     closeSheet();
+    kapiyiIsaretle();
     overlay = document.createElement('div');
     overlay.className = 'zk-picker-overlay';
     // 2026-09-12: Liste uzun olunca kullanici sikisip kaliyordu — alt-sayfa
@@ -156,10 +163,7 @@
         if (isGhost(e)) return;
         sel.value = row.getAttribute('data-val');
         sel.dispatchEvent(new Event('change', { bubbles: true }));
-        // Alt-sayfa kapandiktan sonra ayni noktaya gelen sentetik tiklama
-        // altta kalan baska bir alani acmasin.
-        noktaIsaretle(e);
-        closeSheet();
+        closeSheet();   // kapanis kapiyi isaretler: kuyruk tiklama altta kalan alani acamaz
       });
     });
   }
@@ -218,7 +222,6 @@
           if (isGhost(e)) return;
           input.value = b.getAttribute('data-date');
           input.dispatchEvent(new Event('change', { bubbles: true }));
-          noktaIsaretle(e);
           closeSheet();
         });
       });
@@ -243,6 +246,12 @@
   // kendisi açıyor; mousedown/click masaüstü ve yedek yol olarak duruyor.
   var touchStart = null;
 
+  // Sayac dinleyicileri EN BASTA kayitli: ayni fazda kayit sirasina gore
+  // calistiklari icin asagidaki dinleyicilerden ve satir 'click'lerinden once
+  // artarlar.
+  document.addEventListener('touchstart', function () { basisSayaci++; }, true);
+  document.addEventListener('mousedown', function () { basisSayaci++; }, true);
+
   function pickerTarget(e) {
     var t = e.target;
     if (!t || !t.closest) return null;
@@ -260,23 +269,15 @@
 
   // Alt-sayfa açıldıktan hemen sonra gelen "hayalet" tıklamanın listeden
   // rastgele bir satır seçmesini / sayfayı kapatmasını engelle.
-  /* Olay hayalet mi? Yalnizca (a) son etkilesimden hemen sonra geldiyse VE
-   * (b) tam ayni noktadaysa. Koordinatsiz olaylar (klavye, programatik)
-   * hicbir zaman hayalet sayilmaz — aksi halde gercek secim yutulur. */
+  /* Alt-sayfa açıldığından/kapandığından beri yeni bir basış oldu mu? */
+  function yeniBasis() { return basisSayaci !== kapiBasisi; }
+  function kapiyiIsaretle() { kapiBasisi = basisSayaci; }
+
   function isGhost(e) {
-    if (!sonNokta) return false;
-    if (Date.now() - sonNokta.t >= GHOST_MS) return false;
-    if (!e || typeof e.clientX !== 'number') return false;
-    if (e.clientX === 0 && e.clientY === 0) return false;   // sentetik/koordinatsiz
-    return Math.abs(e.clientX - sonNokta.x) <= GHOST_PX &&
-           Math.abs(e.clientY - sonNokta.y) <= GHOST_PX;
-  }
-  function noktaIsaretle(e) {
-    var t = e && e.changedTouches && e.changedTouches[0];
-    if (t) { sonNokta = { t: Date.now(), x: t.clientX, y: t.clientY }; return; }
-    sonNokta = (e && typeof e.clientX === 'number')
-      ? { t: Date.now(), x: e.clientX, y: e.clientY }
-      : null;
+    // Klavyeyle tetiklenen tıklamada detail 0'dır ve öncesinde basış olmaz;
+    // bunlar hiçbir zaman hayalet değildir.
+    if (e && e.detail === 0) return false;
+    return !yeniBasis();
   }
 
   document.addEventListener('touchstart', function (e) {
@@ -294,7 +295,6 @@
     if (t && (Math.abs(t.clientX - start.x) > 10 || Math.abs(t.clientY - start.y) > 10)) return;
     e.preventDefault(); // yerleşik iOS çarkı açılmasın
     if (overlay) return;
-    noktaIsaretle(e);
     openFor(start.el);
   }, { capture: true, passive: false });
 
@@ -303,7 +303,6 @@
     if (!el) return;
     e.preventDefault();
     if (overlay || isGhost(e)) return;
-    noktaIsaretle(e);
     openFor(el);
   }, true);
 
@@ -313,7 +312,6 @@
     if (!el) return;
     e.preventDefault();
     if (overlay || isGhost(e)) return;
-    noktaIsaretle(e);
     openFor(el);
   }, true);
 

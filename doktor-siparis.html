@@ -89,14 +89,7 @@
 
         <!-- Yeni sipariş -->
         <section id="panel-new" class="hidden">
-          <label class="block">
-            <span class="mb-1.5 block text-xs font-bold">Çalışma türü *</span>
-            <select id="o-type" class="flex h-12 w-full items-center rounded-theme border border-border bg-input px-3.5 text-sm">
-              <option value="">Seçin</option>
-            </select>
-          </label>
-
-          <div class="mt-4" id="wf-container"></div>
+          <div id="wf-container"></div>
 
           <!-- Canlı lejant. Kalem eklerken hangi dişi hangi türe verdiğini
                diyagramın HEMEN altında görmek gerekiyor; liste aşağıda
@@ -126,7 +119,17 @@
                olmalı: uzaktan doktor, online, ya da resepsiyondan giriş.
                10 dişin 5'i kron, 5'i veneer olabilir; hepsi tek talep. -->
           <div class="mt-4 rounded-theme border border-border bg-background p-3.5">
-            <div class="flex items-center justify-between gap-3">
+            <!-- 2026-09-19: çalışma türü diyagramın ÜSTÜNDEYDİ. Akış
+                 "tür seç → dişleri işaretle → renk seç → Ekle" olduğu için
+                 tür bu üçlünün başında, diyagramın hemen altında ve renklerin
+                 üstünde duruyor; göz yukarı aşağı gidip gelmiyor. -->
+            <label class="block">
+              <span class="mb-1.5 block text-xs font-bold">Çalışma türü *</span>
+              <select id="o-type" class="flex h-12 w-full items-center rounded-theme border border-border bg-input px-3.5 text-sm">
+                <option value="">Seçin</option>
+              </select>
+            </label>
+            <div class="mt-3 flex items-center justify-between gap-3">
               <p class="text-xs font-bold">Bu siparişteki kalemler</p>
               <div class="flex items-center gap-2">
                 <span id="o-color-label" class="max-w-[110px] truncate text-[10px] font-semibold text-muted-foreground"></span>

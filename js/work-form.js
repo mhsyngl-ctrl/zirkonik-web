@@ -329,12 +329,19 @@
     setUsedTeeth: function (map, labelMap) {
       usedLabels = labelMap || {};
       if (!container) return;
+      map = map || {};
       container.querySelectorAll('[data-tooth]').forEach(function (g) {
+        var n = g.getAttribute('data-tooth');
         g.removeAttribute('data-used');
         g.style.opacity = '';
         g.style.pointerEvents = '';
+        // 2026-09-19: burasi yalnizca isareti kaldiriyordu, BOYAYI degil.
+        // Bir kalem silinince disleri haritadan cikiyor ama diyagramda eski
+        // renginde kaliyordu — silinen is hala oradaymis gibi gorunuyordu.
+        // Artik haritada olmayan ve secili de olmayan dis beyaza donuyor.
+        if (!(n in map) && !selected[n]) ZkWorkForm.paintTooth(n, false);
       });
-      Object.keys(map || {}).forEach(function (n) {
+      Object.keys(map).forEach(function (n) {
         if (selected[n]) return;
         var g = container.querySelector('[data-tooth="' + n + '"]');
         if (!g) return;

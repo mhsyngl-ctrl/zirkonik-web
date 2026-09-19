@@ -108,13 +108,6 @@
 
             <div class="space-y-3">
               <label class="block">
-                <span class="mb-1.5 block text-xs font-bold">Çalışma türü *</span>
-                <select id="f-type" required class="flex h-12 w-full items-center rounded-theme border border-border bg-input px-3.5 text-sm">
-                  <option value="">Seçin</option>
-                </select>
-              </label>
-
-              <label class="block">
                 <span class="mb-1.5 block text-xs font-bold">Hasta adı *</span>
                 <input id="f-patient" type="text" required class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="Hastanın adı soyadı">
               </label>
@@ -183,7 +176,18 @@
                  Tek türlü sıradan işte hiç "Ekle"ye basmadan kaydedilebilir;
                  kaydederken mevcut seçim otomatik tek kalem olur. -->
             <div class="mt-4 rounded-theme border border-border bg-background p-3.5">
-              <div class="flex items-center justify-between gap-3">
+              <!-- 2026-09-19: çalışma türü yukarıda "İş bilgileri" bölümündeydi;
+                   diyagramla arasında hasta/protokol/öncelik alanları vardı.
+                   Akış "tür seç → dişleri işaretle → renk seç → Ekle" olduğu
+                   için tür bu üçlünün başında, diyagramın hemen altında ve
+                   renklerin üstünde duruyor; göz gidip gelmiyor. -->
+              <label class="block">
+                <span class="mb-1.5 block text-xs font-bold">Çalışma türü *</span>
+                <select id="f-type" required class="flex h-12 w-full items-center rounded-theme border border-border bg-input px-3.5 text-sm">
+                  <option value="">Seçin</option>
+                </select>
+              </label>
+              <div class="mt-3 flex items-center justify-between gap-3">
                 <p class="text-xs font-bold">Bu siparişteki kalemler</p>
                 <div class="flex items-center gap-2">
                   <span id="f-color-label" class="max-w-[110px] truncate text-[10px] font-semibold text-muted-foreground"></span>
