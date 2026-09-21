@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://code.iconify.design; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://cuujupeindodpsdjcivm.supabase.co wss://cuujupeindodpsdjcivm.supabase.co https://api.iconify.design https://api.simplesvg.com https://api.unisvg.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <title>Hesap Kilitli — Zirkonik</title>
+
+  <link rel="stylesheet" href="css/tailwind.css">
+  <link rel="stylesheet" href="css/ipad.css">
+  <link rel="stylesheet" href="css/zk-utils.css">
+  <script src="js/zk-tema.js"></script>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#FFFFFF">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <script src="https://code.iconify.design/iconify-icon/2.3.0/iconify-icon.min.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap">
+
+  <style>
+  :root {
+    --color-background: #0E1013;
+    --color-foreground: #F2F4F7;
+    --color-primary: #3D7CDC;
+    --color-primary-foreground: #FFFFFF;
+    --color-secondary: #232732;
+    --color-secondary-foreground: #C6CBD6;
+    --color-accent: #F0A03C;
+    --color-accent-foreground: #FFFFFF;
+    --color-muted: #1B1E24;
+    --color-muted-foreground: #98A0AD;
+    --color-card: #15171C;
+    --color-card-foreground: #F2F4F7;
+    --color-border: #262A32;
+    --color-input: #1B1E24;
+    --color-destructive: #EF5350;
+    --color-destructive-foreground: #FFFFFF;
+    --color-success: #10B981;
+    --color-success-foreground: #FFFFFF;
+    --font-heading: 'Plus Jakarta Sans', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --radius: 12px;
+  }
+  html { overflow-x: hidden; }
+  body { font-family: var(--font-body); -webkit-font-smoothing: antialiased; margin: 0; padding: 0; overflow-x: hidden; overscroll-behavior-x: none; }
+  </style>
+</head>
+<body data-page="hesap-kilitli" class="bg-background text-foreground m-0 p-0">
+  <div class="flex h-screen w-screen items-center justify-center px-6" style="padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);">
+    <div class="mx-auto w-full max-w-sm text-center">
+      <img src="brand/mark.png" alt="Zirkonik" style="height:64px;width:auto;display:block;margin:0 auto">
+
+      <span class="mt-6 inline-flex h-14 w-14 items-center justify-center rounded-full bg-accent/10 text-accent">
+        <iconify-icon icon="lucide:lock" class="text-2xl"></iconify-icon>
+      </span>
+
+      <h1 id="hk-title" class="mt-4 font-heading text-xl font-bold">Erişim süresi doldu</h1>
+      <p id="hk-body" class="mt-2 text-sm leading-6 text-muted-foreground">
+        <span id="hk-org">Laboratuvarınızın</span> erişim süresi sona erdi. Verileriniz güvende — silinmedi.
+        Devam etmek için bizimle iletişime geçin.
+      </p>
+
+      <div class="mt-6 space-y-2.5">
+        <a href="tel:+905468844001" class="flex h-12 w-full items-center justify-center gap-2 rounded-theme bg-primary text-sm font-bold text-primary-foreground">
+          <iconify-icon icon="lucide:phone" class="text-base"></iconify-icon>Bizi arayın
+        </a>
+        <a href="mailto:m.hsyngl@gmail.com" class="flex h-12 w-full items-center justify-center gap-2 rounded-theme border border-border bg-card text-sm font-bold text-primary">
+          <iconify-icon icon="lucide:mail" class="text-base"></iconify-icon>E-posta gönderin
+        </a>
+        <button type="button" onclick="ZirkonikAuth.signOut()" class="flex h-12 w-full items-center justify-center gap-2 rounded-theme text-sm font-bold text-muted-foreground">
+          Çıkış yap
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="vendor/supabase-js.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="supabase-client.js"></script>
+  <script>
+    /* Bu sayfa js/zk-guard.js'in KİLİTLİ bir organizasyonu yönlendirdiği tek
+     * yer. Doğrudan URL'den gelinirse ya da org zaten aktifse (biri elle
+     * uzattıysa) normal panele geri gönderiyoruz — kullanıcı burada takılı
+     * kalmasın. */
+    ZirkonikAuth.requireAuth().then(function (session) {
+      if (!session) return;
+      ZirkonikData.myOrgStatus().then(function (r) {
+        var durum = r && r.data;
+        if (!durum || durum.is_active) {
+          window.location.href = 'retim.html';
+          return;
+        }
+        if (durum.org_name) {
+          document.getElementById('hk-org').textContent = durum.org_name + ' laboratuvarının';
+        }
+        if (durum.trial_ends_at) {
+          var tarih = new Date(durum.trial_ends_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+          document.getElementById('hk-body').innerHTML =
+            '<span id="hk-org">' + (durum.org_name || 'Laboratuvarınızın') + ' laboratuvarının</span> erişim süresi ' + tarih + ' tarihinde sona erdi. ' +
+            'Verileriniz güvende — silinmedi. Devam etmek için bizimle iletişime geçin.';
+        }
+      });
+    });
+  </script>
+</body>
+</html>

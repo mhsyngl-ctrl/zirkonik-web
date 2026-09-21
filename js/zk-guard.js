@@ -51,7 +51,7 @@
 // hiç dönmezse tam ekran "İnternet yok" uyarısı + Tekrar Dene gösterir.
 (function () {
   var page = (location.pathname.split('/').pop() || 'index.html').toLowerCase().replace('.html', '') || 'index';
-  var PUBLIC = { giris: 1, 'sifre-sifirla': 1, index: 1 };
+  var PUBLIC = { giris: 1, 'sifre-sifirla': 1, index: 1, 'hesap-kilitli': 1 };
   if (PUBLIC[page] || !window.ZirkonikAuth || !window.ZirkonikAuth.getSession) return;
 
   var settled = false;
@@ -98,7 +98,7 @@
 
 (function () {
   var page = (location.pathname.split('/').pop() || 'index.html').toLowerCase().replace('.html', '') || 'index';
-  var PUBLIC = { giris: 1, 'sifre-sifirla': 1, index: 1 };
+  var PUBLIC = { giris: 1, 'sifre-sifirla': 1, index: 1, 'hesap-kilitli': 1 };
   if (PUBLIC[page] || !window.ZirkonikAuth || !window.ZirkonikAuth.me) return;
 
   var ADMIN_PAGES = {
@@ -186,6 +186,12 @@
     // Devre dışı bırakılmış kullanıcı: RLS zaten tüm veriyi reddeder (asıl
     // güvenlik orada) ama bunu görmeden boş/kırık ekranlarla karşılaşmasın —
     // açık bir mesajla oturumu kapat.
+    if (me.organization_id && window.ZirkonikData && ZirkonikData.myOrgStatus) {
+      ZirkonikData.myOrgStatus().then(function (r) {
+        var durum = r && r.data;
+        if (durum && durum.is_active === false) location.replace('hesap-kilitli.html');
+      });
+    }
     if (me.status === 'rejected') {
       try { localStorage.removeItem('zk-guard'); } catch (e) {}
       var box = document.createElement('div');

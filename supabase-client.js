@@ -62,11 +62,19 @@
       _meCache = null;
     },
 
+    /** Onay e-postasindaki link buraya doner. site_url yanlis ayarliydi
+     *  (localhost:3000) ve bu adres izinli listede degildi — onay linki
+     *  hicbir yere gitmiyordu, kayit olan kimse e-postasini onaylayamiyordu.
+     *  resetPasswordForEmail ile ayni desen: iOS'ta (file://) uygulamaya
+     *  donsun, webde giris sayfasina. */
     signUp: function (email, password, meta) {
+      var redirect = (window.location.protocol === 'file:')
+        ? 'zirkonik://reset-password'
+        : (window.location.origin + '/giris.html');
       return client().auth.signUp({
         email: email,
         password: password,
-        options: { data: meta || {} }
+        options: { data: meta || {}, emailRedirectTo: redirect }
       });
     },
 
@@ -252,6 +260,15 @@
     restoreStaff: function (userId) {
       return unwrapFnResult(client().functions.invoke('delete-staff-account', { body: { user_id: userId, restore: true } }));
     },
+    /** Kilitli bir kullanici bile kendi organizasyonunun durumunu gorebilsin
+     *  diye RLS'i atlayan bir RPC (bkz. 20260919195322_deneme_suresi_ve_kilit). */
+    myOrgStatus: function () {
+      return client().rpc('my_org_status').then(function (r) {
+        if (r.error) return r;
+        return { data: (r.data && r.data[0]) || null, error: null };
+      });
+    },
+
     resetStaffPassword: function (userId, password) {
       return unwrapFnResult(client().functions.invoke('reset-user-password', { body: { user_id: userId, password: password } }));
     },
