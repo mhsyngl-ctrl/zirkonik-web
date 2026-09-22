@@ -949,6 +949,7 @@
           var rows = (r.data || []).slice(0, 20);
           var el = document.getElementById('handovers-list');
           if (!rows.length) { el.innerHTML = '<p class="p-4 text-xs text-muted-foreground">Henüz kasa teslimi yok.</p>'; return; }
+          var isYonetici = me.role === 'yonetici';
           el.innerHTML = rows.map(function (h, i) {
             var staffName = h.app_users ? h.app_users.full_name : '—';
             var isPending = h.status === 'pending';
@@ -960,6 +961,9 @@
               (isPending && canConfirm
                 ? '<button onclick="zkConfirmHandover(\'' + h.id + '\')" class="mt-1 rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold text-primary-foreground">Teslim alındı işaretle</button>'
                 : '<span class="text-[10px] font-bold ' + (isPending ? 'text-accent' : 'text-success') + '">' + (isPending ? 'Onay bekliyor' : 'Teslim alındı') + '</span>') +
+              (isYonetici
+                ? '<button onclick="zkUndoHandover(\'' + h.id + '\')" class="mt-1 block text-[10px] font-bold text-destructive">Geri al</button>'
+                : '') +
               '</div></div>';
           }).join('');
         });
@@ -1066,7 +1070,17 @@
         loadHandovers();
       });
     }
-  
+    // Sadece yönetici görür (RPC içinde de kontrol edilir) — geri alınca
+    // dahil edilen ödemeler tekrar bekleyen listesine döner.
+    function zkUndoHandover(id) {
+      if (!confirm('Bu kasa teslimini geri almak istediğinize emin misiniz? Dahil edilen ödemeler tekrar bekleyen listesine dönecek.')) return;
+      ZirkonikData.undoCashHandover(id).then(function (res) {
+        if (res.error) { zkToast('Geri alınamadı: ' + res.error.message); return; }
+        zkToast('Kasa teslimi geri alındı.');
+        loadHandovers();
+      });
+    }
+
     /* Yumusak tazeleme: sayfa verisi yalniz acilista cekiliyordu, baskasi
      * bir sey degistirince ekranda hic gorunmuyordu. Asagiya cek (zk-ptr.js)
      * ve sekmeye geri donus (zk-yenile.js) bunu cagirir; sayfa yeniden

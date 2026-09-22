@@ -587,6 +587,11 @@
         status: 'confirmed', confirmed_by: confirmedByUserId, confirmed_at: new Date().toISOString()
       }).eq('id', handoverId);
     },
+    // Sadece yönetici geri alabilir (RPC içinde kontrol edilir) — dahil
+    // edilen ödemeler tekrar bekleyen listesine döner.
+    undoCashHandover: function (handoverId) {
+      return client().rpc('undo_cash_handover', { p_handover_id: handoverId });
+    },
 
     listStaffEarnings: function (period) {
       var q = client().from('staff_earnings').select('*, app_users(full_name)').order('period', { ascending: false });
