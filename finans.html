@@ -180,6 +180,20 @@
           </div>
         </section>
 
+        <section id="fixed-expense-section" class="hidden px-5 pt-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Sadece yönetici görür</p>
+              <h2 class="mt-1 font-heading text-lg font-bold">Sabit Giderler</h2>
+              <p class="mt-1 text-xs text-muted-foreground">Kira, SGK, elektrik vb. — Nakit Akışı Öngörüsü'ne otomatik yansır</p>
+            </div>
+            <button onclick="zkOpenAddFixedExpense()" class="text-xs font-semibold text-primary">Gider ekle</button>
+          </div>
+          <div id="fixed-expense-list" class="mt-3 space-y-2">
+            <p class="text-xs text-muted-foreground">Yükleniyor…</p>
+          </div>
+        </section>
+
         <section class="px-5 pb-8 pt-6">
           <div class="flex gap-2">
             <button onclick="zkOpenPayment()" class="flex flex-1 items-center justify-center gap-2 rounded-theme bg-primary px-3 py-3 text-xs font-bold text-primary-foreground">
@@ -234,6 +248,37 @@
       </div>
       <p id="ns-sup-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
       <button onclick="zkSubmitAddSupplier()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
+    </div>
+  </div>
+
+  <!-- Sabit gider ekle/düzenle sheet -->
+  <div id="fixed-expense-sheet" class="fixed inset-0 z-40 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkCloseFixedExpense()"></div>
+    <div class="absolute bottom-0 left-0 w-full rounded-t-theme bg-card p-5 pb-8">
+      <p id="fe-title" class="font-heading text-lg font-bold">Sabit gider ekle</p>
+      <div class="mt-4 space-y-3">
+        <input id="fe-name" type="text" placeholder="Gider adı * (örn. Kira, SGK, Elektrik)" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <div class="flex gap-2">
+          <input id="fe-amount" type="number" min="0" step="0.01" placeholder="Tutar *" class="h-12 flex-1 rounded-theme border border-border bg-input px-3.5 text-sm">
+          <select id="fe-currency" aria-label="Para birimi" class="h-12 w-24 rounded-theme border border-border bg-input px-2 text-sm">
+            <option value="₺">₺</option>
+            <option value="$">$</option>
+            <option value="€">€</option>
+          </select>
+        </div>
+        <select id="fe-frequency" onchange="zkFeFrequencyChanged()" aria-label="Periyot" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+          <option value="monthly">Her ay tekrarlar</option>
+          <option value="yearly">Her yıl tekrarlar</option>
+          <option value="once">Tek seferlik</option>
+        </select>
+        <label class="block">
+          <span id="fe-date-label" class="mb-1.5 block text-xs font-bold text-card-foreground">Bir örnek tarih (sadece günü kullanılır)</span>
+          <input id="fe-due" type="date" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        </label>
+        <input id="fe-note" type="text" placeholder="Not (ops.)" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+      </div>
+      <p id="fe-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
+      <button id="fe-submit" onclick="zkSubmitFixedExpense()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
     </div>
   </div>
 
@@ -455,6 +500,135 @@
       });
     }
 
+    // ---- Sabit giderler ----
+    var feList = [];
+    var feEditId = null;
+
+    function loadFixedExpenses() {
+      ZirkonikData.listRecurringExpenses().then(function (res) {
+        feList = res.data || [];
+        var el = document.getElementById('fixed-expense-list');
+        if (res.error) { el.innerHTML = '<p class="text-xs text-destructive">Yüklenemedi: ' + escapeHtml(res.error.message) + '</p>'; return; }
+        if (!feList.length) {
+          el.innerHTML = '<p class="text-xs text-muted-foreground">Henüz sabit gider yok. "Gider ekle" ile başlayın.</p>';
+          return;
+        }
+        var freqLabel = { monthly: 'Aylık', yearly: 'Yıllık', once: 'Tek seferlik' };
+        el.innerHTML = feList.map(function (x) {
+          return '<div class="rounded-theme border border-border bg-card p-3.5' + (x.is_active ? '' : ' opacity-50') + '">' +
+            '<div class="flex items-center justify-between gap-2">' +
+            '<div class="min-w-0"><p class="truncate text-sm font-bold">' + escapeHtml(x.name) + '</p>' +
+            '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + freqLabel[x.frequency] + (x.is_active ? '' : ' · pasif') + '</p></div>' +
+            '<p class="shrink-0 text-sm font-bold tabular-nums">' + ZirkonikMoney.format(Number(x.amount), x.currency, 0) + '</p></div>' +
+            '<div class="mt-3 grid grid-cols-3 gap-2">' +
+            '<button onclick="zkOpenEditFixedExpense(\'' + x.id + '\')" class="flex h-9 items-center justify-center gap-1 rounded-theme border border-border bg-background text-[11px] font-bold"><iconify-icon icon="lucide:pencil" class="text-xs"></iconify-icon>Düzenle</button>' +
+            '<button onclick="zkToggleFixedExpense(\'' + x.id + '\',' + (!x.is_active) + ')" class="flex h-9 items-center justify-center rounded-theme border border-border bg-background text-[11px] font-bold">' + (x.is_active ? 'Pasifleştir' : 'Aktifleştir') + '</button>' +
+            '<button onclick="zkDeleteFixedExpense(\'' + x.id + '\')" class="flex h-9 items-center justify-center rounded-theme border border-destructive/30 bg-background text-destructive"><iconify-icon icon="lucide:trash-2" class="text-xs"></iconify-icon></button>' +
+            '</div></div>';
+        }).join('');
+      }).catch(function (err) {
+        document.getElementById('fixed-expense-list').innerHTML = '<p class="text-xs text-destructive">Yüklenemedi: ' + escapeHtml((err && err.message) || 'bilinmeyen hata') + '</p>';
+      });
+    }
+
+    function zkFeFrequencyChanged() {
+      var f = document.getElementById('fe-frequency').value;
+      document.getElementById('fe-date-label').textContent =
+        f === 'monthly' ? 'Bir örnek tarih (sadece günü kullanılır)' :
+        f === 'yearly' ? 'Yıllık vade tarihi (ay + gün her yıl tekrarlar)' : 'Ödeme tarihi';
+    }
+
+    function zkOpenAddFixedExpense() {
+      feEditId = null;
+      document.getElementById('fe-title').textContent = 'Sabit gider ekle';
+      ['fe-name', 'fe-amount', 'fe-due', 'fe-note'].forEach(function (id) { document.getElementById(id).value = ''; });
+      document.getElementById('fe-currency').value = '₺';
+      document.getElementById('fe-frequency').value = 'monthly';
+      zkFeFrequencyChanged();
+      document.getElementById('fe-error').classList.add('hidden');
+      document.getElementById('fixed-expense-sheet').classList.remove('hidden');
+    }
+
+    function zkOpenEditFixedExpense(id) {
+      var x = null;
+      feList.forEach(function (r) { if (r.id === id) x = r; });
+      if (!x) return;
+      feEditId = id;
+      document.getElementById('fe-title').textContent = 'Sabit gideri düzenle';
+      document.getElementById('fe-name').value = x.name;
+      document.getElementById('fe-amount').value = x.amount;
+      document.getElementById('fe-currency').value = ZirkonikMoney.normalize(x.currency);
+      document.getElementById('fe-frequency').value = x.frequency;
+      document.getElementById('fe-due').value = x.due_date;
+      document.getElementById('fe-note').value = x.note || '';
+      zkFeFrequencyChanged();
+      document.getElementById('fe-error').classList.add('hidden');
+      document.getElementById('fixed-expense-sheet').classList.remove('hidden');
+    }
+
+    function zkCloseFixedExpense() { document.getElementById('fixed-expense-sheet').classList.add('hidden'); }
+
+    function zkSubmitFixedExpense() {
+      var errEl = document.getElementById('fe-error');
+      errEl.classList.add('hidden');
+      var name = document.getElementById('fe-name').value.trim();
+      var amount = Number(document.getElementById('fe-amount').value);
+      var due = document.getElementById('fe-due').value;
+      if (!name) { errEl.textContent = 'Gider adı zorunludur.'; errEl.classList.remove('hidden'); return; }
+      if (!(amount > 0)) { errEl.textContent = 'Geçerli bir tutar girin.'; errEl.classList.remove('hidden'); return; }
+      if (!due) { errEl.textContent = 'Tarih zorunludur.'; errEl.classList.remove('hidden'); return; }
+
+      var btn = document.getElementById('fe-submit');
+      if (btn.disabled) return;
+      btn.disabled = true;
+
+      var fields = {
+        name: name,
+        amount: amount,
+        currency: document.getElementById('fe-currency').value,
+        frequency: document.getElementById('fe-frequency').value,
+        due_date: due,
+        note: document.getElementById('fe-note').value.trim() || null
+      };
+
+      var p = feEditId
+        ? ZirkonikData.updateRecurringExpense(feEditId, fields)
+        : ZirkonikAuth.me().then(function (me) {
+            fields.organization_id = me.organization_id;
+            fields.created_by = me.id;
+            return ZirkonikData.createRecurringExpense(fields);
+          });
+
+      p.then(function (res) {
+        btn.disabled = false;
+        if (res.error) { errEl.textContent = 'Kaydedilemedi: ' + res.error.message; errEl.classList.remove('hidden'); return; }
+        zkCloseFixedExpense();
+        zkToast(feEditId ? 'Sabit gider güncellendi.' : 'Sabit gider eklendi.');
+        loadFixedExpenses();
+      }).catch(function (err) {
+        btn.disabled = false;
+        errEl.textContent = 'Kaydedilemedi: ' + err.message;
+        errEl.classList.remove('hidden');
+      });
+    }
+
+    function zkToggleFixedExpense(id, newActive) {
+      ZirkonikData.updateRecurringExpense(id, { is_active: newActive }).then(function (res) {
+        if (res.error) { zkToast('Güncellenemedi: ' + res.error.message); return; }
+        zkToast(newActive ? 'Aktifleştirildi.' : 'Pasifleştirildi.');
+        loadFixedExpenses();
+      }).catch(function (err) { zkToast('Güncellenemedi: ' + ((err && err.message) || 'bilinmeyen hata')); });
+    }
+
+    function zkDeleteFixedExpense(id) {
+      if (!confirm('Bu sabit gideri silmek istediğinize emin misiniz?')) return;
+      ZirkonikData.deleteRecurringExpense(id).then(function (res) {
+        if (res.error) { zkToast('Silinemedi: ' + res.error.message); return; }
+        zkToast('Sabit gider silindi.');
+        loadFixedExpenses();
+      }).catch(function (err) { zkToast('Silinemedi: ' + ((err && err.message) || 'bilinmeyen hata')); });
+    }
+
     function zkOpenAddSupplier() { document.getElementById('add-supplier-sheet').classList.remove('hidden'); }
     function zkCloseAddSupplier() { document.getElementById('add-supplier-sheet').classList.add('hidden'); }
 
@@ -548,6 +722,15 @@
     ZirkonikAuth.requireAuth().then(function (session) {
       if (!session) return;
       loadSuppliers();
+      // Sabit Giderler nakit akışı öngörüsünü doğrudan besliyor — kullanıcının
+      // önceki kuralıyla tutarlı: sadece yönetici, can_view_finance ile
+      // genişletilmiyor (22 Eylül 2026).
+      ZirkonikAuth.me().then(function (me) {
+        if (me && me.role === 'yonetici') {
+          document.getElementById('fixed-expense-section').classList.remove('hidden');
+          loadFixedExpenses();
+        }
+      });
       var client = ZirkonikAuth.client();
 
       // Faturaya ait kısmi ödemeler düşülmeden "bekleyen tahsilat" tam fatura
@@ -1086,7 +1269,11 @@
      * ve sekmeye geri donus (zk-yenile.js) bunu cagirir; sayfa yeniden
      * yuklenmez, yalniz veri tazelenir. */
     window.zkRefresh = function () {
-      return Promise.all([Promise.resolve(loadSuppliers()), Promise.resolve(loadReceivablesList()), Promise.resolve(loadHandovers())]);
+      var tasks = [Promise.resolve(loadSuppliers()), Promise.resolve(loadReceivablesList()), Promise.resolve(loadHandovers())];
+      if (!document.getElementById('fixed-expense-section').classList.contains('hidden')) {
+        tasks.push(Promise.resolve(loadFixedExpenses()));
+      }
+      return Promise.all(tasks);
     };
   </script>
 

@@ -514,6 +514,21 @@
       return client().from('supplier_payments').insert(fields).select().single();
     },
 
+    // ---- Sabit giderler (kira, SGK, elektrik vb. — nakit akışı öngörüsüne
+    // otomatik yansır; sadece yönetici görür/yönetir) ----
+    listRecurringExpenses: function () {
+      return client().from('recurring_expenses').select('*').order('is_active', { ascending: false }).order('name');
+    },
+    createRecurringExpense: function (fields) {
+      return client().from('recurring_expenses').insert(fields).select().single();
+    },
+    updateRecurringExpense: function (id, fields) {
+      return client().from('recurring_expenses').update(fields).eq('id', id);
+    },
+    deleteRecurringExpense: function (id) {
+      return client().from('recurring_expenses').delete().eq('id', id);
+    },
+
     // ---- Ürün reçetesi (fiyat kalemi ↔ malzemeler; 1 diş = çok malzeme) ----
     listPriceItemMaterials: function (itemId) {
       return client().from('price_item_materials').select('*, materials(name, unit)').eq('price_item_id', itemId);
@@ -703,10 +718,12 @@
       var supPayQ = c.from('supplier_payments').select('amount, currency');
       var docInvQ = c.from('invoices').select('amount, currency, doctor_id').neq('status', 'cancelled');
       var docPayQ = c.from('payments').select('amount, currency, doctor_id');
+      // Kira/SGK/elektrik vb. sabit giderler — kullanıcı isteği, 22 Eylül 2026.
+      var recurQ = c.from('recurring_expenses').select('name, amount, currency, frequency, due_date').eq('is_active', true);
 
-      return Promise.all([staffQ, supInvQ, supPayQ, docInvQ, docPayQ]).then(function (res) {
+      return Promise.all([staffQ, supInvQ, supPayQ, docInvQ, docPayQ, recurQ]).then(function (res) {
         var buckets = {};
-        horizonKeys.forEach(function (k) { buckets[k] = { key: k, label: monthLabel(k), staffExpense: {}, supplierExpense: {} }; });
+        horizonKeys.forEach(function (k) { buckets[k] = { key: k, label: monthLabel(k), staffExpense: {}, supplierExpense: {}, fixedExpense: {} }; });
 
         var staffMonthlyTotals = {};
         (res[0].data || []).forEach(function (u) {
@@ -724,6 +741,29 @@
           var dueKey = inv.due_date < todayStr ? currentKey : inv.due_date.slice(0, 7);
           if (!buckets[dueKey]) return;
           buckets[dueKey].supplierExpense[cur] = (buckets[dueKey].supplierExpense[cur] || 0) + amt;
+        });
+
+        // Sabit gider projeksiyonu: aylık = her ufuk ayına düz yansır (maaş
+        // gibi), yıllık = due_date'in ay'ı eşleşen ufuk ayına, tek seferlik =
+        // due_date'in ayına (geçmişse mevcut aya, tedarikçi faturasındaki
+        // "vadesi geçmiş → bu ay" kuralıyla tutarlı).
+        var fixedMonthlyTotals = {};
+        (res[5].data || []).forEach(function (r) {
+          var amt = Number(r.amount) || 0;
+          if (!amt || !r.due_date) return;
+          var cur = window.ZirkonikMoney.normalize(r.currency);
+          if (r.frequency === 'monthly') {
+            fixedMonthlyTotals[cur] = (fixedMonthlyTotals[cur] || 0) + amt;
+            horizonKeys.forEach(function (k) { buckets[k].fixedExpense[cur] = (buckets[k].fixedExpense[cur] || 0) + amt; });
+          } else if (r.frequency === 'yearly') {
+            var dueMonthNum = Number(r.due_date.slice(5, 7));
+            horizonKeys.forEach(function (k) {
+              if (Number(k.split('-')[1]) === dueMonthNum) buckets[k].fixedExpense[cur] = (buckets[k].fixedExpense[cur] || 0) + amt;
+            });
+          } else {
+            var targetKey = r.due_date < todayStr ? currentKey : r.due_date.slice(0, 7);
+            if (buckets[targetKey]) buckets[targetKey].fixedExpense[cur] = (buckets[targetKey].fixedExpense[cur] || 0) + amt;
+          }
         });
 
         var supplierPaidTotal = window.ZirkonikMoney.groupTotals(res[2].data || [], 'amount', 'currency');
@@ -753,7 +793,8 @@
           var totalExpense = {};
           Object.keys(b.staffExpense).forEach(function (cur) { totalExpense[cur] = (totalExpense[cur] || 0) + b.staffExpense[cur]; });
           Object.keys(b.supplierExpense).forEach(function (cur) { totalExpense[cur] = (totalExpense[cur] || 0) + b.supplierExpense[cur]; });
-          return { key: k, label: b.label, staffExpense: b.staffExpense, supplierExpense: b.supplierExpense, totalExpense: totalExpense };
+          Object.keys(b.fixedExpense).forEach(function (cur) { totalExpense[cur] = (totalExpense[cur] || 0) + b.fixedExpense[cur]; });
+          return { key: k, label: b.label, staffExpense: b.staffExpense, supplierExpense: b.supplierExpense, fixedExpense: b.fixedExpense, totalExpense: totalExpense };
         });
 
         return {
@@ -761,7 +802,8 @@
           staffMonthlyTotals: staffMonthlyTotals,
           supplierInvoicedTotal: supplierInvoicedTotal,
           supplierPaidTotal: supplierPaidTotal,
-          pendingCollection: pendingCollection
+          pendingCollection: pendingCollection,
+          fixedMonthlyTotals: fixedMonthlyTotals
         };
       });
     },
