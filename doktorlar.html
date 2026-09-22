@@ -86,6 +86,11 @@
 
         <section class="mt-6">
           <h2 class="font-heading text-lg font-bold">Onaylı doktorlar</h2>
+          <div class="relative mt-3">
+            <iconify-icon icon="lucide:search" class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-base text-muted-foreground"></iconify-icon>
+            <input id="doctor-search" type="text" inputmode="search" placeholder="Doktor veya klinik ara…" oninput="zkFilterDoctors(this.value)"
+              class="h-11 w-full rounded-theme border border-border bg-input pl-10 pr-3.5 text-sm text-foreground outline-none focus:border-primary">
+          </div>
           <div id="approved-list" class="mt-3 space-y-2">
             <p class="text-xs text-muted-foreground">Yükleniyor…</p>
           </div>
@@ -388,6 +393,22 @@
     }
 
     var allDoctorsCache = [];
+    var approvedDoctorsCache = [];
+    // Türkçe karakter/büyük-küçük harf duyarsız arama — "Ş,Ç,Ğ,İ,Ö,Ü" gibi
+    // harfler locale'siz toLowerCase()'de yanlış küçülür (İ→i̇ gibi).
+    function trFold(s) {
+      return String(s || '').toLocaleLowerCase('tr-TR');
+    }
+    function renderApprovedList(query) {
+      var q = trFold((query || '').trim());
+      var rows = q
+        ? approvedDoctorsCache.filter(function (d) { return trFold(d.full_name).indexOf(q) >= 0 || trFold(d.clinic_name).indexOf(q) >= 0; })
+        : approvedDoctorsCache;
+      var aEl = document.getElementById('approved-list');
+      aEl.innerHTML = rows.length ? rows.map(renderApprovedRow).join('') :
+        (q ? '<p class="text-xs text-muted-foreground">Eşleşen doktor yok.</p>' : '<p class="text-xs text-muted-foreground">Henüz onaylı doktor yok.</p>');
+    }
+    function zkFilterDoctors(query) { renderApprovedList(query); }
 
     function loadDoctors() {
       ZirkonikData.listDoctors().then(function (r) {
@@ -404,9 +425,8 @@
         pEl.innerHTML = pending.length ? pending.map(renderPendingCard).join('') :
           '<p class="text-xs text-muted-foreground">Onay bekleyen doktor yok.</p>';
 
-        var aEl = document.getElementById('approved-list');
-        aEl.innerHTML = approved.length ? approved.map(renderApprovedRow).join('') :
-          '<p class="text-xs text-muted-foreground">Henüz onaylı doktor yok.</p>';
+        approvedDoctorsCache = approved;
+        renderApprovedList(document.getElementById('doctor-search').value);
 
         // Çıkarılan doktorlar. Bölüm yalnızca kayıt varsa görünür — hiç
         // çıkarılmamışsa boş bir başlık durmasın.
@@ -423,7 +443,7 @@
 
         if (window.zkFlow) {
           window.zkFlow.stagger(pEl);
-          window.zkFlow.stagger(aEl);
+          window.zkFlow.stagger(document.getElementById('approved-list'));
         }
       });
     }
