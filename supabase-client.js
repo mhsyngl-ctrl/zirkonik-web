@@ -602,8 +602,11 @@
     // geçen para birimine göre çizilir. Bir önceki dönem (aynı uzunlukta,
     // hemen bir öncesi — geçen yıl DEĞİL, "hafta"da geçen hafta, "ay"da
     // geçen ay) de birlikte döner; grafikte soluk tonla karşılaştırma için
-    // (kullanıcı isteği, 22 Eylül 2026).
-    getJobPerformancePeriod: function (period, offset) {
+    // (kullanıcı isteği, 22 Eylül 2026). doctorId opsiyonel: verilmezse RLS
+    // çağıranı kendi işleriyle sınırlar (doktor kendi ekranında); işveren
+    // belirli bir doktorun profilinde bakarken doctorId açıkça verilir
+    // (kullanıcı isteği: "bendeki doktor profilinde de olacaktır").
+    getJobPerformancePeriod: function (period, offset, doctorId) {
       var c = client();
       var now = new Date();
       function computeRange(off) {
@@ -643,6 +646,7 @@
         .gte('created_at', cur.rangeStart.toISOString()).lt('created_at', cur.rangeEnd.toISOString());
       var prevQ = c.from('jobs').select(SELECT).neq('status', 'cancelled')
         .gte('created_at', prev.rangeStart.toISOString()).lt('created_at', prev.rangeEnd.toISOString());
+      if (doctorId) { curQ = curQ.eq('doctor_id', doctorId); prevQ = prevQ.eq('doctor_id', doctorId); }
       return Promise.all([curQ, prevQ]).then(function (res) {
         return {
           rows: mapRows(res[0].data), prevRows: mapRows(res[1].data),
