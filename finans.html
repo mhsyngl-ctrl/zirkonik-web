@@ -1313,6 +1313,8 @@
         if (res.error) { zkToast('Geri alınamadı: ' + res.error.message); return; }
         zkToast('Kasa teslimi geri alındı.');
         loadHandovers();
+      }).catch(function (err) {
+        zkToast('Geri alınamadı: ' + ((err && err.message) || 'bilinmeyen hata'));
       });
     }
 

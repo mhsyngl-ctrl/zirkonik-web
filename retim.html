@@ -666,10 +666,11 @@
           lines.push('Doktorlardan bekleyen tahsilat (vadesiz, bu tabloya dahil değil): <b class="text-foreground">' + ZirkonikMoney.formatTotals(res.pendingCollection, 0) + '</b>');
         }
         document.getElementById('cash-flow-info').innerHTML = lines.map(function (l) { return '<p>' + l + '</p>'; }).join('');
+        loadUpcomingExpensePayments(res.staffMonthlyTotals);
       }).catch(function (err) {
         zkToast('Nakit akışı öngörüsü yüklenemedi: ' + ((err && err.message) || 'bilinmeyen hata'));
+        loadUpcomingExpensePayments(null);
       });
-      loadUpcomingExpensePayments();
     }
 
     // Kullanıcı isteği: "gelecek ödemeleri de görürüz dimi" — sabit
@@ -696,7 +697,7 @@
       if (r.end_date && key > r.end_date) return null;
       return key;
     }
-    function loadUpcomingExpensePayments() {
+    function loadUpcomingExpensePayments(staffMonthlyTotals) {
       ZirkonikData.listRecurringExpenses().then(function (res) {
         var el = document.getElementById('cash-flow-upcoming');
         var rows = (res.data || []).filter(function (r) { return r.is_active; });
@@ -707,6 +708,16 @@
           var next = zkNextOccurrence(r, todayStr);
           if (next) items.push({ name: r.name, amount: r.amount, currency: r.currency, date: next });
         });
+        // Personel maaşları burada ayrı bir tabloda değil, app_users.monthly_salary'de
+        // tutuluyor ve kesin bir ödeme günü yok — ay sonuna tahmini olarak
+        // yerleştiriyoruz (kullanıcı isteği: "yaklaşan ödemelerde maaş neden
+        // gözükmüyor", 23 Eylül 2026).
+        if (staffMonthlyTotals) {
+          var payKey = zkDateKey(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+          Object.keys(staffMonthlyTotals).forEach(function (cur) {
+            if (staffMonthlyTotals[cur] > 0) items.push({ name: 'Personel Maaşları (tahmini)', amount: staffMonthlyTotals[cur], currency: cur, date: payKey });
+          });
+        }
         items.sort(function (a, b) { return a.date < b.date ? -1 : (a.date > b.date ? 1 : 0); });
         items = items.slice(0, 6);
         if (!items.length) { el.innerHTML = '<p class="text-xs text-muted-foreground">Yaklaşan sabit gider ödemesi yok.</p>'; return; }
