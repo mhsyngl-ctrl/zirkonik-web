@@ -609,6 +609,25 @@
     getJobPerformancePeriod: function (period, offset, doctorId) {
       var c = client();
       var now = new Date();
+      function mapRowsShared(rows) {
+        return (rows || []).map(function (j) {
+          return {
+            id: j.id, price: Number(j.price) || 0, currency: window.ZirkonikMoney.normalize(j.currency),
+            date: j.created_at, doctorName: (j.doctors && j.doctors.full_name) || '—',
+            category: (j.price_list_items && j.price_list_items.category) || 'Diğer'
+          };
+        });
+      }
+      var SELECT_SHARED = 'id, price, currency, created_at, price_item_id, doctor_id, price_list_items(category, name), doctors(full_name)';
+      // "Tümü" (doktorun cari panelindeki dönem seçiciyle aynı) — tarih
+      // sınırı yok, karşılaştırılacak "önceki dönem" de yok.
+      if (period === 'all') {
+        var allQ = c.from('jobs').select(SELECT_SHARED).neq('status', 'cancelled');
+        if (doctorId) allQ = allQ.eq('doctor_id', doctorId);
+        return allQ.then(function (res) {
+          return { rows: mapRowsShared(res.data), prevRows: [], rangeStart: new Date(0), rangeEnd: now, label: 'Tüm zamanlar', prevRangeStart: new Date(0), prevLabel: '' };
+        });
+      }
       function computeRange(off) {
         var rangeStart, rangeEnd, label;
         if (period === 'week') {
@@ -632,24 +651,14 @@
       }
       var cur = computeRange(offset);
       var prev = computeRange(offset - 1);
-      function mapRows(rows) {
-        return (rows || []).map(function (j) {
-          return {
-            id: j.id, price: Number(j.price) || 0, currency: window.ZirkonikMoney.normalize(j.currency),
-            date: j.created_at, doctorName: (j.doctors && j.doctors.full_name) || '—',
-            category: (j.price_list_items && j.price_list_items.category) || 'Diğer'
-          };
-        });
-      }
-      var SELECT = 'id, price, currency, created_at, price_item_id, doctor_id, price_list_items(category, name), doctors(full_name)';
-      var curQ = c.from('jobs').select(SELECT).neq('status', 'cancelled')
+      var curQ = c.from('jobs').select(SELECT_SHARED).neq('status', 'cancelled')
         .gte('created_at', cur.rangeStart.toISOString()).lt('created_at', cur.rangeEnd.toISOString());
-      var prevQ = c.from('jobs').select(SELECT).neq('status', 'cancelled')
+      var prevQ = c.from('jobs').select(SELECT_SHARED).neq('status', 'cancelled')
         .gte('created_at', prev.rangeStart.toISOString()).lt('created_at', prev.rangeEnd.toISOString());
       if (doctorId) { curQ = curQ.eq('doctor_id', doctorId); prevQ = prevQ.eq('doctor_id', doctorId); }
       return Promise.all([curQ, prevQ]).then(function (res) {
         return {
-          rows: mapRows(res[0].data), prevRows: mapRows(res[1].data),
+          rows: mapRowsShared(res[0].data), prevRows: mapRowsShared(res[1].data),
           rangeStart: cur.rangeStart, rangeEnd: cur.rangeEnd, label: cur.label,
           prevRangeStart: prev.rangeStart, prevLabel: prev.label
         };

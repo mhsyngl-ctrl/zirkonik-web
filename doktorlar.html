@@ -190,30 +190,23 @@
         <div id="cari-moves-list" class="space-y-2"><p class="text-sm text-muted-foreground">Yükleniyor…</p></div>
         <div id="cari-jobs-list" class="hidden space-y-2"></div>
         <div id="cari-performance-panel" class="hidden">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-1 rounded-theme bg-muted p-0.5">
-              <button type="button" id="dcp-week-btn" onclick="zkSetDocCariPerfPeriod('week')" class="rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-muted-foreground">Hafta</button>
-              <button type="button" id="dcp-month-btn" onclick="zkSetDocCariPerfPeriod('month')" class="rounded-lg bg-card px-2.5 py-1.5 text-[10px] font-bold">Ay</button>
-              <button type="button" id="dcp-year-btn" onclick="zkSetDocCariPerfPeriod('year')" class="rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-muted-foreground">Yıl</button>
-            </div>
-            <div class="flex items-center gap-1">
-              <button type="button" onclick="zkShiftDocCariPerf(-1)" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Önceki dönem"><iconify-icon icon="lucide:chevron-left" class="text-base"></iconify-icon></button>
-              <button type="button" onclick="zkShiftDocCariPerf(1)" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Sonraki dönem"><iconify-icon icon="lucide:chevron-right" class="text-base"></iconify-icon></button>
-            </div>
-          </div>
-          <p id="dcp-period-label" class="mt-1.5 text-xs font-bold text-muted-foreground">—</p>
+          <!-- Ayrı bir dönem seçicisi yok — üstteki Hafta/Ay/Yıl/Tümü
+               (cari-period) bu paneli de sürüyor (kullanıcı isteği,
+               22 Eylül 2026). -->
           <div class="mt-2 grid grid-cols-2 gap-2">
             <div><p class="text-[11px] text-muted-foreground">İş sayısı</p><p id="dcp-count" class="mt-1 text-lg font-bold tabular-nums">—</p></div>
             <div><p class="text-[11px] text-muted-foreground">Tutar</p><p id="dcp-total" class="mt-1 text-lg font-bold tabular-nums text-primary">—</p></div>
           </div>
-          <div id="dcp-chart" class="mt-3">
-            <p class="text-xs text-muted-foreground">Yükleniyor…</p>
+          <div id="dcp-chart-wrap" class="hidden">
+            <div id="dcp-chart" class="mt-3">
+              <p class="text-xs text-muted-foreground">Yükleniyor…</p>
+            </div>
+            <div class="mt-1.5 flex items-center justify-center gap-3 text-[10px] font-semibold text-muted-foreground">
+              <span class="flex items-center gap-1"><span class="inline-block h-2.5 w-2.5 rounded-sm" style="background:#3D7CDC"></span>Bu dönem</span>
+              <span class="flex items-center gap-1"><span class="inline-block h-2.5 w-2.5 rounded-sm bg-muted-foreground opacity-35"></span>Önceki dönem</span>
+            </div>
+            <p id="dcp-prev-label" class="mt-1 text-center text-[11px] text-muted-foreground">—</p>
           </div>
-          <div class="mt-1.5 flex items-center justify-center gap-3 text-[10px] font-semibold text-muted-foreground">
-            <span class="flex items-center gap-1"><span class="inline-block h-2.5 w-2.5 rounded-sm" style="background:#3D7CDC"></span>Bu dönem</span>
-            <span class="flex items-center gap-1"><span class="inline-block h-2.5 w-2.5 rounded-sm bg-muted-foreground opacity-35"></span>Önceki dönem</span>
-          </div>
-          <p id="dcp-prev-label" class="mt-1 text-center text-[11px] text-muted-foreground">—</p>
           <div class="mt-3">
             <p class="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Materyal türüne göre</p>
             <div id="dcp-category-breakdown" class="mt-1.5 flex flex-wrap gap-1.5"></div>
@@ -783,8 +776,6 @@
       cariData = null;
       cariPeriod = 'month';
       cariTab = 'moves';
-      dcpPeriod = 'month';
-      dcpOffset = 0;
       document.getElementById('cari-doc-title').textContent = 'Dr. ' + doctorName + ' — Cari geçmişi';
       document.getElementById('cari-moves-list').innerHTML = '<p class="text-sm text-muted-foreground">Yükleniyor…</p>';
       document.getElementById('cari-moves-list').classList.remove('hidden');
@@ -850,7 +841,10 @@
       return new Date(d.getFullYear(), 0, 1);
     }
 
-    function zkSetCariPeriod(period) { cariPeriod = period; zkRenderCari(); }
+    // Performans sekmesi de aynı Hafta/Ay/Yıl/Tümü seçicisini kullanıyor —
+    // ayrı bir dönem seçici yoktu, kullanıcı isteği: "hafta ay yıl tümü
+    // basarken bağlatır mısın" (22 Eylül 2026).
+    function zkSetCariPeriod(period) { cariPeriod = period; zkRenderCari(); if (cariTab === 'performans') loadDocCariPerformance(); }
     function zkSetCariTab(tab) { cariTab = tab; zkRenderCari(); }
 
     function zkRenderCari() {
@@ -947,17 +941,6 @@
     // olacaktır" (22 Eylül 2026). Fark: ZirkonikData.getJobPerformancePeriod
     // burada RLS'e değil, açıkça seçilen doktorun id'sine (cariDoctorId)
     // göre filtreleniyor — işveren birden çok doktor arasında geziniyor.
-    var dcpPeriod = 'month';
-    var dcpOffset = 0;
-    function zkSetDocCariPerfPeriod(period) {
-      dcpPeriod = period;
-      dcpOffset = 0;
-      loadDocCariPerformance();
-    }
-    function zkShiftDocCariPerf(dir) {
-      dcpOffset += dir;
-      loadDocCariPerformance();
-    }
     function dcpBuildBuckets(rows, period, rangeStart) {
       var buckets = [];
       var keyFn;
@@ -995,25 +978,29 @@
       }).join('') + '</div><div class="zk-cols-labels">' + labels.map(function (lb) { return '<span>' + escapeHtml(lb) + '</span>'; }).join('') + '</div>';
       document.getElementById(containerId).innerHTML = html;
     }
+    // cariPeriod ('week'/'month'/'year'/'all') doğrudan üstteki seçiciden
+    // gelir, offset her zaman 0 — bu panelde ayrı bir gezinme yok.
     function loadDocCariPerformance() {
       if (!cariDoctorId) return;
-      ['week', 'month', 'year'].forEach(function (p) {
-        var btn = document.getElementById('dcp-' + p + '-btn');
-        if (btn) btn.className = 'rounded-lg px-2.5 py-1.5 text-[10px] font-bold ' + (p === dcpPeriod ? 'bg-card' : 'text-muted-foreground');
-      });
-      ZirkonikData.getJobPerformancePeriod(dcpPeriod, dcpOffset, cariDoctorId).then(function (res) {
-        document.getElementById('dcp-period-label').textContent = res.label;
+      var period = cariPeriod === 'all' ? 'all' : cariPeriod;
+      ZirkonikData.getJobPerformancePeriod(period, 0, cariDoctorId).then(function (res) {
         document.getElementById('dcp-count').textContent = res.rows.length;
         document.getElementById('dcp-total').textContent = ZirkonikMoney.totalText(res.rows, 'price', 'currency', 0);
 
-        var buckets = dcpBuildBuckets(res.rows, dcpPeriod, res.rangeStart);
-        var prevBuckets = dcpBuildBuckets(res.prevRows, dcpPeriod, res.prevRangeStart);
-        var totals = ZirkonikMoney.groupTotals(res.rows, 'price', 'currency');
-        var mainCurrency = Object.keys(totals).sort(function (a, b) { return totals[b] - totals[a]; })[0] || ZirkonikMoney.DEFAULT;
-        var values = buckets.map(function (b) { return b.rows.filter(function (r) { return r.currency === mainCurrency; }).reduce(function (s, r) { return s + r.price; }, 0); });
-        var prevValues = prevBuckets.map(function (b) { return b.rows.filter(function (r) { return r.currency === mainCurrency; }).reduce(function (s, r) { return s + r.price; }, 0); });
-        dcpRenderColsCompare('dcp-chart', values, prevValues, buckets.map(function (b) { return b.label; }));
-        document.getElementById('dcp-prev-label').textContent = 'Önceki dönem (' + res.prevLabel + '): ' + ZirkonikMoney.totalText(res.prevRows, 'price', 'currency', 0);
+        var chartWrap = document.getElementById('dcp-chart-wrap');
+        if (period === 'all') {
+          chartWrap.classList.add('hidden');
+        } else {
+          chartWrap.classList.remove('hidden');
+          var buckets = dcpBuildBuckets(res.rows, period, res.rangeStart);
+          var prevBuckets = dcpBuildBuckets(res.prevRows, period, res.prevRangeStart);
+          var totals = ZirkonikMoney.groupTotals(res.rows, 'price', 'currency');
+          var mainCurrency = Object.keys(totals).sort(function (a, b) { return totals[b] - totals[a]; })[0] || ZirkonikMoney.DEFAULT;
+          var values = buckets.map(function (b) { return b.rows.filter(function (r) { return r.currency === mainCurrency; }).reduce(function (s, r) { return s + r.price; }, 0); });
+          var prevValues = prevBuckets.map(function (b) { return b.rows.filter(function (r) { return r.currency === mainCurrency; }).reduce(function (s, r) { return s + r.price; }, 0); });
+          dcpRenderColsCompare('dcp-chart', values, prevValues, buckets.map(function (b) { return b.label; }));
+          document.getElementById('dcp-prev-label').textContent = 'Önceki dönem (' + res.prevLabel + '): ' + ZirkonikMoney.totalText(res.prevRows, 'price', 'currency', 0);
+        }
 
         var catGroups = {};
         res.rows.forEach(function (r) { (catGroups[r.category] || (catGroups[r.category] = [])).push(r); });
