@@ -246,6 +246,16 @@
             Hesabı Sil
           </button>
         </section>
+
+        <section id="pf-reset-section" class="mt-5 hidden rounded-theme border border-destructive/30 bg-card p-4">
+          <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-destructive">Tehlikeli bölge</p>
+          <h2 class="mt-1 font-heading text-sm font-bold">Verileri Sıfırla</h2>
+          <p class="mt-1 text-xs leading-5 text-muted-foreground">İşler, faturalar, tahsilatlar, kasa teslimleri ve tedarikçi hareketleri kalıcı olarak silinir. Doktorlar, personel, laboratuvar/oda kurulumu ve fiyat listesi KORUNUR. Test verilerini temizleyip sıfırdan başlamak için kullanın.</p>
+          <button onclick="zkResetOrgData()" class="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-theme border border-destructive/40 bg-destructive/10 text-sm font-bold text-destructive">
+            <iconify-icon icon="lucide:rotate-ccw" class="text-lg"></iconify-icon>
+            Verileri Sıfırla
+          </button>
+        </section>
       </main>
     </div>
   </div>
@@ -312,6 +322,10 @@
           document.getElementById('pf-pass-form').classList.add('hidden');
           document.getElementById('pf-pass-btn').classList.add('hidden');
           document.getElementById('pf-pass-kapali').classList.remove('hidden');
+        }
+        if (me.role === 'yonetici') {
+          pfOrgId = me.organization_id;
+          document.getElementById('pf-reset-section').classList.remove('hidden');
         }
         if (me.role === 'doktor') {
           // Doktor retim.html'e giremiyor (zk-guard geri atar); geri dugmesi
@@ -491,6 +505,7 @@
     }
 
     var pfDoctorId = null;
+    var pfOrgId = null;
     function zkLoadDoctorProfile() {
       ZirkonikData.myDoctorRecord().then(function (r) {
         var d = r && r.data;
@@ -550,6 +565,22 @@
         if (res.error) { zkToast('Hesap silinemedi: ' + res.error.message); return; }
         alert('Hesabınız silindi.');
         window.location.href = 'giris.html';
+      });
+    }
+
+    // "SİL" ile karıştırılmasın diye ayrı bir onay kelimesi.
+    function zkResetOrgData() {
+      if (!pfOrgId) return;
+      var ok = confirm('Tüm iş geçmişi, faturalar, tahsilatlar, kasa teslimleri ve tedarikçi hareketleri kalıcı olarak silinecek. Doktorlar, personel ve kurulum (laboratuvar/oda/fiyat listesi) korunur. Bu işlem GERİ ALINAMAZ. Devam edilsin mi?');
+      if (!ok) return;
+      var typed = prompt('Onaylamak için "SIFIRLA" yazın:');
+      if (typed !== 'SIFIRLA') { zkToast('İptal edildi.'); return; }
+      ZirkonikData.resetOrganizationData(pfOrgId).then(function (res) {
+        if (res.error) { zkToast('Sıfırlanamadı: ' + res.error.message); return; }
+        alert('Veriler sıfırlandı.');
+        window.location.href = 'retim.html';
+      }).catch(function (err) {
+        zkToast('Sıfırlanamadı: ' + ((err && err.message) || 'bilinmeyen hata'));
       });
     }
       /* Görünüm seçimi. Seçili olan düğme vurgulanır. */

@@ -954,6 +954,10 @@
     deleteMyAccount: function () {
       return client().rpc('delete_my_account');
     },
+    // ---- Organizasyon verilerini sıfırla (iş/finans geçmişi; kurulum kalır) ----
+    resetOrganizationData: function (organizationId) {
+      return client().rpc('reset_organization_data', { p_organization_id: organizationId });
+    },
 
     // ---- Personel hesabı + laboratuvar/oda erişimi ----
     // Yönetici e-posta+şifreyi kendisi belirleyip hesabı doğrudan açar
