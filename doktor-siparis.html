@@ -194,12 +194,13 @@
             <div class="flex items-center justify-between">
               <h2 class="font-heading text-lg font-bold">İş Performansım</h2>
               <div class="flex items-center gap-1 rounded-theme bg-muted p-0.5">
-                <button type="button" id="dp-week-btn" onclick="zkSetDocPerfPeriod('week')" class="rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-muted-foreground">Hafta</button>
-                <button type="button" id="dp-month-btn" onclick="zkSetDocPerfPeriod('month')" class="rounded-lg bg-background px-2.5 py-1.5 text-[10px] font-bold">Ay</button>
-                <button type="button" id="dp-year-btn" onclick="zkSetDocPerfPeriod('year')" class="rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-muted-foreground">Yıl</button>
+                <button type="button" id="dp-week-btn" onclick="zkSetDocPerfPeriod('week')" class="rounded-lg px-2 py-1.5 text-[10px] font-bold text-muted-foreground">Hafta</button>
+                <button type="button" id="dp-month-btn" onclick="zkSetDocPerfPeriod('month')" class="rounded-lg bg-background px-2 py-1.5 text-[10px] font-bold">Ay</button>
+                <button type="button" id="dp-year-btn" onclick="zkSetDocPerfPeriod('year')" class="rounded-lg px-2 py-1.5 text-[10px] font-bold text-muted-foreground">Yıl</button>
+                <button type="button" id="dp-all-btn" onclick="zkSetDocPerfPeriod('all')" class="rounded-lg px-2 py-1.5 text-[10px] font-bold text-muted-foreground">Tümü</button>
               </div>
             </div>
-            <div class="mt-3 flex items-center justify-between">
+            <div id="dp-nav-row" class="mt-3 flex items-center justify-between">
               <button type="button" onclick="zkShiftDocPerf(-1)" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Önceki dönem">
                 <iconify-icon icon="lucide:chevron-left" class="text-base"></iconify-icon>
               </button>
@@ -215,7 +216,7 @@
             <div id="dp-chart" class="mt-3">
               <p class="text-xs text-muted-foreground">Yükleniyor…</p>
             </div>
-            <div class="mt-1.5 flex items-center justify-center gap-3 text-[10px] font-semibold text-muted-foreground">
+            <div id="dp-compare-legend" class="mt-1.5 flex items-center justify-center gap-3 text-[10px] font-semibold text-muted-foreground">
               <span class="flex items-center gap-1"><span class="inline-block h-2.5 w-2.5 rounded-sm" style="background:#3D7CDC"></span>Bu dönem</span>
               <span class="flex items-center gap-1"><span class="inline-block h-2.5 w-2.5 rounded-sm bg-muted-foreground opacity-35"></span>Önceki dönem</span>
             </div>
@@ -684,24 +685,56 @@
       }).join('') + '</div><div class="zk-cols-labels">' + labels.map(function (lb) { return '<span>' + escapeHtml(lb) + '</span>'; }).join('') + '</div>';
       document.getElementById(containerId).innerHTML = html;
     }
+    // "Tümü": karşılaştırılacak önceki dönem yok — veride geçen her yıl
+    // için tek seri bir çubuk (owner tarafındaki doktorlar.html ile aynı
+    // davranış, kullanıcı isteği: "doktor aynı şekilde görecektir dimi",
+    // 22 Eylül 2026).
+    function dpBuildYearBuckets(rows) {
+      var byYear = {};
+      rows.forEach(function (r) { var y = new Date(r.date).getFullYear(); (byYear[y] || (byYear[y] = [])).push(r); });
+      return Object.keys(byYear).sort().map(function (y) { return { label: y, rows: byYear[y] }; });
+    }
+    function dpRenderColsSingle(containerId, values, labels) {
+      var maxVal = Math.max(1, Math.max.apply(null, values));
+      var html = '<div class="zk-cols">' + values.map(function (v) {
+        var pct = Math.max(3, Math.round((v / maxVal) * 100));
+        var cls = 'zk-col' + (v === 0 ? ' zk-col-zero' : '');
+        return '<div class="' + cls + '">' + (v > 0 ? '<span class="zk-col-val">' + v + '</span>' : '') +
+          '<div class="zk-col-bar" style="height:' + pct + '%"></div></div>';
+      }).join('') + '</div><div class="zk-cols-labels">' + labels.map(function (lb) { return '<span>' + escapeHtml(lb) + '</span>'; }).join('') + '</div>';
+      document.getElementById(containerId).innerHTML = html;
+    }
     function loadDocPerformance() {
-      ['week', 'month', 'year'].forEach(function (p) {
+      ['week', 'month', 'year', 'all'].forEach(function (p) {
         var btn = document.getElementById('dp-' + p + '-btn');
-        if (btn) btn.className = 'rounded-lg px-2.5 py-1.5 text-[10px] font-bold ' + (p === dpPeriod ? 'bg-background' : 'text-muted-foreground');
+        if (btn) btn.className = 'rounded-lg px-2 py-1.5 text-[10px] font-bold ' + (p === dpPeriod ? 'bg-background' : 'text-muted-foreground');
       });
+      document.getElementById('dp-nav-row').classList.toggle('hidden', dpPeriod === 'all');
       ZirkonikData.getJobPerformancePeriod(dpPeriod, dpOffset).then(function (res) {
         document.getElementById('dp-period-label').textContent = res.label;
         document.getElementById('dp-count').textContent = res.rows.length;
         document.getElementById('dp-total').textContent = ZirkonikMoney.totalText(res.rows, 'price', 'currency', 0);
 
-        var buckets = dpBuildBuckets(res.rows, dpPeriod, res.rangeStart);
-        var prevBuckets = dpBuildBuckets(res.prevRows, dpPeriod, res.prevRangeStart);
+        var compareLegend = document.getElementById('dp-compare-legend');
+        var prevLabelEl = document.getElementById('dp-prev-label');
         var totals = ZirkonikMoney.groupTotals(res.rows, 'price', 'currency');
         var mainCurrency = Object.keys(totals).sort(function (a, b) { return totals[b] - totals[a]; })[0] || ZirkonikMoney.DEFAULT;
-        var values = buckets.map(function (b) { return b.rows.filter(function (r) { return r.currency === mainCurrency; }).reduce(function (s, r) { return s + r.price; }, 0); });
-        var prevValues = prevBuckets.map(function (b) { return b.rows.filter(function (r) { return r.currency === mainCurrency; }).reduce(function (s, r) { return s + r.price; }, 0); });
-        dpRenderColsCompare('dp-chart', values, prevValues, buckets.map(function (b) { return b.label; }));
-        document.getElementById('dp-prev-label').textContent = 'Önceki dönem (' + res.prevLabel + '): ' + ZirkonikMoney.totalText(res.prevRows, 'price', 'currency', 0);
+        if (dpPeriod === 'all') {
+          compareLegend.classList.add('hidden');
+          prevLabelEl.classList.add('hidden');
+          var yearBuckets = dpBuildYearBuckets(res.rows);
+          var yearValues = yearBuckets.map(function (b) { return b.rows.filter(function (r) { return r.currency === mainCurrency; }).reduce(function (s, r) { return s + r.price; }, 0); });
+          dpRenderColsSingle('dp-chart', yearValues, yearBuckets.map(function (b) { return b.label; }));
+        } else {
+          compareLegend.classList.remove('hidden');
+          prevLabelEl.classList.remove('hidden');
+          var buckets = dpBuildBuckets(res.rows, dpPeriod, res.rangeStart);
+          var prevBuckets = dpBuildBuckets(res.prevRows, dpPeriod, res.prevRangeStart);
+          var values = buckets.map(function (b) { return b.rows.filter(function (r) { return r.currency === mainCurrency; }).reduce(function (s, r) { return s + r.price; }, 0); });
+          var prevValues = prevBuckets.map(function (b) { return b.rows.filter(function (r) { return r.currency === mainCurrency; }).reduce(function (s, r) { return s + r.price; }, 0); });
+          dpRenderColsCompare('dp-chart', values, prevValues, buckets.map(function (b) { return b.label; }));
+          prevLabelEl.textContent = 'Önceki dönem (' + res.prevLabel + '): ' + ZirkonikMoney.totalText(res.prevRows, 'price', 'currency', 0);
+        }
 
         var catGroups = {};
         res.rows.forEach(function (r) { (catGroups[r.category] || (catGroups[r.category] = [])).push(r); });
