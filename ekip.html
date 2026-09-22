@@ -106,6 +106,25 @@
           </div>
         </section>
 
+        <section id="salary-calc-section" class="hidden pt-6">
+          <div class="rounded-theme border border-border bg-card p-4">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Sadece yönetici görür</p>
+                <h2 class="mt-1 font-heading text-lg font-bold">Net / Brüt Maaş Hesapla</h2>
+                <p class="mt-1 text-xs leading-5 text-muted-foreground">2026 SGK primi ve gelir vergisi dilimlerine göre yaklaşık hesaplama</p>
+              </div>
+              <div class="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <iconify-icon icon="lucide:calculator" class="text-lg"></iconify-icon>
+              </div>
+            </div>
+            <button onclick="zkOpenSalaryCalc()" class="mt-4 flex w-full items-center justify-center gap-1.5 rounded-theme border border-border bg-background py-2.5 text-xs font-bold text-primary">
+              Hesap makinesini aç
+              <iconify-icon icon="lucide:arrow-up-right" class="text-sm"></iconify-icon>
+            </button>
+          </div>
+        </section>
+
         <section class="pb-6 pt-6">
           <div class="rounded-theme border border-accent/20 bg-card p-4">
             <div class="flex items-start justify-between gap-3">
@@ -154,6 +173,43 @@
           </a>
         </div>
       </nav>
+    </div>
+  </div>
+
+  <!-- Net/Brüt maaş hesaplama — 2026 SGK ve vergi dilimlerine göre yaklaşık
+       tahmin. Resmi bordro değildir, sadece maaş teklifi/pazarlığı için
+       hızlı bir tahmin aracıdır (kullanıcı isteği, 23 Eylül 2026). -->
+  <div id="salary-calc-sheet" class="fixed inset-0 z-40 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkCloseSalaryCalc()"></div>
+    <div class="absolute bottom-0 left-0 max-h-[88vh] w-full overflow-y-auto rounded-t-theme bg-card p-5 pb-8">
+      <p class="font-heading text-lg font-bold">Net / Brüt Maaş Hesapla</p>
+      <p class="mt-1 text-xs leading-5 text-muted-foreground">2026 asgari ücret istisnası, SGK primi (%15) ve gelir vergisi dilimlerine göre yaklaşık tahmindir — resmi bordro yerine geçmez.</p>
+
+      <div class="mt-4 grid grid-cols-2 gap-2 rounded-theme bg-muted p-1">
+        <button type="button" id="sc-mode-net" onclick="zkSetSalaryCalcMode('net')" class="h-9 rounded-lg text-xs font-bold">Net'ten Brüt'e</button>
+        <button type="button" id="sc-mode-gross" onclick="zkSetSalaryCalcMode('gross')" class="h-9 rounded-lg text-xs font-bold">Brüt'ten Net'e</button>
+      </div>
+
+      <div class="mt-4 space-y-3">
+        <input id="sc-amount" type="number" min="0" step="0.01" placeholder="Tutar (₺) *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <label class="block">
+          <span class="mb-1.5 block text-xs font-bold text-card-foreground">Yılın kaçıncı ayı (kümülatif vergi dilimi için)</span>
+          <select id="sc-month" aria-label="Ay" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"></select>
+        </label>
+      </div>
+
+      <button onclick="zkCalcSalary()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Hesapla</button>
+
+      <div id="sc-result" class="mt-4 hidden space-y-2 rounded-theme border border-border bg-background p-4">
+        <div class="flex items-center justify-between"><span class="text-xs text-muted-foreground">Brüt maaş</span><span id="sc-r-gross" class="text-sm font-bold tabular-nums">—</span></div>
+        <div class="flex items-center justify-between"><span class="text-xs text-muted-foreground">SGK primi (%14)</span><span id="sc-r-sgk" class="text-sm tabular-nums text-destructive">—</span></div>
+        <div class="flex items-center justify-between"><span class="text-xs text-muted-foreground">İşsizlik sigortası (%1)</span><span id="sc-r-unemp" class="text-sm tabular-nums text-destructive">—</span></div>
+        <div class="flex items-center justify-between"><span class="text-xs text-muted-foreground">Gelir vergisi</span><span id="sc-r-tax" class="text-sm tabular-nums text-destructive">—</span></div>
+        <div class="flex items-center justify-between"><span class="text-xs text-muted-foreground">Damga vergisi</span><span id="sc-r-stamp" class="text-sm tabular-nums text-destructive">—</span></div>
+        <div class="mt-1 flex items-center justify-between border-t border-border pt-2"><span class="text-xs font-bold text-card-foreground">Net maaş</span><span id="sc-r-net" class="text-base font-extrabold tabular-nums text-success">—</span></div>
+        <div class="flex items-center justify-between"><span class="text-xs text-muted-foreground">Yaklaşık işverene maliyet</span><span id="sc-r-cost" class="text-sm font-bold tabular-nums">—</span></div>
+        <p class="pt-1 text-[10px] text-muted-foreground">İşverene maliyet, teşviksiz standart SGK işveren oranıyla (%22,5) hesaplanmıştır; işletmenize özel teşvikler gerçek maliyeti düşürebilir.</p>
+      </div>
     </div>
   </div>
 
@@ -316,6 +372,7 @@
         if (me && me.role === 'yonetici') {
           document.getElementById('team-performance-section').classList.remove('hidden');
           loadTeamPerformance();
+          document.getElementById('salary-calc-section').classList.remove('hidden');
         }
       });
     });
@@ -393,6 +450,108 @@
         zkToast(name + ' yeniden etkinleştirildi — oda/lab erişimini "Yetkileri düzenle"den yeniden verin.');
         loadTeam();
       });
+    }
+
+    // ---- Net/Brüt maaş hesaplama (yaklaşık, 2026 rakamları) ----
+    // Kaynak: EY Türkiye ve muhasebe kaynaklarından 2026 asgari ücret/vergi
+    // dilimi araştırması (kullanıcı isteği, 23 Eylül 2026). Kümülatif gelir
+    // vergisi dilimi, maaşın yıl başından beri AYNI kaldığı varsayılarak
+    // seçilen aya göre tahmin edilir — gerçek bordro yazılımı gibi kişi
+    // bazlı kümülatif geçmiş tutmuyoruz, bu yüzden "yaklaşık" ibaresi şart.
+    var ZK_PAYROLL_2026 = {
+      minGross: 33030.00,
+      sgkRateEmployee: 0.14,
+      unemploymentRateEmployee: 0.01,
+      sgkRateEmployer: 0.205,
+      unemploymentRateEmployer: 0.02,
+      stampRate: 0.00759,
+      sgkCeiling: 297270.00,
+      brackets: [
+        { upTo: 190000, rate: 0.15 },
+        { upTo: 400000, rate: 0.20 },
+        { upTo: 1500000, rate: 0.27 },
+        { upTo: 1500000 + 3800000, rate: 0.35 },
+        { upTo: Infinity, rate: 0.40 }
+      ]
+    };
+    function zkBracketTax(cumBefore, amount) {
+      var remaining = amount, cursor = cumBefore, tax = 0;
+      for (var i = 0; i < ZK_PAYROLL_2026.brackets.length && remaining > 0; i++) {
+        var b = ZK_PAYROLL_2026.brackets[i];
+        var room = Math.max(0, b.upTo - cursor);
+        var slice = Math.min(remaining, room);
+        if (slice > 0) { tax += slice * b.rate; cursor += slice; remaining -= slice; }
+      }
+      return tax;
+    }
+    function zkGrossToNet(gross, month) {
+      var base = Math.min(gross, ZK_PAYROLL_2026.sgkCeiling);
+      var sgk = base * ZK_PAYROLL_2026.sgkRateEmployee;
+      var unemployment = base * ZK_PAYROLL_2026.unemploymentRateEmployee;
+      var taxableThisMonth = gross - sgk - unemployment;
+      var cumBefore = taxableThisMonth * (month - 1);
+      var grossTax = zkBracketTax(cumBefore, taxableThisMonth);
+      // Asgari ücret istisnası düz %15 değil — asgari ücretin KENDİSİ de
+      // aynı kümülatif dilim mantığıyla izlenir ("referans iz"). Tam asgari
+      // ücret alan biri için bu, referansla birebir aynı olduğundan yıl
+      // boyunca her ay vergi sıfır çıkar (gerçek uygulamayla tutarlı);
+      // daha yüksek maaşlarda referans daha yavaş dilim atladığı için
+      // istisna görece küçülür.
+      var minTaxableBase = ZK_PAYROLL_2026.minGross * (1 - ZK_PAYROLL_2026.sgkRateEmployee - ZK_PAYROLL_2026.unemploymentRateEmployee);
+      var minCumBefore = minTaxableBase * (month - 1);
+      var minExemption = zkBracketTax(minCumBefore, minTaxableBase);
+      var incomeTax = Math.max(0, grossTax - minExemption);
+      var stamp = gross * ZK_PAYROLL_2026.stampRate;
+      var stampExemption = ZK_PAYROLL_2026.minGross * ZK_PAYROLL_2026.stampRate;
+      var stampTax = Math.max(0, stamp - stampExemption);
+      var net = gross - sgk - unemployment - incomeTax - stampTax;
+      var employerSgk = base * ZK_PAYROLL_2026.sgkRateEmployer;
+      var employerUnemployment = base * ZK_PAYROLL_2026.unemploymentRateEmployer;
+      var cost = gross + employerSgk + employerUnemployment;
+      return { gross: gross, sgk: sgk, unemployment: unemployment, incomeTax: incomeTax, stampTax: stampTax, net: net, cost: cost };
+    }
+    function zkNetToGross(targetNet, month) {
+      var lo = targetNet, hi = targetNet * 2.2;
+      for (var i = 0; i < 60; i++) {
+        var mid = (lo + hi) / 2;
+        if (zkGrossToNet(mid, month).net > targetNet) hi = mid; else lo = mid;
+      }
+      return zkGrossToNet((lo + hi) / 2, month);
+    }
+    var scMode = 'net';
+    function zkSetSalaryCalcMode(mode) {
+      scMode = mode;
+      document.getElementById('sc-mode-net').className = 'h-9 rounded-lg text-xs font-bold ' + (mode === 'net' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground');
+      document.getElementById('sc-mode-gross').className = 'h-9 rounded-lg text-xs font-bold ' + (mode === 'gross' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground');
+      document.getElementById('sc-amount').placeholder = (mode === 'net' ? 'Net tutar (₺) *' : 'Brüt tutar (₺) *');
+      document.getElementById('sc-result').classList.add('hidden');
+    }
+    function zkOpenSalaryCalc() {
+      var monthSel = document.getElementById('sc-month');
+      if (!monthSel.options.length) {
+        var names = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+        monthSel.innerHTML = names.map(function (n, i) { return '<option value="' + (i + 1) + '">' + n + '</option>'; }).join('');
+      }
+      monthSel.value = String(new Date().getMonth() + 1);
+      document.getElementById('sc-amount').value = '';
+      document.getElementById('sc-result').classList.add('hidden');
+      zkSetSalaryCalcMode('net');
+      document.getElementById('salary-calc-sheet').classList.remove('hidden');
+    }
+    function zkCloseSalaryCalc() { document.getElementById('salary-calc-sheet').classList.add('hidden'); }
+    function zkCalcSalary() {
+      var amount = Number(document.getElementById('sc-amount').value);
+      if (!(amount > 0)) { zkToast('Geçerli bir tutar girin.'); return; }
+      var month = Number(document.getElementById('sc-month').value) || 1;
+      var r = scMode === 'net' ? zkNetToGross(amount, month) : zkGrossToNet(amount, month);
+      document.getElementById('sc-r-gross').textContent = ZirkonikMoney.format(r.gross, '₺', 2);
+      document.getElementById('sc-r-sgk').textContent = '-' + ZirkonikMoney.format(r.sgk, '₺', 2);
+      document.getElementById('sc-r-unemp').textContent = '-' + ZirkonikMoney.format(r.unemployment, '₺', 2);
+      document.getElementById('sc-r-tax').textContent = '-' + ZirkonikMoney.format(r.incomeTax, '₺', 2);
+      document.getElementById('sc-r-stamp').textContent = '-' + ZirkonikMoney.format(r.stampTax, '₺', 2);
+      document.getElementById('sc-r-net').textContent = ZirkonikMoney.format(r.net, '₺', 2);
+      document.getElementById('sc-r-cost').textContent = ZirkonikMoney.format(r.cost, '₺', 2);
+      document.getElementById('sc-result').classList.remove('hidden');
     }
 
     function zkOpenAddStaff() {
