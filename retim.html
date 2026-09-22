@@ -237,7 +237,7 @@
             </button>
           </div>
           <p class="mt-1 text-[11px] text-muted-foreground">Hangi oda bu dönemde en çok iş işledi — canlı "Destek gerekebilir" uyarısının geçmiş dönem karşılaştırması</p>
-          <div id="room-throughput-list" class="mt-3 space-y-2">
+          <div id="room-throughput-list" class="mt-3 rounded-theme border border-border bg-card p-4">
             <p class="text-xs text-muted-foreground">Yükleniyor…</p>
           </div>
         </section>
@@ -248,7 +248,7 @@
             <h2 class="mt-1 font-heading text-lg font-extrabold">Nakit Akışı Öngörüsü</h2>
             <p class="mt-0.5 text-xs text-muted-foreground">Önümüzdeki 6 ay için bilinen giderler (personel maaşları + tedarikçi vadeleri)</p>
           </div>
-          <div id="cash-flow-months" class="mt-3 space-y-2">
+          <div id="cash-flow-months" class="mt-3 overflow-hidden rounded-theme border border-border bg-card">
             <p class="text-xs text-muted-foreground">Yükleniyor…</p>
           </div>
           <div id="cash-flow-info" class="mt-3 space-y-1 text-xs text-muted-foreground"></div>
@@ -607,16 +607,14 @@
     // ---- Nakit Akışı Öngörüsü (yönetici) ----
     function loadCashFlow() {
       ZirkonikData.getCashFlowForecast().then(function (res) {
-        document.getElementById('cash-flow-months').innerHTML = res.months.map(function (m) {
+        document.getElementById('cash-flow-months').innerHTML = res.months.map(function (m, i) {
           var expenseText = Object.keys(m.totalExpense).length ? ZirkonikMoney.formatTotals(m.totalExpense, 0) : ZirkonikMoney.format(0, ZirkonikMoney.DEFAULT, 0);
           var staffText = Object.keys(m.staffExpense).length ? ZirkonikMoney.formatTotals(m.staffExpense, 0) : '—';
           var supText = Object.keys(m.supplierExpense).length ? ZirkonikMoney.formatTotals(m.supplierExpense, 0) : '—';
-          return '<div class="rounded-theme border border-border bg-card p-3.5">' +
-            '<div class="flex items-center justify-between gap-2">' +
-            '<p class="text-sm font-bold">' + escapeHtml(m.label) + '</p>' +
-            '<p class="text-sm font-bold tabular-nums text-primary">' + expenseText + '</p></div>' +
-            '<p class="mt-1 text-[11px] text-muted-foreground">Personel: ' + staffText + ' · Tedarikçi vadesi: ' + supText + '</p>' +
-            '</div>';
+          return '<div class="flex items-center justify-between gap-3 px-4 py-3' + (i < res.months.length - 1 ? ' border-b border-border' : '') + '">' +
+            '<div class="min-w-0"><p class="text-sm font-bold">' + escapeHtml(m.label) + '</p>' +
+            '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">Personel ' + staffText + ' · Tedarikçi ' + supText + '</p></div>' +
+            '<p class="shrink-0 text-sm font-bold tabular-nums text-primary">' + expenseText + '</p></div>';
         }).join('');
 
         var lines = [];
@@ -780,6 +778,32 @@
       }
       return { rangeStart: rangeStart, rangeEnd: rangeEnd, label: label };
     }
+    // Yuvarlak (donut) grafik — sabit kategorili "toplamdan pay" verileri
+    // için (kullanıcı isteği: "yuvarlak grafikler belki kullanabilirsin",
+    // 22 Eylül 2026). Harici kütüphane yok, saf SVG stroke-dasharray
+    // tekniği; yarıçap 15.9155 seçilirse çevre tam 100 olur, yani pay
+    // yüzdesi doğrudan dasharray değeri olarak kullanılabilir.
+    var ZK_DONUT_COLORS = ['#3D7CDC', '#10B981', '#F0A03C', '#7A5AF8', '#5B87A8', '#EF5350', '#C6CBD6', '#98A0AD'];
+    function zkRenderDonut(rows, labelKey, valueKey) {
+      var total = rows.reduce(function (s, r) { return s + r[valueKey]; }, 0);
+      if (!total) return '<p class="text-xs text-muted-foreground">Veri yok.</p>';
+      var cumulative = 25; // 12 hizasından başlasın diye çeyrek ofset
+      var segs = rows.map(function (row, i) {
+        var pct = (row[valueKey] / total) * 100;
+        var circle = '<circle cx="18" cy="18" r="15.9155" fill="transparent" stroke="' + ZK_DONUT_COLORS[i % ZK_DONUT_COLORS.length] +
+          '" stroke-width="4" stroke-dasharray="' + pct.toFixed(2) + ' ' + (100 - pct).toFixed(2) + '" stroke-dashoffset="' + cumulative.toFixed(2) + '"></circle>';
+        cumulative -= pct;
+        return circle;
+      }).join('');
+      var legend = rows.map(function (row, i) {
+        return '<div class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 shrink-0 rounded-sm" style="background:' + ZK_DONUT_COLORS[i % ZK_DONUT_COLORS.length] + '"></span>' +
+          '<span class="min-w-0 flex-1 truncate text-[11px]">' + escapeHtml(row[labelKey]) + '</span>' +
+          '<span class="shrink-0 text-[11px] font-bold tabular-nums">' + row[valueKey] + '</span></div>';
+      }).join('');
+      return '<div class="flex items-center gap-4">' +
+        '<svg viewBox="0 0 36 36" class="h-24 w-24 shrink-0">' + segs + '</svg>' +
+        '<div class="min-w-0 flex-1 space-y-1.5">' + legend + '</div></div>';
+    }
     function loadRoomThroughput() {
       ['week', 'month', 'year'].forEach(function (p) {
         var btn = document.getElementById('rt-' + p + '-btn');
@@ -790,16 +814,7 @@
       ZirkonikData.getRoomThroughput(range.rangeStart.toISOString(), range.rangeEnd.toISOString()).then(function (rows) {
         var listEl = document.getElementById('room-throughput-list');
         if (!rows.length) { listEl.innerHTML = '<p class="text-xs text-muted-foreground">Bu dönemde işlenen iş yok.</p>'; return; }
-        var maxCount = Math.max.apply(null, rows.map(function (r) { return r.jobCount; }));
-        listEl.innerHTML = rows.map(function (r) {
-          var pct = Math.max(6, Math.round((r.jobCount / maxCount) * 100));
-          return '<div class="rounded-theme border border-border bg-card p-3.5">' +
-            '<div class="flex items-center justify-between gap-2">' +
-            '<p class="min-w-0 flex-1 truncate text-sm font-bold">' + escapeHtml(r.name) + '</p>' +
-            '<p class="shrink-0 text-xs font-bold tabular-nums text-primary">' + r.jobCount + ' iş</p></div>' +
-            '<div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted"><div class="h-full rounded-full bg-primary" style="width:' + pct + '%"></div></div>' +
-            '</div>';
-        }).join('');
+        listEl.innerHTML = zkRenderDonut(rows, 'name', 'jobCount');
       });
     }
 
