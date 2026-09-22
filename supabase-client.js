@@ -652,6 +652,105 @@
       });
     },
 
+    // ---- Nakit akışı öngörüsü (yönetici) ----
+    // Medicamine'deki karşılığından farklı olarak burada "gelir" tarafında
+    // vadeli bir kalem yok (doktor tahsilatının vade tarihi tutulmuyor) —
+    // o yüzden bu, önümüzdeki 6 ay için BİLİNEN GİDERLERİN öngörüsü:
+    // personel sabit maaşları (her ay, app_users.monthly_salary where
+    // compensation_type='maas') + tedarikçi fatura vadeleri (supplier_invoices
+    // .due_date — GERÇEK vade verisi, uydurulmadı). Doktorlardan bekleyen
+    // tahsilat (vadesiz) ayrı, tek bir bilgi satırı olarak dönüyor — Medicamine'deki
+    // "Alacaklarım" ile aynı mantık. Para birimleri TOPLANMAZ (22 Eylül 2026).
+    getCashFlowForecast: function () {
+      var c = client();
+      var HORIZON = 6;
+      var now = new Date();
+      function monthKeyOf(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+      function addMonthsToKey(key, n) {
+        var p = key.split('-');
+        return monthKeyOf(new Date(Number(p[0]), Number(p[1]) - 1 + n, 1));
+      }
+      function monthLabel(key) {
+        var p = key.split('-');
+        return new Date(Number(p[0]), Number(p[1]) - 1, 1).toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
+      }
+      var currentKey = monthKeyOf(now);
+      var horizonKeys = [];
+      for (var h = 0; h < HORIZON; h++) horizonKeys.push(addMonthsToKey(currentKey, h));
+      var horizonEndKey = horizonKeys[horizonKeys.length - 1];
+      var hp = horizonEndKey.split('-');
+      var horizonEndDate = new Date(Number(hp[0]), Number(hp[1]), 0);
+      var horizonEndStr = horizonEndDate.getFullYear() + '-' + String(horizonEndDate.getMonth() + 1).padStart(2, '0') + '-' + String(horizonEndDate.getDate()).padStart(2, '0');
+      var todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+
+      var staffQ = c.from('app_users').select('monthly_salary, salary_currency, compensation_type').eq('status', 'approved').eq('compensation_type', 'maas');
+      var supInvQ = c.from('supplier_invoices').select('amount, currency, due_date, status').not('due_date', 'is', null).lte('due_date', horizonEndStr);
+      var supPayQ = c.from('supplier_payments').select('amount, currency');
+      var docInvQ = c.from('invoices').select('amount, currency, doctor_id').neq('status', 'cancelled');
+      var docPayQ = c.from('payments').select('amount, currency, doctor_id');
+
+      return Promise.all([staffQ, supInvQ, supPayQ, docInvQ, docPayQ]).then(function (res) {
+        var buckets = {};
+        horizonKeys.forEach(function (k) { buckets[k] = { key: k, label: monthLabel(k), staffExpense: {}, supplierExpense: {} }; });
+
+        var staffMonthlyTotals = {};
+        (res[0].data || []).forEach(function (u) {
+          var amt = Number(u.monthly_salary) || 0;
+          if (!amt) return;
+          var cur = window.ZirkonikMoney.normalize(u.salary_currency);
+          staffMonthlyTotals[cur] = (staffMonthlyTotals[cur] || 0) + amt;
+        });
+        horizonKeys.forEach(function (k) { buckets[k].staffExpense = staffMonthlyTotals; });
+
+        (res[1].data || []).forEach(function (inv) {
+          var amt = Number(inv.amount) || 0;
+          if (!amt) return;
+          var cur = window.ZirkonikMoney.normalize(inv.currency);
+          var dueKey = inv.due_date < todayStr ? currentKey : inv.due_date.slice(0, 7);
+          if (!buckets[dueKey]) return;
+          buckets[dueKey].supplierExpense[cur] = (buckets[dueKey].supplierExpense[cur] || 0) + amt;
+        });
+
+        var supplierPaidTotal = window.ZirkonikMoney.groupTotals(res[2].data || [], 'amount', 'currency');
+        var supplierInvoicedTotal = window.ZirkonikMoney.groupTotals(res[1].data || [], 'amount', 'currency');
+
+        // Doktor bekleyen tahsilat: fatura - ödeme, doktor+para birimi bazında, pozitifse borç.
+        var docBalance = {};
+        (res[3].data || []).forEach(function (inv) {
+          var cur = window.ZirkonikMoney.normalize(inv.currency);
+          var key = inv.doctor_id + '|' + cur;
+          docBalance[key] = (docBalance[key] || 0) + (Number(inv.amount) || 0);
+        });
+        (res[4].data || []).forEach(function (pay) {
+          var cur = window.ZirkonikMoney.normalize(pay.currency);
+          var key = pay.doctor_id + '|' + cur;
+          docBalance[key] = (docBalance[key] || 0) - (Number(pay.amount) || 0);
+        });
+        var pendingCollection = {};
+        Object.keys(docBalance).forEach(function (key) {
+          var cur = key.split('|')[1];
+          var v = docBalance[key];
+          if (v > 0) pendingCollection[cur] = (pendingCollection[cur] || 0) + v;
+        });
+
+        var months = horizonKeys.map(function (k) {
+          var b = buckets[k];
+          var totalExpense = {};
+          Object.keys(b.staffExpense).forEach(function (cur) { totalExpense[cur] = (totalExpense[cur] || 0) + b.staffExpense[cur]; });
+          Object.keys(b.supplierExpense).forEach(function (cur) { totalExpense[cur] = (totalExpense[cur] || 0) + b.supplierExpense[cur]; });
+          return { key: k, label: b.label, staffExpense: b.staffExpense, supplierExpense: b.supplierExpense, totalExpense: totalExpense };
+        });
+
+        return {
+          months: months,
+          staffMonthlyTotals: staffMonthlyTotals,
+          supplierInvoicedTotal: supplierInvoicedTotal,
+          supplierPaidTotal: supplierPaidTotal,
+          pendingCollection: pendingCollection
+        };
+      });
+    },
+
     // ---- Oda doluluğu / iş yükü (yönetici) ----
     // Üretim panosundaki "Destek gerekebilir" uyarısı anlık bir eşik
     // (aynı anda 3+ iş) — geçmişe dönük trend tutmuyor. Burada onun yerine
