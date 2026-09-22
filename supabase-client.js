@@ -599,42 +599,89 @@
     // fonksiyonunda da "iş başına ciro" olarak kullanılıyor — aynı kaynağı
     // tekrar kullanıyoruz. Farklı para birimleri TOPLANMAZ (ZirkonikMoney
     // ilkesi); dönüşte her para birimi ayrı satırda durur, grafik en çok
-    // geçen para birimine göre çizilir (22 Eylül 2026).
+    // geçen para birimine göre çizilir. Bir önceki dönem (aynı uzunlukta,
+    // hemen bir öncesi — geçen yıl DEĞİL, "hafta"da geçen hafta, "ay"da
+    // geçen ay) de birlikte döner; grafikte soluk tonla karşılaştırma için
+    // (kullanıcı isteği, 22 Eylül 2026).
     getJobPerformancePeriod: function (period, offset) {
       var c = client();
       var now = new Date();
-      var rangeStart, rangeEnd, label;
-      if (period === 'week') {
-        var jsDay = now.getDay();
-        var mondayOffset = jsDay === 0 ? -6 : 1 - jsDay;
-        rangeStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() + mondayOffset + offset * 7);
-        rangeEnd = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), rangeStart.getDate() + 7);
-        var rangeLast = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), rangeStart.getDate() + 6);
-        label = rangeStart.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) + ' – ' + rangeLast.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
-      } else if (period === 'year') {
-        var y = now.getFullYear() + offset;
-        rangeStart = new Date(y, 0, 1);
-        rangeEnd = new Date(y + 1, 0, 1);
-        label = String(y);
-      } else {
-        rangeStart = new Date(now.getFullYear(), now.getMonth() + offset, 1);
-        rangeEnd = new Date(rangeStart.getFullYear(), rangeStart.getMonth() + 1, 1);
-        label = rangeStart.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
+      function computeRange(off) {
+        var rangeStart, rangeEnd, label;
+        if (period === 'week') {
+          var jsDay = now.getDay();
+          var mondayOffset = jsDay === 0 ? -6 : 1 - jsDay;
+          rangeStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() + mondayOffset + off * 7);
+          rangeEnd = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), rangeStart.getDate() + 7);
+          var rangeLast = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), rangeStart.getDate() + 6);
+          label = rangeStart.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) + ' – ' + rangeLast.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+        } else if (period === 'year') {
+          var y = now.getFullYear() + off;
+          rangeStart = new Date(y, 0, 1);
+          rangeEnd = new Date(y + 1, 0, 1);
+          label = String(y);
+        } else {
+          rangeStart = new Date(now.getFullYear(), now.getMonth() + off, 1);
+          rangeEnd = new Date(rangeStart.getFullYear(), rangeStart.getMonth() + 1, 1);
+          label = rangeStart.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
+        }
+        return { rangeStart: rangeStart, rangeEnd: rangeEnd, label: label };
       }
-      return c.from('jobs')
-        .select('id, price, currency, created_at, price_item_id, doctor_id, price_list_items(category, name), doctors(full_name)')
-        .neq('status', 'cancelled')
-        .gte('created_at', rangeStart.toISOString()).lt('created_at', rangeEnd.toISOString())
-        .then(function (res) {
-          var rows = (res.data || []).map(function (j) {
-            return {
-              id: j.id, price: Number(j.price) || 0, currency: window.ZirkonikMoney.normalize(j.currency),
-              date: j.created_at, doctorName: (j.doctors && j.doctors.full_name) || '—',
-              category: (j.price_list_items && j.price_list_items.category) || 'Diğer'
-            };
-          });
-          return { rows: rows, rangeStart: rangeStart, rangeEnd: rangeEnd, label: label };
+      var cur = computeRange(offset);
+      var prev = computeRange(offset - 1);
+      function mapRows(rows) {
+        return (rows || []).map(function (j) {
+          return {
+            id: j.id, price: Number(j.price) || 0, currency: window.ZirkonikMoney.normalize(j.currency),
+            date: j.created_at, doctorName: (j.doctors && j.doctors.full_name) || '—',
+            category: (j.price_list_items && j.price_list_items.category) || 'Diğer'
+          };
         });
+      }
+      var SELECT = 'id, price, currency, created_at, price_item_id, doctor_id, price_list_items(category, name), doctors(full_name)';
+      var curQ = c.from('jobs').select(SELECT).neq('status', 'cancelled')
+        .gte('created_at', cur.rangeStart.toISOString()).lt('created_at', cur.rangeEnd.toISOString());
+      var prevQ = c.from('jobs').select(SELECT).neq('status', 'cancelled')
+        .gte('created_at', prev.rangeStart.toISOString()).lt('created_at', prev.rangeEnd.toISOString());
+      return Promise.all([curQ, prevQ]).then(function (res) {
+        return {
+          rows: mapRows(res[0].data), prevRows: mapRows(res[1].data),
+          rangeStart: cur.rangeStart, rangeEnd: cur.rangeEnd, label: cur.label,
+          prevRangeStart: prev.rangeStart, prevLabel: prev.label
+        };
+      });
+    },
+
+    // ---- Oda doluluğu / iş yükü (yönetici) ----
+    // Üretim panosundaki "Destek gerekebilir" uyarısı anlık bir eşik
+    // (aynı anda 3+ iş) — geçmişe dönük trend tutmuyor. Burada onun yerine
+    // job_stage_history'den (bir iş o odaya ne zaman girdi) dönem başına
+    // HANGİ ODANIN NE KADAR İŞ İŞLEDİĞİ (throughput) çıkarılıyor — hangi
+    // odanın en yoğun olduğunu geçmiş dönemlerle karşılaştırmalı gösterir
+    // (kullanıcı isteği: "randevu doluluğu" karşılığı, 22 Eylül 2026).
+    getRoomThroughput: function (fromIso, toIso) {
+      var c = client();
+      return Promise.all([
+        c.from('job_stage_history').select('room_id, job_id').not('room_id', 'is', null)
+          .gte('entered_at', fromIso).lt('entered_at', toIso),
+        c.from('rooms').select('id, name, sort_order').order('sort_order', { ascending: true })
+      ]).then(function (res) {
+        var stages = res[0].data || [];
+        var nameById = {};
+        (res[1].data || []).forEach(function (r) { nameById[r.id] = r.name; });
+        var byRoom = {};
+        stages.forEach(function (s) {
+          var r = byRoom[s.room_id] || (byRoom[s.room_id] = { roomId: s.room_id, name: nameById[s.room_id] || '—', jobIds: {}, stageCount: 0 });
+          r.jobIds[s.job_id] = true;
+          r.stageCount++;
+        });
+        var rows = Object.keys(byRoom).map(function (rid) {
+          var r = byRoom[rid];
+          return { roomId: rid, name: r.name, jobCount: Object.keys(r.jobIds).length, stageCount: r.stageCount };
+        });
+        rows.sort(function (a, b) { return b.jobCount - a.jobCount; });
+        return rows;
+      });
     },
 
     // ---- Ekip performansı (yönetici) ----

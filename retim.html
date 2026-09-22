@@ -200,6 +200,11 @@
           <div id="jp-chart" class="mt-3 rounded-theme border border-border bg-card p-4">
             <p class="text-xs text-muted-foreground">Yükleniyor…</p>
           </div>
+          <div class="mt-1.5 flex items-center justify-center gap-3 text-[10px] font-semibold text-muted-foreground">
+            <span class="flex items-center gap-1"><span class="inline-block h-2.5 w-2.5 rounded-sm" style="background:#3D7CDC"></span>Bu dönem</span>
+            <span class="flex items-center gap-1"><span class="inline-block h-2.5 w-2.5 rounded-sm bg-muted-foreground opacity-35"></span>Önceki dönem</span>
+          </div>
+          <p id="jp-prev-label" class="mt-1 text-center text-[11px] text-muted-foreground">—</p>
           <div class="mt-3">
             <p class="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Materyal türüne göre</p>
             <div id="jp-category-breakdown" class="mt-1.5 flex flex-wrap gap-1.5"></div>
@@ -207,6 +212,33 @@
           <div class="mt-3">
             <p class="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Doktora göre</p>
             <div id="jp-doctor-breakdown" class="mt-1.5 flex flex-wrap gap-1.5"></div>
+          </div>
+        </section>
+
+        <section id="room-throughput-section" class="hidden px-5 pt-7">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Sadece yönetici görür</p>
+              <h2 class="mt-1 font-heading text-lg font-extrabold">Oda Doluluğu</h2>
+            </div>
+            <div class="flex items-center gap-1 rounded-theme bg-muted p-0.5">
+              <button type="button" id="rt-week-btn" onclick="zkSetRoomThroughputPeriod('week')" class="rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-muted-foreground">Hafta</button>
+              <button type="button" id="rt-month-btn" onclick="zkSetRoomThroughputPeriod('month')" class="rounded-lg bg-card px-2.5 py-1.5 text-[10px] font-bold">Ay</button>
+              <button type="button" id="rt-year-btn" onclick="zkSetRoomThroughputPeriod('year')" class="rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-muted-foreground">Yıl</button>
+            </div>
+          </div>
+          <div class="mt-3 flex items-center justify-between">
+            <button type="button" onclick="zkShiftRoomThroughput(-1)" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Önceki dönem">
+              <iconify-icon icon="lucide:chevron-left" class="text-base"></iconify-icon>
+            </button>
+            <p id="rt-period-label" class="text-xs font-bold text-muted-foreground">—</p>
+            <button type="button" onclick="zkShiftRoomThroughput(1)" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Sonraki dönem">
+              <iconify-icon icon="lucide:chevron-right" class="text-base"></iconify-icon>
+            </button>
+          </div>
+          <p class="mt-1 text-[11px] text-muted-foreground">Hangi oda bu dönemde en çok iş işledi — canlı "Destek gerekebilir" uyarısının geçmiş dönem karşılaştırması</p>
+          <div id="room-throughput-list" class="mt-3 space-y-2">
+            <p class="text-xs text-muted-foreground">Yükleniyor…</p>
           </div>
         </section>
 
@@ -552,6 +584,8 @@
           loadLeaveQueue();
           document.getElementById('job-performance-section').classList.remove('hidden');
           loadJobPerformance();
+          document.getElementById('room-throughput-section').classList.remove('hidden');
+          loadRoomThroughput();
         }
       });
     });
@@ -606,6 +640,22 @@
       }).join('') + '</div><div class="zk-cols-labels">' + labels.map(function (lb) { return '<span>' + escapeHtml(lb) + '</span>'; }).join('') + '</div>';
       document.getElementById(containerId).innerHTML = html;
     }
+    // Bu dönem (koyu) / önceki dönem (soluk) yan yana — kullanıcı isteği:
+    // "önceki hafta/ay/yıl ile daha az bir tonla aynı grafikte" (22 Eylül 2026).
+    function jpRenderColsCompare(containerId, curValues, prevValues, labels) {
+      var maxVal = Math.max(1, Math.max.apply(null, curValues.concat(prevValues)));
+      var html = '<div class="zk-cols">' + curValues.map(function (v, i) {
+        var pv = prevValues[i] || 0;
+        var curPct = Math.max(3, Math.round((v / maxVal) * 100));
+        var prevPct = Math.max(3, Math.round((pv / maxVal) * 100));
+        var curVal = v > 0 ? '<span class="zk-col-val">' + v + '</span>' : '<span class="zk-col-val">&nbsp;</span>';
+        return '<div class="zk-col">' + curVal + '<div class="zk-col-pair">' +
+          '<div class="zk-col-bar-prev" style="height:' + (pv > 0 ? prevPct : 3) + '%"></div>' +
+          '<div class="zk-col-bar-cur" style="height:' + (v > 0 ? curPct : 3) + '%"></div>' +
+          '</div></div>';
+      }).join('') + '</div><div class="zk-cols-labels">' + labels.map(function (lb) { return '<span>' + escapeHtml(lb) + '</span>'; }).join('') + '</div>';
+      document.getElementById(containerId).innerHTML = html;
+    }
     function loadJobPerformance() {
       ['week', 'month', 'year'].forEach(function (p) {
         var btn = document.getElementById('jp-' + p + '-btn');
@@ -618,6 +668,7 @@
         document.getElementById('jp-total').textContent = ZirkonikMoney.totalText(res.rows, 'price', 'currency', 0);
 
         var buckets = jpBuildBuckets(res.rows, jpPeriod, res.rangeStart);
+        var prevBuckets = jpBuildBuckets(res.prevRows, jpPeriod, res.prevRangeStart);
         // Farklı para birimleri toplanmaz — grafik en çok geçen para
         // birimine göre çizilir, diğerleri üstteki toplamda ayrı görünür.
         var totals = ZirkonikMoney.groupTotals(res.rows, 'price', 'currency');
@@ -625,7 +676,12 @@
         var values = buckets.map(function (b) {
           return b.rows.filter(function (r) { return r.currency === mainCurrency; }).reduce(function (s, r) { return s + r.price; }, 0);
         });
-        jpRenderCols('jp-chart', values, buckets.map(function (b) { return b.label; }));
+        var prevValues = prevBuckets.map(function (b) {
+          return b.rows.filter(function (r) { return r.currency === mainCurrency; }).reduce(function (s, r) { return s + r.price; }, 0);
+        });
+        jpRenderColsCompare('jp-chart', values, prevValues, buckets.map(function (b) { return b.label; }));
+        var jpPrevLabelEl = document.getElementById('jp-prev-label');
+        if (jpPrevLabelEl) jpPrevLabelEl.textContent = 'Önceki dönem (' + res.prevLabel + '): ' + ZirkonikMoney.totalText(res.prevRows, 'price', 'currency', 0);
 
         function badge(label, count, amountRows) {
           return '<span class="rounded-full bg-muted px-2.5 py-1 text-[11px] font-bold">' + escapeHtml(label) + ' ' + count + ' · ' + ZirkonikMoney.totalText(amountRows, 'price', 'currency', 0) + '</span>';
@@ -643,6 +699,64 @@
         document.getElementById('jp-doctor-breakdown').innerHTML = docNames.length
           ? docNames.map(function (n) { return badge(n, docGroups[n].length, docGroups[n]); }).join('')
           : '<span class="text-[11px] text-muted-foreground">Bu dönemde iş yok.</span>';
+      });
+    }
+
+    // ---- Oda Doluluğu (yönetici) ----
+    var rtPeriod = 'month';
+    var rtOffset = 0;
+    function zkSetRoomThroughputPeriod(period) {
+      rtPeriod = period;
+      rtOffset = 0;
+      loadRoomThroughput();
+    }
+    function zkShiftRoomThroughput(dir) {
+      rtOffset += dir;
+      loadRoomThroughput();
+    }
+    // jpPeriod/jpOffset ile aynı aralık mantığı — burada da lazım.
+    function rtComputeRange(period, offset) {
+      var now = new Date();
+      var rangeStart, rangeEnd, label;
+      if (period === 'week') {
+        var jsDay = now.getDay();
+        var mondayOffset = jsDay === 0 ? -6 : 1 - jsDay;
+        rangeStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() + mondayOffset + offset * 7);
+        rangeEnd = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), rangeStart.getDate() + 7);
+        var rangeLast = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), rangeStart.getDate() + 6);
+        label = rangeStart.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) + ' – ' + rangeLast.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+      } else if (period === 'year') {
+        var y = now.getFullYear() + offset;
+        rangeStart = new Date(y, 0, 1);
+        rangeEnd = new Date(y + 1, 0, 1);
+        label = String(y);
+      } else {
+        rangeStart = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+        rangeEnd = new Date(rangeStart.getFullYear(), rangeStart.getMonth() + 1, 1);
+        label = rangeStart.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
+      }
+      return { rangeStart: rangeStart, rangeEnd: rangeEnd, label: label };
+    }
+    function loadRoomThroughput() {
+      ['week', 'month', 'year'].forEach(function (p) {
+        var btn = document.getElementById('rt-' + p + '-btn');
+        if (btn) btn.className = 'rounded-lg px-2.5 py-1.5 text-[10px] font-bold ' + (p === rtPeriod ? 'bg-card' : 'text-muted-foreground');
+      });
+      var range = rtComputeRange(rtPeriod, rtOffset);
+      document.getElementById('rt-period-label').textContent = range.label;
+      ZirkonikData.getRoomThroughput(range.rangeStart.toISOString(), range.rangeEnd.toISOString()).then(function (rows) {
+        var listEl = document.getElementById('room-throughput-list');
+        if (!rows.length) { listEl.innerHTML = '<p class="text-xs text-muted-foreground">Bu dönemde işlenen iş yok.</p>'; return; }
+        var maxCount = Math.max.apply(null, rows.map(function (r) { return r.jobCount; }));
+        listEl.innerHTML = rows.map(function (r) {
+          var pct = Math.max(6, Math.round((r.jobCount / maxCount) * 100));
+          return '<div class="rounded-theme border border-border bg-card p-3.5">' +
+            '<div class="flex items-center justify-between gap-2">' +
+            '<p class="min-w-0 flex-1 truncate text-sm font-bold">' + escapeHtml(r.name) + '</p>' +
+            '<p class="shrink-0 text-xs font-bold tabular-nums text-primary">' + r.jobCount + ' iş</p></div>' +
+            '<div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted"><div class="h-full rounded-full bg-primary" style="width:' + pct + '%"></div></div>' +
+            '</div>';
+        }).join('');
       });
     }
 
