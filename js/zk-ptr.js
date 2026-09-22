@@ -26,13 +26,21 @@
   var kaydirici = null, gosterge = null;
   var baslangicY = 0, cekiliyor = false, mesafe = 0, calisiyor = false;
 
-  /* Sayfanın kaydırılan kabı. Zirkonik sayfaları içeriği
-     .overflow-y-auto bir kapta tutuyor; yoksa belgenin kendisi. */
-  function kaydiriciBul() {
-    return document.querySelector('.overflow-y-auto') || document.scrollingElement || document.body;
+  /* Sayfanın kaydırılan kabı. Zirkonik sayfaları içeriği .overflow-y-auto
+     bir kapta tutuyor — AMA alt panel (sheet/modal) açıkken kendi İÇİNDE
+     de ayrı bir .overflow-y-auto listesi olabiliyor (ör. bir doktorun cari
+     geçmişi paneli). Öncesinde her zaman belgedeki İLK .overflow-y-auto
+     alınıyordu — panel açıkken bu hep ana sayfanın kendisiydi (o da zaten
+     tepede durduğu için her aşağı çekiş yanlışlıkla "yenile" sayılıp TÜM
+     sayfa yenileniyordu, panel içindeki liste hiç kaydırılamıyordu).
+     Artık dokunulan elemente EN YAKIN .overflow-y-auto aranıyor; yoksa
+     eski davranışa (belgedeki ilki) düşülüyor. */
+  function kaydiriciBul(hedef) {
+    var yakin = hedef && hedef.closest ? hedef.closest('.overflow-y-auto') : null;
+    return yakin || document.querySelector('.overflow-y-auto') || document.scrollingElement || document.body;
   }
   function tepedeMi() {
-    var k = kaydiriciBul();
+    var k = kaydirici || kaydiriciBul();
     return (k.scrollTop || 0) <= 0;
   }
 
@@ -91,7 +99,8 @@
     if (calisiyor || !e.touches || e.touches.length !== 1) return;
     // Alt-sayfa (seçici) açıkken çekme devre dışı — orası kendi listesini kaydırıyor.
     if (document.querySelector('.zk-picker-overlay')) return;
-    if (!tepedeMi()) return;
+    kaydirici = kaydiriciBul(e.target);
+    if (!tepedeMi()) { kaydirici = null; return; }
     baslangicY = e.touches[0].clientY;
     cekiliyor = true;
     mesafe = 0;
@@ -113,6 +122,7 @@
     if (mesafe >= ESIK && !calisiyor) yenile();
     else gizle();
     mesafe = 0;
+    kaydirici = null;
   }, { passive: true });
 
   window.ZkPtr = { yenile: yenile };
