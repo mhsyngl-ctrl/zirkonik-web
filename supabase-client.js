@@ -593,6 +593,50 @@
       return client().rpc('undo_cash_handover', { p_handover_id: handoverId });
     },
 
+    // ---- İş/Ciro performansı (yönetici) — Medicamine'deki "paket satışları"
+    // + "haftalık/aylık performans" karşılığı. Serbest dönem gezinme
+    // (offset) destekler. jobs.price zaten ciro.html'in labCiro()
+    // fonksiyonunda da "iş başına ciro" olarak kullanılıyor — aynı kaynağı
+    // tekrar kullanıyoruz. Farklı para birimleri TOPLANMAZ (ZirkonikMoney
+    // ilkesi); dönüşte her para birimi ayrı satırda durur, grafik en çok
+    // geçen para birimine göre çizilir (22 Eylül 2026).
+    getJobPerformancePeriod: function (period, offset) {
+      var c = client();
+      var now = new Date();
+      var rangeStart, rangeEnd, label;
+      if (period === 'week') {
+        var jsDay = now.getDay();
+        var mondayOffset = jsDay === 0 ? -6 : 1 - jsDay;
+        rangeStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() + mondayOffset + offset * 7);
+        rangeEnd = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), rangeStart.getDate() + 7);
+        var rangeLast = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), rangeStart.getDate() + 6);
+        label = rangeStart.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) + ' – ' + rangeLast.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+      } else if (period === 'year') {
+        var y = now.getFullYear() + offset;
+        rangeStart = new Date(y, 0, 1);
+        rangeEnd = new Date(y + 1, 0, 1);
+        label = String(y);
+      } else {
+        rangeStart = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+        rangeEnd = new Date(rangeStart.getFullYear(), rangeStart.getMonth() + 1, 1);
+        label = rangeStart.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
+      }
+      return c.from('jobs')
+        .select('id, price, currency, created_at, price_item_id, doctor_id, price_list_items(category, name), doctors(full_name)')
+        .neq('status', 'cancelled')
+        .gte('created_at', rangeStart.toISOString()).lt('created_at', rangeEnd.toISOString())
+        .then(function (res) {
+          var rows = (res.data || []).map(function (j) {
+            return {
+              id: j.id, price: Number(j.price) || 0, currency: window.ZirkonikMoney.normalize(j.currency),
+              date: j.created_at, doctorName: (j.doctors && j.doctors.full_name) || '—',
+              category: (j.price_list_items && j.price_list_items.category) || 'Diğer'
+            };
+          });
+          return { rows: rows, rangeStart: rangeStart, rangeEnd: rangeEnd, label: label };
+        });
+    },
+
     // ---- Ekip performansı (yönetici) ----
     // staff_earnings tablosu şu an hiç dolmuyor (0 satır, muhtemelen henüz
     // bağlanmamış bir özellik) — o yüzden gerçek, canlı veri olan

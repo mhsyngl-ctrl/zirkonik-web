@@ -166,6 +166,50 @@
           </div>
         </section>
 
+        <section id="job-performance-section" class="hidden px-5 pt-7">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Sadece yönetici görür</p>
+              <h2 class="mt-1 font-heading text-lg font-extrabold">İş ve Ciro Performansı</h2>
+            </div>
+            <div class="flex items-center gap-1 rounded-theme bg-muted p-0.5">
+              <button type="button" id="jp-week-btn" onclick="zkSetJobPerfPeriod('week')" class="rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-muted-foreground">Hafta</button>
+              <button type="button" id="jp-month-btn" onclick="zkSetJobPerfPeriod('month')" class="rounded-lg bg-card px-2.5 py-1.5 text-[10px] font-bold">Ay</button>
+              <button type="button" id="jp-year-btn" onclick="zkSetJobPerfPeriod('year')" class="rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-muted-foreground">Yıl</button>
+            </div>
+          </div>
+          <div class="mt-3 flex items-center justify-between">
+            <button type="button" onclick="zkShiftJobPerf(-1)" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Önceki dönem">
+              <iconify-icon icon="lucide:chevron-left" class="text-base"></iconify-icon>
+            </button>
+            <p id="jp-period-label" class="text-xs font-bold text-muted-foreground">—</p>
+            <button type="button" onclick="zkShiftJobPerf(1)" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Sonraki dönem">
+              <iconify-icon icon="lucide:chevron-right" class="text-base"></iconify-icon>
+            </button>
+          </div>
+          <div class="mt-3 grid grid-cols-2 gap-3">
+            <div class="rounded-theme border border-border bg-card p-3.5">
+              <p class="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">İş sayısı</p>
+              <p id="jp-count" class="mt-2 font-heading text-2xl font-bold tabular-nums">—</p>
+            </div>
+            <div class="rounded-theme border border-border bg-card p-3.5">
+              <p class="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Ciro</p>
+              <p id="jp-total" class="mt-2 font-heading text-2xl font-bold tabular-nums text-primary">—</p>
+            </div>
+          </div>
+          <div id="jp-chart" class="mt-3 rounded-theme border border-border bg-card p-4">
+            <p class="text-xs text-muted-foreground">Yükleniyor…</p>
+          </div>
+          <div class="mt-3">
+            <p class="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Materyal türüne göre</p>
+            <div id="jp-category-breakdown" class="mt-1.5 flex flex-wrap gap-1.5"></div>
+          </div>
+          <div class="mt-3">
+            <p class="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Doktora göre</p>
+            <div id="jp-doctor-breakdown" class="mt-1.5 flex flex-wrap gap-1.5"></div>
+          </div>
+        </section>
+
         <section class="px-5 pt-7">
           <div class="flex items-center justify-between">
             <div>
@@ -203,7 +247,12 @@
         </section>
       </main>
 
-      <div class="fixed bottom-[76px] left-0 z-20 w-full px-5">
+      <!-- 76px, alt tab çubuğunun güvenli alan payı EKLENMEDEN hesaplanan
+           sabit yüksekliğiydi — çentik/home-indicator'ı büyük olan
+           cihazlarda tab çubuğu boyunca uzayınca bu buton çubuğun İÇİNE
+           gömülüyordu ("aşağıya kaymış" görünümü). Tab çubuğuyla (.zk-tabbar)
+           aynı env(safe-area-inset-bottom) payı eklendi (22 Eylül 2026). -->
+      <div class="fixed left-0 z-20 w-full px-5" style="bottom: calc(76px + env(safe-area-inset-bottom));">
         <button onclick="location.href='yeni-giri-i.html'" class="flex h-13 w-full items-center justify-center gap-2 rounded-theme bg-primary px-5 py-3.5 font-heading text-sm font-bold text-primary-foreground shadow-lg">
           <iconify-icon icon="lucide:plus" class="text-xl"></iconify-icon>
           Yeni iş oluştur
@@ -501,9 +550,101 @@
         if (zkIsAdmin) {
           document.getElementById('leave-admin-section').classList.remove('hidden');
           loadLeaveQueue();
+          document.getElementById('job-performance-section').classList.remove('hidden');
+          loadJobPerformance();
         }
       });
     });
+
+    // ---- İş ve Ciro Performansı (yönetici) ----
+    var jpPeriod = 'month';
+    var jpOffset = 0;
+    var jpData = null;
+    function zkSetJobPerfPeriod(period) {
+      jpPeriod = period;
+      jpOffset = 0;
+      loadJobPerformance();
+    }
+    function zkShiftJobPerf(dir) {
+      jpOffset += dir;
+      loadJobPerformance();
+    }
+    // Dönem içi çubuklar: Hafta -> 7 gün, Ay -> ayın haftaları (gerçek gün
+    // sayısına göre), Yıl -> 12 ay.
+    function jpBuildBuckets(rows, period, rangeStart) {
+      var buckets = [];
+      var keyFn;
+      if (period === 'week') {
+        var dayNames = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+        for (var i = 0; i < 7; i++) buckets.push({ label: dayNames[i], rows: [] });
+        keyFn = function (r) { return Math.round((new Date(r.date) - rangeStart) / 86400000); };
+      } else if (period === 'year') {
+        var monthNames = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+        for (var m = 0; m < 12; m++) buckets.push({ label: monthNames[m], rows: [] });
+        keyFn = function (r) { return new Date(r.date).getMonth(); };
+      } else {
+        var daysInMonth = new Date(rangeStart.getFullYear(), rangeStart.getMonth() + 1, 0).getDate();
+        var weekCount = Math.ceil(daysInMonth / 7);
+        for (var w = 0; w < weekCount; w++) buckets.push({ label: (w + 1) + '. hafta', rows: [] });
+        keyFn = function (r) { return Math.min(Math.floor((new Date(r.date).getDate() - 1) / 7), weekCount - 1); };
+      }
+      rows.forEach(function (r) {
+        var k = keyFn(r);
+        if (k >= 0 && k < buckets.length) buckets[k].rows.push(r);
+      });
+      return buckets;
+    }
+    // Ana ekrandaki "Haftalık dağılım" ile aynı çubuk görünümü (.zk-cols) —
+    // tek bir yerde tanımlı olmadığı için burada tekrar üretiliyor.
+    function jpRenderCols(containerId, values, labels) {
+      var maxVal = Math.max(1, Math.max.apply(null, values));
+      var html = '<div class="zk-cols">' + values.map(function (v, i) {
+        var pct = Math.round((v / maxVal) * 100);
+        var cls = 'zk-col' + (v === 0 ? ' zk-col-zero' : '');
+        return '<div class="' + cls + '">' + (v > 0 ? '<span class="zk-col-val">' + v + '</span>' : '') +
+          '<div class="zk-col-bar" style="height:' + Math.max(3, pct) + '%"></div></div>';
+      }).join('') + '</div><div class="zk-cols-labels">' + labels.map(function (lb) { return '<span>' + escapeHtml(lb) + '</span>'; }).join('') + '</div>';
+      document.getElementById(containerId).innerHTML = html;
+    }
+    function loadJobPerformance() {
+      ['week', 'month', 'year'].forEach(function (p) {
+        var btn = document.getElementById('jp-' + p + '-btn');
+        if (btn) btn.className = 'rounded-lg px-2.5 py-1.5 text-[10px] font-bold ' + (p === jpPeriod ? 'bg-card' : 'text-muted-foreground');
+      });
+      ZirkonikData.getJobPerformancePeriod(jpPeriod, jpOffset).then(function (res) {
+        jpData = res;
+        document.getElementById('jp-period-label').textContent = res.label;
+        document.getElementById('jp-count').textContent = res.rows.length;
+        document.getElementById('jp-total').textContent = ZirkonikMoney.totalText(res.rows, 'price', 'currency', 0);
+
+        var buckets = jpBuildBuckets(res.rows, jpPeriod, res.rangeStart);
+        // Farklı para birimleri toplanmaz — grafik en çok geçen para
+        // birimine göre çizilir, diğerleri üstteki toplamda ayrı görünür.
+        var totals = ZirkonikMoney.groupTotals(res.rows, 'price', 'currency');
+        var mainCurrency = Object.keys(totals).sort(function (a, b) { return totals[b] - totals[a]; })[0] || ZirkonikMoney.DEFAULT;
+        var values = buckets.map(function (b) {
+          return b.rows.filter(function (r) { return r.currency === mainCurrency; }).reduce(function (s, r) { return s + r.price; }, 0);
+        });
+        jpRenderCols('jp-chart', values, buckets.map(function (b) { return b.label; }));
+
+        function badge(label, count, amountRows) {
+          return '<span class="rounded-full bg-muted px-2.5 py-1 text-[11px] font-bold">' + escapeHtml(label) + ' ' + count + ' · ' + ZirkonikMoney.totalText(amountRows, 'price', 'currency', 0) + '</span>';
+        }
+        var catGroups = {};
+        res.rows.forEach(function (r) { (catGroups[r.category] || (catGroups[r.category] = [])).push(r); });
+        var catNames = Object.keys(catGroups).sort(function (a, b) { return catGroups[b].length - catGroups[a].length; });
+        document.getElementById('jp-category-breakdown').innerHTML = catNames.length
+          ? catNames.map(function (n) { return badge(n, catGroups[n].length, catGroups[n]); }).join('')
+          : '<span class="text-[11px] text-muted-foreground">Bu dönemde iş yok.</span>';
+
+        var docGroups = {};
+        res.rows.forEach(function (r) { (docGroups[r.doctorName] || (docGroups[r.doctorName] = [])).push(r); });
+        var docNames = Object.keys(docGroups).sort(function (a, b) { return docGroups[b].length - docGroups[a].length; });
+        document.getElementById('jp-doctor-breakdown').innerHTML = docNames.length
+          ? docNames.map(function (n) { return badge(n, docGroups[n].length, docGroups[n]); }).join('')
+          : '<span class="text-[11px] text-muted-foreground">Bu dönemde iş yok.</span>';
+      });
+    }
 
     // ---- Teslim alınmayı bekleyen işler (YALNIZ ilgili teknisyen görür) ----
     // Oda adları rota gereği lab-geneli okunabildiğinden süzme AÇIKÇA kişinin
