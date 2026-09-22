@@ -746,18 +746,26 @@
         // Sabit gider projeksiyonu: aylık = her ufuk ayına düz yansır (maaş
         // gibi), yıllık = due_date'in ay'ı eşleşen ufuk ayına, tek seferlik =
         // due_date'in ayına (geçmişse mevcut aya, tedarikçi faturasındaki
-        // "vadesi geçmiş → bu ay" kuralıyla tutarlı).
+        // "vadesi geçmiş → bu ay" kuralıyla tutarlı). end_date varsa o aydan
+        // sonrasına yansımıyor — kullanıcı isteği: "tekrarlar için bitiş
+        // tarihi", 23 Eylül 2026.
         var fixedMonthlyTotals = {};
         (res[5].data || []).forEach(function (r) {
           var amt = Number(r.amount) || 0;
           if (!amt || !r.due_date) return;
           var cur = window.ZirkonikMoney.normalize(r.currency);
+          var endKey = r.end_date ? r.end_date.slice(0, 7) : null;
           if (r.frequency === 'monthly') {
+            if (endKey && endKey < currentKey) return;
+            horizonKeys.forEach(function (k) {
+              if (endKey && k > endKey) return;
+              buckets[k].fixedExpense[cur] = (buckets[k].fixedExpense[cur] || 0) + amt;
+            });
             fixedMonthlyTotals[cur] = (fixedMonthlyTotals[cur] || 0) + amt;
-            horizonKeys.forEach(function (k) { buckets[k].fixedExpense[cur] = (buckets[k].fixedExpense[cur] || 0) + amt; });
           } else if (r.frequency === 'yearly') {
             var dueMonthNum = Number(r.due_date.slice(5, 7));
             horizonKeys.forEach(function (k) {
+              if (endKey && k > endKey) return;
               if (Number(k.split('-')[1]) === dueMonthNum) buckets[k].fixedExpense[cur] = (buckets[k].fixedExpense[cur] || 0) + amt;
             });
           } else {

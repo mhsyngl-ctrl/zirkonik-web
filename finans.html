@@ -257,7 +257,10 @@
     <div class="absolute bottom-0 left-0 w-full rounded-t-theme bg-card p-5 pb-8">
       <p id="fe-title" class="font-heading text-lg font-bold">Sabit gider ekle</p>
       <div class="mt-4 space-y-3">
-        <input id="fe-name" type="text" placeholder="Gider adı * (örn. Kira, SGK, Elektrik)" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <select id="fe-name-select" onchange="zkFeNameSelectChanged()" aria-label="Gider türü" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+          <option value="">Gider türü seçin *</option>
+        </select>
+        <input id="fe-name" type="text" placeholder="Gider adını yazın *" class="hidden h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         <div class="flex gap-2">
           <input id="fe-amount" type="number" min="0" step="0.01" placeholder="Tutar *" class="h-12 flex-1 rounded-theme border border-border bg-input px-3.5 text-sm">
           <select id="fe-currency" aria-label="Para birimi" class="h-12 w-24 rounded-theme border border-border bg-input px-2 text-sm">
@@ -274,6 +277,10 @@
         <label class="block">
           <span id="fe-date-label" class="mb-1.5 block text-xs font-bold text-card-foreground">Bir örnek tarih (sadece günü kullanılır)</span>
           <input id="fe-due" type="date" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        </label>
+        <label id="fe-enddate-wrap" class="block">
+          <span class="mb-1.5 block text-xs font-bold text-card-foreground">Bitiş tarihi (ops. — süresiz ise boş bırak)</span>
+          <input id="fe-enddate" type="date" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         </label>
         <input id="fe-note" type="text" placeholder="Not (ops.)" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
       </div>
@@ -503,6 +510,32 @@
     // ---- Sabit giderler ----
     var feList = [];
     var feEditId = null;
+    // Seçmeli liste — isim tutarlılığı için (biri "Sgk" biri "SGK" yazmasın).
+    // Listede olmayan bir şey gerekirse "Diğer" ile elle yazılır.
+    var FE_NAME_OPTIONS = ['Kira', 'SGK', 'Elektrik', 'Su', 'Vergi', 'Stopaj', 'Muhasebe', 'Yazılım/Abonelik',
+      'Araç/Benzin', 'Reklam', 'İnternet & Telefon', 'Sigorta', 'Cihaz Bakım-Onarım', 'Kredi/Leasing Taksiti',
+      'Kredi Kartı Ekstresi', 'Kargo & Nakliye', 'Ofis/Temizlik Malzemesi', 'Danışmanlık/Hukuk',
+      'Banka/POS Komisyonu', 'Personel Yemek/Servis', 'Eğitim/Seminer', 'Web Sitesi/Hosting', 'OSGB',
+      'Oda/Ruhsat Aidatı', 'Atık Bertaraf Gideri', 'Bina/Apartman Aidatı'];
+
+    (function initFeNameSelect() {
+      var sel = document.getElementById('fe-name-select');
+      FE_NAME_OPTIONS.forEach(function (n) { sel.insertAdjacentHTML('beforeend', '<option>' + escapeHtml(n) + '</option>'); });
+      sel.insertAdjacentHTML('beforeend', '<option value="__other__">Diğer (elle yaz)</option>');
+    })();
+
+    function zkFeNameSelectChanged() {
+      var v = document.getElementById('fe-name-select').value;
+      var manual = document.getElementById('fe-name');
+      if (v === '__other__') {
+        manual.classList.remove('hidden');
+        manual.value = '';
+        manual.focus();
+      } else {
+        manual.classList.add('hidden');
+        manual.value = v;
+      }
+    }
 
     function loadFixedExpenses() {
       ZirkonikData.listRecurringExpenses().then(function (res) {
@@ -515,10 +548,11 @@
         }
         var freqLabel = { monthly: 'Aylık', yearly: 'Yıllık', once: 'Tek seferlik' };
         el.innerHTML = feList.map(function (x) {
+          var sub = freqLabel[x.frequency] + (x.end_date ? ' · ' + new Date(x.end_date + 'T00:00:00').toLocaleDateString('tr-TR') + '\'e kadar' : '') + (x.is_active ? '' : ' · pasif');
           return '<div class="rounded-theme border border-border bg-card p-3.5' + (x.is_active ? '' : ' opacity-50') + '">' +
             '<div class="flex items-center justify-between gap-2">' +
             '<div class="min-w-0"><p class="truncate text-sm font-bold">' + escapeHtml(x.name) + '</p>' +
-            '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + freqLabel[x.frequency] + (x.is_active ? '' : ' · pasif') + '</p></div>' +
+            '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + sub + '</p></div>' +
             '<p class="shrink-0 text-sm font-bold tabular-nums">' + ZirkonikMoney.format(Number(x.amount), x.currency, 0) + '</p></div>' +
             '<div class="mt-3 grid grid-cols-3 gap-2">' +
             '<button onclick="zkOpenEditFixedExpense(\'' + x.id + '\')" class="flex h-9 items-center justify-center gap-1 rounded-theme border border-border bg-background text-[11px] font-bold"><iconify-icon icon="lucide:pencil" class="text-xs"></iconify-icon>Düzenle</button>' +
@@ -536,12 +570,18 @@
       document.getElementById('fe-date-label').textContent =
         f === 'monthly' ? 'Bir örnek tarih (sadece günü kullanılır)' :
         f === 'yearly' ? 'Yıllık vade tarihi (ay + gün her yıl tekrarlar)' : 'Ödeme tarihi';
+      var endWrap = document.getElementById('fe-enddate-wrap');
+      endWrap.classList.toggle('hidden', f === 'once');
+      if (f === 'once') document.getElementById('fe-enddate').value = '';
     }
 
     function zkOpenAddFixedExpense() {
       feEditId = null;
       document.getElementById('fe-title').textContent = 'Sabit gider ekle';
-      ['fe-name', 'fe-amount', 'fe-due', 'fe-note'].forEach(function (id) { document.getElementById(id).value = ''; });
+      ['fe-amount', 'fe-due', 'fe-note', 'fe-enddate'].forEach(function (id) { document.getElementById(id).value = ''; });
+      document.getElementById('fe-name').value = '';
+      document.getElementById('fe-name').classList.add('hidden');
+      document.getElementById('fe-name-select').value = '';
       document.getElementById('fe-currency').value = '₺';
       document.getElementById('fe-frequency').value = 'monthly';
       zkFeFrequencyChanged();
@@ -556,10 +596,18 @@
       feEditId = id;
       document.getElementById('fe-title').textContent = 'Sabit gideri düzenle';
       document.getElementById('fe-name').value = x.name;
+      if (FE_NAME_OPTIONS.indexOf(x.name) >= 0) {
+        document.getElementById('fe-name-select').value = x.name;
+        document.getElementById('fe-name').classList.add('hidden');
+      } else {
+        document.getElementById('fe-name-select').value = '__other__';
+        document.getElementById('fe-name').classList.remove('hidden');
+      }
       document.getElementById('fe-amount').value = x.amount;
       document.getElementById('fe-currency').value = ZirkonikMoney.normalize(x.currency);
       document.getElementById('fe-frequency').value = x.frequency;
       document.getElementById('fe-due').value = x.due_date;
+      document.getElementById('fe-enddate').value = x.end_date || '';
       document.getElementById('fe-note').value = x.note || '';
       zkFeFrequencyChanged();
       document.getElementById('fe-error').classList.add('hidden');
@@ -574,9 +622,12 @@
       var name = document.getElementById('fe-name').value.trim();
       var amount = Number(document.getElementById('fe-amount').value);
       var due = document.getElementById('fe-due').value;
-      if (!name) { errEl.textContent = 'Gider adı zorunludur.'; errEl.classList.remove('hidden'); return; }
+      var frequency = document.getElementById('fe-frequency').value;
+      var endDate = document.getElementById('fe-enddate').value;
+      if (!name) { errEl.textContent = 'Gider türü seçin veya "Diğer" ile yazın.'; errEl.classList.remove('hidden'); return; }
       if (!(amount > 0)) { errEl.textContent = 'Geçerli bir tutar girin.'; errEl.classList.remove('hidden'); return; }
       if (!due) { errEl.textContent = 'Tarih zorunludur.'; errEl.classList.remove('hidden'); return; }
+      if (endDate && due && frequency !== 'once' && endDate < due) { errEl.textContent = 'Bitiş tarihi başlangıçtan önce olamaz.'; errEl.classList.remove('hidden'); return; }
 
       var btn = document.getElementById('fe-submit');
       if (btn.disabled) return;
@@ -586,8 +637,9 @@
         name: name,
         amount: amount,
         currency: document.getElementById('fe-currency').value,
-        frequency: document.getElementById('fe-frequency').value,
+        frequency: frequency,
         due_date: due,
+        end_date: frequency !== 'once' && endDate ? endDate : null,
         note: document.getElementById('fe-note').value.trim() || null
       };
 

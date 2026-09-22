@@ -257,6 +257,13 @@
             <span class="flex items-center gap-1"><span class="inline-block h-2.5 w-2.5 rounded-sm" style="background:#EF5350"></span>Sabit gider</span>
           </div>
           <div id="cash-flow-info" class="mt-2 space-y-1 text-xs text-muted-foreground"></div>
+
+          <div class="mt-4">
+            <p class="text-xs font-bold text-card-foreground">Yaklaşan sabit gider ödemeleri</p>
+            <div id="cash-flow-upcoming" class="mt-2 space-y-1.5">
+              <p class="text-xs text-muted-foreground">Yükleniyor…</p>
+            </div>
+          </div>
         </section>
 
         <section class="px-5 pt-7">
@@ -661,6 +668,58 @@
         document.getElementById('cash-flow-info').innerHTML = lines.map(function (l) { return '<p>' + l + '</p>'; }).join('');
       }).catch(function (err) {
         zkToast('Nakit akışı öngörüsü yüklenemedi: ' + ((err && err.message) || 'bilinmeyen hata'));
+      });
+      loadUpcomingExpensePayments();
+    }
+
+    // Kullanıcı isteği: "gelecek ödemeleri de görürüz dimi" — sabit
+    // giderlerin toplu aylık grafiği dışında, hangi kalemin TAM OLARAK NE
+    // ZAMAN geleceğini de tek tek gösteren kısa bir hatırlatıcı liste
+    // (23 Eylül 2026).
+    function zkPad2(n) { return String(n).padStart(2, '0'); }
+    function zkDateKey(d) { return d.getFullYear() + '-' + zkPad2(d.getMonth() + 1) + '-' + zkPad2(d.getDate()); }
+    function zkNextOccurrence(r, todayStr) {
+      if (r.end_date && r.end_date < todayStr) return null;
+      if (r.frequency === 'once') return r.due_date >= todayStr ? r.due_date : null;
+      var today = new Date(todayStr + 'T00:00:00');
+      var next;
+      if (r.frequency === 'monthly') {
+        var day = Number(r.due_date.slice(8, 10));
+        next = new Date(today.getFullYear(), today.getMonth(), day);
+        if (zkDateKey(next) < todayStr) next = new Date(today.getFullYear(), today.getMonth() + 1, day);
+      } else {
+        var mm = Number(r.due_date.slice(5, 7)), dd = Number(r.due_date.slice(8, 10));
+        next = new Date(today.getFullYear(), mm - 1, dd);
+        if (zkDateKey(next) < todayStr) next = new Date(today.getFullYear() + 1, mm - 1, dd);
+      }
+      var key = zkDateKey(next);
+      if (r.end_date && key > r.end_date) return null;
+      return key;
+    }
+    function loadUpcomingExpensePayments() {
+      ZirkonikData.listRecurringExpenses().then(function (res) {
+        var el = document.getElementById('cash-flow-upcoming');
+        var rows = (res.data || []).filter(function (r) { return r.is_active; });
+        var now = new Date();
+        var todayStr = zkDateKey(now);
+        var items = [];
+        rows.forEach(function (r) {
+          var next = zkNextOccurrence(r, todayStr);
+          if (next) items.push({ name: r.name, amount: r.amount, currency: r.currency, date: next });
+        });
+        items.sort(function (a, b) { return a.date < b.date ? -1 : (a.date > b.date ? 1 : 0); });
+        items = items.slice(0, 6);
+        if (!items.length) { el.innerHTML = '<p class="text-xs text-muted-foreground">Yaklaşan sabit gider ödemesi yok.</p>'; return; }
+        el.innerHTML = items.map(function (it) {
+          var days = Math.round((new Date(it.date + 'T00:00:00') - new Date(todayStr + 'T00:00:00')) / 86400000);
+          var whenTxt = days === 0 ? 'Bugün' : days === 1 ? 'Yarın' : days + ' gün sonra';
+          return '<div class="flex items-center justify-between gap-2 rounded-theme border border-border bg-card px-3 py-2">' +
+            '<div class="min-w-0"><p class="truncate text-xs font-bold">' + escapeHtml(it.name) + '</p>' +
+            '<p class="mt-0.5 text-[10px] text-muted-foreground">' + new Date(it.date + 'T00:00:00').toLocaleDateString('tr-TR') + ' · ' + whenTxt + '</p></div>' +
+            '<p class="shrink-0 text-xs font-bold tabular-nums">' + ZirkonikMoney.format(Number(it.amount), it.currency, 0) + '</p></div>';
+        }).join('');
+      }).catch(function (err) {
+        document.getElementById('cash-flow-upcoming').innerHTML = '<p class="text-xs text-destructive">Yüklenemedi: ' + escapeHtml((err && err.message) || 'bilinmeyen hata') + '</p>';
       });
     }
 
