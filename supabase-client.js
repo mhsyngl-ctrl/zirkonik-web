@@ -716,14 +716,14 @@
       // dahil edilmemeli (teknik inceleme bulgusu, 22 Eylül 2026).
       var supInvQ = c.from('supplier_invoices').select('amount, currency, due_date, status').not('due_date', 'is', null).lte('due_date', horizonEndStr).neq('status', 'paid');
       var supPayQ = c.from('supplier_payments').select('amount, currency');
-      var docInvQ = c.from('invoices').select('amount, currency, doctor_id').neq('status', 'cancelled');
-      var docPayQ = c.from('payments').select('amount, currency, doctor_id');
+      var docInvQ = c.from('invoices').select('id, amount, currency, due_date, doctor_id').neq('status', 'cancelled');
+      var docPayQ = c.from('payments').select('invoice_id, amount, currency, doctor_id');
       // Kira/SGK/elektrik vb. sabit giderler — kullanıcı isteği, 22 Eylül 2026.
       var recurQ = c.from('recurring_expenses').select('name, amount, currency, frequency, due_date').eq('is_active', true);
 
       return Promise.all([staffQ, supInvQ, supPayQ, docInvQ, docPayQ, recurQ]).then(function (res) {
         var buckets = {};
-        horizonKeys.forEach(function (k) { buckets[k] = { key: k, label: monthLabel(k), staffExpense: {}, supplierExpense: {}, fixedExpense: {} }; });
+        horizonKeys.forEach(function (k) { buckets[k] = { key: k, label: monthLabel(k), staffExpense: {}, supplierExpense: {}, fixedExpense: {}, incomeAmount: {} }; });
 
         var staffMonthlyTotals = {};
         (res[0].data || []).forEach(function (u) {
@@ -796,13 +796,38 @@
           if (v > 0) pendingCollection[cur] = (pendingCollection[cur] || 0) + v;
         });
 
+        // Beklenen gelir: vadesi olan ve bakiyesi kalan doktor faturaları,
+        // tedarikçi gideriyle aynı mantıkla vade ayına (geçmişse mevcut aya)
+        // yansır. Vadesiz faturalar yukarıdaki toplam bekleyen tahsilata
+        // dahil ama aylara dağıtılamadığı için buraya girmiyor — kullanıcı
+        // isteği: "gelecek geliri de görelim", 23 Eylül 2026.
+        var paidByInvoice = {};
+        (res[4].data || []).forEach(function (pay) {
+          if (!pay.invoice_id) return;
+          paidByInvoice[pay.invoice_id] = (paidByInvoice[pay.invoice_id] || 0) + (Number(pay.amount) || 0);
+        });
+        var incomeDueTotal = {};
+        (res[3].data || []).forEach(function (inv) {
+          if (!inv.due_date) return;
+          var remaining = (Number(inv.amount) || 0) - (paidByInvoice[inv.id] || 0);
+          if (remaining <= 0) return;
+          var cur = window.ZirkonikMoney.normalize(inv.currency);
+          var dueKey = inv.due_date < todayStr ? currentKey : inv.due_date.slice(0, 7);
+          incomeDueTotal[cur] = (incomeDueTotal[cur] || 0) + remaining;
+          if (!buckets[dueKey]) return;
+          buckets[dueKey].incomeAmount[cur] = (buckets[dueKey].incomeAmount[cur] || 0) + remaining;
+        });
+
         var months = horizonKeys.map(function (k) {
           var b = buckets[k];
           var totalExpense = {};
           Object.keys(b.staffExpense).forEach(function (cur) { totalExpense[cur] = (totalExpense[cur] || 0) + b.staffExpense[cur]; });
           Object.keys(b.supplierExpense).forEach(function (cur) { totalExpense[cur] = (totalExpense[cur] || 0) + b.supplierExpense[cur]; });
           Object.keys(b.fixedExpense).forEach(function (cur) { totalExpense[cur] = (totalExpense[cur] || 0) + b.fixedExpense[cur]; });
-          return { key: k, label: b.label, staffExpense: b.staffExpense, supplierExpense: b.supplierExpense, fixedExpense: b.fixedExpense, totalExpense: totalExpense };
+          var net = {};
+          Object.keys(totalExpense).forEach(function (cur) { net[cur] = (b.incomeAmount[cur] || 0) - totalExpense[cur]; });
+          Object.keys(b.incomeAmount).forEach(function (cur) { if (!(cur in net)) net[cur] = b.incomeAmount[cur]; });
+          return { key: k, label: b.label, staffExpense: b.staffExpense, supplierExpense: b.supplierExpense, fixedExpense: b.fixedExpense, incomeAmount: b.incomeAmount, totalExpense: totalExpense, net: net };
         });
 
         return {
@@ -811,7 +836,8 @@
           supplierInvoicedTotal: supplierInvoicedTotal,
           supplierPaidTotal: supplierPaidTotal,
           pendingCollection: pendingCollection,
-          fixedMonthlyTotals: fixedMonthlyTotals
+          fixedMonthlyTotals: fixedMonthlyTotals,
+          incomeDueTotal: incomeDueTotal
         };
       });
     },
