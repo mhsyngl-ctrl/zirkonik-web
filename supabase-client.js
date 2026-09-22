@@ -593,6 +593,38 @@
       return client().rpc('undo_cash_handover', { p_handover_id: handoverId });
     },
 
+    // ---- Ekip performansı (yönetici) ----
+    // staff_earnings tablosu şu an hiç dolmuyor (0 satır, muhtemelen henüz
+    // bağlanmamış bir özellik) — o yüzden gerçek, canlı veri olan
+    // job_stage_history üzerinden kuruldu: bir personel bir odayı teslim
+    // aldığında (confirmed_by/confirmed_at) gerçekten o aşamayı tamamlamış
+    // sayılır. Dönem: [fromIso, toIso) — confirmed_at bazlı (kullanıcı
+    // isteği: Medicamine'deki ekip performans tablosu, 22 Eylül 2026).
+    getTeamPerformance: function (fromIso, toIso) {
+      var c = client();
+      return Promise.all([
+        c.from('job_stage_history').select('confirmed_by, job_id').not('confirmed_by', 'is', null)
+          .gte('confirmed_at', fromIso).lt('confirmed_at', toIso),
+        c.from('app_users').select('id, full_name').neq('role', 'doktor')
+      ]).then(function (res) {
+        var stages = res[0].data || [];
+        var nameById = {};
+        (res[1].data || []).forEach(function (u) { nameById[u.id] = u.full_name; });
+        var byUser = {};
+        stages.forEach(function (s) {
+          var u = byUser[s.confirmed_by] || (byUser[s.confirmed_by] = { userId: s.confirmed_by, name: nameById[s.confirmed_by] || '—', stageCount: 0, jobIds: {} });
+          u.stageCount++;
+          u.jobIds[s.job_id] = true;
+        });
+        var rows = Object.keys(byUser).map(function (uid) {
+          var u = byUser[uid];
+          return { userId: uid, name: u.name, stageCount: u.stageCount, jobCount: Object.keys(u.jobIds).length };
+        });
+        rows.sort(function (a, b) { return b.stageCount - a.stageCount; });
+        return rows;
+      });
+    },
+
     listStaffEarnings: function (period) {
       var q = client().from('staff_earnings').select('*, app_users(full_name)').order('period', { ascending: false });
       if (period) q = q.eq('period', period);
