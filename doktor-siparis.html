@@ -742,6 +742,8 @@
         document.getElementById('dp-category-breakdown').innerHTML = catNames.length
           ? catNames.map(function (n) { return '<span class="rounded-full bg-muted px-2.5 py-1 text-[11px] font-bold">' + escapeHtml(n) + ' ' + catGroups[n].length + ' · ' + ZirkonikMoney.totalText(catGroups[n], 'price', 'currency', 0) + '</span>'; }).join('')
           : '<span class="text-[11px] text-muted-foreground">Bu dönemde iş yok.</span>';
+      }).catch(function (err) {
+        zkToast('Performans yüklenemedi: ' + ((err && err.message) || 'bilinmeyen hata'));
       });
     }
 

@@ -354,6 +354,8 @@
             '<div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted"><div class="h-full rounded-full bg-primary" style="width:' + pct + '%"></div></div>' +
             '</div>';
         }).join('');
+      }).catch(function (err) {
+        zkToast('Ekip performansı yüklenemedi: ' + ((err && err.message) || 'bilinmeyen hata'));
       });
     }
 

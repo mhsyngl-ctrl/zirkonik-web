@@ -652,6 +652,8 @@
           lines.push('Doktorlardan bekleyen tahsilat (vadesiz, bu tabloya dahil değil): <b class="text-foreground">' + ZirkonikMoney.formatTotals(res.pendingCollection, 0) + '</b>');
         }
         document.getElementById('cash-flow-info').innerHTML = lines.map(function (l) { return '<p>' + l + '</p>'; }).join('');
+      }).catch(function (err) {
+        zkToast('Nakit akışı öngörüsü yüklenemedi: ' + ((err && err.message) || 'bilinmeyen hata'));
       });
     }
 
@@ -764,6 +766,8 @@
         document.getElementById('jp-doctor-breakdown').innerHTML = docNames.length
           ? docNames.map(function (n) { return badge(n, docGroups[n].length, docGroups[n]); }).join('')
           : '<span class="text-[11px] text-muted-foreground">Bu dönemde iş yok.</span>';
+      }).catch(function (err) {
+        zkToast('İş/Ciro performansı yüklenemedi: ' + ((err && err.message) || 'bilinmeyen hata'));
       });
     }
 
@@ -839,6 +843,8 @@
         var listEl = document.getElementById('room-throughput-list');
         if (!rows.length) { listEl.innerHTML = '<p class="text-xs text-muted-foreground">Bu dönemde işlenen iş yok.</p>'; return; }
         listEl.innerHTML = zkRenderDonut(rows, 'name', 'jobCount');
+      }).catch(function (err) {
+        zkToast('Oda doluluğu yüklenemedi: ' + ((err && err.message) || 'bilinmeyen hata'));
       });
     }
 

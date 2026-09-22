@@ -697,7 +697,9 @@
       var todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
 
       var staffQ = c.from('app_users').select('monthly_salary, salary_currency, compensation_type').eq('status', 'approved').eq('compensation_type', 'maas');
-      var supInvQ = c.from('supplier_invoices').select('amount, currency, due_date, status').not('due_date', 'is', null).lte('due_date', horizonEndStr);
+      // status='paid' olan fatura zaten ödenmiş — gelecek gider tahminine
+      // dahil edilmemeli (teknik inceleme bulgusu, 22 Eylül 2026).
+      var supInvQ = c.from('supplier_invoices').select('amount, currency, due_date, status').not('due_date', 'is', null).lte('due_date', horizonEndStr).neq('status', 'paid');
       var supPayQ = c.from('supplier_payments').select('amount, currency');
       var docInvQ = c.from('invoices').select('amount, currency, doctor_id').neq('status', 'cancelled');
       var docPayQ = c.from('payments').select('amount, currency, doctor_id');
