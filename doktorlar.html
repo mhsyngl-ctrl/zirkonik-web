@@ -201,7 +201,7 @@
             <div id="dcp-chart" class="mt-3">
               <p class="text-xs text-muted-foreground">Yükleniyor…</p>
             </div>
-            <div class="mt-1.5 flex items-center justify-center gap-3 text-[10px] font-semibold text-muted-foreground">
+            <div id="dcp-compare-legend" class="mt-1.5 flex items-center justify-center gap-3 text-[10px] font-semibold text-muted-foreground">
               <span class="flex items-center gap-1"><span class="inline-block h-2.5 w-2.5 rounded-sm" style="background:#3D7CDC"></span>Bu dönem</span>
               <span class="flex items-center gap-1"><span class="inline-block h-2.5 w-2.5 rounded-sm bg-muted-foreground opacity-35"></span>Önceki dönem</span>
             </div>
@@ -964,6 +964,24 @@
       });
       return buckets;
     }
+    // "Tümü" için: karşılaştırılacak önceki dönem yok, o yüzden tek seri —
+    // veride geçen her yıl için bir çubuk (kullanıcı isteği: "tüm yılları
+    // göstersin", 22 Eylül 2026).
+    function dcpBuildYearBuckets(rows) {
+      var byYear = {};
+      rows.forEach(function (r) { var y = new Date(r.date).getFullYear(); (byYear[y] || (byYear[y] = [])).push(r); });
+      return Object.keys(byYear).sort().map(function (y) { return { label: y, rows: byYear[y] }; });
+    }
+    function dcpRenderColsSingle(containerId, values, labels) {
+      var maxVal = Math.max(1, Math.max.apply(null, values));
+      var html = '<div class="zk-cols">' + values.map(function (v) {
+        var pct = Math.max(3, Math.round((v / maxVal) * 100));
+        var cls = 'zk-col' + (v === 0 ? ' zk-col-zero' : '');
+        return '<div class="' + cls + '">' + (v > 0 ? '<span class="zk-col-val">' + v + '</span>' : '') +
+          '<div class="zk-col-bar" style="height:' + pct + '%"></div></div>';
+      }).join('') + '</div><div class="zk-cols-labels">' + labels.map(function (lb) { return '<span>' + escapeHtml(lb) + '</span>'; }).join('') + '</div>';
+      document.getElementById(containerId).innerHTML = html;
+    }
     function dcpRenderColsCompare(containerId, curValues, prevValues, labels) {
       var maxVal = Math.max(1, Math.max.apply(null, curValues.concat(prevValues)));
       var html = '<div class="zk-cols">' + curValues.map(function (v, i) {
@@ -988,18 +1006,26 @@
         document.getElementById('dcp-total').textContent = ZirkonikMoney.totalText(res.rows, 'price', 'currency', 0);
 
         var chartWrap = document.getElementById('dcp-chart-wrap');
+        var compareLegend = document.getElementById('dcp-compare-legend');
+        var prevLabelEl = document.getElementById('dcp-prev-label');
+        chartWrap.classList.remove('hidden');
+        var totals = ZirkonikMoney.groupTotals(res.rows, 'price', 'currency');
+        var mainCurrency = Object.keys(totals).sort(function (a, b) { return totals[b] - totals[a]; })[0] || ZirkonikMoney.DEFAULT;
         if (period === 'all') {
-          chartWrap.classList.add('hidden');
+          compareLegend.classList.add('hidden');
+          prevLabelEl.classList.add('hidden');
+          var yearBuckets = dcpBuildYearBuckets(res.rows);
+          var yearValues = yearBuckets.map(function (b) { return b.rows.filter(function (r) { return r.currency === mainCurrency; }).reduce(function (s, r) { return s + r.price; }, 0); });
+          dcpRenderColsSingle('dcp-chart', yearValues, yearBuckets.map(function (b) { return b.label; }));
         } else {
-          chartWrap.classList.remove('hidden');
+          compareLegend.classList.remove('hidden');
+          prevLabelEl.classList.remove('hidden');
           var buckets = dcpBuildBuckets(res.rows, period, res.rangeStart);
           var prevBuckets = dcpBuildBuckets(res.prevRows, period, res.prevRangeStart);
-          var totals = ZirkonikMoney.groupTotals(res.rows, 'price', 'currency');
-          var mainCurrency = Object.keys(totals).sort(function (a, b) { return totals[b] - totals[a]; })[0] || ZirkonikMoney.DEFAULT;
           var values = buckets.map(function (b) { return b.rows.filter(function (r) { return r.currency === mainCurrency; }).reduce(function (s, r) { return s + r.price; }, 0); });
           var prevValues = prevBuckets.map(function (b) { return b.rows.filter(function (r) { return r.currency === mainCurrency; }).reduce(function (s, r) { return s + r.price; }, 0); });
           dcpRenderColsCompare('dcp-chart', values, prevValues, buckets.map(function (b) { return b.label; }));
-          document.getElementById('dcp-prev-label').textContent = 'Önceki dönem (' + res.prevLabel + '): ' + ZirkonikMoney.totalText(res.prevRows, 'price', 'currency', 0);
+          prevLabelEl.textContent = 'Önceki dönem (' + res.prevLabel + '): ' + ZirkonikMoney.totalText(res.prevRows, 'price', 'currency', 0);
         }
 
         var catGroups = {};
