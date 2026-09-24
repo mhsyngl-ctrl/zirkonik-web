@@ -271,6 +271,7 @@
 
   <script src="vendor/supabase-js.min.js"></script>
   <script src="supabase-config.js"></script>
+  <script src="js/net-guard.js"></script>
   <script src="supabase-client.js"></script>
   <script src="js/zk-guard.js"></script>
   <script src="js/zk-picker.js"></script>
@@ -294,7 +295,10 @@
       { key: 'can_view_doctors', icon: 'lucide:stethoscope', title: 'Doktorları görme', desc: 'Doktor listesi ve iletişim (salt-okunur)' },
       { key: 'can_approve_delivery', icon: 'lucide:badge-check', title: 'Teslimat onayı', desc: 'Kalite kontrol sonrası teslimat' },
       { key: 'can_view_payroll', icon: 'lucide:coins', title: 'Hakediş görünürlüğü', desc: 'Personel hakedişlerini görme' },
-      { key: 'can_approve_users', icon: 'lucide:user-round-check', title: 'Kullanıcı onayı', desc: 'Yeni personel/doktor onayı' }
+      { key: 'can_approve_users', icon: 'lucide:user-round-check', title: 'Kullanıcı onayı', desc: 'Yeni personel/doktor onayı' },
+      // 24 Eylül 2026: Resepsiyon Sorumlusu ve Satış Pazarlama Sorumlusu pozisyonları için.
+      { key: 'can_manage_orders', icon: 'lucide:inbox', title: 'Sipariş yönetimi', desc: 'Siparişler sayfası: gelen siparişi onaylama/reddetme (resepsiyon)' },
+      { key: 'can_view_price_list', icon: 'lucide:list-tree', title: 'Fiyat listesini görme', desc: 'Fiyat Listesi sayfası, salt-okunur (düzenlemek için Finans yetkisi gerekir)' }
     ];
 
     var userId = new URLSearchParams(location.search).get('user');
