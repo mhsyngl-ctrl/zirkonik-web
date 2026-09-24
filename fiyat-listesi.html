@@ -471,6 +471,17 @@
           renderRecipeRows();
         });
       });
+      zkNudgeScroll(document.getElementById('recipe-rows'));
+    }
+
+    // 24 Eylül 2026 — aday-havuzu.html'deki aynı düzeltme: bir sheet açıkken içeriği
+    // sonradan büyüyen kutular için WebKit'in kaydırma katmanını tazeleyen dürtme.
+    function zkNudgeScroll(el) {
+      var kutu = el && el.closest ? el.closest('.overflow-y-auto') : null;
+      if (!kutu) return;
+      var y = kutu.scrollTop;
+      kutu.scrollTop = y + 1;
+      kutu.scrollTop = y;
     }
 
     function zkSyncRecipeRows() {
