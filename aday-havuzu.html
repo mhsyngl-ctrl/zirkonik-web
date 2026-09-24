@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://code.iconify.design; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://cuujupeindodpsdjcivm.supabase.co wss://cuujupeindodpsdjcivm.supabase.co https://api.iconify.design https://api.simplesvg.com https://api.unisvg.com; object-src 'none'; base-uri 'self'; form-action 'self'">
-  <title>Aday Havuzu — Zirkonik</title>
+  <title>Doktor Havuzu — Zirkonik</title>
 
   <link rel="stylesheet" href="css/tailwind.css">
   <link rel="stylesheet" href="css/ipad.css">
@@ -66,7 +66,7 @@
             </button>
             <div>
               <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Doktor kazanımı</p>
-              <h1 class="mt-1 font-heading text-2xl font-bold tracking-tight">Aday Havuzu</h1>
+              <h1 class="mt-1 font-heading text-2xl font-bold tracking-tight">Doktor Havuzu</h1>
             </div>
           </div>
           <div class="flex items-center gap-2">
@@ -152,7 +152,7 @@
       <div class="mt-4 grid grid-cols-2 gap-2.5">
         <label class="block"><span class="mb-1 block text-[11px] font-bold">Aşama</span>
           <select id="dt-stage" onchange="zkStageChanged()" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs font-bold">
-            <option value="aday_havuzu">Aday havuzu</option>
+            <option value="aday_havuzu">Doktor havuzu</option>
             <option value="ilk_temas">İlk temas</option>
             <option value="tanitim_yapildi">Tanıtım yapıldı</option>
             <option value="deneme_vakasi">Deneme vakası</option>
@@ -310,7 +310,7 @@
 
     var STAGES = [
       { key: '', label: 'Süreçte' }, // varsayılan: aktif hariç hepsi
-      { key: 'aday_havuzu', label: 'Aday havuzu' },
+      { key: 'aday_havuzu', label: 'Doktor havuzu' },
       { key: 'ilk_temas', label: 'İlk temas' },
       { key: 'tanitim_yapildi', label: 'Tanıtım yapıldı' },
       { key: 'deneme_vakasi', label: 'Deneme vakası' },
@@ -318,7 +318,7 @@
       { key: 'kayip', label: 'Kayıp' },
       { key: 'beklemede', label: 'Beklemede' }
     ];
-    var STAGE_LABELS = { aday_havuzu: 'Aday havuzu', ilk_temas: 'İlk temas', tanitim_yapildi: 'Tanıtım yapıldı', deneme_vakasi: 'Deneme vakası', aktif: 'Aktif doktor', uyuyan: 'Uyuyan doktor', kayip: 'Kayıp', beklemede: 'Beklemede' };
+    var STAGE_LABELS = { aday_havuzu: 'Doktor havuzu', ilk_temas: 'İlk temas', tanitim_yapildi: 'Tanıtım yapıldı', deneme_vakasi: 'Deneme vakası', aktif: 'Aktif doktor', uyuyan: 'Uyuyan doktor', kayip: 'Kayıp', beklemede: 'Beklemede' };
     var curStage = '';
     var regions = [];
     var reps = [];
