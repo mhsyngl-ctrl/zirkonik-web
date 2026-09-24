@@ -89,6 +89,17 @@
           </div>
         </section>
 
+        <!-- Pasif (ekipten çıkarılmış) personel ayrı, katlanır bir bölümde —
+             ana listede aktif çalışanların arasına karışmasın. Kimse yoksa
+             bölüm tamamen gizli. -->
+        <section id="passive-section" class="mt-6 hidden">
+          <button type="button" onclick="zkTogglePassiveStaff()" class="flex w-full items-center justify-between">
+            <h2 class="font-heading text-sm font-bold text-muted-foreground">Pasif personel (<span id="passive-count">0</span>)</h2>
+            <iconify-icon id="passive-chevron" icon="lucide:chevron-down" class="text-base text-muted-foreground"></iconify-icon>
+          </button>
+          <div id="passive-list" class="mt-3 hidden space-y-3"></div>
+        </section>
+
         <section id="team-performance-section" class="hidden pt-6">
           <div class="flex items-center justify-between">
             <div>
@@ -113,7 +124,7 @@
               <div>
                 <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Sadece yönetici görür</p>
                 <h2 class="mt-1 font-heading text-lg font-bold">Net / Brüt Maaş Hesapla</h2>
-                <p class="mt-1 text-xs leading-5 text-muted-foreground">2026 SGK primi ve gelir vergisi dilimlerine göre yaklaşık hesaplama</p>
+                <p id="sc-desc-kart" class="mt-1 text-xs leading-5 text-muted-foreground">SGK primi ve gelir vergisi dilimlerine göre yaklaşık hesaplama</p>
               </div>
               <div class="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <iconify-icon icon="lucide:calculator" class="text-lg"></iconify-icon>
@@ -184,7 +195,7 @@
     <div class="absolute inset-0 bg-black/40" onclick="zkCloseSalaryCalc()"></div>
     <div class="absolute bottom-0 left-0 max-h-[88vh] w-full overflow-y-auto rounded-t-theme bg-card p-5 pb-8">
       <p class="font-heading text-lg font-bold">Net / Brüt Maaş Hesapla</p>
-      <p class="mt-1 text-xs leading-5 text-muted-foreground">2026 asgari ücret istisnası, SGK primi (%15) ve gelir vergisi dilimlerine göre yaklaşık tahmindir — resmi bordro yerine geçmez.</p>
+      <p id="sc-desc" class="mt-1 text-xs leading-5 text-muted-foreground">Asgari ücret istisnası, SGK primi ve gelir vergisi dilimlerine göre yaklaşık tahmindir — resmi bordro yerine geçmez.</p>
 
       <div class="mt-4 grid grid-cols-2 gap-2 rounded-theme bg-muted p-1">
         <button type="button" id="sc-mode-net" onclick="zkSetSalaryCalcMode('net')" class="h-9 rounded-lg text-xs font-bold">Net'ten Brüt'e</button>
@@ -203,13 +214,13 @@
 
       <div id="sc-result" class="mt-4 hidden space-y-2 rounded-theme border border-border bg-background p-4">
         <div class="flex items-center justify-between"><span class="text-xs text-muted-foreground">Brüt maaş</span><span id="sc-r-gross" class="text-sm font-bold tabular-nums">—</span></div>
-        <div class="flex items-center justify-between"><span class="text-xs text-muted-foreground">SGK primi (%14)</span><span id="sc-r-sgk" class="text-sm tabular-nums text-destructive">—</span></div>
-        <div class="flex items-center justify-between"><span class="text-xs text-muted-foreground">İşsizlik sigortası (%1)</span><span id="sc-r-unemp" class="text-sm tabular-nums text-destructive">—</span></div>
+        <div class="flex items-center justify-between"><span id="sc-l-sgk" class="text-xs text-muted-foreground">SGK primi</span><span id="sc-r-sgk" class="text-sm tabular-nums text-destructive">—</span></div>
+        <div class="flex items-center justify-between"><span id="sc-l-unemp" class="text-xs text-muted-foreground">İşsizlik sigortası</span><span id="sc-r-unemp" class="text-sm tabular-nums text-destructive">—</span></div>
         <div class="flex items-center justify-between"><span class="text-xs text-muted-foreground">Gelir vergisi</span><span id="sc-r-tax" class="text-sm tabular-nums text-destructive">—</span></div>
         <div class="flex items-center justify-between"><span class="text-xs text-muted-foreground">Damga vergisi</span><span id="sc-r-stamp" class="text-sm tabular-nums text-destructive">—</span></div>
         <div class="mt-1 flex items-center justify-between border-t border-border pt-2"><span class="text-xs font-bold text-card-foreground">Net maaş</span><span id="sc-r-net" class="text-base font-extrabold tabular-nums text-success">—</span></div>
         <div class="flex items-center justify-between"><span class="text-xs text-muted-foreground">Yaklaşık işverene maliyet</span><span id="sc-r-cost" class="text-sm font-bold tabular-nums">—</span></div>
-        <p class="pt-1 text-[10px] text-muted-foreground">İşverene maliyet, teşviksiz standart SGK işveren oranıyla (%22,5) hesaplanmıştır; işletmenize özel teşvikler gerçek maliyeti düşürebilir.</p>
+        <p id="sc-cost-note" class="pt-1 text-[10px] text-muted-foreground">İşverene maliyet, teşviksiz standart SGK işveren oranıyla hesaplanmıştır; işletmenize özel teşvikler gerçek maliyeti düşürebilir.</p>
       </div>
     </div>
   </div>
@@ -224,6 +235,8 @@
         <select id="ns-position" aria-label="Pozisyon" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
           <option value="Teknisyen">Teknisyen</option>
           <option value="Yardımcı Teknisyen">Yardımcı Teknisyen</option>
+          <option value="Resepsiyon Sorumlusu">Resepsiyon Sorumlusu</option>
+          <option value="Satış Pazarlama Sorumlusu">Satış Pazarlama Sorumlusu</option>
           <option value="Yönetici">Yönetici (tam yetki)</option>
           <option value="İşveren">İşveren (tam yetki)</option>
         </select>
@@ -303,6 +316,7 @@
 
   <script src="vendor/supabase-js.min.js"></script>
   <script src="supabase-config.js"></script>
+  <script src="js/net-guard.js"></script>
   <script src="supabase-client.js"></script>
   <script src="js/zk-guard.js"></script>
   <script src="js/zk-picker.js"></script>
@@ -316,6 +330,12 @@
     }
     var ROLE_LABELS = { yonetici: 'Yönetici · Tam yetki', personel: 'Personel', doktor: 'Doktor' };
 
+    function zkTogglePassiveStaff() {
+      var list = document.getElementById('passive-list');
+      var chevron = document.getElementById('passive-chevron');
+      var open = list.classList.toggle('hidden') === false;
+      chevron.setAttribute('icon', open ? 'lucide:chevron-up' : 'lucide:chevron-down');
+    }
     function loadTeam() {
       var client = ZirkonikAuth.client();
 
@@ -325,15 +345,16 @@
         // Çıkarılmış (status='rejected') personel de listede kalsın —
         // yeniden etkinleştirilebilsin; 'pending' zaten personelde hiç
         // oluşmuyor (hesap açılırken doğrudan onaylı kaydediliyor).
-        var staff = (r.data || []).filter(function (s) { return s.role !== 'doktor' && s.status !== 'pending'; });
-        staff.sort(function (a, b) { return (b.status === 'approved') - (a.status === 'approved'); });
-        document.getElementById('stat-active').textContent = staff.filter(function (s) { return s.status === 'approved'; }).length;
+        var allStaff = (r.data || []).filter(function (s) { return s.role !== 'doktor' && s.status !== 'pending'; });
+        var activeStaff = allStaff.filter(function (s) { return s.status === 'approved'; });
+        var passiveStaff = allStaff.filter(function (s) { return s.status !== 'approved'; });
+        document.getElementById('stat-active').textContent = activeStaff.length;
 
         client.from('jobs').select('assigned_user_id').eq('status', 'active').then(function (jobsRes) {
           var counts = {};
           (jobsRes.data || []).forEach(function (j) { if (j.assigned_user_id) counts[j.assigned_user_id] = (counts[j.assigned_user_id] || 0) + 1; });
 
-          document.getElementById('staff-list').innerHTML = staff.length ? staff.map(function (s) {
+          function staffCard(s) {
             var initials = (s.full_name || '?').split(' ').map(function (p) { return p.charAt(0); }).slice(0, 2).join('').toUpperCase();
             var active = s.status === 'approved';
             var statusBadge = active
@@ -356,8 +377,22 @@
               '<button onclick="location.href=\'rol-ve-yetki-detay.html?user=' + s.id + '\'" class="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-muted py-2.5 text-xs font-bold text-primary">' +
               '<iconify-icon icon="lucide:key-round" class="text-base"></iconify-icon>Yetkileri düzenle</button>' +
               toggleBtn + '</div>';
-          }).join('') : '<p class="text-xs text-muted-foreground">Henüz personel yok.</p>';
+          }
+
+          document.getElementById('staff-list').innerHTML = activeStaff.length ? activeStaff.map(staffCard).join('')
+            : '<p class="text-xs text-muted-foreground">Henüz personel yok.</p>';
           if (window.zkFlow) window.zkFlow.stagger(document.getElementById('staff-list'));
+
+          // Pasif personel: ayrı, varsayılan kapalı bölüm — aktif listeye karışmasın,
+          // ama geri etkinleştirme yolu (kaybolmasın) hep erişilebilir kalsın.
+          var passSec = document.getElementById('passive-section');
+          if (passiveStaff.length) {
+            passSec.classList.remove('hidden');
+            document.getElementById('passive-count').textContent = passiveStaff.length;
+            document.getElementById('passive-list').innerHTML = passiveStaff.map(staffCard).join('');
+          } else {
+            passSec.classList.add('hidden');
+          }
         });
       });
 
@@ -374,6 +409,7 @@
           document.getElementById('team-performance-section').classList.remove('hidden');
           loadTeamPerformance();
           document.getElementById('salary-calc-section').classList.remove('hidden');
+          zkLoadPayrollParams(me);
         }
       });
     });
@@ -432,6 +468,8 @@
       if (perms.can_view_finance && perms.can_manage_stock && perms.can_approve_users) return 'Operasyon ve finans';
       if (perms.can_change_job_status) return 'Üretim durumu';
       if (perms.can_manage_stock) return 'Stok';
+      if (perms.can_manage_orders) return 'Sipariş yönetimi';
+      if (perms.can_view_price_list) return 'Fiyat listesi';
       return 'Görüntüleme';
     }
 
@@ -453,13 +491,14 @@
       });
     }
 
-    // ---- Net/Brüt maaş hesaplama (yaklaşık, 2026 rakamları) ----
-    // Kaynak: EY Türkiye ve muhasebe kaynaklarından 2026 asgari ücret/vergi
-    // dilimi araştırması (kullanıcı isteği, 23 Eylül 2026). Kümülatif gelir
-    // vergisi dilimi, maaşın yıl başından beri AYNI kaldığı varsayılarak
-    // seçilen aya göre tahmin edilir — gerçek bordro yazılımı gibi kişi
-    // bazlı kümülatif geçmiş tutmuyoruz, bu yüzden "yaklaşık" ibaresi şart.
-    var ZK_PAYROLL_2026 = {
+    // ---- Net/Brüt maaş hesaplama (yaklaşık) ----
+    // Kümülatif gelir vergisi dilimi, maaşın yıl başından beri AYNI kaldığı
+    // varsayılarak seçilen aya göre tahmin edilir — gerçek bordro yazılımı gibi
+    // kişi bazlı kümülatif geçmiş tutmuyoruz, bu yüzden "yaklaşık" ibaresi şart.
+    // 24 Eylül 2026: oranlar sunucudaki payroll_params tablosundan (ülke+yıl)
+    // gelir; tablo/satır yoksa aşağıdaki gömülü TR 2026 değerleri kullanılır.
+    // Kaynak (TR 2026): EY Türkiye ve muhasebe kaynakları, 23 Eylül 2026.
+    var ZK_PAYROLL_VARSAYILAN = {
       minGross: 33030.00,
       sgkRateEmployee: 0.14,
       unemploymentRateEmployee: 0.01,
@@ -475,10 +514,56 @@
         { upTo: Infinity, rate: 0.40 }
       ]
     };
+    var ZK_PAYROLL = ZK_PAYROLL_VARSAYILAN;
+    var zkPayrollEtiket = 'TR 2026 (gömülü)';
+    var zkPayrollYok = false;
+    function zkPayrollFromParams(p) {
+      return {
+        minGross: Number(p.minGross), sgkRateEmployee: Number(p.sgkRateEmployee),
+        unemploymentRateEmployee: Number(p.unemploymentRateEmployee), sgkRateEmployer: Number(p.sgkRateEmployer),
+        unemploymentRateEmployer: Number(p.unemploymentRateEmployer), stampRate: Number(p.stampRate),
+        sgkCeiling: Number(p.sgkCeiling),
+        brackets: (p.brackets || []).map(function (b) { return { upTo: b.upTo == null ? Infinity : Number(b.upTo), rate: Number(b.rate) }; })
+      };
+    }
+    function zkYuzde(oran) { return '%' + String(Math.round(oran * 10000) / 100).replace('.', ','); }
+    function zkRenderPayrollLabels() {
+      var p = ZK_PAYROLL;
+      var kart = document.getElementById('sc-desc-kart');
+      if (kart) kart.textContent = zkPayrollYok
+        ? 'Bu ülke için bordro parametreleri tanımlı değil'
+        : zkPayrollEtiket + ' SGK primi ve gelir vergisi dilimlerine göre yaklaşık hesaplama';
+      var d = document.getElementById('sc-desc');
+      if (d) d.textContent = zkPayrollEtiket + ' asgari ücret istisnası, SGK primi (' + zkYuzde(p.sgkRateEmployee + p.unemploymentRateEmployee) + ') ve gelir vergisi dilimlerine göre yaklaşık tahmindir — resmi bordro yerine geçmez.';
+      var l1 = document.getElementById('sc-l-sgk'); if (l1) l1.textContent = 'SGK primi (' + zkYuzde(p.sgkRateEmployee) + ')';
+      var l2 = document.getElementById('sc-l-unemp'); if (l2) l2.textContent = 'İşsizlik sigortası (' + zkYuzde(p.unemploymentRateEmployee) + ')';
+      var n = document.getElementById('sc-cost-note'); if (n) n.textContent = 'İşverene maliyet, teşviksiz standart SGK işveren oranıyla (' + zkYuzde(p.sgkRateEmployer + p.unemploymentRateEmployer) + ') hesaplanmıştır; işletmenize özel teşvikler gerçek maliyeti düşürebilir.';
+    }
+    // Kuruluşun ülkesi ve içinde bulunulan yıl için parametreyi getirir; o yıl yoksa
+    // en yakın önceki yıl kullanılır ve etikette söylenir. TR dışında hiç satır
+    // yoksa hesaplayıcı kapatılır (yanlış ülkenin oranıyla sessizce hesap yapılmaz).
+    function zkLoadPayrollParams(me) {
+      var ulke = (me && me.organizations && me.organizations.country) || 'TR';
+      var yil = new Date().getFullYear();
+      return ZirkonikAuth.client().from('payroll_params').select('country, year, params')
+        .eq('country', ulke).lte('year', yil).order('year', { ascending: false }).limit(1)
+        .then(function (r) {
+          var row = r && !r.error && r.data && r.data[0];
+          if (row && row.params) {
+            ZK_PAYROLL = zkPayrollFromParams(row.params);
+            zkPayrollEtiket = row.country + ' ' + row.year + (row.year !== yil ? ' (' + yil + ' için parametre yok)' : '');
+            zkPayrollYok = false;
+          } else if (ulke !== 'TR') {
+            zkPayrollYok = true;
+            zkPayrollEtiket = ulke + ' ' + yil;
+          }
+          zkRenderPayrollLabels();
+        }, function () { zkRenderPayrollLabels(); });
+    }
     function zkBracketTax(cumBefore, amount) {
       var remaining = amount, cursor = cumBefore, tax = 0;
-      for (var i = 0; i < ZK_PAYROLL_2026.brackets.length && remaining > 0; i++) {
-        var b = ZK_PAYROLL_2026.brackets[i];
+      for (var i = 0; i < ZK_PAYROLL.brackets.length && remaining > 0; i++) {
+        var b = ZK_PAYROLL.brackets[i];
         var room = Math.max(0, b.upTo - cursor);
         var slice = Math.min(remaining, room);
         if (slice > 0) { tax += slice * b.rate; cursor += slice; remaining -= slice; }
@@ -486,9 +571,9 @@
       return tax;
     }
     function zkGrossToNet(gross, month) {
-      var base = Math.min(gross, ZK_PAYROLL_2026.sgkCeiling);
-      var sgk = base * ZK_PAYROLL_2026.sgkRateEmployee;
-      var unemployment = base * ZK_PAYROLL_2026.unemploymentRateEmployee;
+      var base = Math.min(gross, ZK_PAYROLL.sgkCeiling);
+      var sgk = base * ZK_PAYROLL.sgkRateEmployee;
+      var unemployment = base * ZK_PAYROLL.unemploymentRateEmployee;
       var taxableThisMonth = gross - sgk - unemployment;
       var cumBefore = taxableThisMonth * (month - 1);
       var grossTax = zkBracketTax(cumBefore, taxableThisMonth);
@@ -498,16 +583,16 @@
       // boyunca her ay vergi sıfır çıkar (gerçek uygulamayla tutarlı);
       // daha yüksek maaşlarda referans daha yavaş dilim atladığı için
       // istisna görece küçülür.
-      var minTaxableBase = ZK_PAYROLL_2026.minGross * (1 - ZK_PAYROLL_2026.sgkRateEmployee - ZK_PAYROLL_2026.unemploymentRateEmployee);
+      var minTaxableBase = ZK_PAYROLL.minGross * (1 - ZK_PAYROLL.sgkRateEmployee - ZK_PAYROLL.unemploymentRateEmployee);
       var minCumBefore = minTaxableBase * (month - 1);
       var minExemption = zkBracketTax(minCumBefore, minTaxableBase);
       var incomeTax = Math.max(0, grossTax - minExemption);
-      var stamp = gross * ZK_PAYROLL_2026.stampRate;
-      var stampExemption = ZK_PAYROLL_2026.minGross * ZK_PAYROLL_2026.stampRate;
+      var stamp = gross * ZK_PAYROLL.stampRate;
+      var stampExemption = ZK_PAYROLL.minGross * ZK_PAYROLL.stampRate;
       var stampTax = Math.max(0, stamp - stampExemption);
       var net = gross - sgk - unemployment - incomeTax - stampTax;
-      var employerSgk = base * ZK_PAYROLL_2026.sgkRateEmployer;
-      var employerUnemployment = base * ZK_PAYROLL_2026.unemploymentRateEmployer;
+      var employerSgk = base * ZK_PAYROLL.sgkRateEmployer;
+      var employerUnemployment = base * ZK_PAYROLL.unemploymentRateEmployer;
       var cost = gross + employerSgk + employerUnemployment;
       return { gross: gross, sgk: sgk, unemployment: unemployment, incomeTax: incomeTax, stampTax: stampTax, net: net, cost: cost };
     }
@@ -541,6 +626,7 @@
     }
     function zkCloseSalaryCalc() { document.getElementById('salary-calc-sheet').classList.add('hidden'); }
     function zkCalcSalary() {
+      if (zkPayrollYok) { zkToast('Bu ülke için bordro parametreleri tanımlı değil.'); return; }
       var amount = Number(document.getElementById('sc-amount').value);
       if (!(amount > 0)) { zkToast('Geçerli bir tutar girin.'); return; }
       var month = Number(document.getElementById('sc-month').value) || 1;
@@ -597,6 +683,21 @@
       });
     }
 
+    // Pozisyona göre başlangıç yetkileri (24 Eylül 2026): hesap oluşturulur
+    // oluşturulmaz kullanılabilir olsun diye — yönetici "Yetkileri düzenle"den
+    // sonradan ince ayar yapabilir, bu yalnız akıllı bir başlangıç noktası.
+    // Boş bırakılan bayraklar create-staff-account'ta varsayılan false'a düşer
+    // (can_view_jobs/can_change_job_status hariç, onlar sunucuda true varsayılan).
+    function zkDefaultPermissionsFor(position) {
+      if (position === 'Resepsiyon Sorumlusu') {
+        return { can_view_jobs: true, can_change_job_status: false, can_manage_orders: true, can_view_doctors: true };
+      }
+      if (position === 'Satış Pazarlama Sorumlusu') {
+        return { can_view_jobs: false, can_change_job_status: false, can_view_price_list: true, can_view_doctors: true };
+      }
+      return {}; // Teknisyen/Yardımcı Teknisyen: sunucu varsayılanı (üretim erişimi) yeterli.
+    }
+
     function zkSubmitAddStaff() {
       var errEl = document.getElementById('ns-error');
       var okEl = document.getElementById('ns-success');
@@ -621,14 +722,16 @@
 
       var labIds = Array.prototype.slice.call(document.querySelectorAll('.ns-lab-cb:checked')).map(function (cb) { return cb.value; });
       var roomIds = Array.prototype.slice.call(document.querySelectorAll('.ns-room-cb:checked')).map(function (cb) { return cb.value; });
+      var position = document.getElementById('ns-position').value;
 
       var btn = document.getElementById('ns-submit');
       btn.disabled = true;
       ZirkonikData.createStaffAccount({
         full_name: name, email: email, password: password, phone: phone || null,
-        position: document.getElementById('ns-position').value,
+        position: position,
         hire_date: document.getElementById('ns-hire').value || null,
-        lab_ids: labIds, room_ids: roomIds
+        lab_ids: labIds, room_ids: roomIds,
+        permissions: zkDefaultPermissionsFor(position)
       }).then(function (res) {
         btn.disabled = false;
         if (res.error) throw res.error;
