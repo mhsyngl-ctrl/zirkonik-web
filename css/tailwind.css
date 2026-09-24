@@ -1417,3 +1417,21 @@ input, textarea, select { font: inherit; color: inherit; }
 .tracking-\[0\.16em\] { letter-spacing:0.16em; }
 .tracking-\[0\.18em\] { letter-spacing:0.18em; }
 .shadow-\[0_-8px_24px_rgba\(23\,36\,44\,0\.06\)\] { box-shadow: 0 -8px 24px rgba(23,36,44,0.06); }
+/* 25 Eylül 2026 — KÖK NEDEN BULUNDU: bu satırlar hiç yoktu. HTML'de
+   max-h-[92vh]/[88vh]/[85vh]/[80vh] uzun süredir kullanılıyordu ama bu
+   dosyada karşılığı YOKTU — yani sheet/panel yükseklik sınırlaması hiçbir
+   zaman gerçekten uygulanmıyordu. İçerik (ör. <details> "opsiyonel bilgiler")
+   büyüyünce panel ekranın üstüne taşıyor, kapat düğmesi ve kaydırma
+   erişilemez kalıyordu — sahibinin defalarca bildirdiği "kilitleniyor,
+   kaydıramıyorum" hatasının GERÇEK kök nedeni buydu (önceki iki düzeltme
+   yanlış katmana odaklanmıştı). Tarama ile aynı sınıfta başka eksikler de
+   bulundu, hepsi eklendi. */
+.flex-\[2\] { flex:2; }
+.h-\[93vh\] { height:93vh; }
+.max-h-\[80vh\] { max-height:80vh; }
+.max-h-\[85vh\] { max-height:85vh; }
+.max-h-\[88vh\] { max-height:88vh; }
+.max-h-\[92vh\] { max-height:92vh; }
+.max-w-\[110px\] { max-width:110px; }
+.min-h-\[16px\] { min-height:16px; }
+.text-\[13px\] { font-size:13px; }
