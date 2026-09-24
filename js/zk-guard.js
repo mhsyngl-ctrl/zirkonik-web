@@ -14,33 +14,9 @@
  */
 
 // ---- Bağlantı durumu şeridi ----
-// İnternet yokken ekranlar veri çekemez/kaydedemez; kullanıcı "kaydettim
-// sandım" tuzağına düşmesin diye üstte kırmızı bir uyarı gösterilir.
-// Çevrimdışı kuyruk YOK — bağlantı gelince şerit kaybolur, sayfa taze
-// veriyi normal akışıyla (varsa) kendi yenilemesiyle gösterir.
-(function () {
-  var el = null;
-  function ensureEl() {
-    if (el) return el;
-    el = document.createElement('div');
-    el.id = 'zk-offline-banner';
-    el.textContent = 'Bağlantı yok — işlemler kaydedilmiyor';
-    (document.body || document.documentElement).appendChild(el);
-    return el;
-  }
-  function update() {
-    var b = ensureEl();
-    if (navigator.onLine === false) {
-      requestAnimationFrame(function () { b.classList.add('zk-show'); });
-    } else {
-      b.classList.remove('zk-show');
-    }
-  }
-  if (document.body) update();
-  else document.addEventListener('DOMContentLoaded', update);
-  window.addEventListener('online', update);
-  window.addEventListener('offline', update);
-})();
+// 24 Eylül 2026: js/net-guard.js üstlendi (ağ hatası bandı + yeniden deneme + hata
+// günlüğü). Eski navigator.onLine şeridi kaldırıldı; aşağıdaki yükleme çıkmazı
+// koruması (tam ekran 'Tekrar Dene') olduğu gibi duruyor.
 
 // ---- Yükleme çıkmazı koruması ----
 // requireAuth()/me() içindeki oturum yenilemesi ağa gider; internet yoksa
@@ -101,10 +77,8 @@
   var PUBLIC = { giris: 1, 'sifre-sifirla': 1, index: 1, 'hesap-kilitli': 1 };
   if (PUBLIC[page] || !window.ZirkonikAuth || !window.ZirkonikAuth.me) return;
 
-  var ADMIN_PAGES = {
-    ekip: 1, laboratuvarlar: 1, 'fiyat-listesi': 1,
-    siparisler: 1, 'rol-ve-yetki-detay': 1, 'yeni-giri-i': 1
-  };
+  // Bunlar hiçbir izinle personele açılmaz — organizasyon/kadro ayarı, yönetici işi.
+  var ADMIN_PAGES = { ekip: 1, laboratuvarlar: 1, 'rol-ve-yetki-detay': 1, 'yeni-giri-i': 1 };
   var DOCTOR_PAGES = { 'doktor-siparis': 1, profil: 1, bildirimler: 1 };
 
   function enforce(role, p) {
@@ -118,6 +92,11 @@
     if (page === 'stok' && !p.can_manage_stock) { location.replace('retim.html'); return true; }
     if ((page === 'finans' || page === 'ciro') && !p.can_view_finance) { location.replace('retim.html'); return true; }
     if (page === 'doktorlar' && !p.can_view_doctors) { location.replace('retim.html'); return true; }
+    // Siparişler: resepsiyonun işi (can_manage_orders). Fiyat Listesi: satış
+    // pazarlamanın işi (can_view_price_list); can_view_finance de zaten
+    // fiyat düzenleyebildiği için o da görebilir (24 Eylül 2026).
+    if (page === 'siparisler' && !p.can_manage_orders) { location.replace('retim.html'); return true; }
+    if (page === 'fiyat-listesi' && !p.can_view_price_list && !p.can_view_finance) { location.replace('retim.html'); return true; }
     return false;
   }
 
@@ -152,13 +131,13 @@
     }
     // Yönetici sayfalarına götüren kısayollar
     var sel = 'a[href*="yeni-giri-i"],[onclick*="yeni-giri-i"],' +
-              'a[href*="siparisler"],[onclick*="siparisler"],' +
-              'a[href*="fiyat-listesi"],[onclick*="fiyat-listesi"],' +
               'a[href*="laboratuvarlar"],[onclick*="laboratuvarlar"],' +
               'a[href*="ekip"],[onclick*="ekip.html"]';
     if (!p.can_view_finance) sel += ',a[href*="finans"],[onclick*="finans"]';
     if (!p.can_manage_stock) sel += ',a[href*="stok"],[onclick*="stok"]';
     if (!p.can_view_doctors) sel += ',a[href*="doktorlar"],[onclick*="doktorlar"]';
+    if (!p.can_manage_orders) sel += ',a[href*="siparisler"],[onclick*="siparisler"]';
+    if (!p.can_view_price_list && !p.can_view_finance) sel += ',a[href*="fiyat-listesi"],[onclick*="fiyat-listesi"]';
     var links = document.querySelectorAll(sel);
     for (var k = 0; k < links.length; k++) links[k].style.display = 'none';
   }
@@ -209,7 +188,9 @@
       role: me.role,
       can_manage_stock: !!p.can_manage_stock,
       can_view_finance: !!p.can_view_finance,
-      can_view_doctors: !!p.can_view_doctors
+      can_view_doctors: !!p.can_view_doctors,
+      can_manage_orders: !!p.can_manage_orders,
+      can_view_price_list: !!p.can_view_price_list
     };
     try { localStorage.setItem('zk-guard', JSON.stringify(snap)); } catch (e) {}
     if (enforce(snap.role, snap)) return;
