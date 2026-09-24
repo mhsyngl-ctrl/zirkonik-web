@@ -298,7 +298,10 @@
       { key: 'can_view_doctors', icon: 'lucide:stethoscope', title: 'Doktorları görme', desc: 'Doktor listesi ve iletişim (salt-okunur)' },
       { key: 'can_approve_delivery', icon: 'lucide:badge-check', title: 'Teslimat onayı', desc: 'Kalite kontrol sonrası teslimat' },
       { key: 'can_view_payroll', icon: 'lucide:coins', title: 'Hakediş görünürlüğü', desc: 'Personel hakedişlerini görme' },
-      { key: 'can_approve_users', icon: 'lucide:user-round-check', title: 'Kullanıcı onayı', desc: 'Yeni personel/doktor onayı' },
+      // can_approve_users BİLEREK burada yok (24 Eylül 2026): hiçbir RLS/RPC
+      // bu bayrağı kontrol etmiyordu — kullanıcı/doktor onayı zaten yalnız
+      // yönetici/işverende çalışıyor. Admini yanıltan, işlevsiz bir anahtardı,
+      // kaldırıldı (sütun de silindi).
       // 24 Eylül 2026: Resepsiyon Sorumlusu ve Satış Pazarlama Sorumlusu pozisyonları için.
       // Fiyat listesini görme izni BİLEREK burada yok — sahibinin kuralı: fiyatları
       // hiçbir personel göremez/değiştiremez, yalnız yönetici/işveren.
