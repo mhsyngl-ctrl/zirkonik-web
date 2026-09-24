@@ -378,9 +378,14 @@
         if (window.ZKHiz) ZKHiz.cachePut('stock_rows_' + primaryLab.id, rows);
       });
 
+        if (window.ZKHiz) {
+          var onbTxn = ZKHiz.cachePeek('stock_txn_' + primaryLab.id);
+          if (onbTxn) { stTxns = onbTxn; renderTxns(); }
+        }
         ZirkonikData.listStockTransactions(primaryLab.id, 12).then(function (txRes) {
           stTxns = txRes.data || [];
           renderTxns();
+          if (window.ZKHiz) ZKHiz.cachePut('stock_txn_' + primaryLab.id, stTxns);
         });
 
       ZirkonikData.listMaterials().then(function (matRes) {
@@ -425,8 +430,42 @@
     }
 
     // ---- Oda stokları ----
+    // Hız hissi (24 Eylül 2026): render mantığı ayrı fonksiyona çıkarıldı ki
+    // önbellekten anında çizim ile sunucu cevabı birebir aynı kodu kullansın.
+    function paintRoomStock(rooms, roomRows, labTotalsRaw, isAdmin, myRoomIds, activeJobs) {
+      stRooms = rooms;
+      stRoomRows = roomRows;
+      stLabTotals = {};
+      labTotalsRaw.forEach(function (x) {
+        stLabTotals[x.material_id] = { qty: Number(x.quantity_on_hand), mat: x.materials || {} };
+      });
+      stIsAdmin = isAdmin;
+      stMyRooms = {};
+      myRoomIds.forEach(function (id) { stMyRooms[id] = true; });
+
+      // Hareket formu seçenekleri (Nereden/Nereye) + iş listesi
+      var roomOpts = '<option value="">Depo</option>' + stRooms.map(function (r) {
+        return '<option value="' + r.id + '">' + escapeHtml(r.name) + '</option>';
+      }).join('');
+      document.getElementById('tx-from').innerHTML = roomOpts;
+      document.getElementById('tx-to').innerHTML = stRooms.map(function (r) {
+        return '<option value="' + r.id + '">' + escapeHtml(r.name) + '</option>';
+      }).join('');
+      var jobSel = document.getElementById('tx-job');
+      jobSel.innerHTML = '<option value="">İş seçilmedi</option>' + activeJobs.map(function (j) {
+        return '<option value="' + j.id + '">' + escapeHtml(j.job_number) + '</option>';
+      }).join('');
+
+      renderRoomChips();
+      renderRoomStockList();
+      renderTxns(); // oda adları geldikten sonra rota metinleriyle tazele
+    }
     function loadRoomStock(lab) {
       var client = ZirkonikAuth.client();
+      if (window.ZKHiz) {
+        var onb = ZKHiz.cachePeek('room_stock_' + lab.id);
+        if (onb) paintRoomStock(onb.rooms, onb.roomRows, onb.labTotalsRaw, onb.isAdmin, onb.myRoomIds, onb.activeJobs);
+      }
       Promise.all([
         client.from('rooms').select('id, name, sort_order').eq('laboratory_id', lab.id).order('sort_order'),
         client.from('material_room_stock').select('material_id, room_id, quantity_on_hand, min_threshold, materials(name, unit)').eq('laboratory_id', lab.id),
@@ -435,32 +474,14 @@
         client.from('user_room_access').select('room_id'),
         client.from('jobs').select('id, job_number').eq('status', 'active').eq('laboratory_id', lab.id).order('created_at', { ascending: false }).limit(50)
       ]).then(function (res) {
-        stRooms = res[0].data || [];
-        stRoomRows = res[1].data || [];
-        stLabTotals = {};
-        (res[2].data || []).forEach(function (x) {
-          stLabTotals[x.material_id] = { qty: Number(x.quantity_on_hand), mat: x.materials || {} };
-        });
-        stIsAdmin = !!(res[3] && res[3].role === 'yonetici');
-        stMyRooms = {};
-        ((res[4] && res[4].data) || []).forEach(function (x) { stMyRooms[x.room_id] = true; });
-
-        // Hareket formu seçenekleri (Nereden/Nereye) + iş listesi
-        var roomOpts = '<option value="">Depo</option>' + stRooms.map(function (r) {
-          return '<option value="' + r.id + '">' + escapeHtml(r.name) + '</option>';
-        }).join('');
-        document.getElementById('tx-from').innerHTML = roomOpts;
-        document.getElementById('tx-to').innerHTML = stRooms.map(function (r) {
-          return '<option value="' + r.id + '">' + escapeHtml(r.name) + '</option>';
-        }).join('');
-        var jobSel = document.getElementById('tx-job');
-        jobSel.innerHTML = '<option value="">İş seçilmedi</option>' + ((res[5] && res[5].data) || []).map(function (j) {
-          return '<option value="' + j.id + '">' + escapeHtml(j.job_number) + '</option>';
-        }).join('');
-
-        renderRoomChips();
-        renderRoomStockList();
-        renderTxns(); // oda adları geldikten sonra rota metinleriyle tazele
+        var rooms = res[0].data || [];
+        var roomRows = res[1].data || [];
+        var labTotalsRaw = res[2].data || [];
+        var isAdmin = !!(res[3] && res[3].role === 'yonetici');
+        var myRoomIds = ((res[4] && res[4].data) || []).map(function (x) { return x.room_id; });
+        var activeJobs = (res[5] && res[5].data) || [];
+        paintRoomStock(rooms, roomRows, labTotalsRaw, isAdmin, myRoomIds, activeJobs);
+        if (window.ZKHiz) ZKHiz.cachePut('room_stock_' + lab.id, { rooms: rooms, roomRows: roomRows, labTotalsRaw: labTotalsRaw, isAdmin: isAdmin, myRoomIds: myRoomIds, activeJobs: activeJobs });
       });
     }
 
