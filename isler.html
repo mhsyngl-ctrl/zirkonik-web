@@ -135,10 +135,12 @@
 
   <script src="vendor/supabase-js.min.js"></script>
   <script src="supabase-config.js"></script>
+  <script src="js/net-guard.js"></script>
   <script src="supabase-client.js"></script>
   <script src="js/zk-guard.js"></script>
   <script src="js/zk-picker.js"></script>
   <script src="js/zk-ptr.js"></script>
+  <script src="js/zk-hiz.js"></script>
   <script src="js/zk-yenile.js"></script>
   <script>
     function escapeHtml(s) {
@@ -216,14 +218,35 @@
 
     zkOdakCiz();
 
+    // Sayfalama (24 Eylül 2026): 50'lik sayfalar + "Daha fazla yükle"; toplam
+    // sayı sunucudan (count exact). Eskiden .limit(200) vardı ve "N iş" 200'de
+    // takılıyordu.
+    var JOB_PAGE = 50;
+    var jobsOffset = 0;
+    var jobsTotal = 0;
+    var jobsAppend = false;
+    function loadMoreJobs() {
+      jobsAppend = true;
+      jobsOffset = currentJobs.length;
+      loadJobs();
+    }
     function loadJobs() {
       var el = document.getElementById('jobs-list');
-      el.innerHTML = '<p class="text-xs text-muted-foreground">Yükleniyor…</p>';
+      if (!jobsAppend) {
+        jobsOffset = 0;
+        el.innerHTML = '<p class="text-xs text-muted-foreground">Yükleniyor…</p>';
+      }
       var client = ZirkonikAuth.client();
 
       var labId = document.getElementById('f-lab').value;
       var doctorId = document.getElementById('f-doctor').value;
       var staffId = document.getElementById('f-staff').value;
+      // Önbellek (hız kuralı 2): süzgeçsiz ilk sayfa önce önbellekten çizilir, arkadan tazelenir.
+      var cacheable = !jobsAppend && !labId && !doctorId && !staffId && !currentFocus;
+      if (cacheable) {
+        var onb = ZKHiz.cachePeek('jobs_' + currentTab);
+        if (onb && onb.rows && onb.rows.length) { currentJobs = onb.rows; jobsTotal = onb.total || onb.rows.length; renderJobs(); }
+      }
 
       var staffJobIdsPromise = staffId
         ? client.from('job_stage_history').select('job_id').eq('handled_by', staffId).then(function (r) {
@@ -250,7 +273,7 @@
             currentJobs = []; renderJobs(); return;
           }
           var q = client.from('jobs')
-            .select('id, job_number, restoration_type, unit_count, status, created_at, completed_at, requested_delivery_at, doctors(full_name, clinic_name), laboratories(name)')
+            .select('id, job_number, restoration_type, unit_count, status, created_at, completed_at, requested_delivery_at, doctors(full_name, clinic_name), laboratories(name)', { count: 'exact' })
             .eq('status', currentTab);
           if (labId) q = q.eq('laboratory_id', labId);
           if (doctorId) q = q.eq('doctor_id', doctorId);
@@ -268,19 +291,36 @@
             q = q.in('current_room_id', qcIds);
           }
 
-          q = q.order(currentTab === 'completed' ? 'completed_at' : 'created_at', { ascending: false }).limit(200);
+          q = q.order(currentTab === 'completed' ? 'completed_at' : 'created_at', { ascending: false })
+               .order('id', { ascending: true })
+               .range(jobsOffset, jobsOffset + JOB_PAGE - 1);
+          var append = jobsAppend;
+          jobsAppend = false;
           q.then(function (r) {
-            currentJobs = r.data || [];
+            if (r.error) { el.innerHTML = '<p class="p-4 text-center text-xs text-destructive">Yüklenemedi: ' + escapeHtml(r.error.message) + '</p>'; return; }
+            var gelen = r.data || [];
+            jobsTotal = (r.count != null) ? r.count : (append ? currentJobs.length + gelen.length : gelen.length);
+            if (append) {
+              var var_ = {};
+              currentJobs.forEach(function (j) { var_[j.id] = true; });
+              gelen.forEach(function (j) { if (!var_[j.id]) currentJobs.push(j); });
+            } else {
+              currentJobs = gelen;
+              if (cacheable) ZKHiz.cachePut('jobs_' + currentTab, { rows: currentJobs, total: jobsTotal });
+            }
             renderJobs();
           });
         });
       });
     }
 
+    // Ön yükleme: detay sayfası bu kaydı sunucuya gitmeden çizer, arkadan tazeler.
+    function zkHandoffJob(id) { var j = currentJobs.filter(function (x) { return x.id === id; })[0]; if (j) ZKHiz.handoff('job:' + id, j); }
     function renderJobs() {
       var el = document.getElementById('jobs-list');
       var totalTeeth = currentJobs.reduce(function (s, j) { return s + Number(j.unit_count || 0); }, 0);
-      document.getElementById('results-summary').textContent = currentJobs.length + ' iş · ' + totalTeeth + ' diş';
+      document.getElementById('results-summary').textContent =
+        jobsTotal + ' iş' + (jobsTotal > currentJobs.length ? ' (' + currentJobs.length + ' tanesi yüklendi)' : ' · ' + totalTeeth + ' diş');
 
       if (!currentJobs.length) {
         el.innerHTML = '<p class="p-4 text-center text-xs text-muted-foreground">Bu filtrelerle eşleşen iş yok.</p>';
@@ -290,12 +330,15 @@
         var dateLabel = currentTab === 'completed'
           ? (j.completed_at ? new Date(j.completed_at).toLocaleDateString('tr-TR') : '—')
           : (j.requested_delivery_at ? new Date(j.requested_delivery_at).toLocaleDateString('tr-TR') : 'Teslim tarihi yok');
-        return '<button onclick="location.href=\'detay.html?id=' + j.id + '\'" class="flex w-full items-center justify-between gap-3 rounded-theme border border-border bg-card px-3.5 py-3 text-left">' +
+        return '<button onclick="zkHandoffJob(\'' + j.id + '\'); location.href=\'detay.html?id=' + j.id + '\'" class="flex w-full items-center justify-between gap-3 rounded-theme border border-border bg-card px-3.5 py-3 text-left">' +
           '<div class="min-w-0"><p class="text-sm font-bold">' + escapeHtml(j.job_number) + '</p>' +
           '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + escapeHtml(j.doctors ? j.doctors.full_name : '') + ' · ' + escapeHtml(j.restoration_type || '') + (j.unit_count ? ' · ' + j.unit_count + ' diş' : '') + '</p></div>' +
           '<span class="shrink-0 text-[10px] font-semibold text-muted-foreground">' + escapeHtml(dateLabel) + '</span>' +
           '</button>';
-      }).join('');
+      }).join('') +
+      (jobsTotal > currentJobs.length
+        ? '<button type="button" onclick="loadMoreJobs()" class="flex h-11 w-full items-center justify-center rounded-theme border border-border bg-card text-sm font-bold">Daha fazla yükle (' + (jobsTotal - currentJobs.length) + ' iş kaldı)</button>'
+        : '');
       if (window.zkFlow) window.zkFlow.stagger(el);
     }
 
