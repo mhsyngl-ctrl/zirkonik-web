@@ -117,6 +117,10 @@
             <button onclick="location.href='stok.html'" class="zk-stat zk-stat-amber"><span class="zk-stat-icon"><iconify-icon icon="lucide:boxes"></iconify-icon></span><p id="stat-critical-stock" class="zk-stat-value">—</p><p class="zk-stat-label">Kritik stok uyarısı</p><iconify-icon class="zk-stat-ghost" icon="lucide:boxes"></iconify-icon></button>
 
             <button onclick="location.href='siparisler.html'" class="zk-stat zk-stat-teal"><span class="zk-stat-icon"><iconify-icon icon="lucide:inbox"></iconify-icon></span><p id="stat-pending-orders" class="zk-stat-value">—</p><p class="zk-stat-label">Bekleyen sipariş</p><iconify-icon class="zk-stat-ghost" icon="lucide:inbox"></iconify-icon></button>
+
+            <!-- Doktor kazanım süreci — 24 Eylül 2026, Medicamine'deki "Adaylar" kartıyla aynı mantık:
+                 ana ekranda tek dokunuşla girilen, sayaçlı bir giriş. Yalnız yetkili görür (zk-guard.js). -->
+            <button onclick="location.href='aday-havuzu.html'" id="stat-leads-btn" class="zk-stat zk-stat-teal"><span class="zk-stat-icon"><iconify-icon icon="lucide:user-round-plus"></iconify-icon></span><p id="stat-leads" class="zk-stat-value">—</p><p class="zk-stat-label">Aday Havuzu</p><iconify-icon class="zk-stat-ghost" icon="lucide:user-round-plus"></iconify-icon></button>
           </div></div>
         </section>
 
@@ -282,6 +286,19 @@
         </section>
         </div>
 
+        <!-- Temsilci (Satış Pazarlama Sorumlusu) için: bugün tarihi gelmiş adaylar.
+             24 Eylül 2026, doktor kazanım süreci. Yalnız yetkiliye gösterilir. -->
+        <section id="my-tasks-section" class="hidden px-5 pt-7">
+          <div class="flex items-end justify-between">
+            <div>
+              <h2 class="font-heading text-lg font-extrabold">Bugünkü Görevlerim</h2>
+              <p class="mt-0.5 text-xs text-muted-foreground">Tarihi gelmiş takipler ve memnuniyet aramaları</p>
+            </div>
+            <a href="aday-havuzu.html" class="text-xs font-bold text-primary">Aday Havuzu</a>
+          </div>
+          <div id="my-tasks-list" class="mt-3 space-y-2"></div>
+        </section>
+
         <section class="px-5 pt-7">
           <div class="flex items-end justify-between">
             <div>
@@ -441,6 +458,7 @@
       document.getElementById('stat-receivables').textContent = ZirkonikMoney.formatTotals(o.bekleyen || {}, 0);
       document.getElementById('stat-critical-stock').textContent = o.criticalStock || 0;
       document.getElementById('stat-pending-orders').textContent = o.pendingOrders || 0;
+      document.getElementById('stat-leads').textContent = o.leads || 0;
     }
     function loadDashboard() {
       ZirkonikAuth.me().then(function (me) {
@@ -488,11 +506,14 @@
         qcPromise,
         financePromise,
         stockPromise,
-        client.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'pending')
+        client.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+        // Aday Havuzu kartı: süreçteki (henüz aktif ya da kayıp olmamış) aday/doktor sayısı.
+        client.from('doctors').select('id', { count: 'exact', head: true }).not('pipeline_stage', 'in', '(aktif,kayip)')
       ]).then(function (r) {
         var o = {
           active: r[0].count || 0, completed: r[1].count || 0, dueToday: r[2].count || 0, overdue: r[3].count || 0,
-          qc: r[4].count || 0, bekleyen: r[5].bekleyen || {}, criticalStock: r[6], pendingOrders: r[7].count || 0
+          qc: r[4].count || 0, bekleyen: r[5].bekleyen || {}, criticalStock: r[6], pendingOrders: r[7].count || 0,
+          leads: r[8].count || 0
         };
         zkPaintDashStats(o);
         if (window.ZKHiz) ZKHiz.cachePut('dash_stats', o);
@@ -622,8 +643,32 @@
           document.getElementById('cash-flow-section').classList.remove('hidden');
           loadCashFlow();
         }
+        var perms = me && me.user_permissions;
+        if (Object.prototype.toString.call(perms) === '[object Array]') perms = perms[0] || {};
+        if (zkIsAdmin || (perms && perms.can_manage_prospects)) {
+          window.__zkMeId = me.id;
+          document.getElementById('my-tasks-section').classList.remove('hidden');
+          loadMyTasks(me.id);
+        }
       });
     });
+
+    // ---- Bugünkü Görevlerim (temsilci) — 24 Eylül 2026, doktor kazanım süreci ----
+    function loadMyTasks(userId) {
+      ZirkonikData.myTodayTasks(userId).then(function (r) {
+        var el = document.getElementById('my-tasks-list');
+        var rows = r.data || [];
+        if (r.error) { el.innerHTML = '<p class="text-xs text-destructive">Yüklenemedi: ' + escapeHtml(r.error.message) + '</p>'; return; }
+        if (!rows.length) { el.innerHTML = '<p class="text-xs text-muted-foreground">Bugün için bekleyen takip yok.</p>'; return; }
+        el.innerHTML = rows.map(function (d) {
+          var overdue = new Date(d.next_action_at) < new Date(new Date().setHours(0, 0, 0, 0));
+          return '<a href="aday-havuzu.html" class="flex items-center justify-between gap-2 rounded-theme border border-border bg-card p-3.5">' +
+            '<div class="min-w-0"><p class="truncate text-sm font-bold">Dr. ' + escapeHtml(d.full_name) + '</p>' +
+            '<p class="mt-0.5 truncate text-xs text-muted-foreground">' + escapeHtml(d.next_action_note || d.clinic_name || '') + '</p></div>' +
+            '<span class="shrink-0 rounded-full ' + (overdue ? 'bg-destructive/10 text-destructive' : 'bg-accent/10 text-accent') + ' px-2 py-1 text-[10px] font-bold">' + (overdue ? 'Gecikti' : 'Bugün') + '</span></a>';
+        }).join('');
+      });
+    }
 
     // ---- Nakit Akışı Öngörüsü (yönetici) ----
     // Her ay için iki çubuk yan yana: sol yeşil = vadeli doktor faturalarından
@@ -1427,7 +1472,11 @@
      * ve sekmeye geri donus (zk-yenile.js) bunu cagirir; sayfa yeniden
      * yuklenmez, yalniz veri tazelenir. */
     window.zkRefresh = function () {
-      return Promise.all([Promise.resolve(loadDashboard()), Promise.resolve(loadAcceptAlerts()), Promise.resolve(zkLoadNotifBadge()), Promise.resolve(loadBoard())]);
+      var tasks = [Promise.resolve(loadDashboard()), Promise.resolve(loadAcceptAlerts()), Promise.resolve(zkLoadNotifBadge()), Promise.resolve(loadBoard())];
+      if (window.__zkMeId && !document.getElementById('my-tasks-section').classList.contains('hidden')) {
+        tasks.push(Promise.resolve(loadMyTasks(window.__zkMeId)));
+      }
+      return Promise.all(tasks);
     };
   </script>
 
