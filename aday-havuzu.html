@@ -140,7 +140,9 @@
   <div id="detail-sheet" class="fixed inset-0 z-40 hidden">
     <div class="absolute inset-0 bg-black/40" onclick="zkCloseDetail()"></div>
     <div class="absolute bottom-0 left-0 max-h-[92vh] w-full overflow-y-auto rounded-t-theme bg-card p-5 pb-8">
-      <div class="flex items-start justify-between gap-3">
+      <!-- Kapat düğmesi yapışkan (sticky): "Doktor bilgileri (opsiyonel)" açılınca panel
+           uzuyor, kullanıcı en üste kaydırmadan da her zaman kapatabilsin diye. -->
+      <div class="sticky -top-5 z-10 -mx-5 -mt-5 flex items-start justify-between gap-3 bg-card px-5 pt-5 pb-2">
         <div class="min-w-0">
           <p id="dt-clinic" class="text-xs text-muted-foreground"></p>
           <h2 id="dt-name" class="mt-0.5 truncate font-heading text-lg font-bold">—</h2>
