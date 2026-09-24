@@ -368,13 +368,29 @@
     }
 
     // ---- Bölgeler ----
+    var SIDE_LABELS = { avrupa: 'Avrupa Yakası', asya: 'Asya Yakası' };
+    // Bölgeler artık serbest yazım değil — kayıtlı ilçe listesinden seçilir (24 Eylül
+    // 2026, sahibinin isteği). Yaka (avrupa/asya) grup başlığı olarak gösterilir;
+    // yakasız (elle eklenmiş özel) bölgeler başlıksız, en üstte kalır.
+    function zkRegionOptionsHtml(placeholder) {
+      var html = '<option value="">' + placeholder + '</option>';
+      var gruplar = {}, sirasiz = [];
+      regions.forEach(function (r) { if (r.side) { (gruplar[r.side] = gruplar[r.side] || []).push(r); } else { sirasiz.push(r); } });
+      sirasiz.forEach(function (r) { html += '<option value="' + r.id + '">' + escapeHtml(r.name) + '</option>'; });
+      ['avrupa', 'asya'].forEach(function (side) {
+        if (!gruplar[side]) return;
+        html += '<optgroup label="' + SIDE_LABELS[side] + '">' + gruplar[side].map(function (r) {
+          return '<option value="' + r.id + '">' + escapeHtml(r.name) + '</option>';
+        }).join('') + '</optgroup>';
+      });
+      return html;
+    }
     function loadRegionsAndReps() {
       return Promise.all([ZirkonikData.listRegions(), ZirkonikData.listStaff()]).then(function (res) {
         regions = (res[0] && res[0].data) || [];
         reps = ((res[1] && res[1].data) || []).filter(function (u) { return u.role !== 'doktor'; });
-        var regionOpts = '<option value="">Bölge seçin (opsiyonel)</option>' + regions.map(function (r) { return '<option value="' + r.id + '">' + escapeHtml(r.name) + '</option>'; }).join('');
-        document.getElementById('np-region').innerHTML = regionOpts;
-        document.getElementById('dt-region').innerHTML = '<option value="">—</option>' + regions.map(function (r) { return '<option value="' + r.id + '">' + escapeHtml(r.name) + '</option>'; }).join('');
+        document.getElementById('np-region').innerHTML = zkRegionOptionsHtml('Bölge seçin');
+        document.getElementById('dt-region').innerHTML = zkRegionOptionsHtml('—');
         document.getElementById('dt-rep').innerHTML = '<option value="">—</option>' + reps.map(function (u) { return '<option value="' + u.id + '">' + escapeHtml(u.full_name) + '</option>'; }).join('');
       });
     }
@@ -383,16 +399,26 @@
       renderRegionsList();
     }
     function zkCloseRegions() { document.getElementById('regions-sheet').classList.add('hidden'); }
+    function regionRow(r) {
+      return '<div class="flex items-center justify-between rounded-theme border border-border bg-background p-3">' +
+        '<div><p class="text-sm font-bold">' + escapeHtml(r.name) + '</p>' +
+        '<p class="mt-0.5 text-[11px] text-muted-foreground">' + (r.temsilci ? escapeHtml(r.temsilci.full_name) : 'Temsilci atanmadı') + '</p></div>' +
+        '<select onchange="zkAssignRegionRep(\'' + r.id + '\', this.value)" class="h-9 rounded-lg border border-border bg-input px-2 text-[11px]">' +
+        '<option value="">Temsilci ata</option>' + reps.map(function (u) { return '<option value="' + u.id + '"' + (r.assigned_rep_id === u.id ? ' selected' : '') + '>' + escapeHtml(u.full_name) + '</option>'; }).join('') +
+        '</select></div>';
+    }
     function renderRegionsList() {
       var el = document.getElementById('regions-list');
-      el.innerHTML = regions.length ? regions.map(function (r) {
-        return '<div class="flex items-center justify-between rounded-theme border border-border bg-background p-3">' +
-          '<div><p class="text-sm font-bold">' + escapeHtml(r.name) + '</p>' +
-          '<p class="mt-0.5 text-[11px] text-muted-foreground">' + (r.temsilci ? escapeHtml(r.temsilci.full_name) : 'Temsilci atanmadı') + '</p></div>' +
-          '<select onchange="zkAssignRegionRep(\'' + r.id + '\', this.value)" class="h-9 rounded-lg border border-border bg-input px-2 text-[11px]">' +
-          '<option value="">Temsilci ata</option>' + reps.map(function (u) { return '<option value="' + u.id + '"' + (r.assigned_rep_id === u.id ? ' selected' : '') + '>' + escapeHtml(u.full_name) + '</option>'; }).join('') +
-          '</select></div>';
-      }).join('') : '<p class="text-xs text-muted-foreground">Henüz bölge yok.</p>';
+      if (!regions.length) { el.innerHTML = '<p class="text-xs text-muted-foreground">Henüz bölge yok.</p>'; return; }
+      var gruplar = {}, sirasiz = [];
+      regions.forEach(function (r) { if (r.side) { (gruplar[r.side] = gruplar[r.side] || []).push(r); } else { sirasiz.push(r); } });
+      var html = sirasiz.map(regionRow).join('');
+      ['avrupa', 'asya'].forEach(function (side) {
+        if (!gruplar[side]) return;
+        html += '<p class="mt-3 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">' + SIDE_LABELS[side] + '</p>' +
+          '<div class="mt-1.5 space-y-2">' + gruplar[side].map(regionRow).join('') + '</div>';
+      });
+      el.innerHTML = html;
     }
     function zkAssignRegionRep(regionId, repId) {
       ZirkonikData.updateRegion(regionId, { assigned_rep_id: repId || null }).then(function (res) {
