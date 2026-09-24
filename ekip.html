@@ -670,15 +670,25 @@
       });
     }
 
+    // 24 Eylül 2026 — aday-havuzu.html'deki aynı düzeltme: bir sheet açıkken içeriği
+    // sonradan büyüyen kutular için WebKit'in kaydırma katmanını tazeleyen dürtme.
+    function zkNudgeScroll(el) {
+      var kutu = el && el.closest ? el.closest('.overflow-y-auto') : null;
+      if (!kutu) return;
+      var y = kutu.scrollTop;
+      kutu.scrollTop = y + 1;
+      kutu.scrollTop = y;
+    }
     function zkLoadStaffRoomOptions() {
       var checked = Array.prototype.slice.call(document.querySelectorAll('.ns-lab-cb:checked')).map(function (cb) { return cb.value; });
       var wrap = document.getElementById('ns-rooms');
-      if (!checked.length) { wrap.innerHTML = '<p class="text-xs text-muted-foreground">Önce laboratuvar seçin.</p>'; return; }
+      if (!checked.length) { wrap.innerHTML = '<p class="text-xs text-muted-foreground">Önce laboratuvar seçin.</p>'; zkNudgeScroll(wrap); return; }
       ZirkonikAuth.client().from('rooms').select('id, name, laboratory_id, sort_order').in('laboratory_id', checked).order('sort_order').then(function (r) {
         var rooms = r.data || [];
         wrap.innerHTML = rooms.length
           ? rooms.map(function (rm) { return '<label class="flex items-center gap-2"><input type="checkbox" class="ns-room-cb" value="' + rm.id + '"> ' + escapeHtml(rm.name) + '</label>'; }).join('')
           : '<p class="text-xs text-muted-foreground">Seçili laboratuvar(lar)da oda yok.</p>';
+        zkNudgeScroll(wrap);
       });
     }
 
