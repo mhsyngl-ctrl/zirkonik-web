@@ -465,7 +465,7 @@
       if (kisi && kisi.role === 'doktor') return 'Doktor portalı';
       var perms = (kisi && kisi.user_permissions) || {};
       perms = (perms && perms[0]) || perms || {};
-      if (perms.can_view_finance && perms.can_manage_stock && perms.can_approve_users) return 'Operasyon ve finans';
+      if (perms.can_view_finance && perms.can_manage_stock) return 'Operasyon ve finans';
       if (perms.can_change_job_status) return 'Üretim durumu';
       if (perms.can_manage_stock) return 'Stok';
       if (perms.can_manage_orders) return 'Sipariş yönetimi';
