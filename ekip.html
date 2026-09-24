@@ -693,7 +693,7 @@
         return { can_view_jobs: true, can_change_job_status: false, can_manage_orders: true, can_view_doctors: true };
       }
       if (position === 'Satış Pazarlama Sorumlusu') {
-        return { can_view_jobs: false, can_change_job_status: false, can_view_price_list: true, can_view_doctors: true };
+        return { can_view_jobs: false, can_change_job_status: false, can_view_price_list: true, can_view_doctors: true, can_manage_prospects: true };
       }
       return {}; // Teknisyen/Yardımcı Teknisyen: sunucu varsayılanı (üretim erişimi) yeterli.
     }
