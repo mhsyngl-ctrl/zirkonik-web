@@ -272,7 +272,9 @@
 
     // ---- Doktor kazanım süreci (bölge/temsilci/aşama) — 24 Eylül 2026 ----
     listRegions: function () {
-      return client().from('regions').select('*, temsilci:assigned_rep_id(full_name)').order('name');
+      // 24 Eylül 2026: bölgeler artık serbest yazım değil — kayıtlı ilçe listesinden
+      // seçilir (sahibinin isteği). side (avrupa/asya) grup başlığı için sıralanır.
+      return client().from('regions').select('*, temsilci:assigned_rep_id(full_name)').order('side', { ascending: false, nullsFirst: true }).order('name');
     },
     createRegion: function (name, assignedRepId) {
       return client().from('regions').insert({ name: name, assigned_rep_id: assignedRepId || null }).select().single();
