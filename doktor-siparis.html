@@ -720,44 +720,55 @@
       }).join('') + '</div><div class="zk-cols-labels">' + labels.map(function (lb) { return '<span>' + escapeHtml(lb) + '</span>'; }).join('') + '</div>';
       document.getElementById(containerId).innerHTML = html;
     }
+    // Hız hissi (24 Eylül 2026): render mantığı ayrı fonksiyona çıkarıldı ki
+    // önbellekten anında çizim ile sunucu cevabı birebir aynı kodu kullansın.
+    function paintDocPerformance(res, period) {
+      document.getElementById('dp-period-label').textContent = res.label;
+      document.getElementById('dp-count').textContent = res.rows.length;
+      document.getElementById('dp-total').textContent = ZirkonikMoney.totalText(res.rows, 'price', 'currency', 0);
+
+      var compareLegend = document.getElementById('dp-compare-legend');
+      var prevLabelEl = document.getElementById('dp-prev-label');
+      var totals = ZirkonikMoney.groupTotals(res.rows, 'price', 'currency');
+      var mainCurrency = Object.keys(totals).sort(function (a, b) { return totals[b] - totals[a]; })[0] || ZirkonikMoney.DEFAULT;
+      if (period === 'all') {
+        compareLegend.classList.add('hidden');
+        prevLabelEl.classList.add('hidden');
+        var yearBuckets = dpBuildYearBuckets(res.rows);
+        var yearValues = yearBuckets.map(function (b) { return b.rows.filter(function (r) { return r.currency === mainCurrency; }).reduce(function (s, r) { return s + r.price; }, 0); });
+        dpRenderColsSingle('dp-chart', yearValues, yearBuckets.map(function (b) { return b.label; }));
+      } else {
+        compareLegend.classList.remove('hidden');
+        prevLabelEl.classList.remove('hidden');
+        var buckets = dpBuildBuckets(res.rows, period, res.rangeStart);
+        var prevBuckets = dpBuildBuckets(res.prevRows, period, res.prevRangeStart);
+        var values = buckets.map(function (b) { return b.rows.filter(function (r) { return r.currency === mainCurrency; }).reduce(function (s, r) { return s + r.price; }, 0); });
+        var prevValues = prevBuckets.map(function (b) { return b.rows.filter(function (r) { return r.currency === mainCurrency; }).reduce(function (s, r) { return s + r.price; }, 0); });
+        dpRenderColsCompare('dp-chart', values, prevValues, buckets.map(function (b) { return b.label; }));
+        prevLabelEl.textContent = 'Önceki dönem (' + res.prevLabel + '): ' + ZirkonikMoney.totalText(res.prevRows, 'price', 'currency', 0);
+      }
+
+      var catGroups = {};
+      res.rows.forEach(function (r) { (catGroups[r.category] || (catGroups[r.category] = [])).push(r); });
+      var catNames = Object.keys(catGroups).sort(function (a, b) { return catGroups[b].length - catGroups[a].length; });
+      document.getElementById('dp-category-breakdown').innerHTML = catNames.length
+        ? catNames.map(function (n) { return '<span class="rounded-full bg-muted px-2.5 py-1 text-[11px] font-bold">' + escapeHtml(n) + ' ' + catGroups[n].length + ' · ' + ZirkonikMoney.totalText(catGroups[n], 'price', 'currency', 0) + '</span>'; }).join('')
+        : '<span class="text-[11px] text-muted-foreground">Bu dönemde iş yok.</span>';
+    }
     function loadDocPerformance() {
       ['week', 'month', 'year', 'all'].forEach(function (p) {
         var btn = document.getElementById('dp-' + p + '-btn');
         if (btn) btn.className = 'rounded-lg px-2 py-1.5 text-[10px] font-bold ' + (p === dpPeriod ? 'bg-background' : 'text-muted-foreground');
       });
       document.getElementById('dp-nav-row').classList.toggle('hidden', dpPeriod === 'all');
+      var anahtar = 'doc_perf_' + dpPeriod + '_' + dpOffset;
+      if (window.ZKHiz) {
+        var onb = ZKHiz.cachePeek(anahtar);
+        if (onb) paintDocPerformance(onb, dpPeriod);
+      }
       ZirkonikData.getJobPerformancePeriod(dpPeriod, dpOffset).then(function (res) {
-        document.getElementById('dp-period-label').textContent = res.label;
-        document.getElementById('dp-count').textContent = res.rows.length;
-        document.getElementById('dp-total').textContent = ZirkonikMoney.totalText(res.rows, 'price', 'currency', 0);
-
-        var compareLegend = document.getElementById('dp-compare-legend');
-        var prevLabelEl = document.getElementById('dp-prev-label');
-        var totals = ZirkonikMoney.groupTotals(res.rows, 'price', 'currency');
-        var mainCurrency = Object.keys(totals).sort(function (a, b) { return totals[b] - totals[a]; })[0] || ZirkonikMoney.DEFAULT;
-        if (dpPeriod === 'all') {
-          compareLegend.classList.add('hidden');
-          prevLabelEl.classList.add('hidden');
-          var yearBuckets = dpBuildYearBuckets(res.rows);
-          var yearValues = yearBuckets.map(function (b) { return b.rows.filter(function (r) { return r.currency === mainCurrency; }).reduce(function (s, r) { return s + r.price; }, 0); });
-          dpRenderColsSingle('dp-chart', yearValues, yearBuckets.map(function (b) { return b.label; }));
-        } else {
-          compareLegend.classList.remove('hidden');
-          prevLabelEl.classList.remove('hidden');
-          var buckets = dpBuildBuckets(res.rows, dpPeriod, res.rangeStart);
-          var prevBuckets = dpBuildBuckets(res.prevRows, dpPeriod, res.prevRangeStart);
-          var values = buckets.map(function (b) { return b.rows.filter(function (r) { return r.currency === mainCurrency; }).reduce(function (s, r) { return s + r.price; }, 0); });
-          var prevValues = prevBuckets.map(function (b) { return b.rows.filter(function (r) { return r.currency === mainCurrency; }).reduce(function (s, r) { return s + r.price; }, 0); });
-          dpRenderColsCompare('dp-chart', values, prevValues, buckets.map(function (b) { return b.label; }));
-          prevLabelEl.textContent = 'Önceki dönem (' + res.prevLabel + '): ' + ZirkonikMoney.totalText(res.prevRows, 'price', 'currency', 0);
-        }
-
-        var catGroups = {};
-        res.rows.forEach(function (r) { (catGroups[r.category] || (catGroups[r.category] = [])).push(r); });
-        var catNames = Object.keys(catGroups).sort(function (a, b) { return catGroups[b].length - catGroups[a].length; });
-        document.getElementById('dp-category-breakdown').innerHTML = catNames.length
-          ? catNames.map(function (n) { return '<span class="rounded-full bg-muted px-2.5 py-1 text-[11px] font-bold">' + escapeHtml(n) + ' ' + catGroups[n].length + ' · ' + ZirkonikMoney.totalText(catGroups[n], 'price', 'currency', 0) + '</span>'; }).join('')
-          : '<span class="text-[11px] text-muted-foreground">Bu dönemde iş yok.</span>';
+        paintDocPerformance(res, dpPeriod);
+        if (window.ZKHiz) ZKHiz.cachePut(anahtar, res);
       }).catch(function (err) {
         zkToast('Performans yüklenemedi: ' + ((err && err.message) || 'bilinmeyen hata'));
       });
@@ -927,29 +938,39 @@
       });
     });
 
+    // Hız hissi (24 Eylül 2026): render mantığı ayrı fonksiyona çıkarıldı ki
+    // önbellekten anında çizim ile sunucu cevabı birebir aynı kodu kullansın.
+    function paintMyPrices(itemsR, ovs) {
+      var el = document.getElementById('prices-list');
+      var byCat = {};
+      itemsR.forEach(function (p) { (byCat[p.category] = byCat[p.category] || []).push(p); });
+      el.innerHTML = Object.keys(byCat).map(function (cat) {
+        var rows = byCat[cat].map(function (p) {
+          var unit = ZirkonikData.resolveUnitPrice(p, ovs, doctor.id, null);
+          // Anlasma bu doktorla farkli para biriminde olabilir; listede
+          // gosterilen sembol de anlasmanin kendi para birimi.
+          var cur = ZirkonikData.resolveUnitCurrency(p, ovs, doctor.id, null);
+          var special = unit != null && (p.unit_price == null || unit !== Number(p.unit_price));
+          return '<div class="flex items-center justify-between gap-2 border-b border-border py-2.5 last:border-b-0">' +
+            '<p class="min-w-0 flex-1 text-sm font-semibold">' + escapeHtml(p.name) + '</p>' +
+            '<span class="text-sm font-bold tabular-nums ' + (special ? 'text-primary' : '') + '">' +
+              (unit != null ? unit + ' ' + cur : 'Fiyat sorunuz') +
+            (special ? ' <span class="text-[10px] font-bold text-primary">· anlaşmalı</span>' : '') + '</span></div>';
+        }).join('');
+        return '<section class="mb-5 rounded-theme border border-border bg-card p-4">' +
+          '<p class="mb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-primary">' + escapeHtml(cat) + '</p>' + rows + '</section>';
+      }).join('') || '<p class="mt-8 text-center text-sm text-muted-foreground">Fiyat listesi boş.</p>';
+    }
     function loadMyPrices() {
+      if (window.ZKHiz) {
+        var onb = ZKHiz.cachePeek('my_prices');
+        if (onb) paintMyPrices(onb.items, onb.ovs);
+      }
       Promise.all([ZirkonikData.listPriceItems(), ZirkonikData.listPriceOverrides()]).then(function (results) {
         var itemsR = results[0].data || [];
         var ovs = results[1].data || [];
-        var el = document.getElementById('prices-list');
-        var byCat = {};
-        itemsR.forEach(function (p) { (byCat[p.category] = byCat[p.category] || []).push(p); });
-        el.innerHTML = Object.keys(byCat).map(function (cat) {
-          var rows = byCat[cat].map(function (p) {
-            var unit = ZirkonikData.resolveUnitPrice(p, ovs, doctor.id, null);
-            // Anlasma bu doktorla farkli para biriminde olabilir; listede
-            // gosterilen sembol de anlasmanin kendi para birimi.
-            var cur = ZirkonikData.resolveUnitCurrency(p, ovs, doctor.id, null);
-            var special = unit != null && (p.unit_price == null || unit !== Number(p.unit_price));
-            return '<div class="flex items-center justify-between gap-2 border-b border-border py-2.5 last:border-b-0">' +
-              '<p class="min-w-0 flex-1 text-sm font-semibold">' + escapeHtml(p.name) + '</p>' +
-              '<span class="text-sm font-bold tabular-nums ' + (special ? 'text-primary' : '') + '">' +
-                (unit != null ? unit + ' ' + cur : 'Fiyat sorunuz') +
-              (special ? ' <span class="text-[10px] font-bold text-primary">· anlaşmalı</span>' : '') + '</span></div>';
-          }).join('');
-          return '<section class="mb-5 rounded-theme border border-border bg-card p-4">' +
-            '<p class="mb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-primary">' + escapeHtml(cat) + '</p>' + rows + '</section>';
-        }).join('') || '<p class="mt-8 text-center text-sm text-muted-foreground">Fiyat listesi boş.</p>';
+        paintMyPrices(itemsR, ovs);
+        if (window.ZKHiz) ZKHiz.cachePut('my_prices', { items: itemsR, ovs: ovs });
       });
     }
 
