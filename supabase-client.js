@@ -307,6 +307,13 @@
     listDoctorTouches: function (doctorId) {
       return client().from('doctor_touches').select('*, yazan:created_by(full_name)').eq('doctor_id', doctorId).order('created_at', { ascending: false });
     },
+    // Doktor kazanım kartında "gönderilen işler" listesi — temsilci başka ekrana
+    // gitmeden bu doktora gerçekten iş gelip gelmediğini, kaç iş geldiğini görsün
+    // (24 Eylül 2026, sahibinin bulduğu görünürlük boşluğu).
+    listDoctorJobsSummary: function (doctorId) {
+      return client().from('jobs').select('id, job_number, restoration_type, unit_count, status, created_at')
+        .eq('doctor_id', doctorId).order('created_at', { ascending: false }).limit(10);
+    },
     addDoctorTouch: function (doctorId, fields) {
       return client().from('doctor_touches').insert(Object.assign({ doctor_id: doctorId }, fields)).select().single();
     },
