@@ -110,7 +110,7 @@
         <p class="mt-6 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Konular</p>
         <div class="mt-3 space-y-2">
 
-          <details class="rounded-theme border border-border bg-card">
+          <details class="rounded-theme border border-border bg-card" ontoggle="zkNudgeScroll(this)">
             <summary class="flex items-center gap-3 px-4 py-3.5">
               <iconify-icon icon="lucide:rocket" class="shrink-0 text-lg text-primary"></iconify-icon>
               <span class="flex-1 text-sm font-bold">Kuruluma nereden başlarım?</span>
@@ -130,7 +130,7 @@
             </div>
           </details>
 
-          <details class="rounded-theme border border-border bg-card">
+          <details class="rounded-theme border border-border bg-card" ontoggle="zkNudgeScroll(this)">
             <summary class="flex items-center gap-3 px-4 py-3.5">
               <iconify-icon icon="lucide:git-branch" class="shrink-0 text-lg text-primary"></iconify-icon>
               <span class="flex-1 text-sm font-bold">Bir iş nasıl ilerler?</span>
@@ -144,7 +144,7 @@
             </div>
           </details>
 
-          <details class="rounded-theme border border-border bg-card">
+          <details class="rounded-theme border border-border bg-card" ontoggle="zkNudgeScroll(this)">
             <summary class="flex items-center gap-3 px-4 py-3.5">
               <iconify-icon icon="lucide:undo-2" class="shrink-0 text-lg text-primary"></iconify-icon>
               <span class="flex-1 text-sm font-bold">Yanlış iş açtım, ne yapayım?</span>
@@ -161,7 +161,7 @@
             </div>
           </details>
 
-          <details class="rounded-theme border border-border bg-card">
+          <details class="rounded-theme border border-border bg-card" ontoggle="zkNudgeScroll(this)">
             <summary class="flex items-center gap-3 px-4 py-3.5">
               <iconify-icon icon="lucide:tags" class="shrink-0 text-lg text-primary"></iconify-icon>
               <span class="flex-1 text-sm font-bold">Fiyat ve oda rotası</span>
@@ -176,7 +176,7 @@
             </div>
           </details>
 
-          <details class="rounded-theme border border-border bg-card">
+          <details class="rounded-theme border border-border bg-card" ontoggle="zkNudgeScroll(this)">
             <summary class="flex items-center gap-3 px-4 py-3.5">
               <iconify-icon icon="lucide:stethoscope" class="shrink-0 text-lg text-primary"></iconify-icon>
               <span class="flex-1 text-sm font-bold">Doktorlar</span>
@@ -191,7 +191,7 @@
             </div>
           </details>
 
-          <details class="rounded-theme border border-border bg-card">
+          <details class="rounded-theme border border-border bg-card" ontoggle="zkNudgeScroll(this)">
             <summary class="flex items-center gap-3 px-4 py-3.5">
               <iconify-icon icon="lucide:users" class="shrink-0 text-lg text-primary"></iconify-icon>
               <span class="flex-1 text-sm font-bold">Ekip ve ücretler</span>
@@ -209,7 +209,7 @@
             </div>
           </details>
 
-          <details class="rounded-theme border border-border bg-card">
+          <details class="rounded-theme border border-border bg-card" ontoggle="zkNudgeScroll(this)">
             <summary class="flex items-center gap-3 px-4 py-3.5">
               <iconify-icon icon="lucide:chart-no-axes-combined" class="shrink-0 text-lg text-primary"></iconify-icon>
               <span class="flex-1 text-sm font-bold">Finans ve cariler</span>
@@ -223,7 +223,7 @@
             </div>
           </details>
 
-          <details class="rounded-theme border border-border bg-card">
+          <details class="rounded-theme border border-border bg-card" ontoggle="zkNudgeScroll(this)">
             <summary class="flex items-center gap-3 px-4 py-3.5">
               <iconify-icon icon="lucide:boxes" class="shrink-0 text-lg text-primary"></iconify-icon>
               <span class="flex-1 text-sm font-bold">Stok</span>
@@ -236,7 +236,7 @@
             </div>
           </details>
 
-          <details class="rounded-theme border border-border bg-card">
+          <details class="rounded-theme border border-border bg-card" ontoggle="zkNudgeScroll(this)">
             <summary class="flex items-center gap-3 px-4 py-3.5">
               <iconify-icon icon="lucide:circle-help" class="shrink-0 text-lg text-primary"></iconify-icon>
               <span class="flex-1 text-sm font-bold">Takıldığım yerler</span>
@@ -258,6 +258,16 @@
   </div>
 
   <script>
+    // 24 Eylül 2026 — aday-havuzu.html/doktorlar.html'deki aynı düzeltme: <details>
+    // açılınca içerik boyu birden değişiyor, WebKit'in kaydırma katmanını
+    // tazelemek için görünmez bir "dürtme".
+    function zkNudgeScroll(detailsEl) {
+      var kutu = detailsEl.closest('.overflow-y-auto');
+      if (!kutu) return;
+      var y = kutu.scrollTop;
+      kutu.scrollTop = y + 1;
+      kutu.scrollTop = y;
+    }
     (function() {
       var els = document.querySelectorAll('iconify-icon');
       for (var i = 0; i < els.length; i++) (function(el) {
