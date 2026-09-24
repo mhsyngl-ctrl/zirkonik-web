@@ -576,19 +576,10 @@
     // ---- Cari: doktorun laboratuvar ile hesap durumu ----
 
     var cariPaymentsById = {};
-    function loadCari() {
-      cariPaymentsById = {};
-      var client = ZirkonikAuth.client();
-      // 24 Eylül 2026: bakiye/toplamlar sunucudan (zk_doktor_cari), listeler son 300 kayıt.
-      Promise.all([
-        // 2026-09-12: doktorun kendi cari ekraninda iptal fatura gorunmez.
-        client.from('invoices').select('id, amount, currency, status, issued_at, due_date, jobs(job_number, restoration_type)').eq('doctor_id', doctor.id).neq('status', 'cancelled').order('issued_at', { ascending: false }).limit(300),
-        client.from('payments').select('id, amount, currency, method, received_at, note, app_users:received_by(full_name)').eq('doctor_id', doctor.id).order('received_at', { ascending: false }).limit(300),
-        client.rpc('zk_doktor_cari', { p_doctor_id: doctor.id })
-      ]).then(function (res) {
-        var invs = res[0].data || [];
-        var pays = res[1].data || [];
-        var cari = (res[2] && res[2].data) || {};
+    // Hız hissi (24 Eylül 2026): render mantığı ayrı fonksiyona çıkarıldı ki
+    // önbellekten anında çizim ile sunucu cevabı birebir aynı kodu kullansın.
+    function paintCari(invs, pays, cari) {
+        cariPaymentsById = {};
         // Anlasma USD de TL de olabilir; para birimleri toplanmiyor, her biri
         // kendi bakiyesiyle yan yana yaziliyor.
         var invG = cari.fatura || ZirkonikMoney.groupTotals(invs, 'amount', 'currency');
@@ -634,6 +625,25 @@
           ? moves.map(function (m) { return m.html; }).join('')
           : '<p class="text-xs text-muted-foreground">Henüz hesap hareketi yok.</p>';
         if (window.zkFlow) window.zkFlow.stagger(cariListEl);
+    }
+    function loadCari() {
+      var client = ZirkonikAuth.client();
+      if (window.ZKHiz) {
+        var onb = ZKHiz.cachePeek('doc_cari');
+        if (onb) paintCari(onb.invs, onb.pays, onb.cari);
+      }
+      // 24 Eylül 2026: bakiye/toplamlar sunucudan (zk_doktor_cari), listeler son 300 kayıt.
+      Promise.all([
+        // 2026-09-12: doktorun kendi cari ekraninda iptal fatura gorunmez.
+        client.from('invoices').select('id, amount, currency, status, issued_at, due_date, jobs(job_number, restoration_type)').eq('doctor_id', doctor.id).neq('status', 'cancelled').order('issued_at', { ascending: false }).limit(300),
+        client.from('payments').select('id, amount, currency, method, received_at, note, app_users:received_by(full_name)').eq('doctor_id', doctor.id).order('received_at', { ascending: false }).limit(300),
+        client.rpc('zk_doktor_cari', { p_doctor_id: doctor.id })
+      ]).then(function (res) {
+        var invs = res[0].data || [];
+        var pays = res[1].data || [];
+        var cari = (res[2] && res[2].data) || {};
+        paintCari(invs, pays, cari);
+        if (window.ZKHiz) ZKHiz.cachePut('doc_cari', { invs: invs, pays: pays, cari: cari });
       });
     }
 
