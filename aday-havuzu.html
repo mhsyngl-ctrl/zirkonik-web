@@ -171,10 +171,14 @@
   <!-- Aday/doktor detayı -->
   <div id="detail-sheet" class="fixed inset-0 z-40 hidden">
     <div class="absolute inset-0 bg-black/40" onclick="zkCloseDetail()"></div>
-    <div class="absolute bottom-0 left-0 max-h-[92vh] w-full overflow-y-auto rounded-t-theme bg-card p-5 pb-8">
-      <!-- Kapat düğmesi yapışkan (sticky): "Doktor bilgileri (opsiyonel)" açılınca panel
-           uzuyor, kullanıcı en üste kaydırmadan da her zaman kapatabilsin diye. -->
-      <div class="sticky -top-5 z-10 -mx-5 -mt-5 flex items-start justify-between gap-3 bg-card px-5 pt-5 pb-2">
+    <div class="absolute bottom-0 left-0 flex max-h-[92vh] w-full flex-col rounded-t-theme bg-card">
+      <!-- 24 Eylül 2026: kapat düğmesi eskiden bu kutunun İÇİNDE "sticky" idi —
+           WebKit'te sticky + kaydırma + <details>'in aniden büyüttüğü içerik bir
+           arada kilitlenmeye yol açtı (sahibinin bildirdiği "kapatamıyorum" hatası,
+           iki kez denendi). Artık kapat düğmesi kaydırma alanının TAMAMEN DIŞINDA,
+           sabit bir başlıkta — hem asla kilitlenmiyor hem asla ekranın en üstüne
+           (kamera/çentik) kaymıyor, kaydırılan gövde ayrı bir kutu. -->
+      <div class="flex shrink-0 items-start justify-between gap-3 rounded-t-theme bg-card px-5 pt-5 pb-2">
         <div class="min-w-0">
           <p id="dt-clinic" class="text-xs text-muted-foreground"></p>
           <h2 id="dt-name" class="mt-0.5 truncate font-heading text-lg font-bold">—</h2>
@@ -182,6 +186,7 @@
         </div>
         <button onclick="zkCloseDetail()" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-theme bg-muted text-muted-foreground" aria-label="Kapat">✕</button>
       </div>
+      <div class="min-h-0 flex-1 overflow-y-auto px-5 pt-1 pb-8">
 
       <div class="mt-4 grid grid-cols-2 gap-2.5">
         <label class="block"><span class="mb-1 block text-[11px] font-bold">Aşama</span>
@@ -290,6 +295,7 @@
           <button onclick="zkAddTouch('not')" class="rounded-lg border border-border bg-background py-2 text-[11px] font-bold">Not</button>
         </div>
         <div id="touch-list" class="mt-3 space-y-2"></div>
+      </div>
       </div>
     </div>
   </div>
