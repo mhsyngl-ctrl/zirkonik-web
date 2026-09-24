@@ -303,7 +303,7 @@
       <!-- 24 Eylül 2026, sahibinin isteği: Doktor Havuzu'ndaki temel doktor bilgileri
            (uzmanlık, tarayıcı, asistan vb.) doktor aktif olunca kaybolmasın — aynı
            alanlar burada da var, aday-havuzu.html'deki karşılığıyla birebir aynı. -->
-      <details class="mt-3 rounded-theme border border-border p-3">
+      <details class="mt-3 rounded-theme border border-border p-3" ontoggle="zkNudgeScroll(this)">
         <summary class="cursor-pointer text-xs font-bold text-primary">Doktor profili (opsiyonel)</summary>
         <div class="mt-3 space-y-2.5">
           <select id="ed-region" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs"><option value="">Bölge</option></select>
@@ -708,6 +708,17 @@
       document.getElementById('edit-doctor-sheet').classList.remove('hidden');
     }
     function zkCloseEditDoctor() { document.getElementById('edit-doctor-sheet').classList.add('hidden'); }
+
+    // 24 Eylül 2026 — aday-havuzu.html'deki aynı düzeltmeyle birebir: <details>
+    // açılınca içerik boyu birden değişiyor, WebKit'in kaydırma katmanını
+    // tazelemek için görünmez bir "dürtme".
+    function zkNudgeScroll(detailsEl) {
+      var kutu = detailsEl.closest('.overflow-y-auto');
+      if (!kutu) return;
+      var y = kutu.scrollTop;
+      kutu.scrollTop = y + 1;
+      kutu.scrollTop = y;
+    }
 
     function zkSubmitEditDoctor() {
       var errEl = document.getElementById('ed-error');
