@@ -319,6 +319,7 @@
 
   <script src="vendor/supabase-js.min.js"></script>
   <script src="supabase-config.js"></script>
+  <script src="js/net-guard.js"></script>
   <script src="supabase-client.js"></script>
   <script src="js/zk-guard.js"></script>
   <script src="js/zk-picker.js"></script>
@@ -577,20 +578,23 @@
     function loadCari() {
       cariPaymentsById = {};
       var client = ZirkonikAuth.client();
+      // 24 Eylül 2026: bakiye/toplamlar sunucudan (zk_doktor_cari), listeler son 300 kayıt.
       Promise.all([
         // 2026-09-12: doktorun kendi cari ekraninda iptal fatura gorunmez.
-        client.from('invoices').select('id, amount, currency, status, issued_at, due_date, jobs(job_number, restoration_type)').eq('doctor_id', doctor.id).neq('status', 'cancelled').order('issued_at', { ascending: false }),
-        client.from('payments').select('id, amount, currency, method, received_at, note, app_users:received_by(full_name)').eq('doctor_id', doctor.id).order('received_at', { ascending: false })
+        client.from('invoices').select('id, amount, currency, status, issued_at, due_date, jobs(job_number, restoration_type)').eq('doctor_id', doctor.id).neq('status', 'cancelled').order('issued_at', { ascending: false }).limit(300),
+        client.from('payments').select('id, amount, currency, method, received_at, note, app_users:received_by(full_name)').eq('doctor_id', doctor.id).order('received_at', { ascending: false }).limit(300),
+        client.rpc('zk_doktor_cari', { p_doctor_id: doctor.id })
       ]).then(function (res) {
         var invs = res[0].data || [];
         var pays = res[1].data || [];
+        var cari = (res[2] && res[2].data) || {};
         // Anlasma USD de TL de olabilir; para birimleri toplanmiyor, her biri
         // kendi bakiyesiyle yan yana yaziliyor.
-        var invG = ZirkonikMoney.groupTotals(invs, 'amount', 'currency');
-        var payG = ZirkonikMoney.groupTotals(pays, 'amount', 'currency');
+        var invG = cari.fatura || ZirkonikMoney.groupTotals(invs, 'amount', 'currency');
+        var payG = cari.odeme || ZirkonikMoney.groupTotals(pays, 'amount', 'currency');
         var balG = {};
-        Object.keys(invG).forEach(function (c) { balG[c] = invG[c]; });
-        Object.keys(payG).forEach(function (c) { balG[c] = (balG[c] || 0) - payG[c]; });
+        Object.keys(invG).forEach(function (c) { balG[c] = Number(invG[c]) || 0; });
+        Object.keys(payG).forEach(function (c) { balG[c] = (balG[c] || 0) - (Number(payG[c]) || 0); });
 
         var parcalar = [];
         var yon = 0;
