@@ -124,10 +124,12 @@
 
   <script src="vendor/supabase-js.min.js"></script>
   <script src="supabase-config.js"></script>
+  <script src="js/net-guard.js"></script>
   <script src="supabase-client.js"></script>
   <script src="js/zk-guard.js"></script>
   <script src="js/zk-picker.js"></script>
   <script src="js/zk-ptr.js"></script>
+  <script src="js/zk-hiz.js"></script>
   <script src="js/zk-yenile.js"></script>
   <script>
     var curTab = 'pending';
@@ -234,13 +236,37 @@
       rejected: '<span class="rounded-full bg-destructive/10 px-2 py-1 text-[10px] font-bold text-destructive">Reddedildi</span>'
     };
 
+    // Sayfalama (24 Eylül 2026): sekme filtresi sunucuda, 50'lik sayfalar,
+    // "Daha fazla yükle". Eskiden tüm siparişler indirilip JS'te süzülüyordu.
+    var ORDER_PAGE = 50;
+    var ordersTotal = 0;
+    var ordersAppend = false;
+    function loadMoreOrders() { ordersAppend = true; loadOrders(); }
     function loadOrders() {
-      ZirkonikData.listOrders().then(function (r) {
+      var append = ordersAppend; ordersAppend = false;
+      var filtre = { limit: ORDER_PAGE, offset: append ? orders.length : 0 };
+      if (curTab === 'pending') filtre.status = 'pending'; else filtre.notStatus = 'pending';
+      // Hız hissi (24 Eylül 2026): ilk sayfa önbellekten anında çizilir, sunucu
+      // cevabı gelince üstüne yazılır. Sekme değişince de aynı.
+      if (!append && window.ZKHiz) {
+        var onb = ZKHiz.cachePeek('orders_' + curTab);
+        if (onb && onb.rows) { orders = onb.rows; ordersTotal = onb.total || orders.length; renderOrders(); }
+      }
+      ZirkonikData.listOrders(filtre).then(function (r) {
         if (r.error) { zkToast('Yüklenemedi: ' + r.error.message); return; }
-        var all = r.data || [];
-        orders = all.filter(function (o) {
-          return curTab === 'pending' ? o.status === 'pending' : o.status !== 'pending';
-        });
+        var gelen = r.data || [];
+        ordersTotal = r.count != null ? r.count : (append ? orders.length + gelen.length : gelen.length);
+        if (append) {
+          var var_ = {}; orders.forEach(function (o) { var_[o.id] = true; });
+          gelen.forEach(function (o) { if (!var_[o.id]) orders.push(o); });
+        } else {
+          orders = gelen;
+          if (window.ZKHiz) ZKHiz.cachePut('orders_' + curTab, { rows: orders, total: ordersTotal });
+        }
+        renderOrders();
+      });
+    }
+    function renderOrders() {
         var el = document.getElementById('orders-list');
         if (!orders.length) {
           el.innerHTML = '<p class="mt-8 text-center text-sm text-muted-foreground">' +
@@ -274,8 +300,10 @@
             (o.note ? '<p class="mt-2 text-xs text-muted-foreground">' + escapeHtml(o.note) + '</p>' : '') +
             actions + '</article>';
         }).join('');
+        if (ordersTotal > orders.length) {
+          el.insertAdjacentHTML('beforeend', '<button type="button" onclick="loadMoreOrders()" class="flex h-11 w-full items-center justify-center rounded-theme border border-border bg-card text-sm font-bold">Daha fazla yükle (' + (ordersTotal - orders.length) + ' sipariş kaldı)</button>');
+        }
         if (window.zkFlow) window.zkFlow.stagger(el);
-      });
     }
 
     function zkOpenApprove(orderId) {
