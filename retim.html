@@ -1237,7 +1237,7 @@
         // cok calisma turu icerebiliyor ve her tur kendi rotasini izliyor,
         // yani ayni siparis ayni anda iki odada bulunabilir. Tek kalemli
         // islerde (bugunku tum isler) gorunum birebir ayni kaliyor.
-        ZirkonikData.listActiveItems(lab.id)
+        ZirkonikData.listActiveItems(lab.id, !!zkIsAdmin)
       ]).then(function (results) {
         var rooms = results[0].data || [];
         // Kalemi ust isin alanlariyla duzlestiriyoruz ki asagidaki petek
