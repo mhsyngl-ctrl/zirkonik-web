@@ -97,6 +97,8 @@
     // fiyat düzenleyebildiği için o da görebilir (24 Eylül 2026).
     if (page === 'siparisler' && !p.can_manage_orders) { location.replace('retim.html'); return true; }
     if (page === 'fiyat-listesi' && !p.can_view_price_list && !p.can_view_finance) { location.replace('retim.html'); return true; }
+    // Aday Havuzu: doktor kazanım süreci — 24 Eylül 2026.
+    if (page === 'aday-havuzu' && !p.can_manage_prospects) { location.replace('retim.html'); return true; }
     return false;
   }
 
@@ -138,6 +140,7 @@
     if (!p.can_view_doctors) sel += ',a[href*="doktorlar"],[onclick*="doktorlar"]';
     if (!p.can_manage_orders) sel += ',a[href*="siparisler"],[onclick*="siparisler"]';
     if (!p.can_view_price_list && !p.can_view_finance) sel += ',a[href*="fiyat-listesi"],[onclick*="fiyat-listesi"]';
+    if (!p.can_manage_prospects) sel += ',a[href*="aday-havuzu"],[onclick*="aday-havuzu"]';
     var links = document.querySelectorAll(sel);
     for (var k = 0; k < links.length; k++) links[k].style.display = 'none';
   }
@@ -190,7 +193,8 @@
       can_view_finance: !!p.can_view_finance,
       can_view_doctors: !!p.can_view_doctors,
       can_manage_orders: !!p.can_manage_orders,
-      can_view_price_list: !!p.can_view_price_list
+      can_view_price_list: !!p.can_view_price_list,
+      can_manage_prospects: !!p.can_manage_prospects
     };
     try { localStorage.setItem('zk-guard', JSON.stringify(snap)); } catch (e) {}
     if (enforce(snap.role, snap)) return;
