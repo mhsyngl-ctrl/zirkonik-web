@@ -298,9 +298,11 @@
 
   <script src="vendor/supabase-js.min.js"></script>
   <script src="supabase-config.js"></script>
+  <script src="js/net-guard.js"></script>
   <script src="supabase-client.js"></script>
   <script src="js/zk-guard.js"></script>
   <script src="js/zk-ptr.js"></script>
+  <script src="js/zk-hiz.js"></script>
   <script src="js/zk-yenile.js"></script>
   <!-- Salt okunur diş şeması için (renderChartOnly). Form alanları
        kullanılmıyor, yalnızca şema çiziliyor. -->
@@ -426,11 +428,29 @@
       }
     }
 
+    // Ön yükleme (hız kuralı 2): listeden taşınan ya da önbellekteki iş başlığı
+    // sunucu beklenmeden çizilir; gerçek kayıt gelince renderJob üstüne yazar.
+    function renderJobHeaderBasics(j) {
+      if (!j) return;
+      document.getElementById('job-number').textContent = j.job_number || '—';
+      document.getElementById('job-type').textContent = j.restoration_type || '—';
+      document.getElementById('job-tooth-count').textContent = j.unit_count || '—';
+      document.getElementById('job-delivery').textContent = j.requested_delivery_at ? new Date(j.requested_delivery_at).toLocaleDateString('tr-TR') : 'Belirtilmedi';
+      var doc = j.doctors || {};
+      document.getElementById('doctor-name').textContent = doc.full_name ? 'Dr. ' + doc.full_name : '—';
+      document.getElementById('doctor-clinic').textContent = doc.clinic_name || '—';
+      document.getElementById('doctor-initial').textContent = doc.full_name ? doc.full_name.charAt(0).toUpperCase() : '?';
+    }
     function loadJob() {
       var client = ZirkonikAuth.client();
+      if (!currentJob) {
+        var tasinan = ZKHiz.takeHandoff('job:' + jobId) || ZKHiz.cachePeek('job_' + jobId);
+        if (tasinan) { try { renderJobHeaderBasics(tasinan); } catch (e) {} }
+      }
       ZirkonikData.getJob(jobId).then(function (jobRes) {
         if (jobRes.error || !jobRes.data) throw jobRes.error || new Error('İş bulunamadı');
         currentJob = jobRes.data;
+        ZKHiz.cachePut('job_' + jobId, currentJob);
         return ZirkonikData.listJobItems(jobId);
       }).then(function (itemsRes) {
         jobItems = itemsRes.data || [];
@@ -882,18 +902,27 @@
       // Teslim onayi ve ilerletme SECILI KALEM uzerinden. Kalem yoksa eski
       // is bazli yola dusulur (teorik; geri dolum her ise bir kalem yaratti).
       if (advanceMode === 'accept') {
-        var acceptP = currentItem
-          ? ZirkonikData.confirmJobItemStage(currentItem.id, zkCurRoom())
-          : ZirkonikAuth.me().then(function (me) {
-              return ZirkonikData.confirmJobStage(jobId, zkCurRoom(), me.id);
-            });
-        acceptP.then(function (res) {
-          if (res && res.error) throw res.error;
-          loadJob();
-        }).catch(function (err) {
-          errEl.textContent = 'Teslim alınamadı: ' + err.message;
-          errEl.classList.remove('hidden');
-        });
+        // İyimser arayüz (hız kuralı 1): düğme hemen "Sonraki aşamaya taşı"ya
+        // döner, sunucu arkadan gider; hata olursa eski hâle döner ve uyarı çıkar.
+        var eskiStage = currentStage;
+        ZKHiz.optimistic({
+          label: 'Teslim alınamadı',
+          apply: function () {
+            currentStage = Object.assign({}, currentStage || {}, { confirmed_at: new Date().toISOString() });
+            renderAdvanceButton();
+          },
+          request: function () {
+            return currentItem
+              ? ZirkonikData.confirmJobItemStage(currentItem.id, zkCurRoom())
+              : ZirkonikAuth.me().then(function (me) { return ZirkonikData.confirmJobStage(jobId, zkCurRoom(), me.id); });
+          },
+          revert: function (err) {
+            currentStage = eskiStage;
+            renderAdvanceButton();
+            errEl.textContent = 'Teslim alınamadı: ' + (err && err.message ? err.message : err);
+            errEl.classList.remove('hidden');
+          }
+        }).then(function (res) { if (!res.error) loadJob(); });
         return;
       }
 
@@ -935,16 +964,31 @@
         return;
       }
 
-      var advP = currentItem
-        ? ZirkonikData.advanceJobItem(currentItem.id, nextRoom.id)
-        : ZirkonikData.advanceJobStage(jobId, zkCurRoom(), nextRoom.id);
-      advP.then(function (res) {
-        if (res && res.error) throw res.error;
-        loadJob();
-      }).catch(function (err) {
-        errEl.textContent = 'İşlem başarısız: ' + err.message;
-        errEl.classList.remove('hidden');
-      });
+      // İyimser arayüz: aşama çubuğu hemen bir sonraki odaya geçer, sunucu arkadan;
+      // hata olursa eski oda geri gelir ve uyarı çıkar.
+      var eskiOda = zkCurRoom(), eskiStage2 = currentStage;
+      ZKHiz.optimistic({
+        label: 'İşlem başarısız',
+        apply: function () {
+          if (currentItem) currentItem.current_room_id = nextRoom.id; else currentJob.current_room_id = nextRoom.id;
+          currentStage = { confirmed_at: null };
+          renderStageTrack();
+          renderAdvanceButton();
+        },
+        request: function () {
+          return currentItem
+            ? ZirkonikData.advanceJobItem(currentItem.id, nextRoom.id)
+            : ZirkonikData.advanceJobStage(jobId, zkCurRoom(), nextRoom.id);
+        },
+        revert: function (err) {
+          if (currentItem) currentItem.current_room_id = eskiOda; else currentJob.current_room_id = eskiOda;
+          currentStage = eskiStage2;
+          renderStageTrack();
+          renderAdvanceButton();
+          errEl.textContent = 'İşlem başarısız: ' + (err && err.message ? err.message : err);
+          errEl.classList.remove('hidden');
+        }
+      }).then(function (res) { if (!res.error) loadJob(); });
     });
   
     /* Yumusak tazeleme: sayfa verisi yalniz acilista cekiliyordu, baskasi
