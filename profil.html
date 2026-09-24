@@ -248,6 +248,34 @@
           </button>
         </section>
 
+        <section id="pf-bolge-section" class="mt-5 hidden rounded-theme border border-border bg-card p-4">
+          <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Bölge ve para birimi</p>
+          <p class="mt-1 text-xs leading-5 text-muted-foreground">Yeni kayıtların varsayılan para birimi, sayı biçimi ve saat dilimi. Mevcut kayıtların para birimi değişmez.</p>
+          <div class="mt-3 grid grid-cols-2 gap-2">
+            <label class="block"><span class="mb-1 block text-[11px] font-bold">Varsayılan para birimi</span>
+              <select id="pf-bolge-currency" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-sm"><option value="₺">₺ Türk lirası</option><option value="$">$ Dolar</option><option value="€">€ Euro</option></select></label>
+            <label class="block"><span class="mb-1 block text-[11px] font-bold">Ülke</span>
+              <select id="pf-bolge-country" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-sm"><option value="TR">Türkiye</option><option value="DE">Almanya</option><option value="GB">Birleşik Krallık</option><option value="US">ABD</option><option value="NL">Hollanda</option><option value="AE">BAE</option><option value="SA">Suudi Arabistan</option><option value="AZ">Azerbaycan</option><option value="CY">Kıbrıs</option></select></label>
+            <label class="block"><span class="mb-1 block text-[11px] font-bold">Sayı biçimi</span>
+              <select id="pf-bolge-locale" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-sm"><option value="tr-TR">Türkçe (1.234,56)</option><option value="en-US">İngilizce (1,234.56)</option><option value="de-DE">Almanca (1.234,56)</option><option value="ar-AE">Arapça</option></select></label>
+            <label class="block"><span class="mb-1 block text-[11px] font-bold">Saat dilimi</span>
+              <select id="pf-bolge-timezone" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-sm"><option value="Europe/Istanbul">İstanbul</option><option value="Europe/Berlin">Berlin</option><option value="Europe/London">Londra</option><option value="Europe/Amsterdam">Amsterdam</option><option value="Asia/Dubai">Dubai</option><option value="Asia/Riyadh">Riyad</option><option value="Asia/Baku">Bakü</option><option value="Asia/Nicosia">Lefkoşa</option><option value="America/New_York">New York</option></select></label>
+          </div>
+          <button onclick="zkSaveBolge()" id="pf-bolge-btn" class="mt-3 flex h-11 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
+        </section>
+
+        <section id="pf-abonelik-section" class="mt-5 hidden rounded-theme border border-border bg-card p-4">
+          <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Abonelik</p>
+          <p id="pf-abonelik-plan" class="mt-1 font-heading text-sm font-bold">—</p>
+          <p id="pf-abonelik-sure" class="mt-1 text-xs leading-5 text-muted-foreground">—</p>
+        </section>
+
+        <section id="pf-errors-section" class="mt-5 hidden rounded-theme border border-border bg-card p-4">
+          <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Hata günlüğü</p>
+          <p class="mt-1 text-xs leading-5 text-muted-foreground">Son 7 gün · uygulamanın kendi yakaladığı hatalar. Bir sorun bildirirken buradaki satırı iletmeniz yeterli.</p>
+          <div id="pf-errors-list" class="mt-3 space-y-2"></div>
+        </section>
+
         <section id="pf-reset-section" class="mt-5 hidden rounded-theme border border-destructive/30 bg-card p-4">
           <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-destructive">Tehlikeli bölge</p>
           <h2 class="mt-1 font-heading text-sm font-bold">Verileri Sıfırla</h2>
@@ -292,6 +320,7 @@
 
   <script src="vendor/supabase-js.min.js"></script>
   <script src="supabase-config.js"></script>
+  <script src="js/net-guard.js"></script>
   <script src="supabase-client.js"></script>
   <script src="js/zk-guard.js"></script>
   <script src="js/zk-ptr.js"></script>
@@ -327,6 +356,9 @@
         if (me.role === 'yonetici') {
           pfOrgId = me.organization_id;
           document.getElementById('pf-reset-section').classList.remove('hidden');
+          zkLoadAbonelik();
+          zkLoadErrorLog();
+          zkLoadBolge(me.organizations || {});
         }
         if (me.role === 'doktor') {
           // Doktor retim.html'e giremiyor (zk-guard geri atar); geri dugmesi
@@ -391,6 +423,92 @@
             '<p class="shrink-0 text-sm font-bold tabular-nums">' + ZirkonikMoney.format(e.amount, e.currency, 2) + '</p></div>';
         }).join('');
       }).catch(function () {});
+    }
+
+    /* Bölge ve para birimi kartı (yönetici): organizations.default_currency/locale/timezone/country. */
+    function zkLoadBolge(org) {
+      var sec = document.getElementById('pf-bolge-section');
+      if (!sec) return;
+      sec.classList.remove('hidden');
+      document.getElementById('pf-bolge-currency').value = org.default_currency || '₺';
+      document.getElementById('pf-bolge-country').value = org.country || 'TR';
+      document.getElementById('pf-bolge-locale').value = org.locale || 'tr-TR';
+      document.getElementById('pf-bolge-timezone').value = org.timezone || 'Europe/Istanbul';
+    }
+    function zkSaveBolge() {
+      if (!pfOrgId) return;
+      var btn = document.getElementById('pf-bolge-btn');
+      var fields = {
+        default_currency: document.getElementById('pf-bolge-currency').value,
+        country: document.getElementById('pf-bolge-country').value,
+        locale: document.getElementById('pf-bolge-locale').value,
+        timezone: document.getElementById('pf-bolge-timezone').value
+      };
+      if (!confirm('Bölge ayarı kaydedilsin mi? Mevcut kayıtların para birimi değişmez; yeni kayıtlar ' + fields.default_currency + ' ile açılır.')) return;
+      btn.disabled = true;
+      ZirkonikData.updateOrgRegion(pfOrgId, fields).then(function (r) {
+        btn.disabled = false;
+        if (r.error) { zkToast('Kaydedilemedi: ' + r.error.message); return; }
+        zkToast('Bölge ayarı kaydedildi.');
+        setTimeout(function () { location.reload(); }, 600);
+      });
+    }
+
+    /* Abonelik kartı (yönetici): plan ve erişim süresi. trial_ends_at NULL ise
+     * süresiz/elle yönetilen erişim (bkz. organizations.trial_ends_at yorumu). */
+    var PLAN_ETIKET = { standart: 'Standart paket', kurumsal: 'Kurumsal paket' };
+    function zkLoadAbonelik() {
+      var sec = document.getElementById('pf-abonelik-section');
+      if (!sec || !pfOrgId) return;
+      ZirkonikAuth.client().from('organizations').select('plan, trial_ends_at, subscription_status').eq('id', pfOrgId).maybeSingle()
+        .then(function (r) {
+          var o = r && r.data;
+          if (!o) return;
+          sec.classList.remove('hidden');
+          document.getElementById('pf-abonelik-plan').textContent = PLAN_ETIKET[o.plan] || (o.plan || 'Paket');
+          var sure;
+          if (o.subscription_status === 'canceled') {
+            sure = 'Erişim kapalı. Devam etmek için bizimle iletişime geçin.';
+          } else if (!o.trial_ends_at) {
+            sure = 'Süresiz erişim.';
+          } else {
+            var bitis = new Date(o.trial_ends_at);
+            var kalan = Math.ceil((bitis.getTime() - Date.now()) / 86400000);
+            var tarih = bitis.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+            sure = kalan > 0
+              ? 'Deneme süresi ' + tarih + ' tarihinde bitiyor (' + kalan + ' gün kaldı).'
+              : 'Deneme süresi ' + tarih + ' tarihinde sona erdi.';
+          }
+          document.getElementById('pf-abonelik-sure').textContent = sure;
+        }).catch(function () {});
+    }
+
+    /* Hata günlüğü (yönetici): net-guard.js'in client_errors'a yazdığı
+     * yakalanmış hatalar; RLS yalnız kuruluş yöneticisine gösterir. */
+    var HATA_TUR = { js: 'Kod hatası', promise: 'Beklenmeyen hata', data: 'Veri yüklenemedi', network: 'Ağ' };
+    function zkLoadErrorLog() {
+      var sec = document.getElementById('pf-errors-section');
+      var list = document.getElementById('pf-errors-list');
+      if (!sec || !list) return;
+      ZirkonikAuth.client().from('client_errors')
+        .select('kind, page, message, app_version, created_at, app_users(full_name)')
+        .gte('created_at', new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString())
+        .order('created_at', { ascending: false }).limit(30)
+        .then(function (r) {
+          var rows = (r && r.data) || [];
+          if (r && r.error) { console.warn('hata günlüğü:', r.error.message); return; }
+          if (!rows.length) { sec.classList.add('hidden'); return; }
+          sec.classList.remove('hidden');
+          list.innerHTML = rows.map(function (e) {
+            var d = new Date(e.created_at);
+            var ne = d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) + ' ' + d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', hour12: false });
+            var kim = (e.app_users && e.app_users.full_name) || 'Bilinmeyen kullanıcı';
+            return '<div class="rounded-theme border border-border bg-background px-3 py-2.5">' +
+              '<p class="text-xs font-bold">' + escapeHtml(HATA_TUR[e.kind] || e.kind) + ' · ' + escapeHtml(kim) + '</p>' +
+              '<p class="mt-0.5 break-words text-[11px] text-muted-foreground">' + escapeHtml(ne + ' · ' + (e.page || '') + (e.app_version ? ' · v' + e.app_version : '')) + '</p>' +
+              '<p class="mt-1 break-words text-[11px]">' + escapeHtml(String(e.message || '').slice(0, 200)) + '</p></div>';
+          }).join('');
+        }).catch(function () {});
     }
 
     function zkTogglePassword(inputId, btn) {
