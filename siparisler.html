@@ -136,6 +136,9 @@
     var orders = [];
     var labs = [];
     var approveOrderId = null;
+    // 24 Eylül 2026, sahibinin kuralı: fiyatları yalnız yönetici/işveren
+    // görür. Resepsiyon siparişi yine onaylar ama tutarı hiç görmez.
+    var myRole = null;
     // 2026-09-12: listede ve onay ekraninda liste fiyati gosteriliyordu, ama
     // fatura anlasmali fiyat (price_overrides) uzerinden kesiliyordu. Personel
     // onayladigi isin gercek tutarini hic gormuyordu.
@@ -150,15 +153,20 @@
       ZirkonikAuth.client().from('laboratories').select('id, name').order('name').then(function (r) {
         labs = r.data || [];
       });
-      // Anlasmali fiyatlar ve fiyat kalemleri gelmeden liste ciziliyordu; tek
-      // sefer, hata olsa bile liste yine yuklensin diye ayri yakalaniyor.
-      Promise.all([
-        ZirkonikData.listPriceOverrides().then(function (r) { return r.data || []; }, function () { return []; }),
-        ZirkonikData.listPriceItems().then(function (r) { return r.data || []; }, function () { return []; })
-      ]).then(function (res) {
-        priceOverrides = res[0];
-        res[1].forEach(function (p) { priceItemsById[p.id] = p; });
-        loadOrders();
+      ZirkonikAuth.me().then(function (me) {
+        myRole = me ? me.role : null;
+        if (myRole !== 'yonetici') { loadOrders(); return; }
+        // Anlasmali fiyatlar ve fiyat kalemleri gelmeden liste ciziliyordu; tek
+        // sefer, hata olsa bile liste yine yuklensin diye ayri yakalaniyor.
+        // Yalniz yonetici cekiyor — personel tutari hic gormeyecek.
+        Promise.all([
+          ZirkonikData.listPriceOverrides().then(function (r) { return r.data || []; }, function () { return []; }),
+          ZirkonikData.listPriceItems().then(function (r) { return r.data || []; }, function () { return []; })
+        ]).then(function (res) {
+          priceOverrides = res[0];
+          res[1].forEach(function (p) { priceItemsById[p.id] = p; });
+          loadOrders();
+        });
       });
     });
 
@@ -277,10 +285,12 @@
           var doc = o.doctors || {};
           var d = new Date(o.created_at);
           var wfBits = wfSummary(o);
-          var pr = zkOrderPrice(o, null);
-          var priceInfo = pr
-            ? pr.totalText + (pr.isSpecial ? ' (anlaşmalı)' : '')
-            : 'Fiyat sorunuz';
+          // Fiyat yalnız yönetici/işveren görür — personel görünümünde bu
+          // segment hiç oluşturulmaz (24 Eylül 2026).
+          var pr = myRole === 'yonetici' ? zkOrderPrice(o, null) : null;
+          var priceInfo = myRole === 'yonetici'
+            ? (pr ? pr.totalText + (pr.isSpecial ? ' (anlaşmalı)' : '') : 'Fiyat sorunuz')
+            : null;
           var actions = o.status === 'pending'
             ? '<div class="mt-3 grid grid-cols-2 gap-2">' +
               '<button onclick="zkOpenApprove(\'' + o.id + '\')" class="flex h-10 items-center justify-center gap-1.5 rounded-theme bg-primary text-xs font-bold text-primary-foreground"><iconify-icon icon="lucide:check" class="text-sm"></iconify-icon>Onayla</button>' +
@@ -291,7 +301,7 @@
             '<div class="flex items-start justify-between gap-2">' +
             '<div class="min-w-0"><p class="text-sm font-bold">' + escapeHtml(o.restoration_type) + '</p>' +
             '<p class="mt-0.5 text-xs text-muted-foreground">Dr. ' + escapeHtml(doc.full_name || '—') + (doc.clinic_name ? ' · ' + escapeHtml(doc.clinic_name) : '') + '</p>' +
-            '<p class="mt-0.5 text-xs text-muted-foreground">' + o.unit_count + ' diş' + (o.teeth_numbers ? ' · ' + escapeHtml(o.teeth_numbers) : '') + ' · ' + priceInfo + '</p>' +
+            '<p class="mt-0.5 text-xs text-muted-foreground">' + o.unit_count + ' diş' + (o.teeth_numbers ? ' · ' + escapeHtml(o.teeth_numbers) : '') + (priceInfo ? ' · ' + priceInfo : '') + '</p>' +
             '<p class="mt-0.5 text-[11px] text-muted-foreground">' + d.toLocaleDateString('tr-TR') + ' ' + d.toLocaleTimeString('tr-TR', {hour:'2-digit',minute:'2-digit'}) + '</p></div>' +
             (STATUS_BADGES[o.status] || '') + '</div>' +
             (wfBits.length ? '<div class="mt-2 flex flex-wrap gap-1">' + wfBits.map(function (b) {
@@ -323,12 +333,20 @@
     }
 
     // Onaydan ONCE gercek tutari gosterir; secilen laboratuvara gore degisir.
+    // 24 Eylül 2026: personel görünümünde tutar hiç hesaplanmaz/gösterilmez —
+    // "fiyat tanımlı değil" uyarısı burada YANLIŞ olurdu (fiyat var, sadece
+    // gizli), o yüzden ayrı, doğru bir nötr metin gösteriliyor.
     function zkRenderApprovePrice() {
       var o = orders.find(function (x) { return x.id === approveOrderId; });
       var labId = document.getElementById('ap-lab').value || null;
       var el = document.getElementById('ap-price');
       var note = document.getElementById('ap-price-note');
       if (!o) { el.textContent = '—'; note.textContent = ''; return; }
+      if (myRole !== 'yonetici') {
+        el.textContent = 'Fiyat yalnız yöneticiye görünür';
+        note.textContent = 'Kalem/miktarı kontrol edip onaylayın — tutar bilgisi bu ekranda gösterilmez.';
+        return;
+      }
       var pr = zkOrderPrice(o, labId);
       if (!pr) {
         el.textContent = 'Fiyat tanımlı değil';
