@@ -398,10 +398,12 @@
 
   <script src="vendor/supabase-js.min.js"></script>
   <script src="supabase-config.js"></script>
+  <script src="js/net-guard.js"></script>
   <script src="supabase-client.js"></script>
   <script src="js/zk-guard.js"></script>
   <script src="js/zk-picker.js"></script>
   <script src="js/zk-ptr.js"></script>
+  <script src="js/zk-hiz.js"></script>
   <script src="js/zk-yenile.js"></script>
   <script>
     function zkGoToBoard() {
@@ -429,6 +431,17 @@
       return 'İyi geceler';
     }
 
+    // Sayaç kartlarını hem önbellekten hem sunucu cevabından çizer (24 Eylül 2026).
+    function zkPaintDashStats(o) {
+      document.getElementById('stat-active-jobs').textContent = o.active || 0;
+      document.getElementById('stat-completed-jobs').textContent = o.completed || 0;
+      document.getElementById('stat-due-today').textContent = o.dueToday || 0;
+      document.getElementById('stat-overdue').textContent = o.overdue || 0;
+      document.getElementById('stat-qc').textContent = o.qc || 0;
+      document.getElementById('stat-receivables').textContent = ZirkonikMoney.formatTotals(o.bekleyen || {}, 0);
+      document.getElementById('stat-critical-stock').textContent = o.criticalStock || 0;
+      document.getElementById('stat-pending-orders').textContent = o.pendingOrders || 0;
+    }
     function loadDashboard() {
       ZirkonikAuth.me().then(function (me) {
         document.getElementById('greeting').textContent = zkSelamlama() + ', ' + (me ? me.full_name : '');
@@ -442,53 +455,47 @@
 
       loadBoard();
 
-      client.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'active')
-        .then(function (r) { document.getElementById('stat-active-jobs').textContent = r.count || 0; });
+      // Hız hissi (24 Eylül 2026): 8 sayaç sorgusu tek pakette; önbellekteki
+      // son değerler sunucu cevabı gelmeden anında çizilir (kart yükleyicileri
+      // salon interneti zayıfken uzun süre "—" göstermesin diye).
+      if (window.ZKHiz) {
+        var onbDash = ZKHiz.cachePeek('dash_stats');
+        if (onbDash) zkPaintDashStats(onbDash);
+      }
 
-      client.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'completed')
-        .then(function (r) { document.getElementById('stat-completed-jobs').textContent = r.count || 0; });
-
-      client.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'active')
-        .gte('requested_delivery_at', todayStart.toISOString()).lte('requested_delivery_at', todayEnd.toISOString())
-        .then(function (r) { document.getElementById('stat-due-today').textContent = r.count || 0; });
-
-      client.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'active')
-        .lt('requested_delivery_at', todayStart.toISOString())
-        .then(function (r) { document.getElementById('stat-overdue').textContent = r.count || 0; });
-
-      client.from('rooms').select('id').eq('is_quality_control', true).then(function (rr) {
+      var qcPromise = client.from('rooms').select('id').eq('is_quality_control', true).then(function (rr) {
         var ids = (rr.data || []).map(function (x) { return x.id; });
-        if (!ids.length) { document.getElementById('stat-qc').textContent = 0; return; }
-        client.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'active').in('current_room_id', ids)
-          .then(function (r) { document.getElementById('stat-qc').textContent = r.count || 0; });
+        if (!ids.length) return { count: 0 };
+        return client.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'active').in('current_room_id', ids);
       });
 
-      client.from('invoices').select('id, amount, currency').in('status', ['unpaid', 'partial', 'overdue']).then(function (r) {
-        var invoices = r.data || [];
-        if (!invoices.length) { document.getElementById('stat-receivables').textContent = ZirkonikMoney.format(0, null, 0); return; }
-        var ids = invoices.map(function (x) { return x.id; });
-        // Kısmi ödemeler düşülmeden tam fatura tutarı gösteriliyordu — kalan
-        // bakiyeyi hesaplamak için o faturalara ait tahsilatları da çekiyoruz.
-        client.from('payments').select('invoice_id, amount').in('invoice_id', ids).then(function (pr) {
-          var paidByInvoice = {};
-          (pr.data || []).forEach(function (p) { paidByInvoice[p.invoice_id] = (paidByInvoice[p.invoice_id] || 0) + Number(p.amount); });
-          // Farkli para birimleri TOPLANMAZ — her biri kendi toplamiyla yan
-          // yana gosterilir ("$1.200 · ₺5.000"). Kur kullanilmiyor.
-          var kalanlar = invoices.map(function (x) {
-            return { amount: Math.max(0, Number(x.amount || 0) - (paidByInvoice[x.id] || 0)), currency: x.currency };
-          }).filter(function (x) { return x.amount > 0; });
-          document.getElementById('stat-receivables').textContent =
-            ZirkonikMoney.totalText(kalanlar, 'amount', 'currency', 0);
-        });
+      // Alacak: sunucuda kesin toplam (zk_finans_ozet.bekleyen — kısmi ödemeler
+      // düşülmüş, para birimi başına ayrı). Eskiden açık faturalar + ödemeleri
+      // indirilip JS'te toplanıyordu (1000 satırda sessiz kesinti).
+      var financePromise = client.rpc('zk_finans_ozet').then(function (r) { return (r && r.data) || {}; });
+
+      var stockPromise = client.from('material_stock').select('quantity_on_hand, min_threshold').then(function (r) {
+        return (r.data || []).filter(function (x) { return Number(x.quantity_on_hand) <= Number(x.min_threshold); }).length;
       });
 
-      client.from('material_stock').select('quantity_on_hand, min_threshold').then(function (r) {
-        var n = (r.data || []).filter(function (x) { return Number(x.quantity_on_hand) <= Number(x.min_threshold); }).length;
-        document.getElementById('stat-critical-stock').textContent = n;
-      });
-
-      client.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'pending').then(function (r) {
-        document.getElementById('stat-pending-orders').textContent = r.count || 0;
+      Promise.all([
+        client.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+        client.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
+        client.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'active')
+          .gte('requested_delivery_at', todayStart.toISOString()).lte('requested_delivery_at', todayEnd.toISOString()),
+        client.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'active')
+          .lt('requested_delivery_at', todayStart.toISOString()),
+        qcPromise,
+        financePromise,
+        stockPromise,
+        client.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'pending')
+      ]).then(function (r) {
+        var o = {
+          active: r[0].count || 0, completed: r[1].count || 0, dueToday: r[2].count || 0, overdue: r[3].count || 0,
+          qc: r[4].count || 0, bekleyen: r[5].bekleyen || {}, criticalStock: r[6], pendingOrders: r[7].count || 0
+        };
+        zkPaintDashStats(o);
+        if (window.ZKHiz) ZKHiz.cachePut('dash_stats', o);
       });
 
       // Haftalık dağılım: bu haftanın (Pzt-Paz) her gününde tamamlanan iş sayısı.
@@ -1043,11 +1050,15 @@
       });
     }
 
-    // Otomatik canlı yenileme: 10 saniyede bir (ekran görünürken).
-    // Seçili petek hiveUserSelId ile korunur, kaydırma tetiklenmez.
+    // Otomatik canlı yenileme: 30 saniyede bir (ekran görünürken). Eskiden 10
+    // saniyeydi — ekran saatlerce açık kalınca (tezgahta sürekli duran kontrol
+    // ekranı) sekiz sorgu + pano yeniden çizimi çok sık tekrarlanıp zayıf
+    // laboratuvar internetinde birikip cihazı zamanla yavaşlatıyordu (24 Eylül
+    // 2026, sahibinin bildirimi). Seçili petek hiveUserSelId ile korunur,
+    // kaydırma tetiklenmez.
     setInterval(function () {
       if (!document.hidden) zkRefreshDashboard();
-    }, 10000);
+    }, 30000);
 
     // ---- Üretim panosu (oda sütunlu) ----
     var boardLabs = [];
@@ -1106,7 +1117,75 @@
       }
     }
 
+    // Ham oda/kalem/onay verisinden petek durumunu kurar ve çizer — hem
+    // sunucu cevabından hem önbellekten (24 Eylül 2026) çağrılır.
+    function zkBuildHiveState(rooms, jobs, confirmedMap) {
+      if (!rooms.length) {
+        hiveContainer.style.minHeight = '';
+        hiveContainer.innerHTML = '<p class="text-xs text-muted-foreground">Bu laboratuvarda henüz oda tanımlanmamış.</p>';
+        return;
+      }
+      // Arı kovanı görünümü: her istasyon (oda) bir altıgen petek;
+      // dokununca o istasyonun işleri peteğin altında listelenir.
+      // "Bekleyen" adında gerçek bir oda varsa, henüz hiçbir odaya
+      // girmemiş işler (current_room_id null) o peteğe bağlanır;
+      // yoksa eskisi gibi sanal bir Bekleyen peteği eklenir.
+      var waitRoom = null;
+      rooms.forEach(function (r) { if (!waitRoom && r.name.trim().toLowerCase() === 'bekleyen') waitRoom = r; });
+      hiveSections = rooms.map(function (r) { return { id: r.id, name: r.name, wait: !!(waitRoom && r.id === waitRoom.id) }; });
+      if (!waitRoom) hiveSections.unshift({ id: null, name: 'Bekleyen', wait: true });
+      hiveWaitRoomId = waitRoom ? waitRoom.id : null;
+      hiveJobs = jobs;
+      hiveConfirmedMap = confirmedMap;
+      // Hangi siparislerin birden cok kalemi var? Kartta tur/dis
+      // bilgisini yalnizca onlarda gostermek icin.
+      var perJob = {};
+      jobs.forEach(function (it) { perJob[it.job_id] = (perJob[it.job_id] || 0) + 1; });
+      hiveMultiItem = {};
+      Object.keys(perJob).forEach(function (k) { if (perJob[k] > 1) hiveMultiItem[k] = true; });
+      // Gelen iş baskısı: her işin rotasındaki BİR SONRAKİ durağı bul,
+      // istasyon başına "buraya gelmekte olan iş" sayısını çıkar.
+      var defaultRoute = rooms.map(function (r) { return r.id; });
+      hiveIncomingMap = {};
+      jobs.forEach(function (j) {
+        var route = (j.planned_route && j.planned_route.length) ? j.planned_route : defaultRoute;
+        // Odasız iş Bekleyen peteğinde gösterildiğinden, sonraki durağı
+        // Bekleyen odasından sonrası kabul edilir (çifte sayım olmasın).
+        var curId = j.current_room_id || hiveWaitRoomId;
+        var nextId;
+        if (!curId) nextId = route[0];
+        else {
+          var idx = route.indexOf(curId);
+          nextId = idx >= 0 ? route[idx + 1] : null;
+        }
+        if (nextId) hiveIncomingMap[nextId] = (hiveIncomingMap[nextId] || 0) + 1;
+      });
+      // Kullanıcının seçtiği petek otomatik yenilemede korunur;
+      // seçim yoksa varsayılan: işi olan ilk istasyon.
+      var kept = -1;
+      if (hiveUserSelId !== undefined) {
+        for (var k = 0; k < hiveSections.length; k++) {
+          if (hiveSections[k].id === hiveUserSelId) { kept = k; break; }
+        }
+      }
+      if (kept >= 0) hiveSelectedIdx = kept;
+      else {
+        hiveSelectedIdx = 0;
+        for (var i = 0; i < hiveSections.length; i++) {
+          if (jobs.some(function (j) { return hiveJobInSection(j, hiveSections[i]); })) { hiveSelectedIdx = i; break; }
+        }
+      }
+      renderHive();
+    }
+
     function loadActiveBoard(lab, el) {
+      hiveContainer = el;
+      // Hız hissi (24 Eylül 2026): önceki sunucu cevabı önbellekte varsa
+      // panoyu anında çizer; sunucu cevabı gelince aynı yere üzerine yazar.
+      if (window.ZKHiz) {
+        var onb = ZKHiz.cachePeek('board_' + lab.id);
+        if (onb && onb.rooms) zkBuildHiveState(onb.rooms, onb.jobs, onb.confirmedMap);
+      }
       Promise.all([
         ZirkonikData.listRooms(lab.id),
         // Petekte artik KALEMLER duruyor, isler degil. Bir siparis birden
@@ -1151,59 +1230,8 @@
         stagesPromise.then(function (stageRes) {
           var confirmedMap = {};
           (stageRes.data || []).forEach(function (s) { confirmedMap[s.job_item_id] = !!s.confirmed_at; });
-
-          // Arı kovanı görünümü: her istasyon (oda) bir altıgen petek;
-          // dokununca o istasyonun işleri peteğin altında listelenir.
-          // "Bekleyen" adında gerçek bir oda varsa, henüz hiçbir odaya
-          // girmemiş işler (current_room_id null) o peteğe bağlanır;
-          // yoksa eskisi gibi sanal bir Bekleyen peteği eklenir.
-          var waitRoom = null;
-          rooms.forEach(function (r) { if (!waitRoom && r.name.trim().toLowerCase() === 'bekleyen') waitRoom = r; });
-          hiveSections = rooms.map(function (r) { return { id: r.id, name: r.name, wait: !!(waitRoom && r.id === waitRoom.id) }; });
-          if (!waitRoom) hiveSections.unshift({ id: null, name: 'Bekleyen', wait: true });
-          hiveWaitRoomId = waitRoom ? waitRoom.id : null;
-          hiveJobs = jobs;
-          hiveConfirmedMap = confirmedMap;
-          // Hangi siparislerin birden cok kalemi var? Kartta tur/dis
-          // bilgisini yalnizca onlarda gostermek icin.
-          var perJob = {};
-          jobs.forEach(function (it) { perJob[it.job_id] = (perJob[it.job_id] || 0) + 1; });
-          hiveMultiItem = {};
-          Object.keys(perJob).forEach(function (k) { if (perJob[k] > 1) hiveMultiItem[k] = true; });
-          // Gelen iş baskısı: her işin rotasındaki BİR SONRAKİ durağı bul,
-          // istasyon başına "buraya gelmekte olan iş" sayısını çıkar.
-          var defaultRoute = rooms.map(function (r) { return r.id; });
-          hiveIncomingMap = {};
-          jobs.forEach(function (j) {
-            var route = (j.planned_route && j.planned_route.length) ? j.planned_route : defaultRoute;
-            // Odasız iş Bekleyen peteğinde gösterildiğinden, sonraki durağı
-            // Bekleyen odasından sonrası kabul edilir (çifte sayım olmasın).
-            var curId = j.current_room_id || hiveWaitRoomId;
-            var nextId;
-            if (!curId) nextId = route[0];
-            else {
-              var idx = route.indexOf(curId);
-              nextId = idx >= 0 ? route[idx + 1] : null;
-            }
-            if (nextId) hiveIncomingMap[nextId] = (hiveIncomingMap[nextId] || 0) + 1;
-          });
-          // Kullanıcının seçtiği petek otomatik yenilemede korunur;
-          // seçim yoksa varsayılan: işi olan ilk istasyon.
-          var kept = -1;
-          if (hiveUserSelId !== undefined) {
-            for (var k = 0; k < hiveSections.length; k++) {
-              if (hiveSections[k].id === hiveUserSelId) { kept = k; break; }
-            }
-          }
-          if (kept >= 0) hiveSelectedIdx = kept;
-          else {
-            hiveSelectedIdx = 0;
-            for (var i = 0; i < hiveSections.length; i++) {
-              if (jobs.some(function (j) { return hiveJobInSection(j, hiveSections[i]); })) { hiveSelectedIdx = i; break; }
-            }
-          }
-          hiveContainer = el;
-          renderHive();
+          zkBuildHiveState(rooms, jobs, confirmedMap);
+          if (window.ZKHiz) ZKHiz.cachePut('board_' + lab.id, { rooms: rooms, jobs: jobs, confirmedMap: confirmedMap });
         });
       });
     }
