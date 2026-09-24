@@ -233,6 +233,14 @@
         Aktif Doktor Yap
       </button>
 
+      <!-- 24 Eylül 2026, sahibinin bulduğu boşluk: temsilci bu doktora gerçekten iş gelip
+           gelmediğini başka ekrana gitmeden görsün. Ayrı bir bağlama işlemi gerekmiyor,
+           işler zaten doctor_id ile doktora bağlı — burada yalnız gösteriliyor. -->
+      <div class="mt-5 border-t border-border pt-4">
+        <p class="text-xs font-bold uppercase tracking-wide text-muted-foreground">Gönderilen işler</p>
+        <div id="dt-jobs-list" class="mt-2 space-y-1.5"></div>
+      </div>
+
       <div class="mt-5 border-t border-border pt-4">
         <p class="text-xs font-bold uppercase tracking-wide text-muted-foreground">Temas ekle</p>
         <div class="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-6">
@@ -516,6 +524,23 @@
       document.getElementById('dt-make-active-btn').classList.toggle('hidden', d.pipeline_stage === 'aktif');
       document.getElementById('detail-sheet').classList.remove('hidden');
       loadTouches(id);
+      loadDoctorJobs(id);
+    }
+    var JOB_STATUS_LABELS = { active: 'Aktif', completed: 'Tamamlandı', cancelled: 'İptal' };
+    function loadDoctorJobs(doctorId) {
+      var el = document.getElementById('dt-jobs-list');
+      el.innerHTML = '<p class="text-xs text-muted-foreground">Yükleniyor…</p>';
+      ZirkonikData.listDoctorJobsSummary(doctorId).then(function (r) {
+        var rows = r.data || [];
+        if (r.error) { el.innerHTML = '<p class="text-xs text-destructive">Yüklenemedi: ' + escapeHtml(r.error.message) + '</p>'; return; }
+        if (!rows.length) { el.innerHTML = '<p class="text-xs text-muted-foreground">Henüz iş gelmedi.</p>'; return; }
+        el.innerHTML = rows.map(function (j) {
+          return '<div class="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2">' +
+            '<div class="min-w-0"><p class="truncate text-xs font-bold">' + escapeHtml(j.job_number) + ' · ' + escapeHtml(j.restoration_type || '') + '</p>' +
+            '<p class="mt-0.5 text-[10px] text-muted-foreground">' + new Date(j.created_at).toLocaleDateString('tr-TR') + '</p></div>' +
+            '<span class="shrink-0 text-[10px] font-bold text-muted-foreground">' + (JOB_STATUS_LABELS[j.status] || j.status) + '</span></div>';
+        }).join('') + '<p class="mt-1 text-[10px] text-muted-foreground">Toplam ' + rows.length + (rows.length === 10 ? '+' : '') + ' iş (son 10 gösterilir)</p>';
+      });
     }
     // Otomatik 3-vaka kuralını beklemeden tek dokunuşla içeri alma. Kim aktif ettiği
     // (activated_by) kaydedilir — sahibinin isteği, 24 Eylül 2026.
