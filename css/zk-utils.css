@@ -146,7 +146,7 @@
    overscroll-behavior olmadan iOS kaydirmayi arkadaki sayfaya devrediyor ve
    liste yerinde cakili duruyordu. */
 .zk-picker-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
-  touch-action: pan-y; -webkit-overflow-scrolling: touch; }
+  touch-action: pan-y; }
 .zk-picker-group { margin: 12px 0 4px; font-size: 10px; font-weight: 800; letter-spacing: .12em;
   text-transform: uppercase; color: var(--color-accent); }
 .zk-picker-row { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 8px;
@@ -179,7 +179,7 @@
 .zk-cal-month-hint { font-size: 10px; color: var(--color-muted-foreground); }
 .zk-cal-back { display: block; margin-bottom: 8px; padding: 8px 4px; border: none; background: none;
   font-size: 13px; font-weight: 700; color: var(--color-primary); }
-.zk-cal-year-list { max-height: 340px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.zk-cal-year-list { max-height: 340px; overflow-y: auto; }
 .zk-cal-nav { display: flex; width: 38px; height: 38px; align-items: center; justify-content: center;
   border-radius: 10px; border: 1px solid var(--color-border); background: var(--color-input);
   font-size: 20px; color: var(--color-primary); }
