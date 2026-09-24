@@ -137,6 +137,7 @@
 
   <script src="vendor/supabase-js.min.js"></script>
   <script src="supabase-config.js"></script>
+  <script src="js/net-guard.js"></script>
   <script src="supabase-client.js"></script>
   <script src="js/zk-guard.js"></script>
   <script src="js/zk-picker.js"></script>
@@ -150,8 +151,9 @@
        Tutarlar para birimi basina ayri: kurlar degisken oldugu icin
        USD/TL/EUR birbirine CEVRILMIYOR (bkz. ZirkonikMoney). */
     var granularity = 'month';
-    var invoices = [];
-    var payments = [];
+    // 24 Eylül 2026: tüm toplamlar ve dönem kovaları sunucudan (zk_finans_ozet);
+    // invoices/payments artık belleğe indirilmiyor (1000 satır kesintisi yok).
+    var ozet = {};
     var doctorAdi = {};
 
     function donemAnahtari(iso, g) {
@@ -195,98 +197,56 @@
 
     function ciz() {
       // Toplamlar
-      document.getElementById('cd-invoiced').textContent =
-        ZirkonikMoney.totalText(invoices, 'amount', 'currency', 0);
-      document.getElementById('cd-collected').textContent =
-        ZirkonikMoney.totalText(payments, 'amount', 'currency', 0);
+      document.getElementById('cd-invoiced').textContent = ZirkonikMoney.formatTotals(ozet.faturalanan || {}, 0);
+      document.getElementById('cd-collected').textContent = ZirkonikMoney.formatTotals(ozet.tahsil_edilen || {}, 0);
 
-      // Donem dokumu
-      var kova = {};
-      function ekle(tip, iso, satir) {
-        var k = donemAnahtari(iso, granularity);
-        if (!k) return;
-        var o = kova[k] = kova[k] || { fatura: [], tahsilat: [] };
-        o[tip].push(satir);
-      }
-      invoices.forEach(function (x) { ekle('fatura', x.issued_at, x); });
-      payments.forEach(function (x) { ekle('tahsilat', x.received_at, x); });
-
-      var anahtarlar = Object.keys(kova).sort().reverse();
+      // Donem dokumu (sunucu kovaları: hafta ISO, ay, yıl — Europe/Istanbul)
+      var kovalar = (ozet.donemler && ozet.donemler[granularity]) || [];
       var el = document.getElementById('cd-list');
-      el.innerHTML = anahtarlar.length ? anahtarlar.map(function (k) {
-        var o = kova[k];
+      el.innerHTML = kovalar.length ? kovalar.map(function (o) {
         return '<div class="rounded-theme border border-border bg-card p-3.5">' +
-          '<p class="text-sm font-bold">' + escapeHtml(donemEtiketi(k, granularity)) + '</p>' +
+          '<p class="text-sm font-bold">' + escapeHtml(donemEtiketi(o.anahtar, granularity)) + '</p>' +
           '<div class="mt-2 grid grid-cols-2 gap-2">' +
             '<div><p class="text-[10px] text-muted-foreground">Faturalanan</p>' +
-              '<p class="mt-0.5 text-sm font-bold tabular-nums text-accent">' + ZirkonikMoney.totalText(o.fatura, 'amount', 'currency', 0) + '</p>' +
-              '<p class="text-[10px] text-muted-foreground">' + o.fatura.length + ' fatura</p></div>' +
+              '<p class="mt-0.5 text-sm font-bold tabular-nums text-accent">' + ZirkonikMoney.formatTotals(o.fatura || {}, 0) + '</p>' +
+              '<p class="text-[10px] text-muted-foreground">' + Number(o.fatura_sayisi || 0) + ' fatura</p></div>' +
             '<div><p class="text-[10px] text-muted-foreground">Tahsil edilen</p>' +
-              '<p class="mt-0.5 text-sm font-bold tabular-nums text-success">' + ZirkonikMoney.totalText(o.tahsilat, 'amount', 'currency', 0) + '</p>' +
-              '<p class="text-[10px] text-muted-foreground">' + o.tahsilat.length + ' tahsilat</p></div>' +
+              '<p class="mt-0.5 text-sm font-bold tabular-nums text-success">' + ZirkonikMoney.formatTotals(o.tahsilat || {}, 0) + '</p>' +
+              '<p class="text-[10px] text-muted-foreground">' + Number(o.tahsilat_sayisi || 0) + ' tahsilat</p></div>' +
           '</div></div>';
       }).join('') : '<p class="text-xs text-muted-foreground">Bu dönemde kayıt yok.</p>';
 
-      // Doktor bazinda (faturalanan)
-      var drKova = {};
-      invoices.forEach(function (x) {
-        (drKova[x.doctor_id] = drKova[x.doctor_id] || []).push(x);
-      });
+      // Doktor bazinda (faturalanan) — sunucuda sıralı geliyor
       var drEl = document.getElementById('cd-doctors');
-      var drList = Object.keys(drKova).map(function (id) {
-        var satirlar = drKova[id];
-        var toplam = satirlar.reduce(function (s, x) { return s + Number(x.amount || 0); }, 0);
-        return { id: id, satirlar: satirlar, siralama: toplam };
-      }).sort(function (a, b) { return b.siralama - a.siralama; });
+      var drList = ozet.doktor_fatura || [];
       drEl.innerHTML = drList.length ? drList.map(function (d) {
         return '<div class="flex items-center justify-between gap-3 rounded-theme border border-border bg-card p-3.5">' +
-          '<p class="min-w-0 flex-1 truncate text-sm font-bold">' + escapeHtml(doctorAdi[d.id] || 'Doktor') + '</p>' +
-          '<p class="shrink-0 text-sm font-bold tabular-nums">' + ZirkonikMoney.totalText(d.satirlar, 'amount', 'currency', 0) + '</p></div>';
+          '<p class="min-w-0 flex-1 truncate text-sm font-bold">' + escapeHtml(doctorAdi[d.doctor_id] || 'Doktor') + '</p>' +
+          '<p class="shrink-0 text-sm font-bold tabular-nums">' + ZirkonikMoney.formatTotals(d.toplam || {}, 0) + '</p></div>';
       }).join('') : '<p class="text-xs text-muted-foreground">Fatura yok.</p>';
     }
 
     function labCiro() {
-      var client = ZirkonikAuth.client();
-      client.from('laboratories').select('id, name').then(function (labsRes) {
-        var labs = labsRes.data || [];
-        var el = document.getElementById('cd-labs');
-        if (!labs.length) { el.innerHTML = '<p class="text-xs text-muted-foreground">Laboratuvar yok.</p>'; return; }
-        Promise.all(labs.map(function (lab) {
-          // Ciro kalemlerden: karisik para birimli sipariste jobs.price yalniz
-          // birincil para birimini tasiyor, kalan ciroya girmezdi.
-          return Promise.all([
-            client.from('jobs').select('id, price, currency').eq('laboratory_id', lab.id).neq('status', 'cancelled'),
-            client.from('job_items').select('job_id, price, currency, jobs!inner(laboratory_id, status)')
-              .eq('jobs.laboratory_id', lab.id).neq('jobs.status', 'cancelled')
-          ]).then(function (r) {
-            var kalemler = (r[1].data || []).filter(function (k) { return k.price != null; });
-            var kalemliIs = {};
-            kalemler.forEach(function (k) { kalemliIs[k.job_id] = true; });
-            var kalemsiz = (r[0].data || []).filter(function (j) { return j.price != null && !kalemliIs[j.id]; });
-            return { lab: lab, metin: ZirkonikMoney.totalText(kalemler.concat(kalemsiz), 'price', 'currency', 0) };
-          });
-        })).then(function (rows) {
-          el.innerHTML = rows.map(function (row) {
-            return '<div class="flex items-center justify-between gap-3 rounded-theme border border-border bg-card p-3.5">' +
-              '<p class="min-w-0 flex-1 truncate text-sm font-bold">' + escapeHtml(row.lab.name) + '</p>' +
-              '<p class="shrink-0 font-heading text-base font-bold tabular-nums">' + row.metin + '</p></div>';
-          }).join('');
-        });
-      });
+      var labs = ozet.lab_ciro || [];
+      var el = document.getElementById('cd-labs');
+      if (!labs.length) { el.innerHTML = '<p class="text-xs text-muted-foreground">Laboratuvar yok.</p>'; return; }
+      el.innerHTML = labs.map(function (row) {
+        return '<div class="flex items-center justify-between gap-3 rounded-theme border border-border bg-card p-3.5">' +
+          '<p class="min-w-0 flex-1 truncate text-sm font-bold">' + escapeHtml(row.name) + '</p>' +
+          '<p class="shrink-0 font-heading text-base font-bold tabular-nums">' + ZirkonikMoney.formatTotals(row.toplam || {}, 0) + '</p></div>';
+      }).join('');
     }
 
     function loadCiro() {
       var client = ZirkonikAuth.client();
       return Promise.all([
-        // Iptal fatura ciroya girmez.
-        client.from('invoices').select('id, amount, currency, status, issued_at, doctor_id').neq('status', 'cancelled'),
-        client.from('payments').select('id, amount, currency, received_at'),
+        client.rpc('zk_finans_ozet'),
         client.from('doctors').select('id, full_name')
       ]).then(function (res) {
-        invoices = res[0].data || [];
-        payments = res[1].data || [];
+        if (res[0].error) { if (window.zkToast) zkToast('Ciro alınamadı: ' + res[0].error.message); return; }
+        ozet = res[0].data || {};
         doctorAdi = {};
-        (res[2].data || []).forEach(function (d) { doctorAdi[d.id] = d.full_name; });
+        (res[1].data || []).forEach(function (d) { doctorAdi[d.id] = d.full_name; });
         ciz();
         labCiro();
       });
