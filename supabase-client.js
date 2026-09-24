@@ -372,15 +372,21 @@
     },
 
     // ---- İşler ----
+    // 25 Eylül 2026, sahibinin kuralı: fiyat yalnız yönetici/işveren.
+    // includePrice:false geçilince jobs.price/currency sorgudan HİÇ
+    // istenmez — ekranda gizlemek yetmiyordu, ağ cevabında da olmamalı.
+    JOB_COLS_NO_PRICE: 'id, organization_id, laboratory_id, job_number, doctor_id, patient_reference, restoration_type, material, shade, teeth_numbers, unit_count, is_priority, requested_delivery_at, current_room_id, assigned_user_id, status, clinical_notes, payment_status, invoice_due_date, created_by, created_at, completed_at, price_item_id, work_form, planned_route, patient_name, clinic_protocol_no, cancelled_at, cancelled_by, cancel_reason, cancel_category',
     listJobs: function (filters) {
       filters = filters || {};
-      var q = client().from('jobs').select('*, doctors(full_name, clinic_name), laboratories(name), rooms:current_room_id(name)').order('created_at', { ascending: false });
+      var cols = filters.includePrice === false ? Data.JOB_COLS_NO_PRICE : '*';
+      var q = client().from('jobs').select(cols + ', doctors(full_name, clinic_name), laboratories(name), rooms:current_room_id(name)').order('created_at', { ascending: false });
       if (filters.status) q = q.eq('status', filters.status);
       if (filters.laboratoryId) q = q.eq('laboratory_id', filters.laboratoryId);
       return q;
     },
-    getJob: function (jobId) {
-      return client().from('jobs').select('*, doctors(*), laboratories(name), rooms:current_room_id(name)').eq('id', jobId).single();
+    getJob: function (jobId, includePrice) {
+      var cols = includePrice === false ? Data.JOB_COLS_NO_PRICE : '*';
+      return client().from('jobs').select(cols + ', doctors(*), laboratories(name), rooms:current_room_id(name)').eq('id', jobId).single();
     },
     nextJobNumber: function (labId) {
       return client().from('jobs').select('job_number', { count: 'exact', head: true }).eq('laboratory_id', labId).then(function (r) {
@@ -426,14 +432,17 @@
     // rotasini izler; odalarda dolasan birim artik kalem. jobs.current_room_id
     // ayna olarak guncel tutuluyor (en geride olan aktif kalemin odasi), bu
     // sayede hakedis/stok/bildirim tetikleyicileri bugunku gibi calisiyor.
-    listJobItems: function (jobId) {
+    ITEM_COLS_NO_PRICE: 'id, job_id, organization_id, price_item_id, restoration_type, teeth, unit_count, planned_route, current_room_id, status, color_index, sort_order, created_at, work_form',
+    listJobItems: function (jobId, includePrice) {
+      var cols = includePrice === false ? Data.ITEM_COLS_NO_PRICE : '*';
       return client().from('job_items')
-        .select('*, rooms:current_room_id(name), price_list_items(name)')
+        .select(cols + ', rooms:current_room_id(name), price_list_items(name)')
         .eq('job_id', jobId).order('sort_order').order('created_at');
     },
-    listActiveItems: function (laboratoryId) {
+    listActiveItems: function (laboratoryId, includePrice) {
+      var cols = includePrice === false ? Data.ITEM_COLS_NO_PRICE : '*';
       var q = client().from('job_items')
-        .select('*, jobs!inner(id, job_number, laboratory_id, doctor_id, is_priority, requested_delivery_at, patient_name, clinic_protocol_no, status, doctors(full_name))')
+        .select(cols + ', jobs!inner(id, job_number, laboratory_id, doctor_id, is_priority, requested_delivery_at, patient_name, clinic_protocol_no, status, doctors(full_name))')
         .eq('status', 'active').eq('jobs.status', 'active');
       if (laboratoryId) q = q.eq('jobs.laboratory_id', laboratoryId);
       return q;
