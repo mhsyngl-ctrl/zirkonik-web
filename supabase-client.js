@@ -550,11 +550,17 @@
     createOrder: function (fields) {
       return client().from('orders').insert(fields).select().single();
     },
-    // Siparişler. filters: status | notStatus | doctorId | limit+offset (sayfalı, count exact). 24 Eylül 2026.
+    // Siparişler. filters: status | notStatus | doctorId | limit+offset (sayfalı, count exact),
+    // includePrice (varsayılan true — doktorun kendi sipariş ekranı için).
+    // 24 Eylül 2026: personel görünümünde false geçilir — o zaman sorgu
+    // unit_price/currency'yi HİÇ İSTEMEZ, ağ cevabında bile bulunmaz
+    // (yalnız ekranda gizlemek yetmiyordu, sahibinin kuralı: "hiçbir açık
+    // kabul etmiyorum").
     listOrders: function (filters) {
       filters = filters || {};
       var sayfali = filters.limit != null;
-      var q = client().from('orders').select('*, doctors(full_name, clinic_name), price_list_items(name, unit_price, currency)', sayfali ? { count: 'exact' } : undefined)
+      var priceEmbed = filters.includePrice === false ? 'price_list_items(name)' : 'price_list_items(name, unit_price, currency)';
+      var q = client().from('orders').select('*, doctors(full_name, clinic_name), ' + priceEmbed, sayfali ? { count: 'exact' } : undefined)
         .order('created_at', { ascending: false }).order('id', { ascending: true });
       if (filters.status) q = q.eq('status', filters.status);
       if (filters.notStatus) q = q.neq('status', filters.notStatus);
@@ -567,6 +573,21 @@
     },
     reviewOrder: function (orderId, fields) {
       return client().from('orders').update(fields).eq('id', orderId).select().single();
+    },
+    // Onaylama artık SUNUCUDA (approve_order RPC): fiyat hesabı, iş/kalem/
+    // fatura oluşturma hep sunucu tarafında — fiyat/anlaşma verisi hiçbir
+    // zaman istemciye dönmüyor (24 Eylül 2026, sahibinin kuralı: "hiçbir
+    // açık kabul etmiyorum"). Eskiden bu iş client'ta price_list_items'ı
+    // doğrudan okuyup jobs/job_items/invoices'a tek tek insert atıyordu —
+    // ayrıca can_manage_orders'lı (admin olmayan) personel için jobs
+    // tablosunun INSERT RLS'i yalnız is_org_admin olduğundan bu akış hiç
+    // ÇALIŞMIYORDU (Resepsiyon "Onayla"ya basınca sessizce/hata ile
+    // patlıyordu). RPC SECURITY DEFINER olduğu için bunu da düzeltiyor.
+    approveOrder: function (orderId, laboratoryId, requestedDeliveryAt) {
+      return client().rpc('approve_order', {
+        p_order_id: orderId, p_laboratory_id: laboratoryId,
+        p_requested_delivery_at: requestedDeliveryAt || null
+      });
     },
 
     // ---- Malzeme / Stok ----
