@@ -189,7 +189,9 @@
             </div>
           </div>
           <div class="mt-4 grid grid-cols-2 gap-3">
-            <div class="rounded-theme border border-border bg-background px-3 py-3">
+            <!-- 24 Eylül 2026, sahibinin kuralı: fiyatları yalnız yönetici/işveren
+                 görür. Personel görünümünde bu kutu tamamen gizlenir (myRole ile). -->
+            <div id="job-price-box" class="hidden rounded-theme border border-border bg-background px-3 py-3">
               <p class="text-[10px] text-muted-foreground">Doktor fiyatı</p>
               <p id="job-price" class="mt-1 text-sm font-bold tabular-nums">—</p>
             </div>
@@ -336,13 +338,17 @@
     var jobItems = [];
     var currentItem = null;
 
+    var myRole = null;
     ZirkonikAuth.requireAuth().then(function (session) {
       if (!session) return;
       if (!jobId) {
         document.querySelector('main').innerHTML = '<p class="text-sm text-muted-foreground">İş bulunamadı — üretim panosuna dönün.</p>';
         return;
       }
-      loadJob();
+      ZirkonikAuth.me().then(function (me) {
+        myRole = me ? me.role : null;
+        loadJob();
+      });
     });
 
 
@@ -525,9 +531,15 @@
       // ayri yaziliyor; jobs.price yalnizca kalem yoksa kullaniliyor cunku
       // tek sayi olarak karisik siparisin tamamini gosteremez.
       var fiyatliKalemler = jobItems.filter(function (k) { return k.price != null; });
-      document.getElementById('job-price').textContent =
-        fiyatliKalemler.length ? ZirkonikMoney.totalText(fiyatliKalemler, 'price', 'currency', 0)
-          : (j.price != null ? ZirkonikMoney.format(j.price, j.currency, 0) : 'Belirtilmedi');
+      var priceBox = document.getElementById('job-price-box');
+      if (myRole === 'yonetici') {
+        priceBox.classList.remove('hidden');
+        document.getElementById('job-price').textContent =
+          fiyatliKalemler.length ? ZirkonikMoney.totalText(fiyatliKalemler, 'price', 'currency', 0)
+            : (j.price != null ? ZirkonikMoney.format(j.price, j.currency, 0) : 'Belirtilmedi');
+      } else {
+        priceBox.classList.add('hidden');
+      }
 
       var payEl = document.getElementById('job-payment-status');
       var acikFaturalar = jobInvoices.filter(function (x) { return x.status !== 'cancelled'; });
@@ -731,8 +743,16 @@
         var roomCheck = zkCurRoom()
           ? client.rpc('has_room_access', { rm_id: zkCurRoom() })
           : Promise.resolve({ data: true });
+        // 24 Eylül 2026, sahibinin hata bildirimi: personel odaya yetkiliyken
+        // bile "Teslim Al" pasif kalıyordu. Kök neden: bu kontrol iki farklı
+        // modu (teslim al / ilerlet) aynı kurala tabi tutuyordu, ama sunucu
+        // tarafında ikisinin yetki şartı FARKLI — confirm_job_item_stage
+        // (teslim al) yalnız has_room_access istiyor, advance_job_item
+        // (ilerlet) ayrıca can_change_job_status da istiyor. Client'ı
+        // sunucuyla eşleştirdik: teslim almada yalnız oda erişimi yeterli.
         return roomCheck.then(function (rr) {
-          if (rr.data && perms.can_change_job_status) {
+          var yetkili = needsAccept ? !!rr.data : !!(rr.data && perms.can_change_job_status);
+          if (yetkili) {
             btn.disabled = false;
             btn.classList.remove('opacity-50');
           } else {
