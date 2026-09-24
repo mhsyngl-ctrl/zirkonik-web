@@ -324,6 +324,7 @@
   <script src="js/zk-guard.js"></script>
   <script src="js/zk-picker.js"></script>
   <script src="js/zk-ptr.js"></script>
+  <script src="js/zk-hiz.js"></script>
   <script src="js/zk-yenile.js"></script>
   <script src="js/work-form.js"></script>
   <script>
@@ -959,39 +960,50 @@
       if (lst && lst.scrollIntoView) lst.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
+    // Hız hissi (24 Eylül 2026): işleme mantığı ortak fonksiyona çıkarıldı ki
+    // önbellekten anında çizim ile sunucu cevabı birebir aynı kodu kullansın.
+    function processDoctorHive(jobs, rooms) {
+      dhJobs = jobs;
+      var el = document.getElementById('doctor-hive');
+      if (!dhJobs.length || !rooms.length) {
+        // Aktif iş yoksa kovan çizilmez ama tamamlananlar yine de
+        // gösterilmeli — yoksa biten işler ekrandan tamamen kaybolurdu.
+        el.innerHTML = '';
+        loadDoctorCompleted();
+        return;
+      }
+      dhRoomName = {};
+      rooms.forEach(function (r) { dhRoomName[r.id] = r.name; });
+      // Yalnızca işlerin bulunduğu laboratuvar(lar)ın odaları
+      var labIds = {};
+      dhJobs.forEach(function (j) { labIds[j.laboratory_id] = true; });
+      var labRooms = rooms.filter(function (r) { return labIds[r.laboratory_id]; });
+      // Odasız iş: gerçek "Bekleyen" odası varsa oraya, yoksa sanal peteğe
+      var waitRoom = null;
+      labRooms.forEach(function (r) { if (!waitRoom && r.name.trim().toLowerCase() === 'bekleyen') waitRoom = r; });
+      dhSections = labRooms.map(function (r) { return { id: r.id, name: r.name, wait: !!(waitRoom && r.id === waitRoom.id) }; });
+      if (!waitRoom) dhSections.unshift({ id: null, name: 'Bekleyen', wait: true });
+      dhSelIdx = 0;
+      for (var i = 0; i < dhSections.length; i++) {
+        if (dhJobs.some(function (j) { return dhJobInSection(j, dhSections[i]); })) { dhSelIdx = i; break; }
+      }
+      renderDoctorHive();
+    }
     function loadDoctorHive() {
       var client = ZirkonikAuth.client();
+      if (window.ZKHiz) {
+        var onb = ZKHiz.cachePeek('doc_hive');
+        if (onb) processDoctorHive(onb.jobs, onb.rooms);
+      }
       Promise.all([
         client.from('jobs').select('id, job_number, restoration_type, current_room_id, planned_route, laboratory_id, patient_name, clinic_protocol_no')
           .eq('doctor_id', doctor.id).eq('status', 'active'),
         client.from('rooms').select('id, name, laboratory_id, sort_order').order('sort_order')
       ]).then(function (res) {
-        dhJobs = res[0].data || [];
+        var jobs = res[0].data || [];
         var rooms = res[1].data || [];
-        var el = document.getElementById('doctor-hive');
-        if (!dhJobs.length || !rooms.length) {
-            // Aktif iş yoksa kovan çizilmez ama tamamlananlar yine de
-            // gösterilmeli — yoksa biten işler ekrandan tamamen kaybolurdu.
-            el.innerHTML = '';
-            loadDoctorCompleted();
-            return;
-          }
-        dhRoomName = {};
-        rooms.forEach(function (r) { dhRoomName[r.id] = r.name; });
-        // Yalnızca işlerin bulunduğu laboratuvar(lar)ın odaları
-        var labIds = {};
-        dhJobs.forEach(function (j) { labIds[j.laboratory_id] = true; });
-        var labRooms = rooms.filter(function (r) { return labIds[r.laboratory_id]; });
-        // Odasız iş: gerçek "Bekleyen" odası varsa oraya, yoksa sanal peteğe
-        var waitRoom = null;
-        labRooms.forEach(function (r) { if (!waitRoom && r.name.trim().toLowerCase() === 'bekleyen') waitRoom = r; });
-        dhSections = labRooms.map(function (r) { return { id: r.id, name: r.name, wait: !!(waitRoom && r.id === waitRoom.id) }; });
-        if (!waitRoom) dhSections.unshift({ id: null, name: 'Bekleyen', wait: true });
-        dhSelIdx = 0;
-        for (var i = 0; i < dhSections.length; i++) {
-          if (dhJobs.some(function (j) { return dhJobInSection(j, dhSections[i]); })) { dhSelIdx = i; break; }
-        }
-        renderDoctorHive();
+        processDoctorHive(jobs, rooms);
+        if (window.ZKHiz) ZKHiz.cachePut('doc_hive', { jobs: jobs, rooms: rooms });
       });
     }
 
@@ -1255,27 +1267,37 @@
       });
     }
 
+    function paintOrders(list) {
+      var el = document.getElementById('orders-list');
+      if (!list.length) {
+        el.innerHTML = '<p class="mt-8 text-center text-sm text-muted-foreground">Henüz sipariş yok.</p>';
+        return;
+      }
+      el.innerHTML = list.map(function (o) {
+        var d = new Date(o.created_at);
+        return '<article class="rounded-theme border border-border bg-card p-4">' +
+          '<div class="flex items-start justify-between gap-2">' +
+          '<div><p class="text-sm font-bold">' + escapeHtml(o.restoration_type) + '</p>' +
+          '<p class="mt-0.5 text-xs text-muted-foreground">' + o.unit_count + ' diş' + (o.teeth_numbers ? ' · ' + escapeHtml(o.teeth_numbers) : '') + '</p>' +
+          '<p class="mt-0.5 text-[11px] text-muted-foreground">' + d.toLocaleDateString('tr-TR') + '</p></div>' +
+          (STATUS_BADGES[o.status] || '') + '</div>' +
+          (o.note ? '<p class="mt-2 text-xs text-muted-foreground">' + escapeHtml(o.note) + '</p>' : '') +
+          '</article>';
+      }).join('');
+      if (window.zkFlow) window.zkFlow.stagger(el);
+    }
+    // Hız hissi (24 Eylül 2026): önce önbellekten anında çizilir, sunucu
+    // cevabı gelince üstüne yazılır.
     function loadOrders() {
       loadDoctorHive();
+      if (window.ZKHiz) {
+        var onb = ZKHiz.cachePeek('doc_orders');
+        if (onb) paintOrders(onb);
+      }
       ZirkonikData.listOrders({ doctorId: doctor.id }).then(function (r) {
         var list = r.data || [];
-        var el = document.getElementById('orders-list');
-        if (!list.length) {
-          el.innerHTML = '<p class="mt-8 text-center text-sm text-muted-foreground">Henüz sipariş yok.</p>';
-          return;
-        }
-        el.innerHTML = list.map(function (o) {
-          var d = new Date(o.created_at);
-          return '<article class="rounded-theme border border-border bg-card p-4">' +
-            '<div class="flex items-start justify-between gap-2">' +
-            '<div><p class="text-sm font-bold">' + escapeHtml(o.restoration_type) + '</p>' +
-            '<p class="mt-0.5 text-xs text-muted-foreground">' + o.unit_count + ' diş' + (o.teeth_numbers ? ' · ' + escapeHtml(o.teeth_numbers) : '') + '</p>' +
-            '<p class="mt-0.5 text-[11px] text-muted-foreground">' + d.toLocaleDateString('tr-TR') + '</p></div>' +
-            (STATUS_BADGES[o.status] || '') + '</div>' +
-            (o.note ? '<p class="mt-2 text-xs text-muted-foreground">' + escapeHtml(o.note) + '</p>' : '') +
-            '</article>';
-        }).join('');
-        if (window.zkFlow) window.zkFlow.stagger(el);
+        paintOrders(list);
+        if (window.ZKHiz) ZKHiz.cachePut('doc_orders', list);
       });
     }
   
