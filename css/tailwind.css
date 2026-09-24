@@ -20,8 +20,17 @@ input, textarea, select { font: inherit; color: inherit; }
 .grow { flex-grow:1; }
 .truncate { overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
 .overflow-hidden { overflow:hidden; }
-.overflow-x-auto { overflow-x:auto;-webkit-overflow-scrolling:touch; }
-.overflow-y-auto { overflow-y:auto;-webkit-overflow-scrolling:touch; }
+/* 24 Eylül 2026: -webkit-overflow-scrolling:touch BİLEREK kaldırıldı. iOS 13'ten
+   beri WKWebView'da tüm overflow:auto kutuları zaten native momentum ile
+   kayıyor, bu eski özellik artık gereksiz — üstelik "position: sticky" olan bir
+   çocuğu (ör. detay panellerindeki yapışkan kapat başlığı) VE dokunuşla açılan
+   <details> gibi içerik yüksekliği aniden değişen kutularla bir arada
+   kullanılınca WebKit'in momentum kaydırma "anlık görüntüsü" bayatlıyor, kaydırma
+   TAMAMEN kilitleniyordu (sahibinin bildirdiği "opsiyonel bilgiler açılınca ne
+   yukarı ne aşağı gidemiyorum" hatası). Kaldırılması hem bu kilidi çözüyor hem
+   "donuk" hissi (fazladan katman) azaltıyor. */
+.overflow-x-auto { overflow-x:auto; }
+.overflow-y-auto { overflow-y:auto; }
 .inset-0 { top:0;right:0;bottom:0;left:0; }
 .top-0 { top:0; }
 .left-0 { left:0; }
