@@ -283,8 +283,16 @@
   <!-- Doktor bilgilerini düzenle sheet -->
   <div id="edit-doctor-sheet" class="fixed inset-0 z-40 hidden">
     <div class="absolute inset-0 bg-black/40" onclick="zkCloseEditDoctor()"></div>
-    <div class="absolute bottom-0 left-0 w-full rounded-t-theme bg-card p-5 pb-8">
-      <p class="font-heading text-lg font-bold">Doktor bilgilerini düzenle</p>
+    <div class="absolute bottom-0 left-0 flex max-h-[92vh] w-full flex-col rounded-t-theme bg-card">
+      <!-- 24 Eylül 2026: bu panel opsiyonel alanlar eklenince (Doktor profili) ekran
+           boyunu aşabiliyordu ve kaydırma/kapatma mekanizması HİÇ yoktu — sabit
+           başlık + ayrı kaydırılan gövdeye bölündü (aday-havuzu.html detay
+           panelindeki aynı düzeltme). -->
+      <div class="flex shrink-0 items-center justify-between gap-3 px-5 pt-5 pb-2">
+        <p class="font-heading text-lg font-bold">Doktor bilgilerini düzenle</p>
+        <button onclick="zkCloseEditDoctor()" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-theme bg-muted text-muted-foreground" aria-label="Kapat">✕</button>
+      </div>
+      <div class="min-h-0 flex-1 overflow-y-auto px-5 pb-8">
       <div class="mt-4 space-y-3">
         <input id="ed-name" type="text" placeholder="Ad Soyad *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         <input id="ed-clinic" type="text" placeholder="Klinik adı" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
@@ -336,6 +344,7 @@
       <button onclick="zkRemoveDoctor()" class="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-theme bg-destructive/10 text-sm font-bold text-destructive">
         <iconify-icon icon="lucide:user-x" class="text-base"></iconify-icon>Doktoru çıkar
       </button>
+      </div>
     </div>
   </div>
 
