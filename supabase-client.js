@@ -35,6 +35,9 @@
     });
   }
 
+  // Hata günlüğünde görünen uygulama sürümü; Xcode MARKETING_VERSION (2.2) ile elle aynı tutulur.
+  var ZK_APP_VERSION = '2.2';
+
   function client() {
     if (!_client) {
       if (typeof supabase === 'undefined') {
@@ -44,9 +47,20 @@
       // Kapalıysa oturum yalnız sekme ömrünce yaşar (sessionStorage).
       var remember = true;
       try { remember = localStorage.getItem('zk-remember') !== '0'; } catch (e) {}
-      _client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        auth: { storage: remember ? window.localStorage : window.sessionStorage }
-      });
+      // NetGuard (js/net-guard.js): ağ hatasında bant + GET yeniden deneme +
+      // istemci hata günlüğü (client_errors). Tüm from/rpc çağrıları bu
+      // fetch'ten geçer (24 Eylül 2026).
+      var secenekler = { auth: { storage: remember ? window.localStorage : window.sessionStorage } };
+      if (window.NetGuard) secenekler.global = { fetch: window.NetGuard.fetch };
+      _client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, secenekler);
+      if (window.NetGuard) {
+        window.NetGuard.configure({
+          version: ZK_APP_VERSION,
+          rpc: 'log_client_error',
+          getClient: function () { return _client; },
+          context: function () { return {}; }   // kuruluş sunucuda app_users'tan bulunur
+        });
+      }
     }
     return _client;
   }
@@ -139,14 +153,27 @@
         if (!uid) return null;
         return client()
           .from('app_users')
-          .select('*, user_permissions(*)')
+          .select('*, user_permissions(*), organizations(default_currency, locale, timezone, country)')
           .eq('id', uid)
           .single()
           .then(function (res) {
             if (res.error) throw res.error;
             _meCache = res.data;
+            // Kuruluşun bölge ayarı (24 Eylül 2026): varsayılan para birimi ve
+            // sayı biçimi buradan; ZirkonikMoney bunu kullanır.
+            var org = res.data && res.data.organizations;
+            if (org && window.ZirkonikMoney && window.ZirkonikMoney.setRegion) window.ZirkonikMoney.setRegion(org);
             return _meCache;
           });
+      });
+    },
+    // Kuruluş bölge ayarını kaydeder (yalnız yönetici; RLS org_update_admin) ve önbelleği tazeler.
+    updateOrgRegion: function (organizationId, fields) {
+      var payload = {};
+      ['default_currency', 'locale', 'timezone', 'country'].forEach(function (k) { if (fields[k]) payload[k] = fields[k]; });
+      return client().from('organizations').update(payload).eq('id', organizationId).select('id').then(function (r) {
+        if (!r.error) _meCache = null;
+        return r;
       });
     },
 
@@ -458,11 +485,19 @@
     createOrder: function (fields) {
       return client().from('orders').insert(fields).select().single();
     },
+    // Siparişler. filters: status | notStatus | doctorId | limit+offset (sayfalı, count exact). 24 Eylül 2026.
     listOrders: function (filters) {
       filters = filters || {};
-      var q = client().from('orders').select('*, doctors(full_name, clinic_name), price_list_items(name, unit_price, currency)').order('created_at', { ascending: false });
+      var sayfali = filters.limit != null;
+      var q = client().from('orders').select('*, doctors(full_name, clinic_name), price_list_items(name, unit_price, currency)', sayfali ? { count: 'exact' } : undefined)
+        .order('created_at', { ascending: false }).order('id', { ascending: true });
       if (filters.status) q = q.eq('status', filters.status);
+      if (filters.notStatus) q = q.neq('status', filters.notStatus);
       if (filters.doctorId) q = q.eq('doctor_id', filters.doctorId);
+      if (sayfali) {
+        var limit = Math.max(1, Math.min(filters.limit, 500)), offset = Math.max(0, filters.offset || 0);
+        q = q.range(offset, offset + limit - 1);
+      }
       return q;
     },
     reviewOrder: function (orderId, fields) {
@@ -1048,7 +1083,11 @@
   // kur degistikce kaymasin; karisik listelerde her para birimi kendi
   // toplamiyla yan yana gosterilir ("$3.200 · ₺12.400").
   var CURRENCY_CODES = { '$': 'USD', '₺': 'TRY', '€': 'EUR' };
+  // Varsayılan para birimi ve sayı biçimi kuruluş ayarından gelir
+  // (organizations.default_currency / locale; ZirkonikAuth.me() yükleyince
+  // setRegion çağrılır). Yüklenene kadar eski sabit: '$', tr-TR.
   var DEFAULT_CURRENCY = '$';
+  var REGION_LOCALE = 'tr-TR';
 
   function normalizeCurrency(sym) {
     return CURRENCY_CODES[sym] ? sym : DEFAULT_CURRENCY;
@@ -1056,13 +1095,19 @@
 
   var Money = {
     SYMBOLS: ['$', '₺', '€'],
-    DEFAULT: DEFAULT_CURRENCY,
+    get DEFAULT() { return DEFAULT_CURRENCY; },
+    get LOCALE() { return REGION_LOCALE; },
+    setRegion: function (org) {
+      if (!org) return;
+      if (org.default_currency && CURRENCY_CODES[org.default_currency]) DEFAULT_CURRENCY = org.default_currency;
+      if (org.locale) REGION_LOCALE = org.locale;
+    },
     normalize: normalizeCurrency,
 
     /** Tek tutari kendi para biriminde bicimlendirir. */
     format: function (amount, currency, fractionDigits) {
       var sym = normalizeCurrency(currency);
-      return new Intl.NumberFormat('tr-TR', {
+      return new Intl.NumberFormat(REGION_LOCALE, {
         style: 'currency',
         currency: CURRENCY_CODES[sym],
         maximumFractionDigits: fractionDigits == null ? 0 : fractionDigits,
