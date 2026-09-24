@@ -318,11 +318,15 @@
       return client().from('doctor_touches').insert(Object.assign({ doctor_id: doctorId }, fields)).select().single();
     },
     // Temsilcinin "bugünkü görevleri": kendine atanmış, tarihi gelmiş/geçmiş adaylar.
-    myTodayTasks: function (userId) {
-      return client().from('doctors')
-        .select('id, full_name, clinic_name, pipeline_stage, next_action_at, next_action_note, priority')
-        .eq('assigned_rep_id', userId).lte('next_action_at', new Date().toISOString())
+    // onlyMine=false (yönetici görünümü, Medicamine adaylar.html'deki isManager mantığıyla
+    // aynı): kendine atanmamış olsa da tüm kuruluşun tarihi gelmiş takiplerini görür.
+    myTodayTasks: function (userId, onlyMine) {
+      var q = client().from('doctors')
+        .select('id, full_name, clinic_name, pipeline_stage, next_action_at, next_action_note, priority, temsilci:assigned_rep_id(full_name)')
+        .lte('next_action_at', new Date().toISOString())
         .order('next_action_at', { ascending: true });
+      if (onlyMine !== false) q = q.eq('assigned_rep_id', userId);
+      return q;
     },
 
     // ---- Personel / Yetki ----
