@@ -90,13 +90,16 @@
     if (page === 'doktor-siparis') { location.replace('retim.html'); return true; }
     if (ADMIN_PAGES[page]) { location.replace('retim.html'); return true; }
     if (page === 'stok' && !p.can_manage_stock) { location.replace('retim.html'); return true; }
-    if ((page === 'finans' || page === 'ciro') && !p.can_view_finance) { location.replace('retim.html'); return true; }
+    // Finans/Ciro: sahibinin kuralı (24 Eylül 2026) — tahsilat, fatura ve
+    // doktor ekstresi tutarları yalnız yönetici/işveren görür, hiçbir
+    // personel izniyle açılamaz.
+    if (page === 'finans' || page === 'ciro') { location.replace('retim.html'); return true; }
     if (page === 'doktorlar' && !p.can_view_doctors) { location.replace('retim.html'); return true; }
-    // Siparişler: resepsiyonun işi (can_manage_orders). Fiyat Listesi: satış
-    // pazarlamanın işi (can_view_price_list); can_view_finance de zaten
-    // fiyat düzenleyebildiği için o da görebilir (24 Eylül 2026).
+    // Siparişler: resepsiyonun işi (can_manage_orders).
     if (page === 'siparisler' && !p.can_manage_orders) { location.replace('retim.html'); return true; }
-    if (page === 'fiyat-listesi' && !p.can_view_price_list && !p.can_view_finance) { location.replace('retim.html'); return true; }
+    // Fiyat Listesi: sahibinin kuralı (24 Eylül 2026) — fiyatları yalnız
+    // yönetici/işveren görür, hiçbir personel izniyle açılamaz.
+    if (page === 'fiyat-listesi') { location.replace('retim.html'); return true; }
     // Aday Havuzu: doktor kazanım süreci — 24 Eylül 2026.
     if (page === 'aday-havuzu' && !p.can_manage_prospects) { location.replace('retim.html'); return true; }
     return false;
@@ -106,7 +109,7 @@
     // Alt menü sekmeleri
     var TABS = {
       'Stok': !!p.can_manage_stock,
-      'Finans': !!p.can_view_finance,
+      'Finans': false, // 24 Eylül 2026: para hiçbir personele görünmez.
       'Laboratuvarlar': false,
       'Ekip': false,
       'Doktorlar': !!p.can_view_doctors
@@ -135,11 +138,13 @@
     var sel = 'a[href*="yeni-giri-i"],[onclick*="yeni-giri-i"],' +
               'a[href*="laboratuvarlar"],[onclick*="laboratuvarlar"],' +
               'a[href*="ekip"],[onclick*="ekip.html"]';
-    if (!p.can_view_finance) sel += ',a[href*="finans"],[onclick*="finans"]';
+    // Finans/Ciro: personelden her zaman gizli (24 Eylül 2026).
+    sel += ',a[href*="finans"],[onclick*="finans"],a[href*="ciro"],[onclick*="ciro"]';
     if (!p.can_manage_stock) sel += ',a[href*="stok"],[onclick*="stok"]';
     if (!p.can_view_doctors) sel += ',a[href*="doktorlar"],[onclick*="doktorlar"]';
     if (!p.can_manage_orders) sel += ',a[href*="siparisler"],[onclick*="siparisler"]';
-    if (!p.can_view_price_list && !p.can_view_finance) sel += ',a[href*="fiyat-listesi"],[onclick*="fiyat-listesi"]';
+    // Fiyat Listesi: personelden her zaman gizli, izinle açılmaz (24 Eylül 2026).
+    sel += ',a[href*="fiyat-listesi"],[onclick*="fiyat-listesi"]';
     if (!p.can_manage_prospects) sel += ',a[href*="aday-havuzu"],[onclick*="aday-havuzu"]';
     var links = document.querySelectorAll(sel);
     for (var k = 0; k < links.length; k++) links[k].style.display = 'none';
@@ -193,7 +198,6 @@
       can_view_finance: !!p.can_view_finance,
       can_view_doctors: !!p.can_view_doctors,
       can_manage_orders: !!p.can_manage_orders,
-      can_view_price_list: !!p.can_view_price_list,
       can_manage_prospects: !!p.can_manage_prospects
     };
     try { localStorage.setItem('zk-guard', JSON.stringify(snap)); } catch (e) {}
