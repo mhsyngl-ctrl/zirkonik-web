@@ -95,10 +95,23 @@
     }
   }
 
+  // 24 Eylül 2026: uzun bir alt-sayfa (ör. aday-havuzu.html'deki doktor detayı,
+  // "opsiyonel bilgiler" açılınca kendi içinde kaydırılan) açıkken parmak sayfanın
+  // EN ÜSTÜNDEYMİŞ gibi davranıp yukarı doğru kaydırma "aşağı çek, yenile"
+  // hareketiyle karışıyordu — panel kaydırılamıyor, hatta preventDefault yüzünden
+  // hiçbir yöne oynamıyor gibi kilitleniyordu (sahibinin bildirimi). Açık bir
+  // alt-sayfa/panel (.fixed.inset-0, gizli olmayan) içindeki dokunuşlar bu
+  // mekanizmayı hiç tetiklemesin — o panel kendi doğal kaydırmasını kullanır.
+  function altSayfaAcikMi(hedef) {
+    var el = hedef && hedef.closest ? hedef.closest('.fixed.inset-0') : null;
+    return !!(el && !el.classList.contains('hidden'));
+  }
+
   document.addEventListener('touchstart', function (e) {
     if (calisiyor || !e.touches || e.touches.length !== 1) return;
     // Alt-sayfa (seçici) açıkken çekme devre dışı — orası kendi listesini kaydırıyor.
     if (document.querySelector('.zk-picker-overlay')) return;
+    if (altSayfaAcikMi(e.target)) return;
     kaydirici = kaydiriciBul(e.target);
     if (!tepedeMi()) { kaydirici = null; return; }
     baslangicY = e.touches[0].clientY;
