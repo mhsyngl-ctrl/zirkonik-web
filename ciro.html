@@ -142,6 +142,7 @@
   <script src="js/zk-guard.js"></script>
   <script src="js/zk-picker.js"></script>
   <script src="js/zk-ptr.js"></script>
+  <script src="js/zk-hiz.js"></script>
   <script src="js/zk-yenile.js"></script>
   <script>
     /* Ciro detayi. Finans ekranindaki ciro kartinin "Tümü" dugmesi
@@ -237,8 +238,14 @@
       }).join('');
     }
 
+    // Hız hissi (24 Eylül 2026): önce önbellekten anında çizilir, sunucu
+    // cevabı gelince üstüne yazılır.
     function loadCiro() {
       var client = ZirkonikAuth.client();
+      if (window.ZKHiz) {
+        var onb = ZKHiz.cachePeek('ciro_ozet');
+        if (onb) { ozet = onb.ozet; doctorAdi = onb.doctorAdi; ciz(); labCiro(); }
+      }
       return Promise.all([
         client.rpc('zk_finans_ozet'),
         client.from('doctors').select('id, full_name')
@@ -249,6 +256,7 @@
         (res[1].data || []).forEach(function (d) { doctorAdi[d.id] = d.full_name; });
         ciz();
         labCiro();
+        if (window.ZKHiz) ZKHiz.cachePut('ciro_ozet', { ozet: ozet, doctorAdi: doctorAdi });
       });
     }
 
