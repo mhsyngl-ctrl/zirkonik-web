@@ -171,7 +171,15 @@
 .zk-picker-overlay.zk-picker-anchored .zk-picker-grab { display: none; }
 
 .zk-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-.zk-cal-month { margin: 0; font-family: var(--font-heading); font-size: 14px; font-weight: 800; }
+/* 24 Eylül 2026: başlık artık dokunulabilir buton — yıl listesini açar
+   (doğum tarihi gibi uzak yıllar için ay-ay gitmek kullanılamaz haldeydi). */
+.zk-cal-month { display: flex; align-items: center; gap: 4px; margin: 0; padding: 6px 10px;
+  border: none; border-radius: 10px; background: none; font-family: var(--font-heading);
+  font-size: 14px; font-weight: 800; color: var(--color-foreground); }
+.zk-cal-month-hint { font-size: 10px; color: var(--color-muted-foreground); }
+.zk-cal-back { display: block; margin-bottom: 8px; padding: 8px 4px; border: none; background: none;
+  font-size: 13px; font-weight: 700; color: var(--color-primary); }
+.zk-cal-year-list { max-height: 340px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .zk-cal-nav { display: flex; width: 38px; height: 38px; align-items: center; justify-content: center;
   border-radius: 10px; border: 1px solid var(--color-border); background: var(--color-input);
   font-size: 20px; color: var(--color-primary); }
