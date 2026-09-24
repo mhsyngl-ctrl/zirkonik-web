@@ -234,9 +234,15 @@
     },
 
     // ---- Doktorlar ----
-    listDoctors: function (status) {
+    listDoctors: function (status, opts) {
       var q = client().from('doctors').select('*, laboratories:primary_laboratory_id(name)').order('created_at', { ascending: false });
       if (status) q = q.eq('status', status);
+      // 24 Eylül 2026: aday havuzu/ilk temas/tanıtım yapıldı aşamasındaki adaylar henüz
+      // gerçek doktor değil — "Onaylı Doktorlar" listesine karışmasınlar diye burada
+      // hariç tutulabiliyor (bkz. aday-havuzu.html). Yeni İş Girişi gibi bir doktor
+      // seçtirmesi gereken ekranlar bu filtreyi KULLANMAZ — aksi halde ilk vakayı
+      // kaydedip deneme_vakasi'na geçirmenin tek yolu kapanır.
+      if (opts && opts.excludeProspects) q = q.not('pipeline_stage', 'in', '(aday_havuzu,ilk_temas,tanitim_yapildi)');
       return q;
     },
     approveDoctor: function (doctorId) {
@@ -262,6 +268,52 @@
     },
     restoreDoctor: function (doctorId) {
       return unwrapFnResult(client().functions.invoke('delete-doctor-account', { body: { doctor_id: doctorId, restore: true } }));
+    },
+
+    // ---- Doktor kazanım süreci (bölge/temsilci/aşama) — 24 Eylül 2026 ----
+    listRegions: function () {
+      return client().from('regions').select('*, temsilci:assigned_rep_id(full_name)').order('name');
+    },
+    createRegion: function (name, assignedRepId) {
+      return client().from('regions').insert({ name: name, assigned_rep_id: assignedRepId || null }).select().single();
+    },
+    updateRegion: function (regionId, fields) {
+      return client().from('regions').update(fields).eq('id', regionId);
+    },
+    deleteRegion: function (regionId) {
+      return client().from('regions').delete().eq('id', regionId);
+    },
+    // Aday/doktor listesi — aşama filtresiyle (aday-havuzu.html Kanban sekmeleri).
+    listPipelineDoctors: function (stage) {
+      var q = client().from('doctors')
+        .select('*, region:region_id(name), temsilci:assigned_rep_id(full_name), activator:activated_by(full_name), laboratories:primary_laboratory_id(name)')
+        .order('priority', { ascending: true }).order('next_action_at', { ascending: true, nullsFirst: false });
+      if (stage) q = q.eq('pipeline_stage', stage);
+      else q = q.neq('pipeline_stage', 'aktif'); // varsayılan görünüm: süreç içindeki + uyuyan/kayıp/beklemede, akıştaki gürültü olmasın diye aktifler hariç
+      return q;
+    },
+    // Yeni aday ekleme: gerçek bir hesap AÇMAZ (user_id=null) — Aşama 1'de doktorun
+    // kendisi henüz bilmiyor bile olabilir. status='approved' verilir ki mevcut
+    // "onay bekleyen doktor" kuyruğuna (gerçek hesap başvurusu) hiç karışmasın.
+    createProspect: function (fields) {
+      var payload = Object.assign({ status: 'approved', pipeline_stage: 'aday_havuzu' }, fields);
+      return client().from('doctors').insert(payload).select().single();
+    },
+    updateDoctorPipeline: function (doctorId, fields) {
+      return client().from('doctors').update(fields).eq('id', doctorId);
+    },
+    listDoctorTouches: function (doctorId) {
+      return client().from('doctor_touches').select('*, yazan:created_by(full_name)').eq('doctor_id', doctorId).order('created_at', { ascending: false });
+    },
+    addDoctorTouch: function (doctorId, fields) {
+      return client().from('doctor_touches').insert(Object.assign({ doctor_id: doctorId }, fields)).select().single();
+    },
+    // Temsilcinin "bugünkü görevleri": kendine atanmış, tarihi gelmiş/geçmiş adaylar.
+    myTodayTasks: function (userId) {
+      return client().from('doctors')
+        .select('id, full_name, clinic_name, pipeline_stage, next_action_at, next_action_note, priority')
+        .eq('assigned_rep_id', userId).lte('next_action_at', new Date().toISOString())
+        .order('next_action_at', { ascending: true });
     },
 
     // ---- Personel / Yetki ----
