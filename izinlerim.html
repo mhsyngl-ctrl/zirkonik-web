@@ -148,6 +148,7 @@
   <script src="js/zk-guard.js"></script>
   <script src="js/zk-picker.js"></script>
   <script src="js/zk-ptr.js"></script>
+  <script src="js/zk-hiz.js"></script>
   <script src="js/zk-yenile.js"></script>
   <script>
     function zkToast(msg){
@@ -211,30 +212,41 @@
       });
     }
 
+    // Hız hissi (24 Eylül 2026): render mantığı ayrı fonksiyona çıkarıldı ki
+    // önbellekten anında çizim ile sunucu cevabı birebir aynı kodu kullansın.
+    function paintLeaves(list) {
+      var el = document.getElementById('leave-list');
+      if (!list.length) {
+        el.innerHTML = '<p class="text-xs text-muted-foreground">Henüz izin talebiniz yok. Sağ üstteki + ile talep açabilirsiniz.</p>';
+        return;
+      }
+      el.innerHTML = list.map(function (l) {
+        return '<div class="flex items-start gap-3 rounded-theme border border-border bg-card p-3.5">' +
+          '<span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-primary"><iconify-icon icon="' + (TYPE_ICONS[l.leave_type] || 'lucide:calendar') + '" class="text-lg"></iconify-icon></span>' +
+          '<div class="min-w-0 flex-1">' +
+          '<div class="flex items-center justify-between gap-2">' +
+          '<p class="text-sm font-bold">' + (TYPE_NAMES[l.leave_type] || l.leave_type) + '</p>' +
+          (STATUS_BADGES[l.status] || '') + '</div>' +
+          '<p class="mt-0.5 text-xs text-muted-foreground">' + trDate(l.start_date) + ' — ' + trDate(l.end_date) + ' · ' + l.day_count + ' gün</p>' +
+          (l.note ? '<p class="mt-0.5 text-xs text-muted-foreground">' + escapeHtml(l.note) + '</p>' : '') +
+          (l.decision_note ? '<p class="mt-0.5 text-xs font-semibold text-accent">Yönetici notu: ' + escapeHtml(l.decision_note) + '</p>' : '') +
+          (l.status === 'pending'
+            ? '<button onclick="zkCancelLeave(\'' + l.id + '\')" class="mt-2 text-[11px] font-bold text-destructive">Talebi geri çek</button>'
+            : '') +
+          '</div></div>';
+      }).join('');
+    }
     function loadLeaves() {
+      if (window.ZKHiz) {
+        var onb = ZKHiz.cachePeek('my_leaves');
+        if (onb) paintLeaves(onb);
+      }
       ZirkonikData.myLeaveRequests().then(function (r) {
         var el = document.getElementById('leave-list');
         if (r.error) { el.innerHTML = '<p class="text-xs text-destructive">Yüklenemedi: ' + escapeHtml(r.error.message) + '</p>'; return; }
         var list = r.data || [];
-        if (!list.length) {
-          el.innerHTML = '<p class="text-xs text-muted-foreground">Henüz izin talebiniz yok. Sağ üstteki + ile talep açabilirsiniz.</p>';
-          return;
-        }
-        el.innerHTML = list.map(function (l) {
-          return '<div class="flex items-start gap-3 rounded-theme border border-border bg-card p-3.5">' +
-            '<span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-primary"><iconify-icon icon="' + (TYPE_ICONS[l.leave_type] || 'lucide:calendar') + '" class="text-lg"></iconify-icon></span>' +
-            '<div class="min-w-0 flex-1">' +
-            '<div class="flex items-center justify-between gap-2">' +
-            '<p class="text-sm font-bold">' + (TYPE_NAMES[l.leave_type] || l.leave_type) + '</p>' +
-            (STATUS_BADGES[l.status] || '') + '</div>' +
-            '<p class="mt-0.5 text-xs text-muted-foreground">' + trDate(l.start_date) + ' — ' + trDate(l.end_date) + ' · ' + l.day_count + ' gün</p>' +
-            (l.note ? '<p class="mt-0.5 text-xs text-muted-foreground">' + escapeHtml(l.note) + '</p>' : '') +
-            (l.decision_note ? '<p class="mt-0.5 text-xs font-semibold text-accent">Yönetici notu: ' + escapeHtml(l.decision_note) + '</p>' : '') +
-            (l.status === 'pending'
-              ? '<button onclick="zkCancelLeave(\'' + l.id + '\')" class="mt-2 text-[11px] font-bold text-destructive">Talebi geri çek</button>'
-              : '') +
-            '</div></div>';
-        }).join('');
+        paintLeaves(list);
+        if (window.ZKHiz) ZKHiz.cachePut('my_leaves', list);
       });
     }
 
