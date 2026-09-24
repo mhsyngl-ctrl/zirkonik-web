@@ -230,6 +230,7 @@
   <script src="js/zk-guard.js"></script>
   <script src="js/zk-picker.js"></script>
   <script src="js/zk-ptr.js"></script>
+  <script src="js/zk-hiz.js"></script>
   <script src="js/zk-yenile.js"></script>
   <script>
     function escapeHtml(s) {
@@ -241,17 +242,29 @@
     var activeLabForRoom = null;
     var allLabsForRoom = [];
 
+    // Hız hissi (24 Eylül 2026): önce önbellekten anında çizilir, sunucu
+    // cevabı gelince üstüne yazılır — diğer sayfalarla aynı kalıp.
+    function paintLabRows(rows) {
+      allLabsForRoom = rows.map(function (row) { return row.lab; });
+      if (!rows.length) {
+        document.getElementById('labs-list').innerHTML = '<p class="text-xs text-muted-foreground">Henüz laboratuvar yok. Yukarıdan ekleyin.</p>';
+        document.getElementById('rooms-section').innerHTML = '';
+        return;
+      }
+      document.getElementById('labs-list').innerHTML = rows.map(renderLabCard).join('');
+      var current = (activeLabForRoom && allLabsForRoom.filter(function (l) { return l.id === activeLabForRoom.id; })[0]) || allLabsForRoom[0];
+      loadRooms(current);
+    }
     function loadLabs() {
       var client = ZirkonikAuth.client();
+      if (window.ZKHiz) {
+        var onb = ZKHiz.cachePeek('lab_rows');
+        if (onb) paintLabRows(onb);
+      }
       ZirkonikData.listLabs().then(function (r) {
         if (r.error) { zkToast('Yüklenemedi: ' + r.error.message); return; }
         var labs = r.data || [];
-        allLabsForRoom = labs;
-        if (!labs.length) {
-          document.getElementById('labs-list').innerHTML = '<p class="text-xs text-muted-foreground">Henüz laboratuvar yok. Yukarıdan ekleyin.</p>';
-          document.getElementById('rooms-section').innerHTML = '';
-          return;
-        }
+        if (!labs.length) { paintLabRows([]); if (window.ZKHiz) ZKHiz.cachePut('lab_rows', []); return; }
         Promise.all(labs.map(function (lab) {
           return Promise.all([
             client.from('rooms').select('id', { count: 'exact', head: true }).eq('laboratory_id', lab.id),
@@ -260,9 +273,8 @@
             return { lab: lab, roomCount: res[0].count || 0, activeJobs: res[1].count || 0 };
           });
         })).then(function (rows) {
-          document.getElementById('labs-list').innerHTML = rows.map(renderLabCard).join('');
-          var current = (activeLabForRoom && labs.filter(function (l) { return l.id === activeLabForRoom.id; })[0]) || labs[0];
-          loadRooms(current);
+          paintLabRows(rows);
+          if (window.ZKHiz) ZKHiz.cachePut('lab_rows', rows);
         });
       });
     }
