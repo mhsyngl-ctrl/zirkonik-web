@@ -60,9 +60,14 @@
             <h1 class="mt-1 font-heading text-2xl font-bold tracking-tight">Doktorlar</h1>
             <p class="mt-1.5 max-w-[260px] text-xs leading-4 text-muted-foreground">Doktor/klinik kayıtları ve onay merkezi</p>
           </div>
-          <button onclick="zkOpenAddDoctor()" class="flex h-10 w-10 items-center justify-center rounded-theme bg-primary text-primary-foreground">
-            <iconify-icon icon="lucide:plus" class="text-lg"></iconify-icon>
-          </button>
+          <div class="flex items-center gap-2">
+            <a href="aday-havuzu.html" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-background text-primary" aria-label="Aday Havuzu" title="Aday Havuzu">
+              <iconify-icon icon="lucide:map-pinned" class="text-lg"></iconify-icon>
+            </a>
+            <button onclick="zkOpenAddDoctor()" class="flex h-10 w-10 items-center justify-center rounded-theme bg-primary text-primary-foreground">
+              <iconify-icon icon="lucide:plus" class="text-lg"></iconify-icon>
+            </button>
+          </div>
         </div>
 
         <div class="mt-5 grid grid-cols-2 gap-2.5">
@@ -443,7 +448,7 @@
         var onb = ZKHiz.cachePeek('doctors');
         if (onb && onb.length) renderDoctors(onb);
       }
-      ZirkonikData.listDoctors().then(function (r) {
+      ZirkonikData.listDoctors(null, { excludeProspects: true }).then(function (r) {
         if (r.error) { zkToast('Yüklenemedi: ' + r.error.message); return; }
         var all = r.data || [];
         if (window.ZKHiz) ZKHiz.cachePut('doctors', all);
