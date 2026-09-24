@@ -453,11 +453,11 @@
         var tasinan = ZKHiz.takeHandoff('job:' + jobId) || ZKHiz.cachePeek('job_' + jobId);
         if (tasinan) { try { renderJobHeaderBasics(tasinan); } catch (e) {} }
       }
-      ZirkonikData.getJob(jobId).then(function (jobRes) {
+      ZirkonikData.getJob(jobId, myRole === 'yonetici').then(function (jobRes) {
         if (jobRes.error || !jobRes.data) throw jobRes.error || new Error('İş bulunamadı');
         currentJob = jobRes.data;
         ZKHiz.cachePut('job_' + jobId, currentJob);
-        return ZirkonikData.listJobItems(jobId);
+        return ZirkonikData.listJobItems(jobId, myRole === 'yonetici');
       }).then(function (itemsRes) {
         jobItems = itemsRes.data || [];
         // Secili kalemi koru (yenileme sonrasi kullanici basa donmesin).
@@ -959,7 +959,7 @@
               .update({ status: 'completed' }).eq('id', currentItem.id)
               .then(function (r) {
                 if (r.error) throw r.error;
-                return ZirkonikData.listJobItems(jobId);
+                return ZirkonikData.listJobItems(jobId, myRole === 'yonetici');
               }).then(function (r) {
                 var kalan = (r.data || []).filter(function (i) { return i.status === 'active'; });
                 if (kalan.length) return { done: false };
