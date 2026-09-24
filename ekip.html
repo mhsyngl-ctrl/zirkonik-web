@@ -469,7 +469,6 @@
       if (perms.can_change_job_status) return 'Üretim durumu';
       if (perms.can_manage_stock) return 'Stok';
       if (perms.can_manage_orders) return 'Sipariş yönetimi';
-      if (perms.can_view_price_list) return 'Fiyat listesi';
       return 'Görüntüleme';
     }
 
@@ -693,7 +692,9 @@
         return { can_view_jobs: true, can_change_job_status: false, can_manage_orders: true, can_view_doctors: true };
       }
       if (position === 'Satış Pazarlama Sorumlusu') {
-        return { can_view_jobs: false, can_change_job_status: false, can_view_price_list: true, can_view_doctors: true, can_manage_prospects: true };
+        // 24 Eylül 2026, sahibinin kuralı: fiyatları hiçbir personel görmez,
+        // yalnız yönetici/işveren — can_view_price_list artık verilmiyor.
+        return { can_view_jobs: false, can_change_job_status: false, can_view_doctors: true, can_manage_prospects: true };
       }
       return {}; // Teknisyen/Yardımcı Teknisyen: sunucu varsayılanı (üretim erişimi) yeterli.
     }
