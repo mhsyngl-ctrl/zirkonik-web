@@ -120,7 +120,7 @@
 
             <!-- Doktor kazanım süreci — 24 Eylül 2026, Medicamine'deki "Adaylar" kartıyla aynı mantık:
                  ana ekranda tek dokunuşla girilen, sayaçlı bir giriş. Yalnız yetkili görür (zk-guard.js). -->
-            <button onclick="location.href='aday-havuzu.html'" id="stat-leads-btn" class="zk-stat zk-stat-teal"><span class="zk-stat-icon"><iconify-icon icon="lucide:user-round-plus"></iconify-icon></span><p id="stat-leads" class="zk-stat-value">—</p><p class="zk-stat-label">Aday Havuzu</p><iconify-icon class="zk-stat-ghost" icon="lucide:user-round-plus"></iconify-icon></button>
+            <button onclick="location.href='aday-havuzu.html'" id="stat-leads-btn" class="zk-stat zk-stat-teal"><span class="zk-stat-icon"><iconify-icon icon="lucide:user-round-plus"></iconify-icon></span><p id="stat-leads" class="zk-stat-value">—</p><p class="zk-stat-label">Doktor Havuzu</p><iconify-icon class="zk-stat-ghost" icon="lucide:user-round-plus"></iconify-icon></button>
           </div></div>
         </section>
 
@@ -294,7 +294,7 @@
               <h2 class="font-heading text-lg font-extrabold">Bugünkü Görevlerim</h2>
               <p class="mt-0.5 text-xs text-muted-foreground">Tarihi gelmiş takipler ve memnuniyet aramaları</p>
             </div>
-            <a href="aday-havuzu.html" class="text-xs font-bold text-primary">Aday Havuzu</a>
+            <a href="aday-havuzu.html" class="text-xs font-bold text-primary">Doktor Havuzu</a>
           </div>
           <div id="my-tasks-list" class="mt-3 space-y-2"></div>
         </section>
@@ -507,7 +507,7 @@
         financePromise,
         stockPromise,
         client.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-        // Aday Havuzu kartı: süreçteki (henüz aktif ya da kayıp olmamış) aday/doktor sayısı.
+        // Doktor Havuzu kartı: süreçteki (henüz aktif ya da kayıp olmamış) aday/doktor sayısı.
         client.from('doctors').select('id', { count: 'exact', head: true }).not('pipeline_stage', 'in', '(aktif,kayip)')
       ]).then(function (r) {
         var o = {
