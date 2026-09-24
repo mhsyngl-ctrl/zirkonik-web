@@ -211,12 +211,35 @@
         else if (dIso === iso(today.getFullYear(), today.getMonth(), today.getDate())) cls += ' zk-cal-today';
         cells += '<button type="button" class="' + cls + '" data-date="' + dIso + '">' + d + '</button>';
       }
+      // 24 Eylül 2026: ay başlığı artık dokunulabilir — doğum tarihi gibi
+      // uzak yıllar için tek tek "‹" ile ay ay geri gitmek (ör. 2026'dan
+      // 1985'e ~500 dokunuş) kullanılamaz haldeydi (sahibinin bildirimi).
+      // Başlığa dokununca yıl listesi açılır, tek dokunuşla o yıla atlanır.
       return '<div class="zk-cal-head">' +
         '<button type="button" class="zk-cal-nav" data-nav="-1">‹</button>' +
-        '<p class="zk-cal-month">' + AYLAR[viewMonth] + ' ' + viewYear + '</p>' +
+        '<button type="button" class="zk-cal-month" data-yil-sec="1">' + AYLAR[viewMonth] + ' ' + viewYear + ' <span class="zk-cal-month-hint">▾</span></button>' +
         '<button type="button" class="zk-cal-nav" data-nav="1">›</button></div>' +
         '<div class="zk-cal-grid">' + GUNLER.map(function (g) { return '<span class="zk-cal-cell zk-cal-dow">' + g + '</span>'; }).join('') + cells + '</div>' +
         '<button type="button" class="zk-cal-clear">Tarihi temizle</button>';
+    }
+
+    // Yıl listesi: bugünden 100 yıl geriye, en yakın yıl en üstte — doğum
+    // tarihi girerken tek dokunuşla istenen yıla gidilsin diye.
+    function yearHtml() {
+      var rows = '';
+      for (var y = today.getFullYear(); y >= today.getFullYear() - 100; y--) {
+        var on = y === viewYear;
+        rows += '<button type="button" class="zk-picker-row' + (on ? ' zk-picker-row-on' : '') + '" data-yil="' + y + '">' +
+          '<span class="zk-picker-row-label">' + y + '</span>' + (on ? '<span class="zk-picker-check">✓</span>' : '') + '</button>';
+      }
+      return '<button type="button" class="zk-cal-back">‹ Takvime dön</button><div class="zk-cal-year-list">' + rows + '</div>';
+    }
+
+    function draw(ov) {
+      ov.querySelector('.zk-picker-body').innerHTML = calHtml();
+      bind(ov);
+      var sel = ov.querySelector('.zk-cal-sel') || ov.querySelector('.zk-cal-today');
+      if (sel && sel.scrollIntoView) sel.scrollIntoView({ block: 'center' });
     }
 
     function bind(ov) {
@@ -226,8 +249,7 @@
           viewMonth += Number(b.getAttribute('data-nav'));
           if (viewMonth < 0) { viewMonth = 11; viewYear--; }
           if (viewMonth > 11) { viewMonth = 0; viewYear++; }
-          ov.querySelector('.zk-picker-body').innerHTML = calHtml();
-          bind(ov);
+          draw(ov);
         });
       });
       ov.querySelectorAll('.zk-cal-day').forEach(function (b) {
@@ -244,6 +266,22 @@
         input.value = '';
         input.dispatchEvent(new Event('change', { bubbles: true }));
         closeSheet();
+      });
+      var yilBtn = ov.querySelector('.zk-cal-month');
+      if (yilBtn) yilBtn.addEventListener('click', function (e) {
+        if (isGhost(e)) return;
+        ov.querySelector('.zk-picker-body').innerHTML = yearHtml();
+        var back = ov.querySelector('.zk-cal-back');
+        if (back) back.addEventListener('click', function (e2) { if (isGhost(e2)) return; draw(ov); });
+        ov.querySelectorAll('[data-yil]').forEach(function (yb) {
+          yb.addEventListener('click', function (e3) {
+            if (isGhost(e3)) return;
+            viewYear = Number(yb.getAttribute('data-yil'));
+            draw(ov);
+          });
+        });
+        var onRow = ov.querySelector('.zk-picker-row-on');
+        if (onRow && onRow.scrollIntoView) onRow.scrollIntoView({ block: 'center' });
       });
     }
 
