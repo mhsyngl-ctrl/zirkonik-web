@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://code.iconify.design; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://cuujupeindodpsdjcivm.supabase.co wss://cuujupeindodpsdjcivm.supabase.co https://api.iconify.design https://api.simplesvg.com https://api.unisvg.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <title>Aday Havuzu — Zirkonik</title>
+
+  <link rel="stylesheet" href="css/tailwind.css">
+  <link rel="stylesheet" href="css/ipad.css">
+  <link rel="stylesheet" href="css/zk-utils.css">
+  <script src="js/zk-tema.js"></script>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#FFFFFF">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <script src="vendor/lucide-icons.js"></script>
+  <script src="vendor/iconify-icon.min.js" defer></script>
+  <link rel="stylesheet" href="css/fonts.css">
+
+  <style>
+  :root {
+    --color-background: #0E1013;
+    --color-foreground: #F2F4F7;
+    --color-primary: #3D7CDC;
+    --color-primary-foreground: #FFFFFF;
+    --color-secondary: #232732;
+    --color-secondary-foreground: #C6CBD6;
+    --color-accent: #F0A03C;
+    --color-accent-foreground: #FFFFFF;
+    --color-muted: #1B1E24;
+    --color-muted-foreground: #98A0AD;
+    --color-card: #15171C;
+    --color-card-foreground: #F2F4F7;
+    --color-border: #262A32;
+    --color-input: #1B1E24;
+    --color-destructive: #EF5350;
+    --color-destructive-foreground: #FFFFFF;
+    --color-success: #10B981;
+    --color-success-foreground: #FFFFFF;
+    --font-heading: 'Plus Jakarta Sans', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --radius: 12px;
+  }
+  html { overflow-x: hidden; }
+  body { font-family: var(--font-body); -webkit-font-smoothing: antialiased; margin: 0; padding: 0; overflow-x: hidden; overscroll-behavior-x: none; }
+  .zk-stage-tabs { display: flex; gap: 6px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+  .zk-stage-tabs::-webkit-scrollbar { display: none; }
+  .zk-stage-tab { flex: 0 0 auto; padding: 8px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; border: 1px solid var(--color-border); background: var(--color-card); color: var(--color-muted-foreground); }
+  .zk-stage-tab.on { background: var(--color-primary); color: var(--color-primary-foreground); border-color: var(--color-primary); }
+  .zk-prio-yuksek { background: rgba(239,83,80,.12); color: var(--color-destructive); }
+  .zk-prio-orta { background: rgba(240,160,60,.12); color: var(--color-accent); }
+  .zk-prio-dusuk { background: var(--color-muted); color: var(--color-muted-foreground); }
+  </style>
+</head>
+<body data-page="aday-havuzu" class="bg-background text-foreground m-0 p-0">
+  <div class="h-screen w-screen overflow-y-auto">
+    <div class="min-h-screen w-full bg-background text-foreground font-body pb-32">
+      <header class="border-b border-border bg-card px-5 pb-5 pt-12" style="padding-top:max(3rem,calc(env(safe-area-inset-top) + 12px));">
+        <div class="flex items-start justify-between">
+          <div class="flex items-center gap-3">
+            <button onclick="history.length > 1 ? history.back() : (location.href='doktorlar.html')" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-background text-primary" aria-label="Geri">
+              <iconify-icon icon="lucide:arrow-left" class="text-xl"></iconify-icon>
+            </button>
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Doktor kazanımı</p>
+              <h1 class="mt-1 font-heading text-2xl font-bold tracking-tight">Aday Havuzu</h1>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="zkOpenRegions()" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-background text-primary" aria-label="Bölgeler"><iconify-icon icon="lucide:map"></iconify-icon></button>
+            <button onclick="zkOpenAddProspect()" class="flex h-10 w-10 items-center justify-center rounded-theme bg-primary text-primary-foreground" aria-label="Aday ekle"><iconify-icon icon="lucide:user-round-plus"></iconify-icon></button>
+          </div>
+        </div>
+        <div class="mt-4 zk-stage-tabs" id="stage-tabs"></div>
+      </header>
+
+      <main class="px-5">
+        <section class="pt-5">
+          <div id="prospect-list" class="space-y-3">
+            <p class="text-xs text-muted-foreground">Yükleniyor…</p>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- Aday ekle -->
+  <div id="add-prospect-sheet" class="fixed inset-0 z-40 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkCloseAddProspect()"></div>
+    <div class="absolute bottom-0 left-0 max-h-[88vh] w-full overflow-y-auto rounded-t-theme bg-card p-5 pb-8">
+      <p class="font-heading text-lg font-bold">Aday ekle</p>
+      <p class="mt-1 text-xs text-muted-foreground">Klinik adı, adres ve telefon bu aşamada yeterli.</p>
+      <div class="mt-4 space-y-3">
+        <input id="np-name" type="text" placeholder="Doktor adı *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <input id="np-clinic" type="text" placeholder="Klinik adı" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <input id="np-address" type="text" placeholder="Adres" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <input id="np-phone" type="tel" placeholder="Telefon" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <select id="np-region" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"><option value="">Bölge seçin (opsiyonel)</option></select>
+        <select id="np-source" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+          <option value="">Kaynak</option>
+          <option value="google_haritalar">Google Haritalar</option>
+          <option value="oda_listesi">Diş hekimleri odası listesi</option>
+          <option value="referans">Referans</option>
+          <option value="instagram">Instagram</option>
+          <option value="diger">Diğer</option>
+        </select>
+        <div>
+          <p class="mb-1.5 text-xs font-bold text-card-foreground">Öncelik</p>
+          <div class="grid grid-cols-3 gap-2">
+            <button type="button" id="np-prio-yuksek" onclick="zkSetPrio('yuksek')" class="h-11 rounded-theme border border-border text-xs font-bold">Yüksek</button>
+            <button type="button" id="np-prio-orta" onclick="zkSetPrio('orta')" class="h-11 rounded-theme border border-border text-xs font-bold">Orta</button>
+            <button type="button" id="np-prio-dusuk" onclick="zkSetPrio('dusuk')" class="h-11 rounded-theme border border-border text-xs font-bold">Düşük</button>
+          </div>
+        </div>
+      </div>
+      <p id="np-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
+      <button onclick="zkSubmitAddProspect()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
+    </div>
+  </div>
+
+  <!-- Bölgeler -->
+  <div id="regions-sheet" class="fixed inset-0 z-40 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkCloseRegions()"></div>
+    <div class="absolute bottom-0 left-0 max-h-[88vh] w-full overflow-y-auto rounded-t-theme bg-card p-5 pb-8">
+      <p class="font-heading text-lg font-bold">Bölgeler</p>
+      <p class="mt-1 text-xs text-muted-foreground">Her bölge bir temsilciye atanır — iki temsilci aynı kliniğe gitmesin.</p>
+      <div id="regions-list" class="mt-3 space-y-2"></div>
+      <div class="mt-4 flex gap-2">
+        <input id="nreg-name" type="text" placeholder="Yeni bölge adı" class="h-12 flex-1 rounded-theme border border-border bg-input px-3.5 text-sm">
+        <button onclick="zkAddRegion()" class="flex h-12 items-center justify-center rounded-theme bg-primary px-4 text-sm font-bold text-primary-foreground">Ekle</button>
+      </div>
+      <p id="nreg-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
+    </div>
+  </div>
+
+  <!-- Aday/doktor detayı -->
+  <div id="detail-sheet" class="fixed inset-0 z-40 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkCloseDetail()"></div>
+    <div class="absolute bottom-0 left-0 max-h-[92vh] w-full overflow-y-auto rounded-t-theme bg-card p-5 pb-8">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <p id="dt-clinic" class="text-xs text-muted-foreground"></p>
+          <h2 id="dt-name" class="mt-0.5 truncate font-heading text-lg font-bold">—</h2>
+          <p id="dt-activator" class="mt-0.5 hidden text-[11px] font-bold text-success"></p>
+        </div>
+        <button onclick="zkCloseDetail()" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-theme bg-muted text-muted-foreground" aria-label="Kapat">✕</button>
+      </div>
+
+      <div class="mt-4 grid grid-cols-2 gap-2.5">
+        <label class="block"><span class="mb-1 block text-[11px] font-bold">Aşama</span>
+          <select id="dt-stage" onchange="zkStageChanged()" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs font-bold">
+            <option value="aday_havuzu">Aday havuzu</option>
+            <option value="ilk_temas">İlk temas</option>
+            <option value="tanitim_yapildi">Tanıtım yapıldı</option>
+            <option value="deneme_vakasi">Deneme vakası</option>
+            <option value="aktif">Aktif doktor</option>
+            <option value="uyuyan">Uyuyan doktor</option>
+            <option value="kayip">Kayıp</option>
+            <option value="beklemede">Beklemede</option>
+          </select>
+        </label>
+        <label class="block"><span class="mb-1 block text-[11px] font-bold">Öncelik</span>
+          <select id="dt-priority" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs font-bold">
+            <option value="yuksek">Yüksek</option><option value="orta">Orta</option><option value="dusuk">Düşük</option>
+          </select>
+        </label>
+      </div>
+
+      <div id="dt-lost-wrap" class="mt-2.5 hidden">
+        <span class="mb-1 block text-[11px] font-bold">Kayıp nedeni</span>
+        <select id="dt-lost-reason" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs font-bold">
+          <option value="fiyat">Fiyat</option>
+          <option value="mevcut_memnun">Mevcut laboratuvardan memnun</option>
+          <option value="kalite">Kalite şikayeti</option>
+          <option value="teslim_suresi">Teslim süresi</option>
+          <option value="ulasilamadi">Ulaşılamadı</option>
+          <option value="klinik_kapandi">Klinik kapandı</option>
+          <option value="sessizlik">Sessizlik (otomatik)</option>
+        </select>
+      </div>
+
+      <div class="mt-2.5 grid grid-cols-2 gap-2.5">
+        <label class="block"><span class="mb-1 block text-[11px] font-bold">Bölge</span>
+          <select id="dt-region" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs"><option value="">—</option></select>
+        </label>
+        <label class="block"><span class="mb-1 block text-[11px] font-bold">Temsilci</span>
+          <select id="dt-rep" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs"><option value="">—</option></select>
+        </label>
+      </div>
+
+      <label class="mt-2.5 block"><span class="mb-1 block text-[11px] font-bold">Sonraki aksiyon tarihi</span>
+        <input id="dt-next-date" type="date" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs"></label>
+      <label class="mt-2.5 block"><span class="mb-1 block text-[11px] font-bold">Sonraki aksiyon notu</span>
+        <input id="dt-next-note" type="text" placeholder="Örn. Tekrar ara, numune bırak" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs"></label>
+
+      <details class="mt-3 rounded-theme border border-border p-3">
+        <summary class="cursor-pointer text-xs font-bold text-primary">Doktor bilgileri (opsiyonel)</summary>
+        <div class="mt-3 space-y-2.5">
+          <div class="grid grid-cols-2 gap-2.5">
+            <input id="dt-phone" type="tel" placeholder="Telefon" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs">
+            <input id="dt-email" type="email" placeholder="E-posta" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs">
+          </div>
+          <input id="dt-assistant-name" type="text" placeholder="Asistan adı" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs">
+          <input id="dt-assistant-phone" type="tel" placeholder="Asistan telefonu" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs">
+          <select id="dt-specialization" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs">
+            <option value="">Uzmanlık</option><option value="implantolog">İmplantolog</option><option value="protez">Protez</option>
+            <option value="estetik">Estetik</option><option value="genel">Genel</option>
+          </select>
+          <select id="dt-volume" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs">
+            <option value="">Tahmini aylık vaka hacmi</option><option value="kucuk">Küçük (0-5)</option><option value="orta">Orta (5-20)</option><option value="buyuk">Büyük (20+)</option>
+          </select>
+          <input id="dt-worktype" type="text" placeholder="Ağırlıklı işler (zirkon, e.max, implant üstü…)" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs">
+          <label class="flex items-center gap-2 text-xs font-semibold"><input id="dt-scanner" type="checkbox"> Intraoral tarayıcısı var</label>
+          <input id="dt-scanner-brand" type="text" placeholder="Tarayıcı markası" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs">
+          <select id="dt-priority-driver" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs">
+            <option value="">Doktorun önem verdiği</option><option value="fiyat">Fiyat</option><option value="hiz">Hız</option>
+            <option value="estetik">Estetik kalite</option><option value="olcu">Ölçü alma kolaylığı</option>
+          </select>
+        </div>
+      </details>
+
+      <p id="dt-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
+      <button onclick="zkSaveDetail()" class="mt-3 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
+
+      <!-- 24 Eylül 2026, sahibinin isteği: otomatik geçişi (3 vaka) beklemeden tek
+           dokunuşla içeri alma. Sistem yine kendiliğinden de ilerletir; bu, elle
+           öne çekme yoludur. Zaten aktif/kayıpsa gösterilmez. -->
+      <button id="dt-make-active-btn" onclick="zkMakeActive()" class="mt-2.5 flex h-12 w-full items-center justify-center gap-2 rounded-theme border border-success/40 bg-success/10 text-sm font-bold text-success">
+        <iconify-icon icon="lucide:badge-check" class="text-lg"></iconify-icon>
+        Aktif Doktor Yap
+      </button>
+
+      <div class="mt-5 border-t border-border pt-4">
+        <p class="text-xs font-bold uppercase tracking-wide text-muted-foreground">Temas ekle</p>
+        <div class="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-6">
+          <button onclick="zkAddTouch('ziyaret')" class="rounded-lg border border-border bg-background py-2 text-[11px] font-bold">Ziyaret</button>
+          <button onclick="zkAddTouch('arama')" class="rounded-lg border border-border bg-background py-2 text-[11px] font-bold">Arama</button>
+          <button onclick="zkAddTouch('whatsapp')" class="rounded-lg border border-border bg-background py-2 text-[11px] font-bold">WhatsApp</button>
+          <button onclick="zkAddTouch('numune')" class="rounded-lg border border-border bg-background py-2 text-[11px] font-bold">Numune</button>
+          <button onclick="zkAddTouch('sikayet')" class="rounded-lg border border-destructive/30 bg-destructive/5 py-2 text-[11px] font-bold text-destructive">Şikayet</button>
+          <button onclick="zkAddTouch('not')" class="rounded-lg border border-border bg-background py-2 text-[11px] font-bold">Not</button>
+        </div>
+        <div id="touch-list" class="mt-3 space-y-2"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Temas notu girişi -->
+  <div id="touch-note-sheet" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkCloseTouchNote()"></div>
+    <div class="absolute bottom-0 left-0 w-full rounded-t-theme bg-card p-5 pb-8">
+      <p id="tn-title" class="font-heading text-lg font-bold">Not</p>
+      <textarea id="tn-note" rows="3" placeholder="Ne konuşuldu / ne oldu?" class="mt-3 w-full rounded-theme border border-border bg-input p-3 text-sm"></textarea>
+      <div id="tn-satisfaction-wrap" class="mt-3 hidden">
+        <p class="mb-1.5 text-xs font-bold">Memnuniyet puanı</p>
+        <div class="grid grid-cols-5 gap-1.5" id="tn-satisfaction"></div>
+      </div>
+      <button onclick="zkSubmitTouchNote()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      var els = document.querySelectorAll('iconify-icon');
+      for (var i = 0; i < els.length; i++) (function(el) {
+        var tries = 0;
+        (function check() {
+          var s = el.status;
+          if (s === 'failed') el.setAttribute('icon', 'lucide:circle');
+          else if (s !== 'rendered' && tries++ < 40) setTimeout(check, 250);
+        })();
+      })(els[i]);
+    })();
+  </script>
+
+  <div id="zk-toast" style="position:fixed;left:50%;bottom:96px;transform:translate(-50%,16px);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;background:#17242C;color:#fff;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;padding:10px 16px;border-radius:12px;z-index:9999;max-width:86%;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.18);"></div>
+  <script>
+    function zkToast(msg){
+      var el = document.getElementById('zk-toast');
+      if(!el) return;
+      el.textContent = msg;
+      el.style.opacity = '1';
+      el.style.transform = 'translate(-50%,0)';
+      clearTimeout(window.__zkToastTimer);
+      window.__zkToastTimer = setTimeout(function(){
+        el.style.opacity = '0';
+        el.style.transform = 'translate(-50%,16px)';
+      }, 2200);
+    }
+  </script>
+
+  <script src="vendor/supabase-js.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="js/net-guard.js"></script>
+  <script src="supabase-client.js"></script>
+  <script src="js/zk-guard.js"></script>
+  <script src="js/zk-picker.js"></script>
+  <script src="js/zk-ptr.js"></script>
+  <script src="js/zk-hiz.js"></script>
+  <script src="js/zk-yenile.js"></script>
+  <script>
+    function escapeHtml(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+
+    var STAGES = [
+      { key: '', label: 'Süreçte' }, // varsayılan: aktif hariç hepsi
+      { key: 'aday_havuzu', label: 'Aday havuzu' },
+      { key: 'ilk_temas', label: 'İlk temas' },
+      { key: 'tanitim_yapildi', label: 'Tanıtım yapıldı' },
+      { key: 'deneme_vakasi', label: 'Deneme vakası' },
+      { key: 'uyuyan', label: 'Uyuyan' },
+      { key: 'kayip', label: 'Kayıp' },
+      { key: 'beklemede', label: 'Beklemede' }
+    ];
+    var STAGE_LABELS = { aday_havuzu: 'Aday havuzu', ilk_temas: 'İlk temas', tanitim_yapildi: 'Tanıtım yapıldı', deneme_vakasi: 'Deneme vakası', aktif: 'Aktif doktor', uyuyan: 'Uyuyan doktor', kayip: 'Kayıp', beklemede: 'Beklemede' };
+    var curStage = '';
+    var regions = [];
+    var reps = [];
+    var currentList = [];
+    var detailDoctor = null;
+    var pendingTouchType = null;
+
+    document.getElementById('stage-tabs').innerHTML = STAGES.map(function (s) {
+      return '<button type="button" class="zk-stage-tab' + (s.key === curStage ? ' on' : '') + '" data-stage="' + s.key + '" onclick="zkSetStage(\'' + s.key + '\')">' + s.label + '</button>';
+    }).join('');
+
+    function zkSetStage(stage) {
+      curStage = stage;
+      document.querySelectorAll('.zk-stage-tab').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-stage') === stage); });
+      loadList();
+    }
+
+    function loadList() {
+      var onb = window.ZKHiz ? ZKHiz.cachePeek('aday_' + (curStage || 'surecte')) : null;
+      if (onb) { currentList = onb; renderList(); }
+      ZirkonikData.listPipelineDoctors(curStage || null).then(function (r) {
+        if (r.error) { zkToast('Yüklenemedi: ' + r.error.message); return; }
+        currentList = r.data || [];
+        if (window.ZKHiz) ZKHiz.cachePut('aday_' + (curStage || 'surecte'), currentList);
+        renderList();
+      });
+    }
+
+    function renderList() {
+      var el = document.getElementById('prospect-list');
+      if (!currentList.length) { el.innerHTML = '<p class="mt-8 text-center text-xs text-muted-foreground">Bu aşamada kayıt yok.</p>'; return; }
+      el.innerHTML = currentList.map(function (d) {
+        var prioCls = d.priority === 'yuksek' ? 'zk-prio-yuksek' : d.priority === 'dusuk' ? 'zk-prio-dusuk' : 'zk-prio-orta';
+        var overdue = d.next_action_at && new Date(d.next_action_at) <= new Date();
+        return '<button type="button" onclick="zkOpenDetail(\'' + d.id + '\')" class="block w-full rounded-theme border border-border bg-card p-4 text-left">' +
+          '<div class="flex items-start justify-between gap-2">' +
+          '<div class="min-w-0"><p class="truncate font-heading text-sm font-bold">Dr. ' + escapeHtml(d.full_name) + '</p>' +
+          '<p class="mt-0.5 truncate text-xs text-muted-foreground">' + escapeHtml(d.clinic_name || '—') + (d.region ? ' · ' + escapeHtml(d.region.name) : '') + '</p></div>' +
+          '<span class="shrink-0 rounded-full ' + prioCls + ' px-2 py-1 text-[10px] font-bold">' + (d.priority === 'yuksek' ? 'Yüksek' : d.priority === 'dusuk' ? 'Düşük' : 'Orta') + '</span></div>' +
+          '<div class="mt-2 flex flex-wrap items-center gap-1.5">' +
+          '<span class="rounded-full bg-secondary px-2 py-1 text-[10px] font-bold text-secondary-foreground">' + STAGE_LABELS[d.pipeline_stage] + '</span>' +
+          (d.temsilci ? '<span class="rounded-full bg-muted px-2 py-1 text-[10px] text-muted-foreground">' + escapeHtml(d.temsilci.full_name) + '</span>' : '') +
+          (d.next_action_at ? '<span class="rounded-full ' + (overdue ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground') + ' px-2 py-1 text-[10px] font-bold">' + (overdue ? 'Gecikti: ' : '') + new Date(d.next_action_at).toLocaleDateString('tr-TR') + '</span>' : '') +
+          '</div></button>';
+      }).join('');
+      if (window.zkFlow) window.zkFlow.stagger(el);
+    }
+
+    // ---- Bölgeler ----
+    function loadRegionsAndReps() {
+      return Promise.all([ZirkonikData.listRegions(), ZirkonikData.listStaff()]).then(function (res) {
+        regions = (res[0] && res[0].data) || [];
+        reps = ((res[1] && res[1].data) || []).filter(function (u) { return u.role !== 'doktor'; });
+        var regionOpts = '<option value="">Bölge seçin (opsiyonel)</option>' + regions.map(function (r) { return '<option value="' + r.id + '">' + escapeHtml(r.name) + '</option>'; }).join('');
+        document.getElementById('np-region').innerHTML = regionOpts;
+        document.getElementById('dt-region').innerHTML = '<option value="">—</option>' + regions.map(function (r) { return '<option value="' + r.id + '">' + escapeHtml(r.name) + '</option>'; }).join('');
+        document.getElementById('dt-rep').innerHTML = '<option value="">—</option>' + reps.map(function (u) { return '<option value="' + u.id + '">' + escapeHtml(u.full_name) + '</option>'; }).join('');
+      });
+    }
+    function zkOpenRegions() {
+      document.getElementById('regions-sheet').classList.remove('hidden');
+      renderRegionsList();
+    }
+    function zkCloseRegions() { document.getElementById('regions-sheet').classList.add('hidden'); }
+    function renderRegionsList() {
+      var el = document.getElementById('regions-list');
+      el.innerHTML = regions.length ? regions.map(function (r) {
+        return '<div class="flex items-center justify-between rounded-theme border border-border bg-background p-3">' +
+          '<div><p class="text-sm font-bold">' + escapeHtml(r.name) + '</p>' +
+          '<p class="mt-0.5 text-[11px] text-muted-foreground">' + (r.temsilci ? escapeHtml(r.temsilci.full_name) : 'Temsilci atanmadı') + '</p></div>' +
+          '<select onchange="zkAssignRegionRep(\'' + r.id + '\', this.value)" class="h-9 rounded-lg border border-border bg-input px-2 text-[11px]">' +
+          '<option value="">Temsilci ata</option>' + reps.map(function (u) { return '<option value="' + u.id + '"' + (r.assigned_rep_id === u.id ? ' selected' : '') + '>' + escapeHtml(u.full_name) + '</option>'; }).join('') +
+          '</select></div>';
+      }).join('') : '<p class="text-xs text-muted-foreground">Henüz bölge yok.</p>';
+    }
+    function zkAssignRegionRep(regionId, repId) {
+      ZirkonikData.updateRegion(regionId, { assigned_rep_id: repId || null }).then(function (res) {
+        if (res.error) { zkToast('Olmadı: ' + res.error.message); return; }
+        loadRegionsAndReps().then(renderRegionsList);
+      });
+    }
+    function zkAddRegion() {
+      var errEl = document.getElementById('nreg-error');
+      errEl.classList.add('hidden');
+      var name = document.getElementById('nreg-name').value.trim();
+      if (!name) { errEl.textContent = 'Bölge adı zorunludur.'; errEl.classList.remove('hidden'); return; }
+      ZirkonikData.createRegion(name).then(function (res) {
+        if (res.error) { errEl.textContent = 'Eklenemedi: ' + res.error.message; errEl.classList.remove('hidden'); return; }
+        document.getElementById('nreg-name').value = '';
+        zkToast('Bölge eklendi.');
+        loadRegionsAndReps().then(renderRegionsList);
+      });
+    }
+
+    // ---- Aday ekle ----
+    var newProspectPrio = 'orta';
+    function zkSetPrio(p) {
+      newProspectPrio = p;
+      ['yuksek', 'orta', 'dusuk'].forEach(function (k) {
+        var b = document.getElementById('np-prio-' + k);
+        b.className = 'h-11 rounded-theme border text-xs font-bold ' + (k === p ? 'border-primary bg-primary/10 text-primary' : 'border-border');
+      });
+    }
+    zkSetPrio('orta');
+    function zkOpenAddProspect() { document.getElementById('add-prospect-sheet').classList.remove('hidden'); }
+    function zkCloseAddProspect() { document.getElementById('add-prospect-sheet').classList.add('hidden'); }
+    function zkSubmitAddProspect() {
+      var errEl = document.getElementById('np-error');
+      errEl.classList.add('hidden');
+      var name = document.getElementById('np-name').value.trim();
+      if (!name) { errEl.textContent = 'Doktor adı zorunludur.'; errEl.classList.remove('hidden'); return; }
+      ZirkonikAuth.me().then(function (me) {
+        return ZirkonikData.createProspect({
+          organization_id: me.organization_id,
+          full_name: name,
+          clinic_name: document.getElementById('np-clinic').value.trim() || null,
+          address: document.getElementById('np-address').value.trim() || null,
+          phone: document.getElementById('np-phone').value.trim() || null,
+          region_id: document.getElementById('np-region').value || null,
+          source: document.getElementById('np-source').value || null,
+          priority: newProspectPrio,
+          assigned_rep_id: (me.role === 'personel') ? me.id : null
+        });
+      }).then(function (res) {
+        if (res.error) throw res.error;
+        zkCloseAddProspect();
+        ['np-name', 'np-clinic', 'np-address', 'np-phone'].forEach(function (id) { document.getElementById(id).value = ''; });
+        zkSetPrio('orta');
+        zkToast('Aday eklendi.');
+        zkSetStage('aday_havuzu');
+      }).catch(function (err) {
+        errEl.textContent = 'Eklenemedi: ' + err.message;
+        errEl.classList.remove('hidden');
+      });
+    }
+
+    // ---- Detay ----
+    function zkOpenDetail(id) {
+      var d = null;
+      for (var i = 0; i < currentList.length; i++) { if (currentList[i].id === id) { d = currentList[i]; break; } }
+      if (!d) return;
+      detailDoctor = d;
+      document.getElementById('dt-name').textContent = 'Dr. ' + d.full_name;
+      document.getElementById('dt-clinic').textContent = d.clinic_name || '—';
+      var activatorEl = document.getElementById('dt-activator');
+      if (d.pipeline_stage === 'aktif' && d.activator) {
+        activatorEl.textContent = d.activator.full_name + ' tarafından aktif edildi';
+        activatorEl.classList.remove('hidden');
+      } else { activatorEl.classList.add('hidden'); }
+      document.getElementById('dt-stage').value = d.pipeline_stage;
+      document.getElementById('dt-priority').value = d.priority || 'orta';
+      document.getElementById('dt-lost-reason').value = d.lost_reason || 'fiyat';
+      document.getElementById('dt-region').value = d.region_id || '';
+      document.getElementById('dt-rep').value = d.assigned_rep_id || '';
+      document.getElementById('dt-next-date').value = d.next_action_at ? d.next_action_at.slice(0, 10) : '';
+      document.getElementById('dt-next-note').value = d.next_action_note || '';
+      document.getElementById('dt-phone').value = d.phone || '';
+      document.getElementById('dt-email').value = d.email || '';
+      document.getElementById('dt-assistant-name').value = d.assistant_name || '';
+      document.getElementById('dt-assistant-phone').value = d.assistant_phone || '';
+      document.getElementById('dt-specialization').value = d.specialization || '';
+      document.getElementById('dt-volume').value = d.estimated_case_volume || '';
+      document.getElementById('dt-worktype').value = d.primary_work_type || '';
+      document.getElementById('dt-scanner').checked = !!d.has_intraoral_scanner;
+      document.getElementById('dt-scanner-brand').value = d.scanner_brand || '';
+      document.getElementById('dt-priority-driver').value = d.priority_driver || '';
+      document.getElementById('dt-error').classList.add('hidden');
+      zkStageChanged();
+      document.getElementById('dt-make-active-btn').classList.toggle('hidden', d.pipeline_stage === 'aktif');
+      document.getElementById('detail-sheet').classList.remove('hidden');
+      loadTouches(id);
+    }
+    // Otomatik 3-vaka kuralını beklemeden tek dokunuşla içeri alma. Kim aktif ettiği
+    // (activated_by) kaydedilir — sahibinin isteği, 24 Eylül 2026.
+    function zkMakeActive() {
+      if (!detailDoctor) return;
+      ZirkonikAuth.me().then(function (me) {
+        return ZirkonikData.updateDoctorPipeline(detailDoctor.id, {
+          pipeline_stage: 'aktif', stage_changed_at: new Date().toISOString(),
+          next_action_at: null, next_action_note: null, activated_by: me ? me.id : null
+        });
+      }).then(function (res) {
+        if (res.error) { zkToast('Olmadı: ' + res.error.message); return; }
+        zkToast('Dr. ' + detailDoctor.full_name + ' aktif doktor oldu.');
+        zkCloseDetail();
+        loadList();
+      });
+    }
+    function zkCloseDetail() { document.getElementById('detail-sheet').classList.add('hidden'); detailDoctor = null; }
+    function zkStageChanged() {
+      document.getElementById('dt-lost-wrap').classList.toggle('hidden', document.getElementById('dt-stage').value !== 'kayip');
+    }
+    function zkSaveDetail() {
+      if (!detailDoctor) return;
+      var errEl = document.getElementById('dt-error');
+      errEl.classList.add('hidden');
+      var stage = document.getElementById('dt-stage').value;
+      var nextDate = document.getElementById('dt-next-date').value;
+      var payload = {
+        pipeline_stage: stage,
+        priority: document.getElementById('dt-priority').value,
+        lost_reason: stage === 'kayip' ? document.getElementById('dt-lost-reason').value : null,
+        region_id: document.getElementById('dt-region').value || null,
+        assigned_rep_id: document.getElementById('dt-rep').value || null,
+        next_action_at: nextDate ? new Date(nextDate + 'T09:00:00').toISOString() : null,
+        next_action_note: document.getElementById('dt-next-note').value.trim() || null,
+        phone: document.getElementById('dt-phone').value.trim() || null,
+        email: document.getElementById('dt-email').value.trim() || null,
+        assistant_name: document.getElementById('dt-assistant-name').value.trim() || null,
+        assistant_phone: document.getElementById('dt-assistant-phone').value.trim() || null,
+        specialization: document.getElementById('dt-specialization').value || null,
+        estimated_case_volume: document.getElementById('dt-volume').value || null,
+        primary_work_type: document.getElementById('dt-worktype').value.trim() || null,
+        has_intraoral_scanner: document.getElementById('dt-scanner').checked,
+        scanner_brand: document.getElementById('dt-scanner-brand').value.trim() || null,
+        priority_driver: document.getElementById('dt-priority-driver').value || null
+      };
+      if (stage !== detailDoctor.pipeline_stage) payload.stage_changed_at = new Date().toISOString();
+      ZirkonikData.updateDoctorPipeline(detailDoctor.id, payload).then(function (res) {
+        if (res.error) { errEl.textContent = 'Kaydedilemedi: ' + res.error.message; errEl.classList.remove('hidden'); return; }
+        zkToast('Kaydedildi.');
+        zkCloseDetail();
+        loadList();
+      });
+    }
+
+    // ---- Temas ----
+    var TOUCH_LABELS = { ziyaret: 'Ziyaret', arama: 'Arama', whatsapp: 'WhatsApp', numune: 'Numune bırakıldı', sikayet: 'Şikayet', memnuniyet_aramasi: 'Memnuniyet araması', not: 'Not' };
+    function loadTouches(doctorId) {
+      ZirkonikData.listDoctorTouches(doctorId).then(function (r) {
+        var el = document.getElementById('touch-list');
+        var rows = r.data || [];
+        el.innerHTML = rows.length ? rows.map(function (t) {
+          return '<div class="rounded-theme border border-border bg-background p-3">' +
+            '<div class="flex items-center justify-between"><span class="text-xs font-bold">' + (TOUCH_LABELS[t.type] || t.type) + '</span>' +
+            '<span class="text-[10px] text-muted-foreground">' + new Date(t.created_at).toLocaleDateString('tr-TR') + '</span></div>' +
+            (t.note ? '<p class="mt-1 text-xs text-muted-foreground">' + escapeHtml(t.note) + '</p>' : '') +
+            (t.satisfaction_score ? '<p class="mt-1 text-xs font-bold text-primary">Memnuniyet: ' + t.satisfaction_score + '/5</p>' : '') +
+            (t.yazan ? '<p class="mt-1 text-[10px] text-muted-foreground">' + escapeHtml(t.yazan.full_name) + '</p>' : '') +
+            '</div>';
+        }).join('') : '<p class="text-xs text-muted-foreground">Henüz temas kaydı yok.</p>';
+      });
+    }
+    function zkAddTouch(type) {
+      pendingTouchType = type;
+      document.getElementById('tn-title').textContent = TOUCH_LABELS[type];
+      document.getElementById('tn-note').value = '';
+      var satWrap = document.getElementById('tn-satisfaction-wrap');
+      if (type === 'memnuniyet_aramasi') {
+        satWrap.classList.remove('hidden');
+        document.getElementById('tn-satisfaction').innerHTML = [1, 2, 3, 4, 5].map(function (n) {
+          return '<button type="button" data-sat="' + n + '" onclick="zkSetSat(' + n + ')" class="h-10 rounded-lg border border-border text-sm font-bold">' + n + '</button>';
+        }).join('');
+        window.__tnSat = null;
+      } else { satWrap.classList.add('hidden'); }
+      document.getElementById('touch-note-sheet').classList.remove('hidden');
+    }
+    function zkSetSat(n) {
+      window.__tnSat = n;
+      document.querySelectorAll('#tn-satisfaction [data-sat]').forEach(function (b) {
+        b.className = 'h-10 rounded-lg border text-sm font-bold ' + (Number(b.getAttribute('data-sat')) === n ? 'border-primary bg-primary/10 text-primary' : 'border-border');
+      });
+    }
+    function zkCloseTouchNote() { document.getElementById('touch-note-sheet').classList.add('hidden'); }
+    function zkSubmitTouchNote() {
+      if (!detailDoctor || !pendingTouchType) return;
+      var fields = { type: pendingTouchType, note: document.getElementById('tn-note').value.trim() || null };
+      if (pendingTouchType === 'memnuniyet_aramasi' && window.__tnSat) fields.satisfaction_score = window.__tnSat;
+      ZirkonikData.addDoctorTouch(detailDoctor.id, fields).then(function (res) {
+        if (res.error) { zkToast('Olmadı: ' + res.error.message); return; }
+        zkToast('Temas kaydedildi.');
+        zkCloseTouchNote();
+        loadTouches(detailDoctor.id);
+      });
+    }
+
+    ZirkonikAuth.requireAuth().then(function (session) {
+      if (!session) return;
+      loadRegionsAndReps().then(loadList);
+    });
+
+    window.zkRefresh = function () {
+      return Promise.all([Promise.resolve(loadList())]);
+    };
+  </script>
+</body>
+</html>
