@@ -405,10 +405,12 @@
 
   <script src="vendor/supabase-js.min.js"></script>
   <script src="supabase-config.js"></script>
+  <script src="js/net-guard.js"></script>
   <script src="supabase-client.js"></script>
   <script src="js/zk-guard.js"></script>
   <script src="js/zk-picker.js"></script>
   <script src="js/zk-ptr.js"></script>
+  <script src="js/zk-hiz.js"></script>
   <script src="js/zk-yenile.js"></script>
   <script>
     function escapeHtml(s) {
@@ -436,9 +438,19 @@
     function zkFilterDoctors(query) { renderApprovedList(query); }
 
     function loadDoctors() {
+      // Hız hissi (24 Eylül 2026): liste önbellekten anında çizilir, sunucu arkadan tazeler.
+      if (window.ZKHiz) {
+        var onb = ZKHiz.cachePeek('doctors');
+        if (onb && onb.length) renderDoctors(onb);
+      }
       ZirkonikData.listDoctors().then(function (r) {
         if (r.error) { zkToast('Yüklenemedi: ' + r.error.message); return; }
         var all = r.data || [];
+        if (window.ZKHiz) ZKHiz.cachePut('doctors', all);
+        renderDoctors(all);
+      });
+    }
+    function renderDoctors(all) {
         allDoctorsCache = all;
         var pending = all.filter(function (d) { return d.status === 'pending'; });
         var approved = all.filter(function (d) { return d.status === 'approved'; });
@@ -470,7 +482,6 @@
           window.zkFlow.stagger(pEl);
           window.zkFlow.stagger(document.getElementById('approved-list'));
         }
-      });
     }
 
     function renderRemovedRow(d) {
@@ -785,25 +796,30 @@
       document.getElementById('cari-sheet').classList.remove('hidden');
 
       var client = ZirkonikAuth.client();
+      // 24 Eylül 2026: başlıktaki bakiye/toplamlar sunucudan (zk_doktor_cari —
+      // kesin, satır sınırından etkilenmez); hareket listeleri son 300 kayıtla
+      // sınırlı (dönem sekmeleri bu kayıtlar üzerinden çalışır).
       Promise.all([
-        client.from('jobs').select('id, job_number, restoration_type, unit_count, status, created_at, completed_at').eq('doctor_id', doctorId).order('created_at', { ascending: false }),
+        client.from('jobs').select('id, job_number, restoration_type, unit_count, status, created_at, completed_at').eq('doctor_id', doctorId).order('created_at', { ascending: false }).limit(300),
         // 2026-09-12: iptal edilen fatura ne bakiyeye ne hareket listesine
         // girer — cancel_job faturayi 'cancelled' isaretliyor, doktordan
         // tahsil edilmeyecek.
-        client.from('invoices').select('id, amount, currency, status, issued_at, billing_mode, jobs(job_number, restoration_type)').eq('doctor_id', doctorId).neq('status', 'cancelled').order('issued_at', { ascending: false }),
-        client.from('payments').select('id, amount, currency, method, received_at, note, app_users:received_by(full_name)').eq('doctor_id', doctorId).order('received_at', { ascending: false })
+        client.from('invoices').select('id, amount, currency, status, issued_at, billing_mode, jobs(job_number, restoration_type)').eq('doctor_id', doctorId).neq('status', 'cancelled').order('issued_at', { ascending: false }).limit(300),
+        client.from('payments').select('id, amount, currency, method, received_at, note, app_users:received_by(full_name)').eq('doctor_id', doctorId).order('received_at', { ascending: false }).limit(300),
+        client.rpc('zk_doktor_cari', { p_doctor_id: doctorId })
       ]).then(function (res) {
         var jobs = res[0].data || [];
         var invoices = res[1].data || [];
         var payments = res[2].data || [];
+        var cari = (res[3] && res[3].data) || {};
 
         // Doktorla anlasma para birimi USD, TL veya EUR olabiliyor; her biri
         // AYRI cari. Farkli para birimleri toplanmaz, kur kullanilmaz.
-        var invG = ZirkonikMoney.groupTotals(invoices, 'amount', 'currency');
-        var payG = ZirkonikMoney.groupTotals(payments, 'amount', 'currency');
+        var invG = cari.fatura || ZirkonikMoney.groupTotals(invoices, 'amount', 'currency');
+        var payG = cari.odeme || ZirkonikMoney.groupTotals(payments, 'amount', 'currency');
         var balG = {};
         Object.keys(invG).concat(Object.keys(payG)).forEach(function (k) {
-          balG[k] = (invG[k] || 0) - (payG[k] || 0);
+          balG[k] = (Number(invG[k]) || 0) - (Number(payG[k]) || 0);
         });
         // Borc ve alacak ayri gosterilir: bir para biriminde borclu, baska
         // birinde alacakli olunabilir.
