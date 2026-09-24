@@ -82,6 +82,7 @@
   <script src="supabase-client.js"></script>
   <script src="js/zk-guard.js"></script>
   <script src="js/zk-ptr.js"></script>
+  <script src="js/zk-hiz.js"></script>
   <script src="js/zk-yenile.js"></script>
   <script>
     function zkToast(msg){
@@ -159,31 +160,44 @@
       }, 1500);
     }
 
+    // Hız hissi (24 Eylül 2026): render mantığı ayrı fonksiyona çıkarıldı ki
+    // önbellekten anında çizim ile sunucu cevabı birebir aynı kodu kullansın.
+    // autoMarkReadIfNeeded yalnız TAZE veriyle çağrılıyor — önbellek bayat
+    // olabilir, "okundu" işaretlemeyi ona göre yapmak yanlış olurdu.
+    function paintNotifs(list) {
+      var el = document.getElementById('notif-list');
+      if (!list.length) {
+        el.innerHTML = '<p class="mt-10 text-center text-sm text-muted-foreground">Henüz bildirim yok.</p>';
+        return;
+      }
+      el.innerHTML = list.map(function (n) {
+        var unread = !n.read_at;
+        var icon = TYPE_ICONS[n.type] || 'lucide:bell';
+        var color = TYPE_COLORS[n.type] || 'text-primary';
+        var target = notifTarget(n);
+        var open = target ? ' onclick="location.href=\'' + target + '\'"' : '';
+        return '<div' + open + ' class="flex items-start gap-3 rounded-theme border ' + (unread ? 'border-primary/30 bg-card' : 'border-border bg-background') + ' p-3.5' + (target ? ' cursor-pointer' : '') + '">' +
+          '<span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary ' + color + '"><iconify-icon icon="' + icon + '" class="text-lg"></iconify-icon></span>' +
+          '<div class="min-w-0 flex-1">' +
+          '<div class="flex items-center justify-between gap-2">' +
+          '<p class="text-sm font-bold">' + escapeHtml(n.title) + (unread ? ' <span class="ml-1 inline-block h-2 w-2 rounded-full bg-primary align-middle"></span>' : '') + '</p>' +
+          '<span class="shrink-0 text-[10px] text-muted-foreground">' + timeAgo(n.created_at) + '</span></div>' +
+          (n.body ? '<p class="mt-0.5 text-xs text-muted-foreground">' + escapeHtml(n.body) + '</p>' : '') +
+          '</div></div>';
+      }).join('');
+    }
     function loadNotifs() {
+      if (window.ZKHiz) {
+        var onb = ZKHiz.cachePeek('notifs');
+        if (onb) paintNotifs(onb);
+      }
       ZirkonikData.listNotifications().then(function (r) {
         var el = document.getElementById('notif-list');
         if (r.error) { el.innerHTML = '<p class="text-xs text-destructive">Yüklenemedi: ' + escapeHtml(r.error.message) + '</p>'; return; }
         var list = r.data || [];
         autoMarkReadIfNeeded(list);
-        if (!list.length) {
-          el.innerHTML = '<p class="mt-10 text-center text-sm text-muted-foreground">Henüz bildirim yok.</p>';
-          return;
-        }
-        el.innerHTML = list.map(function (n) {
-          var unread = !n.read_at;
-          var icon = TYPE_ICONS[n.type] || 'lucide:bell';
-          var color = TYPE_COLORS[n.type] || 'text-primary';
-          var target = notifTarget(n);
-          var open = target ? ' onclick="location.href=\'' + target + '\'"' : '';
-          return '<div' + open + ' class="flex items-start gap-3 rounded-theme border ' + (unread ? 'border-primary/30 bg-card' : 'border-border bg-background') + ' p-3.5' + (target ? ' cursor-pointer' : '') + '">' +
-            '<span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary ' + color + '"><iconify-icon icon="' + icon + '" class="text-lg"></iconify-icon></span>' +
-            '<div class="min-w-0 flex-1">' +
-            '<div class="flex items-center justify-between gap-2">' +
-            '<p class="text-sm font-bold">' + escapeHtml(n.title) + (unread ? ' <span class="ml-1 inline-block h-2 w-2 rounded-full bg-primary align-middle"></span>' : '') + '</p>' +
-            '<span class="shrink-0 text-[10px] text-muted-foreground">' + timeAgo(n.created_at) + '</span></div>' +
-            (n.body ? '<p class="mt-0.5 text-xs text-muted-foreground">' + escapeHtml(n.body) + '</p>' : '') +
-            '</div></div>';
-        }).join('');
+        paintNotifs(list);
+        if (window.ZKHiz) ZKHiz.cachePut('notifs', list);
       });
     }
 
