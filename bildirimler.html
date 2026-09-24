@@ -144,11 +144,27 @@
       return null;
     }
 
+    // 24 Eylül 2026: sayfayı açmak bildirimleri okundu YAPMIYORDU — yalnızca
+    // üstteki küçük "Tümünü okundu yap" bağlantısına dokununca temizleniyordu.
+    // Sahibinin bildirimi: rozet "8"de takılı kalıp gitmiyordu, çünkü o bağlantı
+    // fark edilmiyor. Artık sayfa unread bildirimle açılınca kısa bir süre sonra
+    // (yeni geldiğini görebilsin diye) kendiliğinden okundu işaretlenir; düğme de
+    // isteyen hemen temizlesin diye duruyor.
+    function autoMarkReadIfNeeded(list) {
+      if (!list.some(function (n) { return !n.read_at; })) return;
+      setTimeout(function () {
+        ZirkonikData.markAllNotifsRead().then(function (res) {
+          if (!res.error && window.zkLoadNotifBadge) zkLoadNotifBadge();
+        });
+      }, 1500);
+    }
+
     function loadNotifs() {
       ZirkonikData.listNotifications().then(function (r) {
         var el = document.getElementById('notif-list');
         if (r.error) { el.innerHTML = '<p class="text-xs text-destructive">Yüklenemedi: ' + escapeHtml(r.error.message) + '</p>'; return; }
         var list = r.data || [];
+        autoMarkReadIfNeeded(list);
         if (!list.length) {
           el.innerHTML = '<p class="mt-10 text-center text-sm text-muted-foreground">Henüz bildirim yok.</p>';
           return;
