@@ -296,7 +296,10 @@
       { key: 'can_view_finance', icon: 'lucide:wallet-cards', title: 'Finans yetkisi', desc: 'Tahsilat/ödeme kaydı, fatura — salt-okunur DEĞİL. Fiyat listesi bu yetkiye dahil değil.' },
       { key: 'can_view_doctors', icon: 'lucide:stethoscope', title: 'Doktorları görme', desc: 'Doktor listesi ve iletişim (salt-okunur)' },
       { key: 'can_approve_delivery', icon: 'lucide:badge-check', title: 'Teslimat onayı', desc: 'Kalite kontrol sonrası teslimat' },
-      { key: 'can_view_payroll', icon: 'lucide:coins', title: 'Hakediş görünürlüğü', desc: 'Personel hakedişlerini görme' },
+      // can_view_payroll BİLEREK burada yok (25 Eylül 2026, sahibinin kararı):
+      // personelin BAŞKA personelin hakedişini görmesine gerek yok — kendi
+      // hakedişini zaten her zaman görür (earnings_select politikası
+      // user_id = auth.uid() için ayrıca ve koşulsuz izin veriyor).
       // can_approve_users BİLEREK burada yok (24 Eylül 2026): hiçbir RLS/RPC
       // bu bayrağı kontrol etmiyordu — kullanıcı/doktor onayı zaten yalnız
       // yönetici/işverende çalışıyor. Admini yanıltan, işlevsiz bir anahtardı,
