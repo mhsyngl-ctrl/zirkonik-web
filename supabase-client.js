@@ -279,6 +279,11 @@
     createRegion: function (name, assignedRepId) {
       return client().from('regions').insert({ name: name, assigned_rep_id: assignedRepId || null }).select().single();
     },
+    // 25 Eylül 2026: aday formunda il/ilçe seçilince temsilci de (admin
+    // olmadan) bölgeyi bulup/oluşturup id'sini alabilsin.
+    bolgeBulVeyaOlustur: function (ilceAdi, yaka) {
+      return client().rpc('zk_bolge_bul_veya_olustur', { p_ilce_adi: ilceAdi, p_yaka: yaka || null });
+    },
     updateRegion: function (regionId, fields) {
       return client().from('regions').update(fields).eq('id', regionId);
     },

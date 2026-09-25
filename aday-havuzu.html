@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://code.iconify.design; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://cuujupeindodpsdjcivm.supabase.co wss://cuujupeindodpsdjcivm.supabase.co https://api.iconify.design https://api.simplesvg.com https://api.unisvg.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <!-- 25 Eylül 2026: "Konumdan Doldur" GPS-ile-mahalle-bulma için Nominatim
+       (OpenStreetMap) reverse-geocode uç noktası connect-src'ye eklendi. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://code.iconify.design; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://cuujupeindodpsdjcivm.supabase.co wss://cuujupeindodpsdjcivm.supabase.co https://api.iconify.design https://api.simplesvg.com https://api.unisvg.com https://nominatim.openstreetmap.org; object-src 'none'; base-uri 'self'; form-action 'self'">
   <title>Doktor Havuzu — Zirkonik</title>
 
   <link rel="stylesheet" href="css/tailwind.css">
@@ -130,7 +132,20 @@
         <input id="np-clinic" type="text" placeholder="Klinik adı" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         <input id="np-address" type="text" placeholder="Adres" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         <input id="np-phone" type="tel" placeholder="Telefon" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
-        <select id="np-region" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"><option value="">Bölge seçin (opsiyonel)</option></select>
+        <!-- 25 Eylül 2026, sahibinin isteği: bölge elle yazılmıyor/seçilmiyor
+             artık — il/ilçe gömülü listeden seçilir (İstanbul varsayılan,
+             ana iş orada), mahalle GPS'ten ("Konumdan Doldur") ya da elle. -->
+        <div class="grid grid-cols-2 gap-2">
+          <select id="np-il" onchange="zkIlChanged('np')" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"></select>
+          <select id="np-ilce" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"><option value="">İlçe</option></select>
+        </div>
+        <div class="flex gap-2">
+          <input id="np-mahalle" type="text" placeholder="Mahalle" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+          <button type="button" onclick="zkKonumdanDoldur('np')" class="flex h-12 w-12 shrink-0 items-center justify-center rounded-theme border border-border bg-background text-primary" aria-label="Konumdan doldur" title="Konumdan doldur">
+            <iconify-icon id="np-konum-icon" icon="lucide:map-pin"></iconify-icon>
+          </button>
+        </div>
+        <p id="np-konum-hata" class="hidden text-xs font-semibold text-destructive"></p>
         <select id="np-source" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
           <option value="">Kaynak</option>
           <option value="google_haritalar">Google Haritalar</option>
@@ -160,10 +175,13 @@
       <p class="font-heading text-lg font-bold">Bölgeler</p>
       <p class="mt-1 text-xs text-muted-foreground">Her bölge bir temsilciye atanır — iki temsilci aynı kliniğe gitmesin.</p>
       <div id="regions-list" class="mt-3 space-y-2"></div>
-      <div class="mt-4 flex gap-2">
-        <input id="nreg-name" type="text" placeholder="Yeni bölge adı" class="h-12 flex-1 rounded-theme border border-border bg-input px-3.5 text-sm">
-        <button onclick="zkAddRegion()" class="flex h-12 items-center justify-center rounded-theme bg-primary px-4 text-sm font-bold text-primary-foreground">Ekle</button>
+      <!-- 25 Eylül 2026, sahibinin isteği: önce şehir, sonra o şehrin ilçesi
+           seçilir — elle bölge adı yazılmaz. -->
+      <div class="mt-4 grid grid-cols-2 gap-2">
+        <select id="nreg-il" onchange="zkIlChanged('nreg')" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"></select>
+        <select id="nreg-ilce" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"><option value="">İlçe seçin</option></select>
       </div>
+      <button onclick="zkAddRegion()" class="mt-2 flex h-12 w-full items-center justify-center rounded-theme bg-primary px-4 text-sm font-bold text-primary-foreground">Bölge olarak ekle</button>
       <p id="nreg-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
     </div>
   </div>
@@ -227,9 +245,21 @@
       </div>
 
       <div class="mt-2.5 grid grid-cols-2 gap-2.5">
-        <label class="block"><span class="mb-1 block text-[11px] font-bold">Bölge</span>
-          <select id="dt-region" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs"><option value="">—</option></select>
+        <label class="block"><span class="mb-1 block text-[11px] font-bold">İl</span>
+          <select id="dt-il" onchange="zkIlChanged('dt')" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs"></select>
         </label>
+        <label class="block"><span class="mb-1 block text-[11px] font-bold">İlçe</span>
+          <select id="dt-ilce" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs"><option value="">İlçe</option></select>
+        </label>
+      </div>
+      <div class="mt-2.5 flex gap-2">
+        <input id="dt-mahalle" type="text" placeholder="Mahalle" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs">
+        <button type="button" onclick="zkKonumdanDoldur('dt')" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-theme border border-border bg-background text-primary" aria-label="Konumdan doldur" title="Konumdan doldur">
+          <iconify-icon id="dt-konum-icon" icon="lucide:map-pin"></iconify-icon>
+        </button>
+      </div>
+      <p id="dt-konum-hata" class="mt-1 hidden text-xs font-semibold text-destructive"></p>
+      <div class="mt-2.5">
         <label class="block"><span class="mb-1 block text-[11px] font-bold">Temsilci</span>
           <select id="dt-rep" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs"><option value="">—</option></select>
         </label>
@@ -360,6 +390,7 @@
 
   <script src="vendor/supabase-js.min.js"></script>
   <script src="supabase-config.js"></script>
+  <script src="js/zk-il-ilce.js"></script>
   <script src="js/net-guard.js"></script>
   <script src="supabase-client.js"></script>
   <script src="js/zk-guard.js"></script>
@@ -515,29 +546,88 @@
     }
 
     // ---- Bölgeler ----
-    var SIDE_LABELS = { avrupa: 'Avrupa Yakası', asya: 'Asya Yakası' };
-    // Bölgeler artık serbest yazım değil — kayıtlı ilçe listesinden seçilir (24 Eylül
-    // 2026, sahibinin isteği). Yaka (avrupa/asya) grup başlığı olarak gösterilir;
-    // yakasız (elle eklenmiş özel) bölgeler başlıksız, en üstte kalır.
-    function zkRegionOptionsHtml(placeholder) {
-      var html = '<option value="">' + placeholder + '</option>';
-      var gruplar = {}, sirasiz = [];
-      regions.forEach(function (r) { if (r.side) { (gruplar[r.side] = gruplar[r.side] || []).push(r); } else { sirasiz.push(r); } });
-      sirasiz.forEach(function (r) { html += '<option value="' + r.id + '">' + escapeHtml(r.name) + '</option>'; });
-      ['avrupa', 'asya'].forEach(function (side) {
-        if (!gruplar[side]) return;
-        html += '<optgroup label="' + SIDE_LABELS[side] + '">' + gruplar[side].map(function (r) {
-          return '<option value="' + r.id + '">' + escapeHtml(r.name) + '</option>';
-        }).join('') + '</optgroup>';
-      });
-      return html;
+    // ---- İl/İlçe/Mahalle (25 Eylül 2026) ----
+    // Gömülü liste (js/zk-il-ilce.js, 81 il/973 ilçe) — internet gerekmez.
+    // İstanbul listenin başında ve varsayılan seçili: ana iş orada.
+    function zkFillIlSelect(prefix) {
+      var sel = document.getElementById(prefix + '-il');
+      if (!sel || !window.ZK_IL_ILCE) return;
+      sel.innerHTML = window.ZK_IL_ILCE.map(function (x) {
+        return '<option value="' + escapeHtml(x.il) + '">' + escapeHtml(x.il) + '</option>';
+      }).join('');
+      sel.value = 'İstanbul';
     }
+    function zkIlChanged(prefix) {
+      var ilSel = document.getElementById(prefix + '-il');
+      var ilceSel = document.getElementById(prefix + '-ilce');
+      if (!ilSel || !ilceSel || !window.ZK_IL_ILCE) return;
+      var il = window.ZK_IL_ILCE.filter(function (x) { return x.il === ilSel.value; })[0];
+      var ilceler = il ? il.ilceler : [];
+      ilceSel.innerHTML = '<option value="">İlçe seçin</option>' + ilceler.map(function (x) {
+        return '<option value="' + escapeHtml(x.ad) + '" data-yaka="' + (x.yaka || '') + '">' + escapeHtml(x.ad) + '</option>';
+      }).join('');
+    }
+    // "Konumdan Doldur": GPS + Nominatim (OpenStreetMap) reverse-geocode —
+    // yalnız mahalle/ilçe/il BOŞSA ya da bulunamıyorsa kullanılır (aday
+    // sahadayken, listede olmayan bir yerde ise). Ücretsiz, anahtar gerekmez.
+    function zkKonumdanDoldur(prefix) {
+      var errEl = document.getElementById(prefix + '-konum-hata');
+      var iconEl = document.getElementById(prefix + '-konum-icon');
+      errEl.classList.add('hidden');
+      if (!navigator.geolocation) {
+        errEl.textContent = 'Bu cihazda konum desteklenmiyor.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+      iconEl.setAttribute('icon', 'lucide:loader-2');
+      iconEl.classList.add('animate-spin');
+      navigator.geolocation.getCurrentPosition(function (pos) {
+        var url = 'https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&accept-language=tr&lat=' +
+          pos.coords.latitude + '&lon=' + pos.coords.longitude;
+        fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+          iconEl.setAttribute('icon', 'lucide:map-pin');
+          iconEl.classList.remove('animate-spin');
+          var a = data && data.address;
+          if (!a) { errEl.textContent = 'Konum bulunamadı.'; errEl.classList.remove('hidden'); return; }
+          var mahalle = a.suburb || a.neighbourhood || a.quarter || a.village || '';
+          var ilce = a.town || a.district || a.city_district || a.county || '';
+          var il = a.province || a.state || '';
+          if (mahalle) document.getElementById(prefix + '-mahalle').value = mahalle;
+          var ilSel = document.getElementById(prefix + '-il');
+          if (il && ilSel && Array.prototype.some.call(ilSel.options, function (o) { return o.value === il; })) {
+            ilSel.value = il;
+            zkIlChanged(prefix);
+          }
+          var ilceSel = document.getElementById(prefix + '-ilce');
+          if (ilce && ilceSel && Array.prototype.some.call(ilceSel.options, function (o) { return o.value === ilce; })) {
+            ilceSel.value = ilce;
+          }
+          if (!mahalle) { errEl.textContent = 'Mahalle bulunamadı, elle girebilirsiniz.'; errEl.classList.remove('hidden'); }
+        }).catch(function () {
+          iconEl.setAttribute('icon', 'lucide:map-pin');
+          iconEl.classList.remove('animate-spin');
+          errEl.textContent = 'Konum bilgisi alınamadı — internet bağlantınızı kontrol edin.';
+          errEl.classList.remove('hidden');
+        });
+      }, function () {
+        iconEl.setAttribute('icon', 'lucide:map-pin');
+        iconEl.classList.remove('animate-spin');
+        errEl.textContent = 'Konum izni verilmedi.';
+        errEl.classList.remove('hidden');
+      }, { enableHighAccuracy: true, timeout: 10000 });
+    }
+    zkFillIlSelect('np');
+    zkIlChanged('np');
+    zkFillIlSelect('dt');
+    zkIlChanged('dt');
+    zkFillIlSelect('nreg');
+    zkIlChanged('nreg');
+
+    var SIDE_LABELS = { avrupa: 'Avrupa Yakası', asya: 'Anadolu Yakası', anadolu: 'Anadolu Yakası' };
     function loadRegionsAndReps() {
       return Promise.all([ZirkonikData.listRegions(), ZirkonikData.listStaff()]).then(function (res) {
         regions = (res[0] && res[0].data) || [];
         reps = ((res[1] && res[1].data) || []).filter(function (u) { return u.role !== 'doktor'; });
-        document.getElementById('np-region').innerHTML = zkRegionOptionsHtml('Bölge seçin');
-        document.getElementById('dt-region').innerHTML = zkRegionOptionsHtml('—');
         document.getElementById('dt-rep').innerHTML = '<option value="">—</option>' + reps.map(function (u) { return '<option value="' + u.id + '">' + escapeHtml(u.full_name) + '</option>'; }).join('');
       });
     }
@@ -576,11 +666,13 @@
     function zkAddRegion() {
       var errEl = document.getElementById('nreg-error');
       errEl.classList.add('hidden');
-      var name = document.getElementById('nreg-name').value.trim();
-      if (!name) { errEl.textContent = 'Bölge adı zorunludur.'; errEl.classList.remove('hidden'); return; }
-      ZirkonikData.createRegion(name).then(function (res) {
+      var ilceSel = document.getElementById('nreg-ilce');
+      var ilce = ilceSel.value;
+      if (!ilce) { errEl.textContent = 'İlçe seçilmelidir.'; errEl.classList.remove('hidden'); return; }
+      var yaka = ilceSel.options[ilceSel.selectedIndex].getAttribute('data-yaka') || null;
+      ZirkonikData.bolgeBulVeyaOlustur(ilce, yaka).then(function (res) {
         if (res.error) { errEl.textContent = 'Eklenemedi: ' + res.error.message; errEl.classList.remove('hidden'); return; }
-        document.getElementById('nreg-name').value = '';
+        ilceSel.value = '';
         zkToast('Bölge eklendi.');
         loadRegionsAndReps().then(renderRegionsList);
       });
@@ -598,19 +690,35 @@
     zkSetPrio('orta');
     function zkOpenAddProspect() { document.getElementById('add-prospect-sheet').classList.remove('hidden'); }
     function zkCloseAddProspect() { document.getElementById('add-prospect-sheet').classList.add('hidden'); }
+    // İlçe seçiliyse bölgeyi bulur/oluşturur (admin olmayan da can_manage_prospects
+    // ile çağırabilir — zk_bolge_bul_veya_olustur RPC'si), seçili değilse null döner.
+    function zkResolveRegionId(prefix) {
+      var ilceSel = document.getElementById(prefix + '-ilce');
+      var ilce = ilceSel ? ilceSel.value : '';
+      if (!ilce) return Promise.resolve(null);
+      var yaka = ilceSel.options[ilceSel.selectedIndex].getAttribute('data-yaka') || null;
+      return ZirkonikData.bolgeBulVeyaOlustur(ilce, yaka).then(function (r) {
+        return r.error ? null : r.data;
+      }).catch(function () { return null; });
+    }
     function zkSubmitAddProspect() {
       var errEl = document.getElementById('np-error');
       errEl.classList.add('hidden');
       var name = document.getElementById('np-name').value.trim();
       if (!name) { errEl.textContent = 'Doktor adı zorunludur.'; errEl.classList.remove('hidden'); return; }
-      ZirkonikAuth.me().then(function (me) {
+      var il = document.getElementById('np-il').value || null;
+      var ilce = document.getElementById('np-ilce').value || null;
+      var mahalle = document.getElementById('np-mahalle').value.trim() || null;
+      Promise.all([ZirkonikAuth.me(), zkResolveRegionId('np')]).then(function (res) {
+        var me = res[0], regionId = res[1];
         return ZirkonikData.createProspect({
           organization_id: me.organization_id,
           full_name: name,
           clinic_name: document.getElementById('np-clinic').value.trim() || null,
           address: document.getElementById('np-address').value.trim() || null,
           phone: document.getElementById('np-phone').value.trim() || null,
-          region_id: document.getElementById('np-region').value || null,
+          il: il, ilce: ilce, mahalle: mahalle,
+          region_id: regionId,
           source: document.getElementById('np-source').value || null,
           priority: newProspectPrio,
           assigned_rep_id: (me.role === 'personel') ? me.id : null
@@ -618,7 +726,9 @@
       }).then(function (res) {
         if (res.error) throw res.error;
         zkCloseAddProspect();
-        ['np-name', 'np-clinic', 'np-address', 'np-phone'].forEach(function (id) { document.getElementById(id).value = ''; });
+        ['np-name', 'np-clinic', 'np-address', 'np-phone', 'np-mahalle'].forEach(function (id) { document.getElementById(id).value = ''; });
+        zkFillIlSelect('np');
+        zkIlChanged('np');
         zkSetPrio('orta');
         zkToast('Aday eklendi.');
         zkSetStage('aday_havuzu');
@@ -648,7 +758,9 @@
       document.getElementById('dt-stage').value = d.pipeline_stage;
       document.getElementById('dt-priority').value = d.priority || 'orta';
       document.getElementById('dt-lost-reason').value = d.lost_reason || 'fiyat';
-      document.getElementById('dt-region').value = d.region_id || '';
+      if (d.il) { document.getElementById('dt-il').value = d.il; zkIlChanged('dt'); }
+      if (d.ilce) document.getElementById('dt-ilce').value = d.ilce;
+      document.getElementById('dt-mahalle').value = d.mahalle || '';
       document.getElementById('dt-rep').value = d.assigned_rep_id || '';
       document.getElementById('dt-next-date').value = d.next_action_at ? d.next_action_at.slice(0, 10) : '';
       document.getElementById('dt-next-note').value = d.next_action_note || '';
@@ -745,7 +857,9 @@
         pipeline_stage: stage,
         priority: document.getElementById('dt-priority').value,
         lost_reason: stage === 'kayip' ? document.getElementById('dt-lost-reason').value : null,
-        region_id: document.getElementById('dt-region').value || null,
+        il: document.getElementById('dt-il').value || null,
+        ilce: document.getElementById('dt-ilce').value || null,
+        mahalle: document.getElementById('dt-mahalle').value.trim() || null,
         assigned_rep_id: document.getElementById('dt-rep').value || null,
         next_action_at: nextDate ? new Date(nextDate + 'T09:00:00').toISOString() : null,
         next_action_note: document.getElementById('dt-next-note').value.trim() || null,
@@ -761,7 +875,10 @@
         priority_driver: document.getElementById('dt-priority-driver').value || null
       };
       if (stage !== detailDoctor.pipeline_stage) payload.stage_changed_at = new Date().toISOString();
-      ZirkonikData.updateDoctorPipeline(detailDoctor.id, payload).then(function (res) {
+      zkResolveRegionId('dt').then(function (regionId) {
+        payload.region_id = regionId;
+        return ZirkonikData.updateDoctorPipeline(detailDoctor.id, payload);
+      }).then(function (res) {
         if (res.error) { errEl.textContent = 'Kaydedilemedi: ' + res.error.message; errEl.classList.remove('hidden'); return; }
         zkToast('Kaydedildi.');
         zkCloseDetail();
