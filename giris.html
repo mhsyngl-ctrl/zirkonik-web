@@ -191,12 +191,17 @@
           if (Object.prototype.toString.call(p) === '[object Array]') p = p[0] || {};
           localStorage.setItem('zk-guard', JSON.stringify({
             role: me ? me.role : null,
+            position: (me && me.position) || null,
             can_manage_stock: !!p.can_manage_stock,
             can_view_finance: !!p.can_view_finance,
-            can_view_doctors: !!p.can_view_doctors
+            can_view_doctors: !!p.can_view_doctors,
+            can_manage_orders: !!p.can_manage_orders,
+            can_manage_prospects: !!p.can_manage_prospects
           }));
         } catch (e) {}
-        window.location.href = (me && me.role === 'doktor') ? 'doktor-siparis.html' : 'retim.html';
+        window.location.href = (me && me.role === 'doktor') ? 'doktor-siparis.html'
+          : (me && me.position === 'Satış Pazarlama Sorumlusu') ? 'aday-havuzu.html'
+          : 'retim.html';
       }).catch(function () { window.location.href = 'retim.html'; });
     }
 

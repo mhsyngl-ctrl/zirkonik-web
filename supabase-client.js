@@ -397,6 +397,18 @@
     createJob: function (fields) {
       return client().from('jobs').insert(fields).select().single();
     },
+    // 25 Eylül 2026: Resepsiyon + yönetici hata düzeltebilsin diye — yalnız
+    // üretimi etkilemeyen alanlar (RPC'nin kendisi de bunu zorunlu kılar).
+    fixJobInfo: function (jobId, fields) {
+      return client().rpc('zk_is_bilgi_duzelt', {
+        p_job_id: jobId,
+        p_patient_name: fields.patient_name,
+        p_clinic_protocol_no: fields.clinic_protocol_no,
+        p_patient_reference: fields.patient_reference,
+        p_requested_delivery_at: fields.requested_delivery_at,
+        p_is_priority: fields.is_priority
+      });
+    },
     // "İş teslimi" iki taraflı: bu, işi bir sonraki odaya İTER (handled_by
     // burada set edilmez — teslim alan oda confirmJobStage() ile kendi
     // teslim aldığını onaylayana kadar boş kalır). Eski odanın kaydı
@@ -446,6 +458,12 @@
         .eq('status', 'active').eq('jobs.status', 'active');
       if (laboratoryId) q = q.eq('jobs.laboratory_id', laboratoryId);
       return q;
+    },
+    // 25 Eylül 2026: job_item_select artık oda bazlı (yalnız yetkili olunan
+    // oda) — bir önceki odadan gelmekte olan işin YALNIZ numarasını bu RPC
+    // verir (tam detay değil), kendi yetkili odaları için.
+    gelenIsNumaralari: function (laboratoryId) {
+      return client().rpc('zk_gelen_is_numaralari', { p_laboratory_id: laboratoryId });
     },
     createJobItem: function (fields) {
       return client().from('job_items').insert(fields).select().single();

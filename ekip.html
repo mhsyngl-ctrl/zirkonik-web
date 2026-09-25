@@ -234,7 +234,6 @@
         <input id="ns-name" type="text" placeholder="Ad Soyad *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         <select id="ns-position" aria-label="Pozisyon" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
           <option value="Teknisyen">Teknisyen</option>
-          <option value="Yardımcı Teknisyen">Yardımcı Teknisyen</option>
           <option value="Resepsiyon Sorumlusu">Resepsiyon Sorumlusu</option>
           <option value="Satış Pazarlama Sorumlusu">Satış Pazarlama Sorumlusu</option>
           <option value="Yönetici">Yönetici (tam yetki)</option>
@@ -717,9 +716,12 @@
       if (position === 'Satış Pazarlama Sorumlusu') {
         // 24 Eylül 2026, sahibinin kuralı: fiyatları hiçbir personel görmez,
         // yalnız yönetici/işveren — can_view_price_list artık verilmiyor.
-        return { can_view_jobs: false, can_change_job_status: false, can_view_doctors: true, can_manage_prospects: true };
+        // 25 Eylül 2026: bu pozisyon yalnız Aday Havuzu'nu görür — doktorlar.html
+        // dahil uygulamanın başka hiçbir yerine erişemez (zk-guard.js'te sayfa
+        // bazlı kapı var); can_view_doctors artık verilmiyor.
+        return { can_view_jobs: false, can_change_job_status: false, can_view_doctors: false, can_manage_prospects: true };
       }
-      return {}; // Teknisyen/Yardımcı Teknisyen: sunucu varsayılanı (üretim erişimi) yeterli.
+      return {}; // Teknisyen: sunucu varsayılanı (üretim erişimi) yeterli.
     }
 
     function zkSubmitAddStaff() {

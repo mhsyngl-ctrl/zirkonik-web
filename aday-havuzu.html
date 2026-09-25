@@ -195,7 +195,12 @@
             <option value="ilk_temas">İlk temas</option>
             <option value="tanitim_yapildi">Tanıtım yapıldı</option>
             <option value="deneme_vakasi">Deneme vakası</option>
-            <option value="aktif">Aktif doktor</option>
+            <option value="onay_bekliyor">Onay bekliyor</option>
+            <!-- 25 Eylül 2026, sahibinin kuralı: "Aktif doktor" yalnız laboratuvar
+                 sahibinin onayıyla olur — bu seçenek yalnız yönetici görür (myIsAdmin),
+                 temsilci "Onaya Gönder" düğmesiyle onay_bekliyor'a taşır. Sunucuda da
+                 (trg_doktor_aktif_yalniz_admin) admin olmayan bu geçişi yapamaz. -->
+            <option id="dt-stage-aktif-opt" value="aktif">Aktif doktor</option>
             <option value="uyuyan">Uyuyan doktor</option>
             <option value="kayip">Kayıp</option>
             <option value="beklemede">Beklemede</option>
@@ -264,12 +269,17 @@
       <p id="dt-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
       <button onclick="zkSaveDetail()" class="mt-3 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
 
-      <!-- 24 Eylül 2026, sahibinin isteği: otomatik geçişi (3 vaka) beklemeden tek
-           dokunuşla içeri alma. Sistem yine kendiliğinden de ilerletir; bu, elle
-           öne çekme yoludur. Zaten aktif/kayıpsa gösterilmez. -->
+      <!-- 25 Eylül 2026, sahibinin kuralı: temsilci artık doğrudan aktif edemez —
+           kart laboratuvar sahibine onaya gider, o onaylayınca aktif olur ve o andan
+           sonra Yeni İş Girişi'nde görünür. (Eski "3 vaka'da otomatik aktif" kuralı
+           bu yüzden kapatıldı — kaldı ki artık onay_bekliyor'dan önce iş de girilemez.) -->
       <button id="dt-make-active-btn" onclick="zkMakeActive()" class="mt-2.5 flex h-12 w-full items-center justify-center gap-2 rounded-theme border border-success/40 bg-success/10 text-sm font-bold text-success">
+        <iconify-icon icon="lucide:send" class="text-lg"></iconify-icon>
+        Onaya Gönder
+      </button>
+      <button id="dt-approve-btn" onclick="zkApproveActive()" class="mt-2.5 hidden h-12 w-full items-center justify-center gap-2 rounded-theme border border-success/40 bg-success/10 text-sm font-bold text-success">
         <iconify-icon icon="lucide:badge-check" class="text-lg"></iconify-icon>
-        Aktif Doktor Yap
+        Onayla, Aktif Et
       </button>
 
       <!-- 24 Eylül 2026, sahibinin bulduğu boşluk: temsilci bu doktora gerçekten iş gelip
@@ -370,11 +380,12 @@
       { key: 'ilk_temas', label: 'İlk temas' },
       { key: 'tanitim_yapildi', label: 'Tanıtım yapıldı' },
       { key: 'deneme_vakasi', label: 'Deneme vakası' },
+      { key: 'onay_bekliyor', label: 'Onay bekliyor' },
       { key: 'uyuyan', label: 'Uyuyan' },
       { key: 'kayip', label: 'Kayıp' },
       { key: 'beklemede', label: 'Beklemede' }
     ];
-    var STAGE_LABELS = { aday_havuzu: 'Doktor havuzu', ilk_temas: 'İlk temas', tanitim_yapildi: 'Tanıtım yapıldı', deneme_vakasi: 'Deneme vakası', aktif: 'Aktif doktor', uyuyan: 'Uyuyan doktor', kayip: 'Kayıp', beklemede: 'Beklemede' };
+    var STAGE_LABELS = { aday_havuzu: 'Doktor havuzu', ilk_temas: 'İlk temas', tanitim_yapildi: 'Tanıtım yapıldı', deneme_vakasi: 'Deneme vakası', onay_bekliyor: 'Onay bekliyor', aktif: 'Aktif doktor', uyuyan: 'Uyuyan doktor', kayip: 'Kayıp', beklemede: 'Beklemede' };
     var curStage = '';
     var regions = [];
     var reps = [];
@@ -629,7 +640,11 @@
       if (d.pipeline_stage === 'aktif' && d.activator) {
         activatorEl.textContent = d.activator.full_name + ' tarafından aktif edildi';
         activatorEl.classList.remove('hidden');
+      } else if (d.pipeline_stage === 'onay_bekliyor' && d.activator) {
+        activatorEl.textContent = d.activator.full_name + ' tarafından onaya gönderildi';
+        activatorEl.classList.remove('hidden');
       } else { activatorEl.classList.add('hidden'); }
+      document.getElementById('dt-stage-aktif-opt').style.display = myIsAdmin ? '' : 'none';
       document.getElementById('dt-stage').value = d.pipeline_stage;
       document.getElementById('dt-priority').value = d.priority || 'orta';
       document.getElementById('dt-lost-reason').value = d.lost_reason || 'fiyat';
@@ -649,7 +664,11 @@
       document.getElementById('dt-priority-driver').value = d.priority_driver || '';
       document.getElementById('dt-error').classList.add('hidden');
       zkStageChanged();
-      document.getElementById('dt-make-active-btn').classList.toggle('hidden', d.pipeline_stage === 'aktif');
+      // 25 Eylül 2026: "Onaya Gönder" onay_bekliyor/aktif dışındaki her aşamada herkese
+      // görünür; "Onayla, Aktif Et" yalnız yöneticiye ve yalnız onay_bekliyor'da görünür.
+      var pendingOrActive = d.pipeline_stage === 'aktif' || d.pipeline_stage === 'onay_bekliyor';
+      document.getElementById('dt-make-active-btn').classList.toggle('hidden', pendingOrActive);
+      document.getElementById('dt-approve-btn').classList.toggle('hidden', !(myIsAdmin && d.pipeline_stage === 'onay_bekliyor'));
       document.getElementById('detail-sheet').classList.remove('hidden');
       loadTouches(id);
       loadDoctorJobs(id);
@@ -670,18 +689,31 @@
         }).join('') + '<p class="mt-1 text-[10px] text-muted-foreground">Toplam ' + rows.length + (rows.length === 10 ? '+' : '') + ' iş (son 10 gösterilir)</p>';
       });
     }
-    // Otomatik 3-vaka kuralını beklemeden tek dokunuşla içeri alma. Kim aktif ettiği
-    // (activated_by) kaydedilir — sahibinin isteği, 24 Eylül 2026.
+    // 25 Eylül 2026, sahibinin kuralı: temsilci doğrudan aktif edemez — kart laboratuvar
+    // sahibine onaya gider (onay_bekliyor). Kimin getirdiği (activated_by) burada
+    // kaydedilir; onay ayrı adımda zkApproveActive() ile aktife taşır.
     function zkMakeActive() {
       if (!detailDoctor) return;
       ZirkonikAuth.me().then(function (me) {
         return ZirkonikData.updateDoctorPipeline(detailDoctor.id, {
-          pipeline_stage: 'aktif', stage_changed_at: new Date().toISOString(),
+          pipeline_stage: 'onay_bekliyor', stage_changed_at: new Date().toISOString(),
           next_action_at: null, next_action_note: null, activated_by: me ? me.id : null
         });
       }).then(function (res) {
         if (res.error) { zkToast('Olmadı: ' + res.error.message); return; }
-        zkToast('Dr. ' + detailDoctor.full_name + ' aktif doktor oldu.');
+        zkToast('Dr. ' + detailDoctor.full_name + ' laboratuvar sahibinin onayına gönderildi.');
+        zkCloseDetail();
+        loadList();
+      });
+    }
+    // Yalnız yönetici — sunucuda da trg_doktor_aktif_yalniz_admin bunu zorunlu kılar.
+    function zkApproveActive() {
+      if (!detailDoctor) return;
+      ZirkonikData.updateDoctorPipeline(detailDoctor.id, {
+        pipeline_stage: 'aktif', stage_changed_at: new Date().toISOString()
+      }).then(function (res) {
+        if (res.error) { zkToast('Olmadı: ' + res.error.message); return; }
+        zkToast('Dr. ' + detailDoctor.full_name + ' onaylandı, aktif doktor oldu.');
         zkCloseDetail();
         loadList();
       });

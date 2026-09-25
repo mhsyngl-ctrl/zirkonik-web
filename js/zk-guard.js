@@ -2,9 +2,19 @@
  *
  * Kurallar:
  *  - yonetici (İşveren/Yönetici pozisyonu): her şeyi görür.
- *  - personel (Teknisyen/Yardımcı Teknisyen): yalnız Üretim/İşler +
- *    izinliyse Stok, Finans, Doktorlar (salt-görüntüleme). Ekip,
- *    Laboratuvarlar, Fiyat Listesi, Siparişler ve Yeni İş yönetici işidir.
+ *  - personel (Teknisyen): yalnız Üretim/İşler, ana ekranda istatistik
+ *    şeridi/tamamlanan/haftalık dağılım YOK — yalnız teslim alınacak
+ *    işler + yetkili odaların arı kovanı (25 Eylül 2026).
+ *  - personel (Resepsiyon Sorumlusu): Üretim/İşler (tam, tamamlanan dahil),
+ *    Doktorlar (salt-görüntüleme) — fiyat/muhasebeye kapalı. Siparişler ve
+ *    Yeni İş Oluştur "Sipariş yönetimi" (can_manage_orders) kutusuna bağlı;
+ *    Yeni İş Oluştur'da fiyat kutusu bu kutudan bağımsız hep gizli kalır.
+ *  - personel (Satış Pazarlama Sorumlusu): YALNIZ Aday Havuzu — uygulamanın
+ *    başka hiçbir yerine erişemez (25 Eylül 2026).
+ *  - Ekip, Laboratuvarlar, Fiyat Listesi yönetici işidir; Stok şimdilik
+ *    herkesten (yönetici dahil) tamamen kapalı. Finans/Ciro ve Yeni İş
+ *    Oluştur varsayılan kapalı ama ilgili yetki kutusuyla personele
+ *    açılabilir (25 Eylül 2026).
  *  - doktor: yalnız kendi paneli (+ bildirimler, profil).
  *
  * Menü gizleme iki aşamalı: son bilinen yetkiler localStorage'da tutulur (girişte de yazılır)
@@ -12,6 +22,24 @@
  * gitmesin"); ardından sunucudan taze yetki gelince yeniden uygulanır.
  * Asıl güvenlik RLS'tedir (personel işleri oda bazlı görür, iş ekleyemez).
  */
+
+// ---- Stok modülü geçici olarak kapalı (25 Eylül 2026, sahibinin kararı) ----
+// Ürün henüz kullanıma hazır değil; herkesten (yönetici dahil) gizlenir.
+// Bağımsız/tek parça: geri açmak için tek satır — ZK_STOK_ENABLED = true.
+var ZK_STOK_ENABLED = false;
+(function () {
+  if (ZK_STOK_ENABLED) return;
+  var page = (location.pathname.split('/').pop() || '').toLowerCase().replace('.html', '');
+  if (page === 'stok') { location.replace('retim.html'); return; }
+  function hide() {
+    var els = document.querySelectorAll('[data-fv-tab="Stok"],a[href*="stok.html"],[onclick*="stok.html"]');
+    for (var i = 0; i < els.length; i++) els[i].style.display = 'none';
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', hide);
+  else hide();
+  setTimeout(hide, 800);
+  setTimeout(hide, 2500);
+})();
 
 // ---- Bağlantı durumu şeridi ----
 // 24 Eylül 2026: js/net-guard.js üstlendi (ağ hatası bandı + yeniden deneme + hata
@@ -78,8 +106,16 @@
   if (PUBLIC[page] || !window.ZirkonikAuth || !window.ZirkonikAuth.me) return;
 
   // Bunlar hiçbir izinle personele açılmaz — organizasyon/kadro ayarı, yönetici işi.
-  var ADMIN_PAGES = { ekip: 1, laboratuvarlar: 1, 'rol-ve-yetki-detay': 1, 'yeni-giri-i': 1 };
+  var ADMIN_PAGES = { ekip: 1, laboratuvarlar: 1, 'rol-ve-yetki-detay': 1 };
   var DOCTOR_PAGES = { 'doktor-siparis': 1, profil: 1, bildirimler: 1 };
+
+  // 25 Eylül 2026, sahibinin kuralı: bu iki pozisyon uygulamanın yalnız kendi
+  // dar köşesini görür — aşağıdaki her sayfa-bazlı izin (can_manage_orders vb.)
+  // hâlâ ayrıca uygulanır, bu yalnız dıştaki sınırı çizer.
+  var PROSPECT_ONLY_PAGES = { 'aday-havuzu': 1, profil: 1, bildirimler: 1, izinlerim: 1, kilavuz: 1 };
+  // 25 Eylül 2026: Yeni İş Oluştur artık admin-sabit değil — resepsiyonun
+  // can_manage_orders yetkisiyle açılabilir (sayfa içinde fiyat kutusu gizlenir).
+  var RECEPTION_PAGES = { retim: 1, isler: 1, detay: 1, siparisler: 1, doktorlar: 1, 'yeni-giri-i': 1, profil: 1, bildirimler: 1, izinlerim: 1, kilavuz: 1 };
 
   function enforce(role, p) {
     if (role === 'doktor') {
@@ -87,16 +123,21 @@
       return false;
     }
     if (role !== 'personel') return false; // yonetici: serbest
+    if (p.position === 'Satış Pazarlama Sorumlusu' && !PROSPECT_ONLY_PAGES[page]) {
+      location.replace('aday-havuzu.html'); return true;
+    }
+    if (p.position === 'Resepsiyon Sorumlusu' && !RECEPTION_PAGES[page]) {
+      location.replace('retim.html'); return true;
+    }
     if (page === 'doktor-siparis') { location.replace('retim.html'); return true; }
     if (ADMIN_PAGES[page]) { location.replace('retim.html'); return true; }
     if (page === 'stok' && !p.can_manage_stock) { location.replace('retim.html'); return true; }
-    // Finans/Ciro: sahibinin kuralı (24 Eylül 2026) — tahsilat, fatura ve
-    // doktor ekstresi tutarları yalnız yönetici/işveren görür, hiçbir
-    // personel izniyle açılamaz.
-    if (page === 'finans' || page === 'ciro') { location.replace('retim.html'); return true; }
+    // Finans/Ciro: varsayılan kapalı, "Finans yetkisi" kutusuyla açılır (25 Eylül 2026 —
+    // sahibi kutuyu gerçekten işlevli olsun istedi, önceki sabit kapalı kural kaldırıldı).
+    if ((page === 'finans' || page === 'ciro') && !p.can_view_finance) { location.replace('retim.html'); return true; }
     if (page === 'doktorlar' && !p.can_view_doctors) { location.replace('retim.html'); return true; }
-    // Siparişler: resepsiyonun işi (can_manage_orders).
-    if (page === 'siparisler' && !p.can_manage_orders) { location.replace('retim.html'); return true; }
+    // Siparişler + Yeni İş Oluştur: resepsiyonun işi (can_manage_orders).
+    if ((page === 'siparisler' || page === 'yeni-giri-i') && !p.can_manage_orders) { location.replace('retim.html'); return true; }
     // Fiyat Listesi: sahibinin kuralı (24 Eylül 2026) — fiyatları yalnız
     // yönetici/işveren görür, hiçbir personel izniyle açılamaz.
     if (page === 'fiyat-listesi') { location.replace('retim.html'); return true; }
@@ -109,7 +150,7 @@
     // Alt menü sekmeleri
     var TABS = {
       'Stok': !!p.can_manage_stock,
-      'Finans': false, // 24 Eylül 2026: para hiçbir personele görünmez.
+      'Finans': !!p.can_view_finance, // 25 Eylül 2026: "Finans yetkisi" kutusuna bağlı.
       'Laboratuvarlar': false,
       'Ekip': false,
       'Doktorlar': !!p.can_view_doctors
@@ -120,6 +161,23 @@
       var t = tabs[i].getAttribute('data-fv-tab');
       if (t in TABS && !TABS[t]) tabs[i].style.display = 'none';
       else gorunen++;
+    }
+
+    // 25 Eylül 2026, sahibinin kuralı: sıradan teknisyen ana ekranda "bugünkü
+    // görünüm" istatistik şeridini ve tamamlanan/teslimat bilgisini görmez —
+    // yalnız kendi teslim alınacak işleri + yetkili odaların arı kovanı
+    // (üretim panosu). Resepsiyon Sorumlusu bunun dışında: onun işi durum/
+    // teslimat takibi olduğu için istatistik şeridini ve tamamlananı görür.
+    if (p.position !== 'Resepsiyon Sorumlusu') {
+      var deck = document.querySelector('.zk-stats-deck');
+      if (deck) deck.style.display = 'none';
+      var completedTab = document.getElementById('board-tab-completed') || document.getElementById('tab-completed');
+      if (completedTab) completedTab.style.display = 'none';
+      var weekly = document.getElementById('weekly-distribution');
+      if (weekly) {
+        var weeklySection = weekly.closest('section');
+        if (weeklySection) weeklySection.style.display = 'none';
+      }
     }
     /* 2026-09-19: sekme gizlenince alt menu sola KAYIYORDU. Bazi ekranlarda
        menu "grid-cols-6" ile sabit alti sutun; display:none olan sekme
@@ -135,14 +193,14 @@
       }
     }
     // Yönetici sayfalarına götüren kısayollar
-    var sel = 'a[href*="yeni-giri-i"],[onclick*="yeni-giri-i"],' +
-              'a[href*="laboratuvarlar"],[onclick*="laboratuvarlar"],' +
+    var sel = 'a[href*="laboratuvarlar"],[onclick*="laboratuvarlar"],' +
               'a[href*="ekip"],[onclick*="ekip.html"]';
-    // Finans/Ciro: personelden her zaman gizli (24 Eylül 2026).
-    sel += ',a[href*="finans"],[onclick*="finans"],a[href*="ciro"],[onclick*="ciro"]';
+    // Finans/Ciro: "Finans yetkisi" kutusuna bağlı (25 Eylül 2026).
+    if (!p.can_view_finance) sel += ',a[href*="finans"],[onclick*="finans"],a[href*="ciro"],[onclick*="ciro"]';
     if (!p.can_manage_stock) sel += ',a[href*="stok"],[onclick*="stok"]';
     if (!p.can_view_doctors) sel += ',a[href*="doktorlar"],[onclick*="doktorlar"]';
-    if (!p.can_manage_orders) sel += ',a[href*="siparisler"],[onclick*="siparisler"]';
+    // Siparişler + Yeni İş Oluştur: can_manage_orders (25 Eylül 2026).
+    if (!p.can_manage_orders) sel += ',a[href*="siparisler"],[onclick*="siparisler"],a[href*="yeni-giri-i"],[onclick*="yeni-giri-i"]';
     // Fiyat Listesi: personelden her zaman gizli, izinle açılmaz (24 Eylül 2026).
     sel += ',a[href*="fiyat-listesi"],[onclick*="fiyat-listesi"]';
     if (!p.can_manage_prospects) sel += ',a[href*="aday-havuzu"],[onclick*="aday-havuzu"]';
@@ -194,6 +252,7 @@
     if (Object.prototype.toString.call(p) === '[object Array]') p = p[0] || {};
     var snap = {
       role: me.role,
+      position: me.position || null,
       can_manage_stock: !!p.can_manage_stock,
       can_view_finance: !!p.can_view_finance,
       can_view_doctors: !!p.can_view_doctors,

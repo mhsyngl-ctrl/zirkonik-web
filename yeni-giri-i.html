@@ -216,7 +216,7 @@
             </label>
           </section>
 
-          <section class="mt-7 border-t border-border pt-6">
+          <section id="f-price-section" class="mt-7 border-t border-border pt-6">
             <div class="mb-3">
               <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">05 · Fiyat</p>
               <h2 class="mt-1 font-heading text-lg font-bold">Doktor fiyatı</h2>
@@ -582,6 +582,10 @@
       ZirkonikAuth.me().then(function (me) {
         var perms = (me.user_permissions && me.user_permissions[0]) || me.user_permissions || {};
         canOverridePrice = me.role === 'yonetici' || !!perms.can_view_finance;
+        // 25 Eylül 2026, sahibinin kuralı: Yeni İş Oluştur artık sipariş yönetimi
+        // yetkisi olan personele de (Resepsiyon) açık — ama fiyat görmesin, salt
+        // salt-okunur değil, TAMAMEN gizli.
+        document.getElementById('f-price-section').classList.toggle('hidden', !canOverridePrice);
         zkRecalcPrice();
       });
 
@@ -621,7 +625,9 @@
         if (labs.length === 1) sel.value = labs[0].id;
       });
 
-      client.from('doctors').select('id, full_name, clinic_name').eq('status', 'approved').order('full_name').then(function (r) {
+      // 25 Eylül 2026, sahibinin kuralı: havuzdaki (henüz aktif olmayan) adaylar
+      // burada görünmez — laboratuvar sahibi onaylayıp aktif yapmadan iş girilemez.
+      client.from('doctors').select('id, full_name, clinic_name').eq('status', 'approved').eq('pipeline_stage', 'aktif').order('full_name').then(function (r) {
         doctors = r.data || [];
         var sel = document.getElementById('f-doctor');
         doctors.forEach(function (d) {

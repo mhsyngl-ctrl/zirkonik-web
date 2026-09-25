@@ -11,6 +11,25 @@
   <link rel="stylesheet" href="css/ipad.css">
   <link rel="stylesheet" href="css/zk-utils.css">
   <script src="js/zk-tema.js"></script>
+  <!-- 25 Eylül 2026, sahibinin hata bildirimi: teknisyen ana ekrana girince
+       istatistik şeridi/tamamlanan bir an görünüp SONRA gizleniyordu —
+       zk-guard.js body sonunda yüklendiği için hideUi() ancak sayfa
+       boyandıktan sonra çalışabiliyordu. Bu, aynı zk-tema.js gibi <head>'te,
+       hiçbir şey boyanmadan ÖNCE, önbellekteki son bilinen role/pozisyona
+       göre CSS ile sessizce kapatır — zk-guard.js hâlâ asıl yetki kararını
+       verir, bu yalnız ilk boyamayı önler (yanlış önbellekse zk-guard.js
+       düzeltir, ekstra gizleme zararsızdır).
+  -->
+  <script>
+    (function () {
+      try {
+        var c = JSON.parse(localStorage.getItem('zk-guard') || 'null');
+        if (c && c.role === 'personel' && c.position !== 'Resepsiyon Sorumlusu') {
+          document.write('<style>.zk-stats-deck,#board-tab-completed,#weekly-distribution-section{display:none!important}</style>');
+        }
+      } catch (e) {}
+    })();
+  </script>
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
@@ -158,7 +177,7 @@
 
         <!-- Masaüstünde yan yana, mobilde alt alta (display:contents ile) -->
         <div class="zk-charts-row">
-        <section class="px-5 pt-7">
+        <section id="weekly-distribution-section" class="px-5 pt-7">
           <div class="flex items-center justify-between">
             <div>
               <h2 class="font-heading text-lg font-extrabold">Haftalık dağılım</h2>
@@ -1237,9 +1256,17 @@
         // cok calisma turu icerebiliyor ve her tur kendi rotasini izliyor,
         // yani ayni siparis ayni anda iki odada bulunabilir. Tek kalemli
         // islerde (bugunku tum isler) gorunum birebir ayni kaliyor.
-        ZirkonikData.listActiveItems(lab.id, !!zkIsAdmin)
+        ZirkonikData.listActiveItems(lab.id, !!zkIsAdmin),
+        // 25 Eylül 2026: job_items artık ODA bazlı görünür (yalnız yetkili
+        // olunan oda) — yönetici zaten tüm odaları görür, personel için bir
+        // önceki odadan gelmekte olan işin YALNIZ numarasını bu RPC verir.
+        zkIsAdmin ? Promise.resolve({ data: [] }) : ZirkonikData.gelenIsNumaralari(lab.id)
       ]).then(function (results) {
         var rooms = results[0].data || [];
+        hiveIncomingNumbers = {};
+        (results[2].data || []).forEach(function (r) {
+          (hiveIncomingNumbers[r.room_id] = hiveIncomingNumbers[r.room_id] || []).push(r.job_number);
+        });
         // Kalemi ust isin alanlariyla duzlestiriyoruz ki asagidaki petek
         // mantigi ayni alan adlariyla calismaya devam etsin.
         var jobs = (results[1].data || []).map(function (it) {
@@ -1281,7 +1308,7 @@
       });
     }
 
-    var hiveSections = [], hiveJobs = [], hiveConfirmedMap = {}, hiveIncomingMap = {}, hiveSelectedIdx = 0, hiveContainer = null, hiveWaitRoomId = null, hiveUserSelId;
+    var hiveSections = [], hiveJobs = [], hiveConfirmedMap = {}, hiveIncomingMap = {}, hiveIncomingNumbers = {}, hiveSelectedIdx = 0, hiveContainer = null, hiveWaitRoomId = null, hiveUserSelId;
     // job_id -> true, eger o siparisin panoda birden cok kalemi varsa.
     // Kart uzerinde calisma turu/dis bilgisi YALNIZCA bu durumda gosteriliyor;
     // tek kalemli islerde gorunum bugunkuyle birebir ayni kaliyor.
@@ -1306,7 +1333,12 @@
       var sec = hiveSections[idx];
       var secJobs = hiveJobs.filter(function (j) { return hiveJobInSection(j, sec); });
       var pendingCount = secJobs.filter(function (j) { return sec.id !== null && hiveConfirmedMap[j.id] === false; }).length;
-      var incoming = sec.id ? (hiveIncomingMap[sec.id] || 0) : 0;
+      // 25 Eylül 2026: yönetici için eskisi gibi sayı (hiveIncomingMap, tüm
+      // laboratuvar verisinden hesaplanır); personel için job_items artık
+      // oda bazlı geldiğinden yalnız KENDİ odalarına gelen işlerin NUMARASI
+      // (hiveIncomingNumbers, zk_gelen_is_numaralari RPC'sinden) gösterilir.
+      var incomingNums = sec.id ? hiveIncomingNumbers[sec.id] : null;
+      var incoming = incomingNums ? incomingNums.length : (sec.id ? (hiveIncomingMap[sec.id] || 0) : 0);
       // Yük = mevcut + gelmekte olan; eşik aşılırsa istasyon "ısınır".
       var load = secJobs.length + incoming;
       var hot = load >= 3;
@@ -1318,7 +1350,11 @@
       if (pendingCount) cls += ' zk-hex-alert';
       var sub = hot ? 'Destek gerekebilir'
         : (pendingCount ? 'Teslim bekliyor' : (secJobs.length ? 'aktif iş' : 'boş'));
-      var inner = (incoming ? '<span class="zk-hex-in">↓ +' + incoming + '</span>' : '') +
+      var incomingBadge = incomingNums
+        ? '<span class="zk-hex-in" title="' + escapeHtml(incomingNums.join(', ')) + '">↓ ' +
+          escapeHtml(incomingNums.length === 1 ? incomingNums[0] : (incomingNums.length + ' iş')) + '</span>'
+        : (incoming ? '<span class="zk-hex-in">↓ +' + incoming + '</span>' : '');
+      var inner = incomingBadge +
         '<span class="zk-hex-name">' + escapeHtml(sec.name) + '</span>' +
         '<span class="zk-hex-count">' + secJobs.length + '</span>' +
         '<span class="zk-hex-sub">' + sub + '</span>';

@@ -333,20 +333,17 @@
     }
 
     // Onaydan ONCE gercek tutari gosterir; secilen laboratuvara gore degisir.
-    // 24 Eylül 2026: personel görünümünde tutar hiç hesaplanmaz/gösterilmez —
-    // "fiyat tanımlı değil" uyarısı burada YANLIŞ olurdu (fiyat var, sadece
-    // gizli), o yüzden ayrı, doğru bir nötr metin gösteriliyor.
+    // 25 Eylül 2026, sahibinin kuralı: finans kutusu hiçbir personeli
+    // ilgilendirmez — sadece yer tutan metinle değil, TAMAMEN gizlenir.
     function zkRenderApprovePrice() {
       var o = orders.find(function (x) { return x.id === approveOrderId; });
       var labId = document.getElementById('ap-lab').value || null;
+      var box = document.getElementById('ap-price-box');
       var el = document.getElementById('ap-price');
       var note = document.getElementById('ap-price-note');
+      if (myRole !== 'yonetici') { box.style.display = 'none'; return; }
+      box.style.display = '';
       if (!o) { el.textContent = '—'; note.textContent = ''; return; }
-      if (myRole !== 'yonetici') {
-        el.textContent = 'Fiyat yalnız yöneticiye görünür';
-        note.textContent = 'Kalem/miktarı kontrol edip onaylayın — tutar bilgisi bu ekranda gösterilmez.';
-        return;
-      }
       var pr = zkOrderPrice(o, labId);
       if (!pr) {
         el.textContent = 'Fiyat tanımlı değil';
