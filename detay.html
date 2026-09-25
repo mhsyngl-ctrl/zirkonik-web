@@ -382,6 +382,7 @@
 
     var myRole = null;
     var canFixJob = false;
+    var canEditRoomOrdersPerm = false;
     ZirkonikAuth.requireAuth().then(function (session) {
       if (!session) return;
       if (!jobId) {
@@ -401,6 +402,7 @@
         var perms = (me && me.user_permissions) || {};
         perms = (perms && perms[0]) || perms || {};
         canFixJob = myRole === 'yonetici' || !!perms.can_manage_orders;
+        canEditRoomOrdersPerm = !!perms.can_edit_room_orders;
         var editBtn = document.getElementById('edit-job-icon-btn');
         if (editBtn) editBtn.classList.toggle('hidden', !canFixJob);
         loadJob();
@@ -513,6 +515,17 @@
         if (jobRes.error || !jobRes.data) throw jobRes.error || new Error('İş bulunamadı');
         currentJob = jobRes.data;
         ZKHiz.cachePut('job_' + jobId, currentJob);
+        // 25 Eylül 2026: "Sipariş düzenleme" yetkisi oda bazlı — yalnız işin
+        // O AN bulunduğu odaya erişimi varsa düzenleme düğmesi açılır.
+        if (!canFixJob && canEditRoomOrdersPerm && currentJob.current_room_id) {
+          client.rpc('has_room_access', { rm_id: currentJob.current_room_id }).then(function (rr) {
+            if (rr.data) {
+              canFixJob = true;
+              var editBtn = document.getElementById('edit-job-icon-btn');
+              if (editBtn) editBtn.classList.remove('hidden');
+            }
+          });
+        }
         return ZirkonikData.listJobItems(jobId, myRole === 'yonetici');
       }).then(function (itemsRes) {
         jobItems = itemsRes.data || [];

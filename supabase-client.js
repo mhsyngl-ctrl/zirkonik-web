@@ -314,6 +314,14 @@
       return client().from('jobs').select('id, job_number, restoration_type, unit_count, status, created_at')
         .eq('doctor_id', doctorId).order('created_at', { ascending: false }).limit(10);
     },
+    // 25 Eylül 2026: işveren ana ekranda son oda geçişlerini görsün diye —
+    // yalnız yönetici çağırır, RLS zaten org bazında sınırlıyor.
+    listRecentJobProgress: function (limit) {
+      return client().from('job_stage_history')
+        .select('id, entered_at, exited_at, note, jobs!inner(job_number, restoration_type), rooms(name), app_users:handled_by(full_name)')
+        .order('entered_at', { ascending: false })
+        .limit(limit || 20);
+    },
     addDoctorTouch: function (doctorId, fields) {
       return client().from('doctor_touches').insert(Object.assign({ doctor_id: doctorId }, fields)).select().single();
     },
@@ -1142,8 +1150,19 @@
     },
 
     // ---- Bildirimler (kayıtları DB tetikleyicileri yazar, istemci okur) ----
+    // 25 Eylül 2026, sahibinin kuralı: bir işe bağlı bildirim, o iş
+    // tamamlanınca/iptal olunca artık "bildirim" değil — listeden düşer.
+    // job_id'siz bildirimler (izin, sistem vb.) her zaman kalır.
     listNotifications: function () {
-      return client().from('notifications').select('*').order('created_at', { ascending: false }).limit(100);
+      return client().from('notifications').select('*, jobs(status)').order('created_at', { ascending: false }).limit(100)
+        .then(function (r) {
+          if (r.error) return r;
+          var data = (r.data || []).filter(function (n) {
+            if (!n.jobs) return true;
+            return n.jobs.status !== 'completed' && n.jobs.status !== 'cancelled';
+          });
+          return { data: data, error: null };
+        });
     },
     unreadNotifCount: function () {
       return client().from('notifications').select('id', { count: 'exact', head: true }).is('read_at', null);

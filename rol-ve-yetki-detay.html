@@ -296,6 +296,10 @@
       { key: 'can_view_finance', icon: 'lucide:wallet-cards', title: 'Finans yetkisi', desc: 'Tahsilat/ödeme kaydı, fatura — salt-okunur DEĞİL. Fiyat listesi bu yetkiye dahil değil.' },
       { key: 'can_view_doctors', icon: 'lucide:stethoscope', title: 'Doktorları görme', desc: 'Doktor listesi ve iletişim (salt-okunur)' },
       { key: 'can_approve_delivery', icon: 'lucide:badge-check', title: 'Teslimat onayı', desc: 'Kalite kontrol sonrası teslimat' },
+      // 25 Eylül 2026: yetkili olduğu odadaki işin hasta adı/protokol/teslim
+      // tarihi gibi bilgilerini düzeltebilsin — fiyat/durum bu yetkiye dahil
+      // değil, yalnız kendi odasındaki işler (oda erişimi ayrıca kontrol edilir).
+      { key: 'can_edit_room_orders', icon: 'lucide:pencil-line', title: 'Sipariş düzenleme', desc: 'Yetkili olduğu odadaki işlerde hasta adı/protokol/teslim tarihi düzeltme — fiyat/durum hariç' },
       // can_view_payroll BİLEREK burada yok (25 Eylül 2026, sahibinin kararı):
       // personelin BAŞKA personelin hakedişini görmesine gerek yok — kendi
       // hakedişini zaten her zaman görür (earnings_select politikası

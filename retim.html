@@ -25,7 +25,7 @@
       try {
         var c = JSON.parse(localStorage.getItem('zk-guard') || 'null');
         if (c && c.role === 'personel' && c.position !== 'Resepsiyon Sorumlusu') {
-          document.write('<style>.zk-stats-deck,#board-tab-completed,#weekly-distribution-section{display:none!important}</style>');
+          document.write('<style>#today-overview-section,#board-tab-completed,#weekly-distribution-section{display:none!important}</style>');
         }
       } catch (e) {}
     })();
@@ -108,7 +108,7 @@
       </header>
 
       <main>
-        <section class="px-5 pt-5">
+        <section id="today-overview-section" class="px-5 pt-5">
           <div class="flex items-end justify-between">
             <div>
               <h2 class="font-heading text-lg font-extrabold">Bugünün görünümü</h2>
@@ -263,6 +263,17 @@
           <p class="mt-1 text-[11px] text-muted-foreground">Hangi oda bu dönemde en çok iş işledi — canlı "Destek gerekebilir" uyarısının geçmiş dönem karşılaştırması</p>
           <div id="room-throughput-list" class="mt-3 rounded-theme border border-border bg-card p-4">
             <p class="text-xs text-muted-foreground">Yükleniyor…</p>
+          </div>
+        </section>
+
+        <section id="job-progress-log-section" class="hidden px-5 pt-7">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Sadece yönetici görür</p>
+            <h2 class="mt-1 font-heading text-lg font-extrabold">İş İlerleme Günlüğü</h2>
+            <p class="mt-0.5 text-xs text-muted-foreground">Odalar arası son geçişler — kim, hangi işi, ne zaman ilerletti</p>
+          </div>
+          <div id="job-progress-log" class="mt-3 rounded-theme border border-border bg-card">
+            <p class="p-4 text-xs text-muted-foreground">Yükleniyor…</p>
           </div>
         </section>
 
@@ -661,6 +672,8 @@
           loadRoomThroughput();
           document.getElementById('cash-flow-section').classList.remove('hidden');
           loadCashFlow();
+          document.getElementById('job-progress-log-section').classList.remove('hidden');
+          loadJobProgressLog();
         }
         var perms = me && me.user_permissions;
         if (Object.prototype.toString.call(perms) === '[object Array]') perms = perms[0] || {};
@@ -724,6 +737,30 @@
       }).join('') + '</div>';
       document.getElementById(containerId).innerHTML = html;
     }
+    // 25 Eylül 2026, sahibinin isteği: işveren ana ekranda oda geçişlerini
+    // canlı takip etsin — kim, hangi işi, hangi odaya ne zaman taşıdı.
+    function loadJobProgressLog() {
+      var el = document.getElementById('job-progress-log');
+      ZirkonikData.listRecentJobProgress(20).then(function (r) {
+        if (r.error) { el.innerHTML = '<p class="p-4 text-xs text-destructive">Yüklenemedi: ' + escapeHtml(r.error.message) + '</p>'; return; }
+        var rows = r.data || [];
+        if (!rows.length) { el.innerHTML = '<p class="p-4 text-xs text-muted-foreground">Henüz bir oda geçişi yok.</p>'; return; }
+        el.innerHTML = rows.map(function (h, i) {
+          var j = h.jobs || {};
+          var kimTxt = h.app_users ? h.app_users.full_name : 'Bilinmiyor';
+          var odaTxt = h.rooms ? h.rooms.name : 'Bekleyen';
+          var zaman = h.entered_at ? new Date(h.entered_at).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
+          return '<div class="flex items-start gap-3 px-4 py-3' + (i < rows.length - 1 ? ' border-b border-border' : '') + '">' +
+            '<span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-theme bg-primary/10 text-primary"><iconify-icon icon="lucide:move-right" class="text-sm"></iconify-icon></span>' +
+            '<div class="min-w-0 flex-1"><p class="text-xs font-bold">' + escapeHtml(j.job_number || '—') +
+            (j.restoration_type ? ' · ' + escapeHtml(j.restoration_type) : '') + '</p>' +
+            '<p class="mt-0.5 text-xs text-muted-foreground">' + escapeHtml(odaTxt) + ' — ' + escapeHtml(kimTxt) + '</p>' +
+            (h.note ? '<p class="mt-0.5 text-[11px] text-muted-foreground">' + escapeHtml(h.note) + '</p>' : '') + '</div>' +
+            '<span class="shrink-0 text-[10px] font-semibold text-muted-foreground">' + zaman + '</span></div>';
+        }).join('');
+      });
+    }
+
     function loadCashFlow() {
       ZirkonikData.getCashFlowForecast().then(function (res) {
         var totals = {};

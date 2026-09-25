@@ -169,7 +169,8 @@ var ZK_STOK_ENABLED = false;
     // (üretim panosu). Resepsiyon Sorumlusu bunun dışında: onun işi durum/
     // teslimat takibi olduğu için istatistik şeridini ve tamamlananı görür.
     if (p.position !== 'Resepsiyon Sorumlusu') {
-      var deck = document.querySelector('.zk-stats-deck');
+      // "Bugünün görünümü" başlığı dahil tüm bölüm (yalnız kart ızgarası değil).
+      var deck = document.getElementById('today-overview-section') || document.querySelector('.zk-stats-deck');
       if (deck) deck.style.display = 'none';
       var completedTab = document.getElementById('board-tab-completed') || document.getElementById('tab-completed');
       if (completedTab) completedTab.style.display = 'none';
