@@ -468,20 +468,30 @@
     var detailDoctor = null;
     var pendingTouchType = null;
     // 26 Eylül 2026: arama + bölge/bugün hızlı filtresi — currentList üzerinde çalışır.
+    // Sahibinin bildirdiği "takılıyor" hatası: her tuş vuruşunda renderList()
+    // giriş animasyonunu (stagger — her kart için zorunlu reflow) yeniden
+    // oynatıyordu, uzun listede (100+ kart) gözle görülür donmaya yol açıyordu.
+    // Filtre/arama kaynaklı yeniden çizimlerde animasyon atlanır (skipAnim);
+    // arama ayrıca hafifçe geciktirilir (debounce) ki hızlı yazarken her
+    // harfte tam liste yeniden kurulmasın.
     var dhSearchQuery = '', dhRegionFilter = null, dhBugunOnly = false;
+    var dhSearchTimer = null;
     function zkFilterList() {
-      dhSearchQuery = document.getElementById('dh-search').value.trim().toLowerCase();
-      renderList();
+      clearTimeout(dhSearchTimer);
+      dhSearchTimer = setTimeout(function () {
+        dhSearchQuery = document.getElementById('dh-search').value.trim().toLowerCase();
+        renderList(true);
+      }, 150);
     }
     function zkToggleRegionFilter(id) {
       dhRegionFilter = (dhRegionFilter === id) ? null : id;
       renderFilterChips();
-      renderList();
+      renderList(true);
     }
     function zkToggleBugunFilter() {
       dhBugunOnly = !dhBugunOnly;
       renderFilterChips();
-      renderList();
+      renderList(true);
     }
     function renderFilterChips() {
       var wrap = document.getElementById('dh-filter-chips');
@@ -618,7 +628,7 @@
         return true;
       });
     }
-    function renderList() {
+    function renderList(skipAnim) {
       var el = document.getElementById('prospect-list');
       var list = zkFilteredList();
       if (!currentList.length) { el.innerHTML = '<p class="mt-8 text-center text-xs text-muted-foreground">Bu aşamada kayıt yok.</p>'; return; }
@@ -637,7 +647,7 @@
           (d.next_action_at ? '<span class="rounded-full ' + (overdue ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground') + ' px-2 py-1 text-[10px] font-bold">' + (overdue ? 'Gecikti: ' : '') + new Date(d.next_action_at).toLocaleDateString('tr-TR') + '</span>' : '') +
           '</div></button>';
       }).join('');
-      if (window.zkFlow) window.zkFlow.stagger(el);
+      if (!skipAnim && window.zkFlow) window.zkFlow.stagger(el);
     }
 
     // ---- Bölgeler ----
