@@ -334,6 +334,14 @@
     approveOutOfRegionDoctor: function (doctorId) {
       return client().rpc('zk_bolge_disi_doktor_onayla', { p_doctor_id: doctorId });
     },
+    // 26 Eylül 2026: "Onay bekleyenler" — bölge dışı eklenen doktorlar
+    // (region_locked). aktif-doktor onayı zaten var olan pipeline_stage=
+    // 'onay_bekliyor' üzerinden ayrıca listelenir (listPipelineDoctors).
+    listRegionLockedDoctors: function () {
+      return client().from('doctors')
+        .select('*, region:region_id(name), temsilci:assigned_rep_id(full_name)')
+        .eq('region_locked', true);
+    },
     listDoctorTouches: function (doctorId) {
       return client().from('doctor_touches').select('*, yazan:created_by(full_name)').eq('doctor_id', doctorId).order('created_at', { ascending: false });
     },
