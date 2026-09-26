@@ -596,6 +596,10 @@
         // kullanır (id/name/category/route_room_ids/currency — fiyat yok).
         var itemsPromise = me.role === 'yonetici' ? ZirkonikData.listPriceItems() : ZirkonikData.listWorkTypes();
         itemsPromise.then(function (r) {
+          // 26 Eylül 2026: bu istek sessizce hata verirse liste boş gelip hiçbir
+          // şey görünmüyordu, kullanıcı neden sipariş giremediğini anlamıyordu
+          // (zk_calisma_turleri_listele'deki 42702 hatası tam bunu yaşatmıştı).
+          if (r.error) { zkToast('İş türleri yüklenemedi: ' + r.error.message); return; }
           priceItems = r.data || [];
           var sel = document.getElementById('f-type');
           var groups = {};
