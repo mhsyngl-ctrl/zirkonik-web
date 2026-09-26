@@ -414,6 +414,13 @@
 
           <p id="dt-error" class="hidden text-xs font-semibold text-destructive"></p>
           <button onclick="zkSaveDetail()" class="flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
+          <!-- 26 Eylül 2026, sahibinin isteği: yanlış/mükerrer aday kaydını
+               işveren/yönetici silebilsin. Gerçek iş/fatura kaydı varsa
+               sunucu açık bir hatayla engeller (finansal veri korunur). -->
+          <button id="dt-delete-btn" onclick="zkDeleteDoctor()" class="mt-2.5 hidden h-12 w-full items-center justify-center gap-2 rounded-theme border border-destructive/40 bg-destructive/5 text-sm font-bold text-destructive">
+            <iconify-icon icon="lucide:trash-2" class="text-lg"></iconify-icon>
+            Bu kaydı sil
+          </button>
         </div>
       </details>
       </div>
@@ -899,7 +906,13 @@
         // div (role="button"), iç düğmeler event.stopPropagation() ile kart
         // tıklamasını (detay açma) tetiklemez.
         var callBtn = d.phone ? '<a href="tel:' + escapeHtml(d.phone) + '" onclick="event.stopPropagation()" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-success/10 text-success" aria-label="Ara"><iconify-icon icon="lucide:phone" class="text-sm"></iconify-icon></a>' : '';
-        var mapQuery = [d.clinic_name, d.address, d.mahalle, d.ilce, d.il].filter(Boolean).join(', ');
+        // 26 Eylül 2026, sahibinin isteği: d.address zaten tam açık adres
+        // (sokak/bina no/mahalle/ilçe hepsi içinde) — mahalle/ilçe/il'i tekrar
+        // eklemek Google'ın geocoding'ini şaşırtıp yanlış/genel bir noktaya
+        // götürüyordu. Tam adres varsa yalnız o (+ klinik adı) kullanılır.
+        var mapQuery = d.address
+          ? [d.clinic_name, d.address].filter(Boolean).join(', ')
+          : [d.clinic_name, d.mahalle, d.ilce, d.il].filter(Boolean).join(', ');
         var mapBtn = mapQuery ? '<a href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(mapQuery) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary" aria-label="Yol tarifi"><iconify-icon icon="lucide:map-pin" class="text-sm"></iconify-icon></a>' : '';
         var taskBtn = '<button type="button" onclick="event.stopPropagation();zkOpenTaskModal(\'' + d.id + '\')" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary" aria-label="Gelişme ekle"><iconify-icon icon="lucide:calendar-days" class="text-sm"></iconify-icon></button>';
         return '<div role="button" tabindex="0" onclick="zkOpenDetail(\'' + d.id + '\')" onkeydown="if(event.key===\'Enter\')zkOpenDetail(\'' + d.id + '\')" class="block w-full cursor-pointer rounded-theme border border-border bg-card p-4 text-left">' +
@@ -1223,6 +1236,7 @@
       var pendingOrActive = d.pipeline_stage === 'aktif' || d.pipeline_stage === 'onay_bekliyor';
       document.getElementById('dt-make-active-btn').classList.toggle('hidden', pendingOrActive);
       document.getElementById('dt-approve-btn').classList.toggle('hidden', !(myIsAdmin && d.pipeline_stage === 'onay_bekliyor'));
+      document.getElementById('dt-delete-btn').classList.toggle('hidden', !myIsAdmin);
       document.getElementById('detail-sheet').classList.remove('hidden');
       loadTouches(id);
       loadDoctorJobs(id);
@@ -1328,6 +1342,28 @@
       }).then(function (res) {
         if (res.error) { errEl.textContent = 'Kaydedilemedi: ' + res.error.message; errEl.classList.remove('hidden'); return; }
         zkToast('Kaydedildi.');
+        zkCloseDetail();
+        loadList();
+      });
+    }
+    // 26 Eylül 2026, sahibinin isteği: yanlış/mükerrer aday kaydını işveren/
+    // yönetici silebilsin. Gerçek iş/fatura kaydı varsa sunucu foreign key
+    // hatasıyla engeller — kullanıcıya anlaşılır bir mesaja çevrilir.
+    function zkDeleteDoctor() {
+      if (!detailDoctor) return;
+      if (!confirm('Dr. ' + detailDoctor.full_name + ' kaydı tamamen silinsin mi? Bu işlem geri alınamaz.')) return;
+      var errEl = document.getElementById('dt-error');
+      errEl.classList.add('hidden');
+      ZirkonikData.deleteDoctor(detailDoctor.id).then(function (res) {
+        if (res.error) {
+          var msg = /foreign key|violates/.test(res.error.message)
+            ? 'Bu doktora bağlı iş/fatura/ödeme kaydı olduğu için silinemez.'
+            : 'Silinemedi: ' + res.error.message;
+          errEl.textContent = msg;
+          errEl.classList.remove('hidden');
+          return;
+        }
+        zkToast('Kayıt silindi.');
         zkCloseDetail();
         loadList();
       });

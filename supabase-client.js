@@ -235,7 +235,10 @@
 
     // ---- Doktorlar ----
     listDoctors: function (status, opts) {
-      var q = client().from('doctors').select('*, laboratories:primary_laboratory_id(name)').order('created_at', { ascending: false });
+      // 26 Eylül 2026: hesap:user_id(email) — doktorun UYGULAMAYA GİRİŞ e-postası
+      // (auth.users, app_users'ta aynalanır), doctors.email (iletişim/ekstre)
+      // ile karışmasın diye ayrı gösterilir (giriş bilgileri güncelleme sheet'i).
+      var q = client().from('doctors').select('*, laboratories:primary_laboratory_id(name), hesap:user_id(email)').order('created_at', { ascending: false });
       if (status) q = q.eq('status', status);
       // 24 Eylül 2026: aday havuzu/ilk temas/tanıtım yapıldı aşamasındaki adaylar henüz
       // gerçek doktor değil — "Onaylı Doktorlar" listesine karışmasınlar diye burada
@@ -313,6 +316,12 @@
     },
     updateDoctorPipeline: function (doctorId, fields) {
       return client().from('doctors').update(fields).eq('id', doctorId);
+    },
+    // 26 Eylül 2026, sahibinin isteği: işveren/yönetici yanlış/mükerrer
+    // doktor adayını silebilsin. Gerçek iş/fatura/ödeme kaydı varsa sunucu
+    // (jobs/invoices/payments FK'leri) açık bir hatayla engeller.
+    deleteDoctor: function (doctorId) {
+      return client().from('doctors').delete().eq('id', doctorId);
     },
     listDoctorTouches: function (doctorId) {
       return client().from('doctor_touches').select('*, yazan:created_by(full_name)').eq('doctor_id', doctorId).order('created_at', { ascending: false });
@@ -414,8 +423,10 @@
       });
     },
 
-    resetStaffPassword: function (userId, password) {
-      return unwrapFnResult(client().functions.invoke('reset-user-password', { body: { user_id: userId, password: password } }));
+    // 26 Eylül 2026: email opsiyonel — doktorun/personelin UYGULAMAYA GİRİŞ
+    // e-postasını da değiştirebilir (şifre olmadan yalnız e-posta da geçerli).
+    resetStaffPassword: function (userId, password, email) {
+      return unwrapFnResult(client().functions.invoke('reset-user-password', { body: { user_id: userId, password: password || null, email: email || null } }));
     },
     approveStaff: function (userId) {
       return client().from('app_users').update({ status: 'approved', approved_at: new Date().toISOString() }).eq('id', userId);
