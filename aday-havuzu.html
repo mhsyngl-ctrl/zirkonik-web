@@ -106,6 +106,30 @@
       </header>
 
       <main class="px-5">
+        <!-- 26 Eylül 2026, sahibinin ısrarla istediği: Medicamine'deki randevu
+             takvimi gibi — ana ekranda, hiçbir butona basmadan, doğrudan görünen
+             takvim. Görevi olan günde nokta, tıklayınca o günün listesi. -->
+        <section class="pt-5">
+          <div class="rounded-theme border border-border bg-card p-3">
+            <div class="flex items-center justify-between">
+              <button type="button" onclick="zkCalShiftMonth(-1)" class="flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Önceki ay"><iconify-icon icon="lucide:chevron-left"></iconify-icon></button>
+              <p id="task-cal-month-label" class="text-sm font-extrabold">—</p>
+              <button type="button" onclick="zkCalShiftMonth(1)" class="flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Sonraki ay"><iconify-icon icon="lucide:chevron-right"></iconify-icon></button>
+            </div>
+            <div class="mt-2.5 grid grid-cols-7 gap-1 text-center text-[10px] font-semibold text-muted-foreground">
+              <span>Pzt</span><span>Sal</span><span>Çar</span><span>Per</span><span>Cum</span><span>Cmt</span><span>Paz</span>
+            </div>
+            <div id="task-cal-grid" class="mt-1 grid grid-cols-7 gap-1"></div>
+            <div id="task-cal-day-section" class="mt-3 hidden border-t border-border pt-3">
+              <div class="flex items-center justify-between">
+                <p id="task-cal-day-label" class="text-xs font-bold text-muted-foreground">—</p>
+                <button onclick="zkCalClearDay()" class="text-[11px] font-bold text-primary">Kapat</button>
+              </div>
+              <div id="task-cal-day-list" class="mt-2 space-y-2"></div>
+            </div>
+          </div>
+        </section>
+
         <!-- 26 Eylül 2026, sahibinin isteği: liste büyüdükçe isim/telefon araması ve
              bölgeye göre hızlı filtre — "bugün görülecekler" de dahil. Tamamı istemci
              tarafında currentList üzerinde çalışır, sunucuya ek istek atmaz. -->
@@ -213,32 +237,6 @@
         <button onclick="zkOpenTaskModal()" class="flex h-11 w-full items-center justify-center gap-1.5 rounded-theme border border-border bg-background text-xs font-bold">
           <iconify-icon icon="lucide:plus" class="text-base"></iconify-icon> Gelişme ekle
         </button>
-
-        <!-- 26 Eylül 2026, sahibinin isteği: Medicamine'deki gibi gelecek
-             ziyaretleri takvimde görmek — liste ile takvim arasında geçiş. -->
-        <div class="mt-3 inline-flex w-full rounded-theme border border-border bg-background p-1">
-          <button id="task-view-liste-btn" onclick="zkSetTaskView('liste')" class="h-9 flex-1 rounded-xl text-xs font-bold">Liste</button>
-          <button id="task-view-takvim-btn" onclick="zkSetTaskView('takvim')" class="h-9 flex-1 rounded-xl text-xs font-bold">Takvim</button>
-        </div>
-
-        <div id="task-calendar-wrap" class="mt-3 hidden rounded-theme border border-border bg-background p-3">
-          <div class="flex items-center justify-between">
-            <button type="button" onclick="zkCalShiftMonth(-1)" class="flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Önceki ay"><iconify-icon icon="lucide:chevron-left"></iconify-icon></button>
-            <p id="task-cal-month-label" class="text-sm font-extrabold">—</p>
-            <button type="button" onclick="zkCalShiftMonth(1)" class="flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Sonraki ay"><iconify-icon icon="lucide:chevron-right"></iconify-icon></button>
-          </div>
-          <div class="mt-2.5 grid grid-cols-7 gap-1 text-center text-[10px] font-semibold text-muted-foreground">
-            <span>Pzt</span><span>Sal</span><span>Çar</span><span>Per</span><span>Cum</span><span>Cmt</span><span>Paz</span>
-          </div>
-          <div id="task-cal-grid" class="mt-1 grid grid-cols-7 gap-1"></div>
-          <div id="task-cal-day-section" class="mt-3 hidden border-t border-border pt-3">
-            <div class="flex items-center justify-between">
-              <p id="task-cal-day-label" class="text-xs font-bold text-muted-foreground">—</p>
-              <button onclick="zkCalClearDay()" class="text-[11px] font-bold text-primary">Kapat</button>
-            </div>
-            <div id="task-cal-day-list" class="mt-2 space-y-2"></div>
-          </div>
-        </div>
 
         <div id="task-draft-box" class="mt-3 hidden rounded-theme border border-primary/30 bg-primary/5 p-4">
           <div class="flex items-center justify-between gap-2">
@@ -752,13 +750,14 @@
         '</div>' + actions + '</article>';
     }
     function renderMyTasks() {
-      document.getElementById('task-empty').classList.toggle('hidden', taskView !== 'liste' || !!myTasks.length);
+      document.getElementById('task-empty').classList.toggle('hidden', !!myTasks.length);
       document.getElementById('task-list').innerHTML = myTasks.map(function (x) { return taskCard(x, false); }).join('');
       zkUpdateKesifBadge();
-      if (taskView === 'takvim') {
-        zkRenderTaskCalendar();
-        if (calSelectedDayKey) zkCalSelectDay(calSelectedDayKey);
-      }
+      // 26 Eylül 2026, sahibinin ısrarla istediği: takvim artık ana ekranda,
+      // hep görünen bir widget — Keşif Görevleri sheet'i açık olmasa da
+      // her görev yenilendiğinde güncellenir.
+      zkRenderTaskCalendar();
+      if (calSelectedDayKey) zkCalSelectDay(calSelectedDayKey);
     }
     function renderDrafts() {
       var box = document.getElementById('task-draft-box');
@@ -779,27 +778,14 @@
     function zkOpenTasksSheet() { document.getElementById('tasks-sheet').classList.remove('hidden'); }
     function zkCloseTasksSheet() { document.getElementById('tasks-sheet').classList.add('hidden'); }
 
-    // ---- Keşif görevleri takvimi (26 Eylül 2026, sahibinin isteği:
-    // "Medicamine'deki takvim gibi") ----
+    // ---- Ana ekran takvimi (26 Eylül 2026, sahibinin ısrarla istediği:
+    // "Medicamine'deki takvim gibi", hep görünen, ana ekranda) ----
     // Basit tutuldu: myTasks zaten yüklü (bekliyor, admin hepsi/rep kendisi),
     // ek sunucu isteği yok — ay değiştirmek yalnız istemcide filtreler.
-    var taskView = 'liste';
     var calMonthOffset = 0;
     var calSelectedDayKey = null;
     var AY_ADLARI = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
     function zkGunAnahtari(d) { return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
-    function zkSetTaskView(view) {
-      taskView = view;
-      var on = 'h-9 flex-1 rounded-xl text-xs font-bold bg-card text-foreground shadow-sm';
-      var off = 'h-9 flex-1 rounded-xl text-xs font-bold text-muted-foreground';
-      document.getElementById('task-view-liste-btn').className = view === 'liste' ? on : off;
-      document.getElementById('task-view-takvim-btn').className = view === 'takvim' ? on : off;
-      document.getElementById('task-calendar-wrap').classList.toggle('hidden', view !== 'takvim');
-      document.getElementById('task-draft-box').classList.toggle('hidden', view !== 'liste' || !draftTasks.length);
-      document.getElementById('task-list').classList.toggle('hidden', view !== 'liste');
-      document.getElementById('task-empty').classList.toggle('hidden', view !== 'liste' || !!myTasks.length);
-      if (view === 'takvim') zkRenderTaskCalendar();
-    }
     function zkCalShiftMonth(delta) {
       calMonthOffset += delta;
       calSelectedDayKey = null;
@@ -864,7 +850,7 @@
       document.getElementById('task-cal-day-section').classList.add('hidden');
       zkRenderTaskCalendar();
     }
-    zkSetTaskView('liste');
+    zkRenderTaskCalendar();
     function zkApproveDraft(id) {
       var draft = draftTasks.filter(function (x) { return x.id === id; })[0];
       ZKHiz.optimistic({
