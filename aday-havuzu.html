@@ -838,16 +838,21 @@
       el.innerHTML = list.map(function (d) {
         var prioCls = d.priority === 'yuksek' ? 'zk-prio-yuksek' : d.priority === 'dusuk' ? 'zk-prio-dusuk' : 'zk-prio-orta';
         var overdue = d.next_action_at && new Date(d.next_action_at) <= new Date();
-        return '<button type="button" onclick="zkOpenDetail(\'' + d.id + '\')" class="block w-full rounded-theme border border-border bg-card p-4 text-left">' +
+        // 26 Eylül 2026, sahibinin isteği: kart üstünden doğrudan arama —
+        // <button> içine <a> koyulamadığı için dış kutu artık div (role="button"),
+        // arama bağlantısı event.stopPropagation() ile kart tıklamasını tetiklemez.
+        var callBtn = d.phone ? '<a href="tel:' + escapeHtml(d.phone) + '" onclick="event.stopPropagation()" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-success/10 text-success" aria-label="Ara"><iconify-icon icon="lucide:phone" class="text-sm"></iconify-icon></a>' : '';
+        return '<div role="button" tabindex="0" onclick="zkOpenDetail(\'' + d.id + '\')" onkeydown="if(event.key===\'Enter\')zkOpenDetail(\'' + d.id + '\')" class="block w-full cursor-pointer rounded-theme border border-border bg-card p-4 text-left">' +
           '<div class="flex items-start justify-between gap-2">' +
           '<div class="min-w-0"><p class="truncate font-heading text-sm font-bold">Dr. ' + escapeHtml(d.full_name) + '</p>' +
           '<p class="mt-0.5 truncate text-xs text-muted-foreground">' + escapeHtml(d.clinic_name || '—') + (d.region ? ' · ' + escapeHtml(d.region.name) : '') + '</p></div>' +
-          '<span class="shrink-0 rounded-full ' + prioCls + ' px-2 py-1 text-[10px] font-bold">' + (d.priority === 'yuksek' ? 'Yüksek' : d.priority === 'dusuk' ? 'Düşük' : 'Orta') + '</span></div>' +
+          '<div class="flex shrink-0 items-center gap-1.5">' + callBtn +
+          '<span class="shrink-0 rounded-full ' + prioCls + ' px-2 py-1 text-[10px] font-bold">' + (d.priority === 'yuksek' ? 'Yüksek' : d.priority === 'dusuk' ? 'Düşük' : 'Orta') + '</span></div></div>' +
           '<div class="mt-2 flex flex-wrap items-center gap-1.5">' +
           '<span class="rounded-full bg-secondary px-2 py-1 text-[10px] font-bold text-secondary-foreground">' + STAGE_LABELS[d.pipeline_stage] + '</span>' +
           (d.temsilci ? '<span class="rounded-full bg-muted px-2 py-1 text-[10px] text-muted-foreground">' + escapeHtml(d.temsilci.full_name) + '</span>' : '') +
           (d.next_action_at ? '<span class="rounded-full ' + (overdue ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground') + ' px-2 py-1 text-[10px] font-bold">' + (overdue ? 'Gecikti: ' : '') + new Date(d.next_action_at).toLocaleDateString('tr-TR') + '</span>' : '') +
-          '</div></button>';
+          '</div></div>';
       }).join('');
       if (!skipAnim && window.zkFlow) window.zkFlow.stagger(el);
     }
