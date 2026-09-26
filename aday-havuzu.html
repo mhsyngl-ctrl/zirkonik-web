@@ -375,7 +375,7 @@
         <span class="mb-1.5 block text-xs font-bold">Randevu tarihi</span>
         <input id="tn-date" type="date" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
       </div>
-      <textarea id="tn-note" rows="3" placeholder="Ne konuşuldu / ne oldu?" class="mt-3 w-full rounded-theme border border-border bg-input p-3 text-sm"></textarea>
+      <textarea id="tn-note" rows="5" placeholder="Ne konuşuldu / ne oldu?" class="mt-3 w-full rounded-theme border border-border bg-input p-3 text-sm"></textarea>
       <div id="tn-satisfaction-wrap" class="mt-3 hidden">
         <p class="mb-1.5 text-xs font-bold">Memnuniyet puanı</p>
         <div class="grid grid-cols-5 gap-1.5" id="tn-satisfaction"></div>
@@ -659,7 +659,11 @@
     function loadRegionsAndReps() {
       return Promise.all([ZirkonikData.listRegions(), ZirkonikData.listStaff()]).then(function (res) {
         regions = (res[0] && res[0].data) || [];
-        reps = ((res[1] && res[1].data) || []).filter(function (u) { return u.role !== 'doktor'; });
+        // 26 Eylül 2026, sahibinin bildirdiği hata: "Temsilci ata" ve "Temsilci" kutuları
+        // Resepsiyon/işveren gibi doktor kazanımıyla ilgisi olmayan hesapları da listeliyordu
+        // (yalnız role !== 'doktor' filtresi vardı). Yalnız Satış Pazarlama Sorumlusu pozisyonu
+        // temsilci olabilir.
+        reps = ((res[1] && res[1].data) || []).filter(function (u) { return u.position === 'Satış Pazarlama Sorumlusu'; });
         document.getElementById('dt-rep').innerHTML = '<option value="">—</option>' + reps.map(function (u) { return '<option value="' + u.id + '">' + escapeHtml(u.full_name) + '</option>'; }).join('');
       });
     }
@@ -807,6 +811,10 @@
       if (d.ilce) document.getElementById('dt-ilce').value = d.ilce;
       document.getElementById('dt-mahalle').value = d.mahalle || '';
       document.getElementById('dt-rep').value = d.assigned_rep_id || '';
+      // 26 Eylül 2026, sahibinin kuralı: temsilci ataması yalnız işverenin işi —
+      // Satış Pazarlama Sorumlusu kendi doktorunun temsilcisini değiştiremez
+      // (sunucu da zaten yalnız assigned_rep_id kendisiyse güncellemeye izin verir).
+      document.getElementById('dt-rep').disabled = (myPosition === 'Satış Pazarlama Sorumlusu');
       document.getElementById('dt-next-date').value = d.next_action_at ? d.next_action_at.slice(0, 10) : '';
       document.getElementById('dt-next-note').value = d.next_action_note || '';
       document.getElementById('dt-phone').value = d.phone || '';
