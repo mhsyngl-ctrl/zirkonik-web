@@ -289,6 +289,51 @@
         Gelişme ekle
       </button>
 
+      <!-- 26 Eylül 2026, sahibinin bildirdiği eksik: "Aşama" (tanıtım yapıldı,
+           deneme vakası vb.) "Doktor bilgilerini düzenle" ile birlikte katlanınca
+           bulunamaz oldu — bu sık kullanılan bir GÜNLÜK İŞ, ada/adres gibi nadir
+           düzenlenen bir profil alanı değil. Ayrıca seçince anında kaydedilir
+           (hız hissi kuralı — durum değiştirmede ekran/sunucu bekletmez). -->
+      <div class="mt-4 grid grid-cols-2 gap-2.5">
+        <label class="block"><span class="mb-1 block text-[11px] font-bold">Aşama</span>
+          <select id="dt-stage" onchange="zkStageChanged()" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs font-bold">
+            <option value="aday_havuzu">Doktor havuzu</option>
+            <option value="ilk_temas">İlk temas</option>
+            <option value="tanitim_yapildi">Tanıtım yapıldı</option>
+            <option value="deneme_vakasi">Deneme vakası</option>
+            <option value="onay_bekliyor">Onay bekliyor</option>
+            <!-- 25 Eylül 2026, sahibinin kuralı: "Aktif doktor" yalnız laboratuvar
+                 sahibinin onayıyla olur — bu seçenek yalnız yönetici görür (myIsAdmin),
+                 temsilci "Onaya Gönder" düğmesiyle onay_bekliyor'a taşır. Sunucuda da
+                 (trg_doktor_aktif_yalniz_admin) admin olmayan bu geçişi yapamaz. -->
+            <option id="dt-stage-aktif-opt" value="aktif">Aktif doktor</option>
+            <option value="uyuyan">Uyuyan doktor</option>
+            <option value="kayip">Kayıp</option>
+            <option value="beklemede">Beklemede</option>
+          </select>
+        </label>
+        <label class="block"><span class="mb-1 block text-[11px] font-bold">Öncelik</span>
+          <select id="dt-priority" onchange="zkPriorityAutoSave()" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs font-bold">
+            <option value="yuksek">Yüksek</option><option value="orta">Orta</option><option value="dusuk">Düşük</option>
+          </select>
+        </label>
+      </div>
+      <div id="dt-lost-wrap" class="mt-2.5 hidden">
+        <span class="mb-1 block text-[11px] font-bold">Kayıp nedeni</span>
+        <div class="flex gap-2">
+          <select id="dt-lost-reason" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs font-bold">
+            <option value="fiyat">Fiyat</option>
+            <option value="mevcut_memnun">Mevcut laboratuvardan memnun</option>
+            <option value="kalite">Kalite şikayeti</option>
+            <option value="teslim_suresi">Teslim süresi</option>
+            <option value="ulasilamadi">Ulaşılamadı</option>
+            <option value="klinik_kapandi">Klinik kapandı</option>
+            <option value="sessizlik">Sessizlik (otomatik)</option>
+          </select>
+          <button type="button" onclick="zkSaveKayipNedeni()" class="flex h-11 shrink-0 items-center justify-center rounded-theme bg-primary px-4 text-xs font-bold text-primary-foreground">Kaydet</button>
+        </div>
+      </div>
+
       <!-- 25 Eylül 2026, sahibinin kuralı: temsilci artık doğrudan aktif edemez —
            kart laboratuvar sahibine onaya gider, o onaylayınca aktif olur ve o andan
            sonra Yeni İş Girişi'nde görünür. (Eski "3 vaka'da otomatik aktif" kuralı
@@ -327,44 +372,6 @@
               <input id="dt-fullname" type="text" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs"></label>
             <label class="block"><span class="mb-1 block text-[11px] font-bold">Klinik adı</span>
               <input id="dt-clinicname" type="text" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs"></label>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2.5">
-            <label class="block"><span class="mb-1 block text-[11px] font-bold">Aşama</span>
-              <select id="dt-stage" onchange="zkStageChanged()" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs font-bold">
-                <option value="aday_havuzu">Doktor havuzu</option>
-                <option value="ilk_temas">İlk temas</option>
-                <option value="tanitim_yapildi">Tanıtım yapıldı</option>
-                <option value="deneme_vakasi">Deneme vakası</option>
-                <option value="onay_bekliyor">Onay bekliyor</option>
-                <!-- 25 Eylül 2026, sahibinin kuralı: "Aktif doktor" yalnız laboratuvar
-                     sahibinin onayıyla olur — bu seçenek yalnız yönetici görür (myIsAdmin),
-                     temsilci "Onaya Gönder" düğmesiyle onay_bekliyor'a taşır. Sunucuda da
-                     (trg_doktor_aktif_yalniz_admin) admin olmayan bu geçişi yapamaz. -->
-                <option id="dt-stage-aktif-opt" value="aktif">Aktif doktor</option>
-                <option value="uyuyan">Uyuyan doktor</option>
-                <option value="kayip">Kayıp</option>
-                <option value="beklemede">Beklemede</option>
-              </select>
-            </label>
-            <label class="block"><span class="mb-1 block text-[11px] font-bold">Öncelik</span>
-              <select id="dt-priority" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs font-bold">
-                <option value="yuksek">Yüksek</option><option value="orta">Orta</option><option value="dusuk">Düşük</option>
-              </select>
-            </label>
-          </div>
-
-          <div id="dt-lost-wrap" class="hidden">
-            <span class="mb-1 block text-[11px] font-bold">Kayıp nedeni</span>
-            <select id="dt-lost-reason" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs font-bold">
-              <option value="fiyat">Fiyat</option>
-              <option value="mevcut_memnun">Mevcut laboratuvardan memnun</option>
-              <option value="kalite">Kalite şikayeti</option>
-              <option value="teslim_suresi">Teslim süresi</option>
-              <option value="ulasilamadi">Ulaşılamadı</option>
-              <option value="klinik_kapandi">Klinik kapandı</option>
-              <option value="sessizlik">Sessizlik (otomatik)</option>
-            </select>
           </div>
 
           <div class="grid grid-cols-2 gap-2.5">
@@ -1300,8 +1307,52 @@
       kutu.scrollTop = y + 1;
       kutu.scrollTop = y;
     }
+    // 26 Eylül 2026, sahibinin isteği: aşama artık her açılışta katlı bölümde
+    // aranmaz — ayrı, hep görünen bir alan ve seçince anında kaydedilir (hız
+    // hissi: durum değiştirmede ekran/sunucu bekletmez). "Kayıp" istisna —
+    // önce neden seçilmesi gerekiyor, ayrı "Kaydet" ile kaydedilir.
     function zkStageChanged() {
-      document.getElementById('dt-lost-wrap').classList.toggle('hidden', document.getElementById('dt-stage').value !== 'kayip');
+      var stage = document.getElementById('dt-stage').value;
+      document.getElementById('dt-lost-wrap').classList.toggle('hidden', stage !== 'kayip');
+      if (!detailDoctor || stage === detailDoctor.pipeline_stage || stage === 'kayip') return;
+      var payload = { pipeline_stage: stage, stage_changed_at: new Date().toISOString() };
+      ZirkonikData.updateDoctorPipeline(detailDoctor.id, payload).then(function (res) {
+        if (res.error) {
+          zkToast('Aşama güncellenemedi: ' + res.error.message);
+          document.getElementById('dt-stage').value = detailDoctor.pipeline_stage;
+          return;
+        }
+        detailDoctor.pipeline_stage = stage;
+        zkToast('Aşama güncellendi.');
+        loadList();
+      });
+    }
+    function zkPriorityAutoSave() {
+      if (!detailDoctor) return;
+      var priority = document.getElementById('dt-priority').value;
+      if (priority === detailDoctor.priority) return;
+      ZirkonikData.updateDoctorPipeline(detailDoctor.id, { priority: priority }).then(function (res) {
+        if (res.error) {
+          zkToast('Öncelik güncellenemedi: ' + res.error.message);
+          document.getElementById('dt-priority').value = detailDoctor.priority || 'orta';
+          return;
+        }
+        detailDoctor.priority = priority;
+        zkToast('Öncelik güncellendi.');
+        loadList();
+      });
+    }
+    function zkSaveKayipNedeni() {
+      if (!detailDoctor) return;
+      var reason = document.getElementById('dt-lost-reason').value;
+      ZirkonikData.updateDoctorPipeline(detailDoctor.id, {
+        pipeline_stage: 'kayip', lost_reason: reason, stage_changed_at: new Date().toISOString()
+      }).then(function (res) {
+        if (res.error) { zkToast('Kaydedilemedi: ' + res.error.message); return; }
+        detailDoctor.pipeline_stage = 'kayip';
+        zkToast('Kayıp olarak işaretlendi.');
+        loadList();
+      });
     }
     function zkSaveDetail() {
       if (!detailDoctor) return;
