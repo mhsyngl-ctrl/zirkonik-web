@@ -872,17 +872,33 @@
 
       // Cari tahsilat icin doktor listesi. Tahsilat artik fatura degil
       // doktor bazinda alinabildigi icin gerekli.
-      function loadPaymentDoctors() {
+      function loadPaymentDoctors(bekleyenFaturalar) {
+        var borcluMap = {};
+        (bekleyenFaturalar || []).forEach(function (inv) {
+          if (inv.doctor_id && !borcluMap[inv.doctor_id]) {
+            borcluMap[inv.doctor_id] = { id: inv.doctor_id, full_name: inv.doctors ? inv.doctors.full_name : '', clinic_name: inv.doctors ? inv.doctors.clinic_name : '' };
+          }
+        });
         ZirkonikData.listDoctors('approved').then(function (r) {
           var sel = document.getElementById('pay-doctor');
           if (!sel) return;
           var rows = (r.data || []).slice().sort(function (a, b) {
             return (a.full_name || '').localeCompare(b.full_name || '', 'tr');
           });
-          sel.innerHTML = '<option value="">Doktor seçin</option>' + rows.map(function (d) {
+          var optionFor = function (d) {
             var label = 'Dr. ' + d.full_name + (d.clinic_name ? ' — ' + d.clinic_name : '');
             return '<option value="' + d.id + '">' + escapeHtml(label) + '</option>';
-          }).join('');
+          };
+          var borcluIds = Object.keys(borcluMap);
+          if (borcluIds.length) {
+            var borcluRows = rows.filter(function (d) { return borcluMap[d.id]; });
+            var digerRows = rows.filter(function (d) { return !borcluMap[d.id]; });
+            sel.innerHTML = '<option value="">Doktor seçin</option>' +
+              '<optgroup label="Bekleyen tahsilatı olanlar">' + borcluRows.map(optionFor).join('') + '</optgroup>' +
+              '<optgroup label="Diğer doktorlar">' + digerRows.map(optionFor).join('') + '</optgroup>';
+          } else {
+            sel.innerHTML = '<option value="">Doktor seçin</option>' + rows.map(optionFor).join('');
+          }
           sel.addEventListener('change', zkPayShowBalance);
           var cur = document.getElementById('pay-currency');
           if (cur) cur.addEventListener('change', zkPayShowBalance);
@@ -890,11 +906,16 @@
       }
 
       function loadReceivablesList() {
-        loadPaymentDoctors();
         ZirkonikData.listInvoices().then(function (r) {
           // 2026-09-12: 'paid' disindaki her sey bekleyen sayiliyordu, iptal
           // faturalar da listede ve tahsilat acilir menusunde cikiyordu.
-          var rows = (r.data || []).filter(function (x) { return x.status !== 'paid' && x.status !== 'cancelled'; }).slice(0, 10);
+          var bekleyenTumu = (r.data || []).filter(function (x) { return x.status !== 'paid' && x.status !== 'cancelled'; });
+          // 26 Eylül 2026, sahibinin isteği: "Tahsilat ekle" tüm doktor
+          // listesini gösteriyordu, bekleyen tahsilatı olmayanı ayırt
+          // etmiyordu. Cari dropdown artık önce bekleyeni olanları, sonra
+          // diğerlerini ayrı grupta gösterir.
+          loadPaymentDoctors(bekleyenTumu);
+          var rows = bekleyenTumu.slice(0, 10);
           var el = document.getElementById('receivables-list');
           var sel = document.getElementById('pay-invoice');
           if (!rows.length) {
