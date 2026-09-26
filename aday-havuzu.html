@@ -103,11 +103,39 @@
 
       <main class="px-5">
         <!-- 24 Eylül 2026, sahibinin isteği: Medicamine'deki Adaylar ekranıyla aynı mantık
-             — önce GÖREV, tek dokunuşla Yapıldı/Ertele (ZKHiz.optimistic, anında). Detay
-             panelini açıp form doldurmak zorunda kalmadan günlük takip buradan yapılır. -->
-        <section id="my-tasks-section" class="hidden pt-5">
-          <h2 class="font-heading text-base font-bold">Görevlerim</h2>
-          <div id="my-tasks-list" class="mt-2 space-y-2"></div>
+             — önce GÖREV, tek dokunuşla Yapıldı/Ertele. 26 Eylül 2026: "Keşif görevleri"ne
+             genişletildi — doctor_tasks tablosu, çoklu görev/tür, yapay zeka taslak onayı,
+             geçmiş (tamamlanan) görevler. -->
+        <section class="pt-5">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="font-heading text-lg font-bold">Keşif görevleri</h2>
+              <p id="task-subtitle" class="mt-0.5 text-xs text-muted-foreground">Bugün yapılacaklar</p>
+            </div>
+            <button onclick="zkOpenTaskModal()" class="flex h-9 items-center gap-1 rounded-full border border-border bg-card px-3 text-xs font-bold">
+              <iconify-icon icon="lucide:plus" class="text-base"></iconify-icon> Görev
+            </button>
+          </div>
+
+          <div id="task-draft-box" class="mt-3 hidden rounded-theme border border-primary/30 bg-primary/5 p-4">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <iconify-icon icon="lucide:sparkles" class="text-lg text-primary"></iconify-icon>
+                <p class="text-sm font-extrabold">Onay bekleyen taslaklar <span id="task-draft-count" class="rounded-full bg-primary px-2 py-0.5 text-[10px] text-primary-foreground">0</span></p>
+              </div>
+              <button onclick="zkApproveAllDrafts()" class="h-9 rounded-full bg-primary px-3 text-xs font-extrabold text-primary-foreground">Tümünü onayla</button>
+            </div>
+            <p class="mt-1 text-[11px] text-muted-foreground">Otomatik atama sisteminin sabah yazdığı görevler. Onaylanınca sorumlu pazarlamacıya düşer.</p>
+            <div id="task-draft-list" class="mt-3 space-y-2"></div>
+          </div>
+
+          <div id="task-list" class="mt-3 space-y-2"></div>
+          <p id="task-empty" class="hidden mt-3 text-center text-xs text-muted-foreground">Bekleyen keşif görevi yok.</p>
+
+          <button onclick="zkToggleTaskHistory()" class="mt-3 flex h-10 w-full items-center justify-center gap-1.5 rounded-theme border border-dashed border-border text-xs font-bold text-muted-foreground">
+            <iconify-icon id="task-history-icon" icon="lucide:chevron-down" class="text-sm"></iconify-icon> <span id="task-history-label">Geçmiş ziyaretleri göster</span>
+          </button>
+          <div id="task-history-list" class="mt-2 hidden space-y-2"></div>
         </section>
 
         <!-- 26 Eylül 2026, sahibinin isteği: liste büyüdükçe isim/telefon araması ve
@@ -400,6 +428,38 @@
     </div>
   </div>
 
+  <!-- 26 Eylül 2026: Keşif görevi ekle (elle) -->
+  <div id="task-sheet" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkCloseTaskModal()"></div>
+    <div class="absolute bottom-0 left-0 max-h-[88vh] w-full overflow-y-auto rounded-t-theme bg-card p-5 pb-8">
+      <p class="font-heading text-lg font-bold">Görev ekle</p>
+      <label class="mt-3 block"><span class="mb-1.5 block text-xs font-bold">Doktor</span>
+        <select id="tm-doctor" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"><option value="">Seçin</option></select></label>
+      <label class="mt-3 block"><span class="mb-1.5 block text-xs font-bold">Görev</span>
+        <input id="tm-title" type="text" placeholder="Örn. Tekrar ara" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"></label>
+      <label class="mt-3 block"><span class="mb-1.5 block text-xs font-bold">Tür</span>
+        <select id="tm-kind" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+          <option value="arama">Arama</option>
+          <option value="ziyaret">Ziyaret</option>
+          <option value="whatsapp">WhatsApp</option>
+          <option value="randevu">Randevu</option>
+        </select></label>
+      <div class="mt-3 grid grid-cols-2 gap-2">
+        <label class="block"><span class="mb-1.5 block text-xs font-bold">Tarih</span>
+          <input id="tm-date" type="date" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"></label>
+        <label class="block"><span class="mb-1.5 block text-xs font-bold">Saat</span>
+          <input id="tm-time" type="time" value="09:00" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"></label>
+      </div>
+      <label class="mt-3 block"><span class="mb-1.5 block text-xs font-bold">Not (opsiyonel)</span>
+        <textarea id="tm-note" rows="2" class="w-full rounded-theme border border-border bg-input px-3.5 py-2.5 text-sm"></textarea></label>
+      <p id="tm-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
+      <div class="mt-4 grid grid-cols-2 gap-2">
+        <button onclick="zkCloseTaskModal()" class="flex h-12 items-center justify-center rounded-theme border border-border bg-input text-sm font-bold">Vazgeç</button>
+        <button onclick="zkSubmitTask()" class="flex h-12 items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Temas notu girişi -->
   <div id="touch-note-sheet" class="fixed inset-0 z-50 hidden">
     <div class="absolute inset-0 bg-black/40" onclick="zkCloseTouchNote()"></div>
@@ -552,41 +612,94 @@
       var zkGuardCache = JSON.parse(localStorage.getItem('zk-guard') || 'null');
       if (zkGuardCache && zkGuardCache.position) myPosition = zkGuardCache.position;
     } catch (e) {}
+    var draftTasks = [], historyTasks = [], taskHistoryOpen = false;
+    var TASK_KIND_LABELS = { arama: 'Arama', ziyaret: 'Ziyaret', whatsapp: 'WhatsApp', randevu: 'Randevu' };
     function dropTask(list, id) { return list.filter(function (x) { return x.id !== id; }); }
     function loadMyTasks() {
       if (!myId) return;
-      var onb = window.ZKHiz ? ZKHiz.cachePeek('gorevlerim') : null;
-      if (onb) { myTasks = onb; renderMyTasks(); }
-      ZirkonikData.myTodayTasks(myId, !myIsAdmin).then(function (r) {
-        if (r.error) return;
-        myTasks = r.data || [];
-        if (window.ZKHiz) ZKHiz.cachePut('gorevlerim', myTasks);
+      document.getElementById('task-subtitle').textContent = myIsAdmin ? 'Tüm ekibin bekleyen görevleri' : 'Bugün yapılacaklar';
+      var jobs = [ZirkonikData.listDoctorTasks({ status: 'bekliyor', onlyMine: !myIsAdmin, myId: myId, limit: 100 })];
+      if (myIsAdmin) jobs.push(ZirkonikData.listDoctorTasks({ status: 'taslak', limit: 100 }));
+      var onb = window.ZKHiz ? ZKHiz.cachePeek('kesif_gorevleri_' + (myIsAdmin ? 'y' : 'p')) : null;
+      if (onb) { myTasks = onb.p || []; draftTasks = onb.d || []; renderMyTasks(); renderDrafts(); }
+      Promise.all(jobs).then(function (r) {
+        myTasks = (r[0] && r[0].data) || [];
+        draftTasks = (r[1] && r[1].data) || [];
+        if (window.ZKHiz) ZKHiz.cachePut('kesif_gorevleri_' + (myIsAdmin ? 'y' : 'p'), { p: myTasks, d: draftTasks });
         renderMyTasks();
+        renderDrafts();
       });
     }
-    function taskCard(x) {
-      var overdue = new Date(x.next_action_at) < new Date(new Date().setHours(0, 0, 0, 0));
-      var who = (myIsAdmin && x.temsilci) ? '<span class="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-extrabold text-secondary-foreground">' + escapeHtml(x.temsilci.full_name) + '</span>' : '';
+    function taskCard(x, isDraft) {
+      var overdue = !isDraft && new Date(x.due_at) < new Date(new Date().setHours(0, 0, 0, 0));
+      var doctorName = x.doctor ? x.doctor.full_name : '';
+      var doctorLink = x.doctor_id ? '<button type="button" onclick="zkOpenDetail(\'' + x.doctor_id + '\')" class="mt-1.5 inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-[11px] font-bold"><iconify-icon icon="lucide:user-round" class="text-xs"></iconify-icon>Dr. ' + escapeHtml(doctorName) + '</button>' : '';
+      var who = (myIsAdmin && x.assignee) ? '<span class="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-extrabold text-secondary-foreground">' + escapeHtml(x.assignee.full_name) + '</span>' : '';
+      var ai = x.source === 'yapay_zeka' ? '<iconify-icon icon="lucide:sparkles" class="text-sm text-primary" title="Otomatik atama"></iconify-icon> ' : '';
+      var actions = isDraft
+        ? '<div class="mt-3 flex gap-2">' +
+            '<button onclick="zkApproveDraft(\'' + x.id + '\')" class="flex h-10 flex-[2] items-center justify-center gap-1.5 rounded-theme bg-primary text-xs font-extrabold text-primary-foreground"><iconify-icon icon="lucide:check" class="text-base"></iconify-icon> Onayla</button>' +
+            '<button onclick="zkRemoveDraft(\'' + x.id + '\')" class="flex h-10 flex-1 items-center justify-center gap-1 rounded-theme border border-border bg-card text-xs font-bold"><iconify-icon icon="lucide:x" class="text-base"></iconify-icon> Sil</button>' +
+          '</div>'
+        : '<div class="mt-3 flex gap-2">' +
+            '<button onclick="zkTaskDone(\'' + x.id + '\')" class="flex h-10 flex-[2] items-center justify-center gap-1.5 rounded-theme bg-success text-xs font-extrabold text-success-foreground"><iconify-icon icon="lucide:check" class="text-base"></iconify-icon> Yapıldı</button>' +
+            '<button onclick="zkTaskSnooze(\'' + x.id + '\')" class="flex h-10 flex-1 items-center justify-center gap-1 rounded-theme border border-border bg-card text-xs font-bold"><iconify-icon icon="lucide:alarm-clock" class="text-base"></iconify-icon> Ertele</button>' +
+          '</div>';
       return '<article class="rounded-theme border ' + (overdue ? 'border-destructive/40' : 'border-border') + ' bg-card p-4">' +
         '<div class="flex items-start justify-between gap-2">' +
-          '<div class="min-w-0"><p class="font-bold">Dr. ' + escapeHtml(x.full_name) + '</p>' +
-            '<p class="mt-0.5 text-xs font-semibold ' + (overdue ? 'text-destructive' : 'text-muted-foreground') + '">' + (x.clinic_name ? escapeHtml(x.clinic_name) + ' · ' : '') + new Date(x.next_action_at).toLocaleDateString('tr-TR') + '</p>' +
-            (x.next_action_note ? '<p class="mt-1 text-xs text-muted-foreground">' + escapeHtml(x.next_action_note) + '</p>' : '') +
+          '<div class="min-w-0"><p class="font-bold">' + ai + escapeHtml(x.title) + '</p>' +
+            '<p class="mt-0.5 text-xs font-semibold ' + (overdue ? 'text-destructive' : 'text-muted-foreground') + '">' + escapeHtml(TASK_KIND_LABELS[x.kind] || x.kind) + ' · ' + new Date(x.due_at).toLocaleDateString('tr-TR') + '</p>' +
+            (x.note ? '<p class="mt-1 text-xs text-muted-foreground">' + escapeHtml(x.note) + '</p>' : '') + doctorLink +
           '</div>' + who +
-        '</div>' +
-        '<div class="mt-3 flex gap-2">' +
-          '<button onclick="zkTaskDone(\'' + x.id + '\')" class="flex h-10 flex-[2] items-center justify-center gap-1.5 rounded-theme bg-success text-xs font-extrabold text-success-foreground"><iconify-icon icon="lucide:check" class="text-base"></iconify-icon> Yapıldı</button>' +
-          '<button onclick="zkTaskSnooze(\'' + x.id + '\')" class="flex h-10 flex-1 items-center justify-center gap-1 rounded-theme border border-border bg-card text-xs font-bold"><iconify-icon icon="lucide:alarm-clock" class="text-base"></iconify-icon> Ertele</button>' +
-          '<button onclick="zkOpenDetail(\'' + x.id + '\')" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-theme border border-border bg-card" aria-label="Detay"><iconify-icon icon="lucide:chevron-right" class="text-base"></iconify-icon></button>' +
-        '</div></article>';
+        '</div>' + actions + '</article>';
     }
     function renderMyTasks() {
-      document.getElementById('my-tasks-section').classList.toggle('hidden', !myTasks.length);
-      document.getElementById('my-tasks-list').innerHTML = myTasks.map(taskCard).join('');
+      document.getElementById('task-empty').classList.toggle('hidden', !!myTasks.length);
+      document.getElementById('task-list').innerHTML = myTasks.map(function (x) { return taskCard(x, false); }).join('');
+    }
+    function renderDrafts() {
+      var box = document.getElementById('task-draft-box');
+      box.classList.toggle('hidden', !draftTasks.length);
+      document.getElementById('task-draft-count').textContent = String(draftTasks.length);
+      document.getElementById('task-draft-list').innerHTML = draftTasks.map(function (x) { return taskCard(x, true); }).join('');
+    }
+    function zkApproveDraft(id) {
+      var draft = draftTasks.filter(function (x) { return x.id === id; })[0];
+      ZKHiz.optimistic({
+        label: 'Onaylanamadı',
+        apply: function () {
+          draftTasks = dropTask(draftTasks, id); renderDrafts();
+          if (draft) { myTasks = [Object.assign({}, draft, { status: 'bekliyor' })].concat(myTasks); renderMyTasks(); }
+        },
+        request: function () { return ZirkonikData.approveDoctorTasks([id]); },
+        revert: function () { loadMyTasks(); }
+      });
+    }
+    function zkApproveAllDrafts() {
+      var ids = draftTasks.map(function (x) { return x.id; });
+      if (!ids.length) return;
+      if (!confirm(ids.length + ' görev sorumlu pazarlamacıya gönderilecek. Onaylıyor musun?')) return;
+      var onaylanan = draftTasks.slice();
+      ZKHiz.optimistic({
+        label: 'Onaylanamadı',
+        apply: function () {
+          draftTasks = []; renderDrafts();
+          myTasks = onaylanan.map(function (x) { return Object.assign({}, x, { status: 'bekliyor' }); }).concat(myTasks); renderMyTasks();
+        },
+        request: function () { return ZirkonikData.approveDoctorTasks(ids); },
+        revert: function () { loadMyTasks(); }
+      });
+    }
+    function zkRemoveDraft(id) {
+      if (!confirm('Bu taslak silinsin mi?')) return;
+      ZirkonikData.deleteDoctorTask(id).then(function (res) {
+        if (res.error) { zkToast('Silinemedi: ' + res.error.message); return; }
+        loadMyTasks();
+      });
     }
     var pendingTaskId = null;
-    function zkTaskDone(doctorId) {
-      pendingTaskId = doctorId;
+    function zkTaskDone(id) {
+      pendingTaskId = id;
       document.getElementById('td-note').value = '';
       document.getElementById('task-done-sheet').classList.remove('hidden');
     }
@@ -599,17 +712,12 @@
       ZKHiz.optimistic({
         label: 'Kaydedilemedi',
         apply: function () { myTasks = dropTask(myTasks, id); renderMyTasks(); },
-        request: function () {
-          return Promise.all([
-            note ? ZirkonikData.addDoctorTouch(id, { type: 'not', note: note }) : Promise.resolve({}),
-            ZirkonikData.updateDoctorPipeline(id, { next_action_at: null, next_action_note: null })
-          ]).then(function (r) { return r[1]; });
-        },
+        request: function () { return ZirkonikData.markDoctorTaskDone(id, note); },
         revert: function () { loadMyTasks(); }
       });
     }
-    function zkTaskSnooze(doctorId) {
-      pendingTaskId = doctorId;
+    function zkTaskSnooze(id) {
+      pendingTaskId = id;
       document.getElementById('task-snooze-sheet').classList.remove('hidden');
     }
     function zkCloseTaskSnooze() { document.getElementById('task-snooze-sheet').classList.add('hidden'); pendingTaskId = null; }
@@ -621,12 +729,81 @@
       ZKHiz.optimistic({
         label: 'Ertelenemedi',
         apply: function () {
-          myTasks = myTasks.map(function (x) { return x.id === id ? Object.assign({}, x, { next_action_at: d.toISOString() }) : x; })
-            .sort(function (a, b) { return new Date(a.next_action_at) - new Date(b.next_action_at); });
+          myTasks = myTasks.map(function (x) { return x.id === id ? Object.assign({}, x, { due_at: d.toISOString() }) : x; })
+            .sort(function (a, b) { return new Date(a.due_at) - new Date(b.due_at); });
           renderMyTasks();
         },
-        request: function () { return ZirkonikData.updateDoctorPipeline(id, { next_action_at: d.toISOString() }); },
+        request: function () { return ZirkonikData.updateDoctorTask(id, { due_at: d.toISOString() }); },
         revert: function () { loadMyTasks(); }
+      });
+    }
+    // 26 Eylül 2026, sahibinin isteği: pazarlamacı geçmiş ziyaretlerini/
+    // randevularını görebilmeli — tamamlanan görevler burada.
+    function zkToggleTaskHistory() {
+      taskHistoryOpen = !taskHistoryOpen;
+      document.getElementById('task-history-list').classList.toggle('hidden', !taskHistoryOpen);
+      document.getElementById('task-history-icon').setAttribute('icon', taskHistoryOpen ? 'lucide:chevron-up' : 'lucide:chevron-down');
+      document.getElementById('task-history-label').textContent = taskHistoryOpen ? 'Geçmiş ziyaretleri gizle' : 'Geçmiş ziyaretleri göster';
+      if (taskHistoryOpen && !historyTasks.length) loadTaskHistory();
+    }
+    function loadTaskHistory() {
+      ZirkonikData.listDoctorTasks({ status: 'tamamlandi', onlyMine: !myIsAdmin, myId: myId, limit: 100 }).then(function (r) {
+        historyTasks = r.data || [];
+        renderTaskHistory();
+      });
+    }
+    function renderTaskHistory() {
+      var el = document.getElementById('task-history-list');
+      if (!historyTasks.length) { el.innerHTML = '<p class="text-xs text-muted-foreground">Henüz tamamlanan görev yok.</p>'; return; }
+      el.innerHTML = historyTasks.map(function (x) {
+        var doctorName = x.doctor ? x.doctor.full_name : '';
+        var who = (myIsAdmin && x.assignee) ? ' · ' + escapeHtml(x.assignee.full_name) : '';
+        return '<article class="rounded-theme border border-border bg-card p-3 opacity-80">' +
+          '<p class="text-xs font-bold">' + escapeHtml(x.title) + '</p>' +
+          '<p class="mt-0.5 text-[11px] text-muted-foreground">' + escapeHtml(TASK_KIND_LABELS[x.kind] || x.kind) + ' · Dr. ' + escapeHtml(doctorName) + who + ' · ' + new Date(x.done_at || x.due_at).toLocaleDateString('tr-TR') + '</p>' +
+          (x.result_note ? '<p class="mt-1 text-[11px] text-muted-foreground">' + escapeHtml(x.result_note) + '</p>' : '') +
+        '</article>';
+      }).join('');
+    }
+    // ---- Görev ekle (elle) ----
+    function zkOpenTaskModal() {
+      var sel = document.getElementById('tm-doctor');
+      sel.innerHTML = '<option value="">Seçin</option>' + currentList.map(function (d) { return '<option value="' + d.id + '">Dr. ' + escapeHtml(d.full_name) + '</option>'; }).join('');
+      document.getElementById('tm-title').value = '';
+      document.getElementById('tm-note').value = '';
+      document.getElementById('tm-kind').value = 'arama';
+      document.getElementById('tm-date').value = new Date().toISOString().slice(0, 10);
+      document.getElementById('tm-time').value = '09:00';
+      document.getElementById('tm-error').classList.add('hidden');
+      document.getElementById('task-sheet').classList.remove('hidden');
+    }
+    function zkCloseTaskModal() { document.getElementById('task-sheet').classList.add('hidden'); }
+    function zkSubmitTask() {
+      var errEl = document.getElementById('tm-error');
+      errEl.classList.add('hidden');
+      var doctorId = document.getElementById('tm-doctor').value;
+      var title = document.getElementById('tm-title').value.trim();
+      var dateStr = document.getElementById('tm-date').value;
+      var timeStr = document.getElementById('tm-time').value || '09:00';
+      if (!doctorId) { errEl.textContent = 'Doktor seçilmelidir.'; errEl.classList.remove('hidden'); return; }
+      if (!title) { errEl.textContent = 'Görev başlığı boş olamaz.'; errEl.classList.remove('hidden'); return; }
+      if (!dateStr) { errEl.textContent = 'Tarih seçilmelidir.'; errEl.classList.remove('hidden'); return; }
+      var doctor = currentList.filter(function (d) { return d.id === doctorId; })[0];
+      if (!doctor) { errEl.textContent = 'Doktor bulunamadı.'; errEl.classList.remove('hidden'); return; }
+      ZirkonikData.addDoctorTask({
+        organization_id: doctor.organization_id,
+        doctor_id: doctorId,
+        assigned_to: myId,
+        created_by: myId,
+        kind: document.getElementById('tm-kind').value,
+        title: title,
+        note: document.getElementById('tm-note').value.trim() || null,
+        due_at: new Date(dateStr + 'T' + timeStr + ':00').toISOString()
+      }).then(function (res) {
+        if (res.error) { errEl.textContent = 'Kaydedilemedi: ' + res.error.message; errEl.classList.remove('hidden'); return; }
+        zkCloseTaskModal();
+        zkToast('Görev eklendi.');
+        loadMyTasks();
       });
     }
 
@@ -734,6 +911,15 @@
           var ilce = a.town || a.district || a.city_district || a.county || '';
           var il = a.province || a.state || '';
           if (mahalle) document.getElementById(prefix + '-mahalle').value = mahalle;
+          // 26 Eylül 2026, sahibinin sorduğu eksik: mahalle/ilçe/il dolduruluyordu
+          // ama sokak/bina bilgisi için ayrı "Adres" kutusu elle boş kalıyordu —
+          // varsa bu alan da (yalnız np formunda var) otomatik doldurulur, kullanıcı
+          // dilerse düzeltir.
+          var adresEl = document.getElementById(prefix + '-address');
+          if (adresEl && !adresEl.value.trim()) {
+            var sokak = [a.road, a.house_number ? 'No:' + a.house_number : null].filter(Boolean).join(' ');
+            if (sokak) adresEl.value = sokak;
+          }
           // 26 Eylül 2026, sahibinin bildirdiği hata: Nominatim bazı ilçeleri eski
           // şapkalı yazımla döndürüyor (ör. "Kâğıthane"), bizim listemizde düz
           // yazım var ("Kağıthane") — birebir eşleşme arayınca hiç seçilmiyordu.

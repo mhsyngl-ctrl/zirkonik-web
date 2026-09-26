@@ -335,6 +335,35 @@
     addDoctorTouch: function (doctorId, fields) {
       return client().from('doctor_touches').insert(Object.assign({ doctor_id: doctorId }, fields)).select().single();
     },
+
+    // ---- Keşif görevleri (doctor_tasks) — 26 Eylül 2026, Medicamine ile aynı mantık ----
+    // opts: { status, onlyMine, doctorId, limit }
+    listDoctorTasks: function (opts) {
+      opts = opts || {};
+      var q = client().from('doctor_tasks')
+        .select('*, doctor:doctor_id(id, full_name, clinic_name), assignee:assigned_to(full_name)')
+        .order('due_at', { ascending: opts.status !== 'tamamlandi' });
+      if (opts.status) q = q.eq('status', opts.status);
+      if (opts.onlyMine && opts.myId) q = q.eq('assigned_to', opts.myId);
+      if (opts.doctorId) q = q.eq('doctor_id', opts.doctorId);
+      return q.limit(opts.limit || 200);
+    },
+    addDoctorTask: function (fields) {
+      return client().from('doctor_tasks').insert(Object.assign({ source: 'elle' }, fields)).select().single();
+    },
+    updateDoctorTask: function (id, fields) {
+      return client().from('doctor_tasks').update(fields).eq('id', id).select();
+    },
+    markDoctorTaskDone: function (id, note) {
+      return client().from('doctor_tasks').update({ status: 'tamamlandi', done_at: new Date().toISOString(), result_note: note || null }).eq('id', id).select();
+    },
+    approveDoctorTasks: function (ids) {
+      if (!ids || !ids.length) return Promise.resolve({ data: [], error: null });
+      return client().from('doctor_tasks').update({ status: 'bekliyor' }).in('id', ids).eq('status', 'taslak').select();
+    },
+    deleteDoctorTask: function (id) {
+      return client().from('doctor_tasks').delete().eq('id', id).select();
+    },
     // Temsilcinin "bugünkü görevleri": kendine atanmış, tarihi gelmiş/geçmiş adaylar.
     // onlyMine=false (yönetici görünümü, Medicamine adaylar.html'deki isManager mantığıyla
     // aynı): kendine atanmamış olsa da tüm kuruluşun tarihi gelmiş takiplerini görür.
