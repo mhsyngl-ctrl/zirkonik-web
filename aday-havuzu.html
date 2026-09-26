@@ -348,15 +348,9 @@
         </label>
       </div>
 
-      <!-- 26 Eylül 2026, sahibinin bildirdiği eksik: saat yoktu, her randevu 09:00'a sabitleniyordu. -->
-      <div class="mt-2.5 grid grid-cols-2 gap-2">
-        <label class="block"><span class="mb-1 block text-[11px] font-bold">Sonraki aksiyon tarihi</span>
-          <input id="dt-next-date" type="date" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs"></label>
-        <label class="block"><span class="mb-1 block text-[11px] font-bold">Saat</span>
-          <input id="dt-next-time" type="time" value="09:00" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs"></label>
-      </div>
-      <label class="mt-2.5 block"><span class="mb-1 block text-[11px] font-bold">Sonraki aksiyon notu</span>
-        <input id="dt-next-note" type="text" placeholder="Örn. Tekrar ara, numune bırak" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs"></label>
+      <!-- 26 Eylül 2026, sahibinin kararı: "sonraki aksiyon" alanları Keşif Görevleri
+           (doctor_tasks) ile çakışıyordu, iki ayrı planlama yolu anlamsızdı — kaldırıldı.
+           Randevu/aksiyon planlama artık yalnız görev sistemiyle yapılır. -->
 
       <details class="mt-3 rounded-theme border border-border p-3" ontoggle="zkNudgeScroll(this)">
         <summary class="cursor-pointer text-xs font-bold text-primary">Doktor bilgileri (opsiyonel)</summary>
@@ -621,13 +615,15 @@
       var jobs = [ZirkonikData.listDoctorTasks({ status: 'bekliyor', onlyMine: !myIsAdmin, myId: myId, limit: 100 })];
       if (myIsAdmin) jobs.push(ZirkonikData.listDoctorTasks({ status: 'taslak', limit: 100 }));
       var onb = window.ZKHiz ? ZKHiz.cachePeek('kesif_gorevleri_' + (myIsAdmin ? 'y' : 'p')) : null;
-      if (onb) { myTasks = onb.p || []; draftTasks = onb.d || []; renderMyTasks(); renderDrafts(); }
+      if (onb) { myTasks = onb.p || []; draftTasks = onb.d || []; renderMyTasks(); renderDrafts(); renderList(true); }
       Promise.all(jobs).then(function (r) {
         myTasks = (r[0] && r[0].data) || [];
         draftTasks = (r[1] && r[1].data) || [];
         if (window.ZKHiz) ZKHiz.cachePut('kesif_gorevleri_' + (myIsAdmin ? 'y' : 'p'), { p: myTasks, d: draftTasks });
         renderMyTasks();
         renderDrafts();
+        // Kart üstündeki "sıradaki görev" rozetlerinin doğru görünmesi için.
+        renderList(true);
       });
     }
     function taskCard(x, isDraft) {
@@ -766,9 +762,12 @@
       }).join('');
     }
     // ---- Görev ekle (elle) ----
-    function zkOpenTaskModal() {
+    // 26 Eylül 2026, sahibinin isteği: kart üstündeki görev düğmesinden açılınca
+    // o doktor önceden seçili gelsin.
+    function zkOpenTaskModal(preselectDoctorId) {
       var sel = document.getElementById('tm-doctor');
       sel.innerHTML = '<option value="">Seçin</option>' + currentList.map(function (d) { return '<option value="' + d.id + '">Dr. ' + escapeHtml(d.full_name) + '</option>'; }).join('');
+      if (preselectDoctorId) sel.value = preselectDoctorId;
       document.getElementById('tm-title').value = '';
       document.getElementById('tm-note').value = '';
       document.getElementById('tm-kind').value = 'arama';
@@ -818,11 +817,22 @@
       });
     }
 
+    // 26 Eylül 2026: "sonraki aksiyon" alanı kaldırıldı — bir doktorun sıradaki
+    // görevi artık Keşif Görevleri listesinden (myTasks, zaten yüklü) bulunur.
+    function zkDoctorNextTask(doctorId) {
+      var matches = myTasks.filter(function (t) { return t.doctor_id === doctorId; });
+      if (!matches.length) return null;
+      matches.sort(function (a, b) { return new Date(a.due_at) - new Date(b.due_at); });
+      return matches[0];
+    }
     function zkFilteredList() {
       var bugun = new Date().toDateString();
       return currentList.filter(function (d) {
         if (dhRegionFilter && d.region_id !== dhRegionFilter) return false;
-        if (dhBugunOnly && !(d.next_action_at && new Date(d.next_action_at).toDateString() === bugun)) return false;
+        if (dhBugunOnly) {
+          var gorev = zkDoctorNextTask(d.id);
+          if (!gorev || new Date(gorev.due_at).toDateString() !== bugun) return false;
+        }
         if (dhSearchQuery) {
           var hay = ((d.full_name || '') + ' ' + (d.phone || '')).toLowerCase();
           if (hay.indexOf(dhSearchQuery) === -1) return false;
@@ -837,21 +847,26 @@
       if (!list.length) { el.innerHTML = '<p class="mt-8 text-center text-xs text-muted-foreground">Filtreye uyan kayıt yok.</p>'; return; }
       el.innerHTML = list.map(function (d) {
         var prioCls = d.priority === 'yuksek' ? 'zk-prio-yuksek' : d.priority === 'dusuk' ? 'zk-prio-dusuk' : 'zk-prio-orta';
-        var overdue = d.next_action_at && new Date(d.next_action_at) <= new Date();
-        // 26 Eylül 2026, sahibinin isteği: kart üstünden doğrudan arama —
-        // <button> içine <a> koyulamadığı için dış kutu artık div (role="button"),
-        // arama bağlantısı event.stopPropagation() ile kart tıklamasını tetiklemez.
+        var gorev = zkDoctorNextTask(d.id);
+        var overdue = gorev && new Date(gorev.due_at) <= new Date();
+        // 26 Eylül 2026, sahibinin isteği: kart üstünden doğrudan arama ve görev
+        // ekleme — <button> içine <a>/<button> koyulamadığı için dış kutu artık
+        // div (role="button"), iç düğmeler event.stopPropagation() ile kart
+        // tıklamasını (detay açma) tetiklemez.
         var callBtn = d.phone ? '<a href="tel:' + escapeHtml(d.phone) + '" onclick="event.stopPropagation()" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-success/10 text-success" aria-label="Ara"><iconify-icon icon="lucide:phone" class="text-sm"></iconify-icon></a>' : '';
+        var mapQuery = [d.clinic_name, d.address, d.mahalle, d.ilce, d.il].filter(Boolean).join(', ');
+        var mapBtn = mapQuery ? '<a href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(mapQuery) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary" aria-label="Yol tarifi"><iconify-icon icon="lucide:map-pin" class="text-sm"></iconify-icon></a>' : '';
+        var taskBtn = '<button type="button" onclick="event.stopPropagation();zkOpenTaskModal(\'' + d.id + '\')" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary" aria-label="Görev ekle"><iconify-icon icon="lucide:calendar-days" class="text-sm"></iconify-icon></button>';
         return '<div role="button" tabindex="0" onclick="zkOpenDetail(\'' + d.id + '\')" onkeydown="if(event.key===\'Enter\')zkOpenDetail(\'' + d.id + '\')" class="block w-full cursor-pointer rounded-theme border border-border bg-card p-4 text-left">' +
           '<div class="flex items-start justify-between gap-2">' +
           '<div class="min-w-0"><p class="truncate font-heading text-sm font-bold">Dr. ' + escapeHtml(d.full_name) + '</p>' +
           '<p class="mt-0.5 truncate text-xs text-muted-foreground">' + escapeHtml(d.clinic_name || '—') + (d.region ? ' · ' + escapeHtml(d.region.name) : '') + '</p></div>' +
-          '<div class="flex shrink-0 items-center gap-1.5">' + callBtn +
+          '<div class="flex shrink-0 items-center gap-1.5">' + callBtn + mapBtn + taskBtn +
           '<span class="shrink-0 rounded-full ' + prioCls + ' px-2 py-1 text-[10px] font-bold">' + (d.priority === 'yuksek' ? 'Yüksek' : d.priority === 'dusuk' ? 'Düşük' : 'Orta') + '</span></div></div>' +
           '<div class="mt-2 flex flex-wrap items-center gap-1.5">' +
           '<span class="rounded-full bg-secondary px-2 py-1 text-[10px] font-bold text-secondary-foreground">' + STAGE_LABELS[d.pipeline_stage] + '</span>' +
           (d.temsilci ? '<span class="rounded-full bg-muted px-2 py-1 text-[10px] text-muted-foreground">' + escapeHtml(d.temsilci.full_name) + '</span>' : '') +
-          (d.next_action_at ? '<span class="rounded-full ' + (overdue ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground') + ' px-2 py-1 text-[10px] font-bold">' + (overdue ? 'Gecikti: ' : '') + new Date(d.next_action_at).toLocaleDateString('tr-TR') + '</span>' : '') +
+          (gorev ? '<span class="rounded-full ' + (overdue ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground') + ' px-2 py-1 text-[10px] font-bold">' + (overdue ? 'Gecikti: ' : '') + new Date(gorev.due_at).toLocaleDateString('tr-TR') + '</span>' : '') +
           '</div></div>';
       }).join('');
       if (!skipAnim && window.zkFlow) window.zkFlow.stagger(el);
@@ -1146,9 +1161,6 @@
       // Satış Pazarlama Sorumlusu kendi doktorunun temsilcisini değiştiremez
       // (sunucu da zaten yalnız assigned_rep_id kendisiyse güncellemeye izin verir).
       document.getElementById('dt-rep').disabled = (myPosition === 'Satış Pazarlama Sorumlusu');
-      document.getElementById('dt-next-date').value = d.next_action_at ? d.next_action_at.slice(0, 10) : '';
-      document.getElementById('dt-next-time').value = d.next_action_at ? new Date(d.next_action_at).toTimeString().slice(0, 5) : '09:00';
-      document.getElementById('dt-next-note').value = d.next_action_note || '';
       document.getElementById('dt-phone').value = d.phone || '';
       document.getElementById('dt-email').value = d.email || '';
       document.getElementById('dt-assistant-name').value = d.assistant_name || '';
@@ -1237,8 +1249,6 @@
       var errEl = document.getElementById('dt-error');
       errEl.classList.add('hidden');
       var stage = document.getElementById('dt-stage').value;
-      var nextDate = document.getElementById('dt-next-date').value;
-      var nextTime = document.getElementById('dt-next-time').value || '09:00';
       var fullName = document.getElementById('dt-fullname').value.trim();
       if (!fullName) {
         errEl.textContent = 'Doktor adı boş olamaz.';
@@ -1255,8 +1265,6 @@
         ilce: document.getElementById('dt-ilce').value || null,
         mahalle: document.getElementById('dt-mahalle').value.trim() || null,
         assigned_rep_id: document.getElementById('dt-rep').value || null,
-        next_action_at: nextDate ? new Date(nextDate + 'T' + nextTime + ':00').toISOString() : null,
-        next_action_note: document.getElementById('dt-next-note').value.trim() || null,
         phone: document.getElementById('dt-phone').value.trim() || null,
         email: document.getElementById('dt-email').value.trim() || null,
         assistant_name: document.getElementById('dt-assistant-name').value.trim() || null,
@@ -1340,24 +1348,36 @@
       if (pendingTouchType === 'memnuniyet_aramasi' && window.__tnSat) fields.satisfaction_score = window.__tnSat;
       var doctorId = detailDoctor.id;
       var istekler = [ZirkonikData.addDoctorTouch(doctorId, fields)];
+      // 26 Eylül 2026, sahibinin kararı: "sonraki aksiyon" alanı kaldırıldı, tek
+      // planlama yolu artık Keşif Görevleri (doctor_tasks) — Randevu kaydı da
+      // doğrudan bir görev oluşturur.
+      // Aynı gün "Dr. Kenan neden gecikti" sorusu: temas kaydı, o doktor için
+      // açık duran aynı türde görevi kapatmıyordu — görev "bekliyor" kalıp
+      // gecikmiş görünmeye devam ediyordu. Temas kaydedilince eşleşen görev de
+      // otomatik "yapıldı" işaretlensin.
+      if (['ziyaret', 'arama', 'whatsapp'].indexOf(pendingTouchType) !== -1) {
+        var eslesenGorev = myTasks.filter(function (t) { return t.doctor_id === doctorId && t.kind === pendingTouchType; })
+          .sort(function (a, b) { return new Date(a.due_at) - new Date(b.due_at); })[0];
+        if (eslesenGorev) istekler.push(ZirkonikData.markDoctorTaskDone(eslesenGorev.id, note));
+      }
       if (randevuTarih) {
-        istekler.push(ZirkonikData.updateDoctorPipeline(doctorId, {
-          next_action_at: new Date(randevuTarih + 'T' + randevuSaat + ':00').toISOString(),
-          next_action_note: 'Randevu' + (note ? ': ' + note : '')
+        istekler.push(ZirkonikData.addDoctorTask({
+          organization_id: detailDoctor.organization_id,
+          doctor_id: doctorId,
+          assigned_to: myId,
+          created_by: myId,
+          kind: 'randevu',
+          title: 'Randevu' + (note ? ': ' + note : ''),
+          due_at: new Date(randevuTarih + 'T' + randevuSaat + ':00').toISOString()
         }));
       }
       Promise.all(istekler).then(function (rs) {
         var hata = rs.filter(function (r) { return r && r.error; })[0];
         if (hata) { zkToast('Olmadı: ' + hata.error.message); return; }
-        zkToast(randevuTarih ? 'Randevu kaydedildi — sonraki aksiyon tarihine eklendi.' : 'Temas kaydedildi.');
+        zkToast(randevuTarih ? 'Randevu görevi oluşturuldu.' : 'Temas kaydedildi.');
         zkCloseTouchNote();
         loadTouches(doctorId);
-        if (randevuTarih) {
-          document.getElementById('dt-next-date').value = randevuTarih;
-          document.getElementById('dt-next-time').value = randevuSaat;
-          document.getElementById('dt-next-note').value = 'Randevu' + (note ? ': ' + note : '');
-          loadMyTasks();
-        }
+        loadMyTasks();
       });
     }
 

@@ -317,6 +317,12 @@
     listDoctorTouches: function (doctorId) {
       return client().from('doctor_touches').select('*, yazan:created_by(full_name)').eq('doctor_id', doctorId).order('created_at', { ascending: false });
     },
+    // 26 Eylül 2026: işveren ana ekranı (Pazarlama Özeti) — bugün kim kaç
+    // temas (plansız ziyaret/arama dahil) kaydetmiş, pazarlamacı başına.
+    todayTouchesByRep: function () {
+      var baslangic = new Date(); baslangic.setHours(0, 0, 0, 0);
+      return client().from('doctor_touches').select('created_by').gte('created_at', baslangic.toISOString());
+    },
     // Doktor kazanım kartında "gönderilen işler" listesi — temsilci başka ekrana
     // gitmeden bu doktora gerçekten iş gelip gelmediğini, kaç iş geldiğini görsün
     // (24 Eylül 2026, sahibinin bulduğu görünürlük boşluğu).

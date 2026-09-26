@@ -277,6 +277,22 @@
           </div>
         </section>
 
+        <!-- 26 Eylül 2026, sahibinin isteği: Medicamine'deki müşteri randevu ekranı
+             gibi — işveren/yönetici tüm pazarlamacıların bugünkü keşif görevlerini
+             ve gerçekleşen (plansız dahil) temaslarını tek yerden görsün. -->
+        <section id="pazarlama-ozeti-section" class="hidden px-5 pt-7">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Sadece yönetici görür</p>
+            <h2 class="mt-1 font-heading text-lg font-extrabold">Pazarlama Özeti</h2>
+            <p class="mt-0.5 text-xs text-muted-foreground">Bugün pazarlamacı başına planlanan ve gerçekleşen temaslar</p>
+          </div>
+          <div id="pazarlama-ozeti-reps" class="mt-3 space-y-2"></div>
+          <p class="mt-4 text-xs font-bold">Bugünkü görevler</p>
+          <div id="pazarlama-ozeti-tasks" class="mt-2 rounded-theme border border-border bg-card">
+            <p class="p-4 text-xs text-muted-foreground">Yükleniyor…</p>
+          </div>
+        </section>
+
         <section id="cash-flow-section" class="hidden px-5 pt-7">
           <div>
             <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Sadece yönetici görür</p>
@@ -674,6 +690,8 @@
           loadCashFlow();
           document.getElementById('job-progress-log-section').classList.remove('hidden');
           loadJobProgressLog();
+          document.getElementById('pazarlama-ozeti-section').classList.remove('hidden');
+          loadPazarlamaOzeti();
         }
         var perms = me && me.user_permissions;
         if (Object.prototype.toString.call(perms) === '[object Array]') perms = perms[0] || {};
@@ -757,6 +775,53 @@
             '<p class="mt-0.5 text-xs text-muted-foreground">' + escapeHtml(odaTxt) + ' — ' + escapeHtml(kimTxt) + '</p>' +
             (h.note ? '<p class="mt-0.5 text-[11px] text-muted-foreground">' + escapeHtml(h.note) + '</p>' : '') + '</div>' +
             '<span class="shrink-0 text-[10px] font-semibold text-muted-foreground">' + zaman + '</span></div>';
+        }).join('');
+      });
+    }
+
+    // 26 Eylül 2026, sahibinin isteği: Medicamine'deki müşteri randevu ekranı
+    // gibi — işveren/yönetici tüm pazarlamacıların bugünkü keşif görevlerini
+    // ve gerçekleşen (plansız ziyaret/arama dahil) temaslarını tek yerden görsün.
+    function loadPazarlamaOzeti() {
+      Promise.all([
+        ZirkonikData.listStaff(),
+        ZirkonikData.listDoctorTasks({ status: 'bekliyor', limit: 300 }),
+        ZirkonikData.todayTouchesByRep()
+      ]).then(function (r) {
+        var reps = ((r[0] && r[0].data) || []).filter(function (u) { return u.position === 'Satış Pazarlama Sorumlusu'; });
+        var allTasks = (r[1] && r[1].data) || [];
+        var touches = (r[2] && r[2].data) || [];
+        var bugun = new Date().toDateString();
+        var bugunkuGorevler = allTasks.filter(function (t) { return new Date(t.due_at).toDateString() === bugun; });
+
+        var temasSayaci = {};
+        touches.forEach(function (t) { if (t.created_by) temasSayaci[t.created_by] = (temasSayaci[t.created_by] || 0) + 1; });
+        var gorevSayaci = {};
+        bugunkuGorevler.forEach(function (t) { gorevSayaci[t.assigned_to] = (gorevSayaci[t.assigned_to] || 0) + 1; });
+
+        var repsEl = document.getElementById('pazarlama-ozeti-reps');
+        if (!reps.length) {
+          repsEl.innerHTML = '<p class="text-xs text-muted-foreground">Henüz pazarlamacı yok.</p>';
+        } else {
+          repsEl.innerHTML = reps.map(function (u) {
+            return '<div class="flex items-center justify-between rounded-theme border border-border bg-card p-3">' +
+              '<p class="text-sm font-bold">' + escapeHtml(u.full_name) + '</p>' +
+              '<p class="text-xs text-muted-foreground">' + (gorevSayaci[u.id] || 0) + ' görev (bugün) · ' + (temasSayaci[u.id] || 0) + ' temas (bugün)</p></div>';
+          }).join('');
+        }
+
+        var tasksEl = document.getElementById('pazarlama-ozeti-tasks');
+        if (!bugunkuGorevler.length) {
+          tasksEl.innerHTML = '<p class="p-4 text-xs text-muted-foreground">Bugün için planlı görev yok.</p>';
+          return;
+        }
+        bugunkuGorevler.sort(function (a, b) { return new Date(a.due_at) - new Date(b.due_at); });
+        tasksEl.innerHTML = bugunkuGorevler.map(function (t, i) {
+          var saat = new Date(t.due_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+          return '<div class="flex items-center gap-3 px-4 py-3' + (i < bugunkuGorevler.length - 1 ? ' border-b border-border' : '') + '">' +
+            '<span class="text-xs font-bold tabular-nums text-muted-foreground">' + saat + '</span>' +
+            '<span class="min-w-0 flex-1"><span class="block truncate text-sm font-bold">Dr. ' + escapeHtml(t.doctor ? t.doctor.full_name : '') + '</span>' +
+            '<span class="mt-0.5 block text-xs text-muted-foreground">' + escapeHtml(t.assignee ? t.assignee.full_name : '') + ' · ' + escapeHtml(t.title) + '</span></span></div>';
         }).join('');
       });
     }
