@@ -499,9 +499,13 @@
       var myRegions = (myPosition === 'Satış Pazarlama Sorumlusu')
         ? regions.filter(function (r) { return r.assigned_rep_id === myId; })
         : regions;
+      // 26 Eylül 2026, sahibinin isteği: basılı (aktif) filtreye kaç doktor
+      // uyduğu çipin yanında görünsün.
+      var sonucSayisi = zkFilteredList().length;
       var chip = function (label, active, onclick) {
         return '<button type="button" onclick="' + onclick + '" class="shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-bold ' +
-          (active ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card text-foreground') + '">' + escapeHtml(label) + '</button>';
+          (active ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card text-foreground') + '">' + escapeHtml(label) +
+          (active ? ' <span class="opacity-70">(' + sonucSayisi + ')</span>' : '') + '</button>';
       };
       // 26 Eylül 2026, sahibinin bildirdiği kafa karışıklığı: "Kayıp" çipi diğer
       // çiplerden farklı olarak sunucuya gidip geliyordu (zkSetStage tam aşama
