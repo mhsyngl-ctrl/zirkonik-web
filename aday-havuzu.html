@@ -503,8 +503,11 @@
         return '<button type="button" onclick="' + onclick + '" class="shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-bold ' +
           (active ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card text-foreground') + '">' + escapeHtml(label) + '</button>';
       };
-      var html = chip('Bugün görülecekler', dhBugunOnly, 'zkToggleBugunFilter()') +
-        chip('Kayıp', curStage === 'kayip', "zkSetStage('kayip')");
+      // 26 Eylül 2026, sahibinin bildirdiği kafa karışıklığı: "Kayıp" çipi diğer
+      // çiplerden farklı olarak sunucuya gidip geliyordu (zkSetStage tam aşama
+      // değişimi yapıyor) — anlık değil, "takılıyor" gibi hissettiriyordu. Üstteki
+      // aşama sekmelerinde zaten "Kayıp" var, çip gereksizdi — kaldırıldı.
+      var html = chip('Bugün görülecekler', dhBugunOnly, 'zkToggleBugunFilter()');
       html += myRegions.map(function (r) { return chip(r.name, dhRegionFilter === r.id, "zkToggleRegionFilter('" + r.id + "')"); }).join('');
       wrap.innerHTML = html;
     }
@@ -675,6 +678,17 @@
     // "Konumdan Doldur": GPS + Nominatim (OpenStreetMap) reverse-geocode —
     // yalnız mahalle/ilçe/il BOŞSA ya da bulunamıyorsa kullanılır (aday
     // sahadayken, listede olmayan bir yerde ise). Ücretsiz, anahtar gerekmez.
+    // Türkçe il/ilçe adlarını karşılaştırma için sadeleştirir: şapkalı ünlüler
+    // (â/î/û) düz ünlüye döner, İ/I/ı/i normalize edilir, boşluk/tire farkları
+    // ve büyük/küçük harf yok sayılır. "Kâğıthane" ile "Kağıthane" gibi Nominatim
+    // ile bizim listemiz arasındaki yazım farklarını eşitlemek için.
+    function zkTrEsle(s) {
+      return String(s || '')
+        .replace(/[âÂ]/g, 'a').replace(/[îÎ]/g, 'i').replace(/[ûÛ]/g, 'u')
+        .replace(/İ/g, 'i').replace(/I/g, 'i')
+        .toLowerCase()
+        .replace(/[^a-zçğıöşü0-9]/g, '');
+    }
     function zkKonumdanDoldur(prefix) {
       var errEl = document.getElementById(prefix + '-konum-hata');
       var iconEl = document.getElementById(prefix + '-konum-icon');
@@ -698,14 +712,20 @@
           var ilce = a.town || a.district || a.city_district || a.county || '';
           var il = a.province || a.state || '';
           if (mahalle) document.getElementById(prefix + '-mahalle').value = mahalle;
+          // 26 Eylül 2026, sahibinin bildirdiği hata: Nominatim bazı ilçeleri eski
+          // şapkalı yazımla döndürüyor (ör. "Kâğıthane"), bizim listemizde düz
+          // yazım var ("Kağıthane") — birebir eşleşme arayınca hiç seçilmiyordu.
+          // zkTrEsle Türkçe aksan/şapka farklarını (â/î/û, İ/ı, büyük/küçük harf)
+          // yok sayarak eşleştirir; select'e HER ZAMAN listedeki gerçek değer yazılır.
           var ilSel = document.getElementById(prefix + '-il');
-          if (il && ilSel && Array.prototype.some.call(ilSel.options, function (o) { return o.value === il; })) {
-            ilSel.value = il;
-            zkIlChanged(prefix);
+          if (il && ilSel) {
+            var ilOpt = Array.prototype.filter.call(ilSel.options, function (o) { return zkTrEsle(o.value) === zkTrEsle(il); })[0];
+            if (ilOpt) { ilSel.value = ilOpt.value; zkIlChanged(prefix); }
           }
           var ilceSel = document.getElementById(prefix + '-ilce');
-          if (ilce && ilceSel && Array.prototype.some.call(ilceSel.options, function (o) { return o.value === ilce; })) {
-            ilceSel.value = ilce;
+          if (ilce && ilceSel) {
+            var ilceOpt = Array.prototype.filter.call(ilceSel.options, function (o) { return zkTrEsle(o.value) === zkTrEsle(ilce); })[0];
+            if (ilceOpt) ilceSel.value = ilceOpt.value;
           }
           if (!mahalle) { errEl.textContent = 'Mahalle bulunamadı, elle girebilirsiniz.'; errEl.classList.remove('hidden'); }
         }).catch(function () {
