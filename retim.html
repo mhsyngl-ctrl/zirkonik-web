@@ -393,12 +393,14 @@
         </section>
       </main>
 
-      <!-- 76px, alt tab çubuğunun güvenli alan payı EKLENMEDEN hesaplanan
-           sabit yüksekliğiydi — çentik/home-indicator'ı büyük olan
-           cihazlarda tab çubuğu boyunca uzayınca bu buton çubuğun İÇİNE
-           gömülüyordu ("aşağıya kaymış" görünümü). Tab çubuğuyla (.zk-tabbar)
-           aynı env(safe-area-inset-bottom) payı eklendi (22 Eylül 2026). -->
-      <div class="fixed left-0 z-20 w-full px-5" style="bottom: calc(76px + env(safe-area-inset-bottom));">
+      <!-- 26 Eylül 2026, sahibinin bildirdiği "hâlâ kayık" hatası: sabit
+           76px tahmini tab çubuğunun GERÇEK yüksekliğiyle (cihaza/yazı
+           boyutuna göre değişebiliyor) birebir eşleşince bu sefer de buton
+           çubuğa YAPIŞIK duruyordu (boşluksuz, "kaymış" hissi devam etti).
+           Artık gerçek yükseklik JS ile ÖLÇÜLÜYOR (zk-tabbar.js, tüm
+           sayfalarda ortak) ve üstüne sabit bir boşluk (16px) ekleniyor —
+           tahmine değil ölçüme dayanıyor, hep doğru. -->
+      <div id="new-job-btn-wrap" data-zk-above-tabbar="16" class="fixed left-0 z-20 w-full px-5" style="bottom: 92px;">
         <button onclick="location.href='yeni-giri-i.html'" class="flex h-13 w-full items-center justify-center gap-2 rounded-theme bg-primary px-5 py-3.5 font-heading text-sm font-bold text-primary-foreground shadow-lg">
           <iconify-icon icon="lucide:plus" class="text-xl"></iconify-icon>
           Yeni iş oluştur
@@ -489,6 +491,7 @@
   <script src="js/net-guard.js"></script>
   <script src="supabase-client.js"></script>
   <script src="js/zk-guard.js"></script>
+  <script src="js/zk-tabbar.js"></script>
   <script src="js/zk-picker.js"></script>
   <script src="js/zk-ptr.js"></script>
   <script src="js/zk-hiz.js"></script>

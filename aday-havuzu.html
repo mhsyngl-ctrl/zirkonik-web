@@ -839,16 +839,24 @@
       }
       document.getElementById('task-cal-grid').innerHTML = html;
     }
+    // 26 Eylül 2026, sahibinin sorusu: "gelecek hafta perşembe boş olduğunu
+    // nasıl bilecek pazarlamacı" — nokta yoksa gün boş demektir; boş güne
+    // tıklayınca da doğrudan o güne görev eklenebiliyor.
     function zkCalSelectDay(anahtar) {
       calSelectedDayKey = anahtar;
       zkRenderTaskCalendar();
       var gununGorevleri = myTasks.filter(function (t) { return zkGunAnahtari(new Date(t.due_at)) === anahtar; });
       var parcalar = anahtar.split('-');
-      var etiketTarih = new Date(Number(parcalar[0]), Number(parcalar[1]) - 1, Number(parcalar[2]));
+      var yil = Number(parcalar[0]), ay = Number(parcalar[1]), gun = Number(parcalar[2]);
+      var etiketTarih = new Date(yil, ay - 1, gun);
+      var isoTarih = yil + '-' + String(ay).padStart(2, '0') + '-' + String(gun).padStart(2, '0');
       document.getElementById('task-cal-day-label').textContent = etiketTarih.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', weekday: 'long' }) + ' · ' + gununGorevleri.length + ' görev';
       document.getElementById('task-cal-day-list').innerHTML = gununGorevleri.length
         ? gununGorevleri.map(function (x) { return taskCard(x, false); }).join('')
-        : '<p class="text-xs text-muted-foreground">Bu günde görev yok.</p>';
+        : '<p class="text-xs text-muted-foreground">Bu günde görev yok — boş.</p>' +
+          '<button type="button" onclick="zkOpenTaskModal(null,\'' + isoTarih + '\')" class="mt-2 flex h-10 w-full items-center justify-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 text-xs font-bold text-primary">' +
+            '<iconify-icon icon="lucide:plus" class="text-sm"></iconify-icon> Bu güne görev ekle' +
+          '</button>';
       document.getElementById('task-cal-day-section').classList.remove('hidden');
     }
     function zkCalClearDay() {
@@ -950,17 +958,21 @@
     // 26 Eylül 2026, sahibinin isteği: kart üstündeki görev düğmesinden açılınca
     // o doktor önceden seçili gelsin; doktor detayı açıkken doktor zaten belli,
     // seçim kutusu gizlenir.
-    function zkOpenTaskModal(preselectDoctorId) {
+    // 26 Eylül 2026, sahibinin sorusu: "gelecek hafta perşembe boş olduğunu
+    // nasıl bilecek pazarlamacı" — takvimde boş bir güne tıklayınca artık
+    // doğrudan o güne görev eklenebiliyor (presetDateStr), tarihi elle
+    // yazmaya gerek kalmıyor.
+    function zkOpenTaskModal(preselectDoctorId, presetDateStr) {
       var sel = document.getElementById('tm-doctor');
       sel.innerHTML = '<option value="">Seçin</option>' + currentList.map(function (d) { return '<option value="' + d.id + '">Dr. ' + escapeHtml(d.full_name) + '</option>'; }).join('');
       var pre = preselectDoctorId || (detailDoctor ? detailDoctor.id : '');
       if (pre) sel.value = pre;
       document.getElementById('tm-doctor-wrap').classList.toggle('hidden', !!detailDoctor);
       document.getElementById('tm-note').value = '';
-      document.getElementById('tm-date').value = new Date().toISOString().slice(0, 10);
+      document.getElementById('tm-date').value = presetDateStr || new Date().toISOString().slice(0, 10);
       document.getElementById('tm-time').value = '09:00';
       document.getElementById('tm-error').classList.add('hidden');
-      zkKayitModeChanged('simdi');
+      zkKayitModeChanged(presetDateStr ? 'ileri' : 'simdi');
       document.getElementById('task-sheet').classList.remove('hidden');
     }
     function zkCloseTaskModal() { document.getElementById('task-sheet').classList.add('hidden'); }
