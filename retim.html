@@ -281,11 +281,36 @@
              gibi — işveren/yönetici tüm pazarlamacıların bugünkü keşif görevlerini
              ve gerçekleşen (plansız dahil) temaslarını tek yerden görsün. -->
         <section id="pazarlama-ozeti-section" class="hidden px-5 pt-7">
-          <div>
-            <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Sadece yönetici görür</p>
-            <h2 class="mt-1 font-heading text-lg font-extrabold">Pazarlama Özeti</h2>
-            <p class="mt-0.5 text-xs text-muted-foreground">Bugün pazarlamacı başına planlanan ve gerçekleşen temaslar</p>
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Sadece yönetici görür</p>
+              <h2 class="mt-1 font-heading text-lg font-extrabold">Pazarlama Özeti</h2>
+              <p class="mt-0.5 text-xs text-muted-foreground">Bugün pazarlamacı başına planlanan ve gerçekleşen temaslar</p>
+            </div>
+            <!-- 26 Eylül 2026, sahibinin isteği: Medicamine'deki müşteri
+                 randevu takvimi gibi — ana ekranda, ayrı sayfaya gitmeden,
+                 tüm ekibin randevu takvimi. -->
+            <button id="pazarlama-takvim-toggle-btn" onclick="zkTogglePazarlamaTakvim()" class="flex h-10 shrink-0 items-center gap-1.5 rounded-theme border border-border bg-card px-3 text-xs font-bold text-primary">
+              <iconify-icon icon="lucide:calendar-days" class="text-sm"></iconify-icon> Takvim
+            </button>
           </div>
+
+          <div id="pazarlama-takvim-wrap" class="mt-3 hidden rounded-theme border border-border bg-background p-3">
+            <div class="flex items-center justify-between">
+              <button type="button" onclick="zkPtCalShiftMonth(-1)" class="flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Önceki ay"><iconify-icon icon="lucide:chevron-left"></iconify-icon></button>
+              <p id="pazarlama-takvim-ay-label" class="text-sm font-extrabold">—</p>
+              <button type="button" onclick="zkPtCalShiftMonth(1)" class="flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Sonraki ay"><iconify-icon icon="lucide:chevron-right"></iconify-icon></button>
+            </div>
+            <div class="mt-2.5 grid grid-cols-7 gap-1 text-center text-[10px] font-semibold text-muted-foreground">
+              <span>Pzt</span><span>Sal</span><span>Çar</span><span>Per</span><span>Cum</span><span>Cmt</span><span>Paz</span>
+            </div>
+            <div id="pazarlama-takvim-grid" class="mt-1 grid grid-cols-7 gap-1"></div>
+            <div id="pazarlama-takvim-gun-section" class="mt-3 hidden border-t border-border pt-3">
+              <p id="pazarlama-takvim-gun-label" class="text-xs font-bold text-muted-foreground">—</p>
+              <div id="pazarlama-takvim-gun-list" class="mt-2 space-y-1.5"></div>
+            </div>
+          </div>
+
           <div id="pazarlama-ozeti-reps" class="mt-3 space-y-2"></div>
           <p class="mt-4 text-xs font-bold">Bugünkü görevler</p>
           <div id="pazarlama-ozeti-tasks" class="mt-2 rounded-theme border border-border bg-card">
@@ -782,6 +807,7 @@
     // 26 Eylül 2026, sahibinin isteği: Medicamine'deki müşteri randevu ekranı
     // gibi — işveren/yönetici tüm pazarlamacıların bugünkü keşif görevlerini
     // ve gerçekleşen (plansız ziyaret/arama dahil) temaslarını tek yerden görsün.
+    var pazarlamaTumGorevler = [];
     function loadPazarlamaOzeti() {
       Promise.all([
         ZirkonikData.listStaff(),
@@ -790,6 +816,7 @@
       ]).then(function (r) {
         var reps = ((r[0] && r[0].data) || []).filter(function (u) { return u.position === 'Satış Pazarlama Sorumlusu'; });
         var allTasks = (r[1] && r[1].data) || [];
+        pazarlamaTumGorevler = allTasks;
         var touches = (r[2] && r[2].data) || [];
         var bugun = new Date().toDateString();
         var bugunkuGorevler = allTasks.filter(function (t) { return new Date(t.due_at).toDateString() === bugun; });
@@ -824,6 +851,77 @@
             '<span class="mt-0.5 block text-xs text-muted-foreground">' + escapeHtml(t.assignee ? t.assignee.full_name : '') + ' · ' + escapeHtml(t.title) + '</span></span></div>';
         }).join('');
       });
+    }
+
+    // ---- Pazarlama takvimi (26 Eylül 2026, "Medicamine'deki gibi", ana ekranda) ----
+    // pazarlamaTumGorevler zaten yüklü (loadPazarlamaOzeti) — ek istek yok,
+    // ay değiştirmek yalnız istemcide filtreler.
+    var pazarlamaTakvimAcik = false;
+    var ptCalMonthOffset = 0;
+    var ptCalSelectedDayKey = null;
+    var PT_AY_ADLARI = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+    function zkPtGunAnahtari(d) { return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+    function zkTogglePazarlamaTakvim() {
+      pazarlamaTakvimAcik = !pazarlamaTakvimAcik;
+      document.getElementById('pazarlama-takvim-wrap').classList.toggle('hidden', !pazarlamaTakvimAcik);
+      if (pazarlamaTakvimAcik) zkPtRenderCalendar();
+    }
+    function zkPtCalShiftMonth(delta) {
+      ptCalMonthOffset += delta;
+      ptCalSelectedDayKey = null;
+      document.getElementById('pazarlama-takvim-gun-section').classList.add('hidden');
+      zkPtRenderCalendar();
+    }
+    function zkPtRenderCalendar() {
+      var bugun = new Date();
+      var baz = new Date(bugun.getFullYear(), bugun.getMonth() + ptCalMonthOffset, 1);
+      document.getElementById('pazarlama-takvim-ay-label').textContent = PT_AY_ADLARI[baz.getMonth()] + ' ' + baz.getFullYear();
+
+      var gunSayisi = {};
+      pazarlamaTumGorevler.forEach(function (t) {
+        var k = zkPtGunAnahtari(new Date(t.due_at));
+        gunSayisi[k] = (gunSayisi[k] || 0) + 1;
+      });
+
+      var ilkGun = new Date(baz.getFullYear(), baz.getMonth(), 1);
+      var bosluk = (ilkGun.getDay() + 6) % 7;
+      var ayinGunSayisi = new Date(baz.getFullYear(), baz.getMonth() + 1, 0).getDate();
+      var bugunAnahtar = zkPtGunAnahtari(bugun);
+
+      var html = '';
+      for (var i = 0; i < bosluk; i++) html += '<div></div>';
+      for (var g = 1; g <= ayinGunSayisi; g++) {
+        var d = new Date(baz.getFullYear(), baz.getMonth(), g);
+        var anahtar = zkPtGunAnahtari(d);
+        var sayi = gunSayisi[anahtar] || 0;
+        var buGun = anahtar === bugunAnahtar;
+        var secili = anahtar === ptCalSelectedDayKey;
+        html += '<button type="button" onclick="zkPtCalSelectDay(\'' + anahtar + '\')" class="relative flex h-10 flex-col items-center justify-center rounded-lg text-xs font-bold ' +
+          (secili ? 'bg-primary text-primary-foreground' : buGun ? 'border border-primary text-primary' : 'text-foreground') + '">' +
+          g +
+          (sayi ? '<span class="mt-0.5 h-1.5 w-1.5 rounded-full ' + (secili ? 'bg-primary-foreground' : 'bg-primary') + '"></span>' : '') +
+        '</button>';
+      }
+      document.getElementById('pazarlama-takvim-grid').innerHTML = html;
+    }
+    function zkPtCalSelectDay(anahtar) {
+      ptCalSelectedDayKey = anahtar;
+      zkPtRenderCalendar();
+      var gununGorevleri = pazarlamaTumGorevler.filter(function (t) { return zkPtGunAnahtari(new Date(t.due_at)) === anahtar; })
+        .sort(function (a, b) { return new Date(a.due_at) - new Date(b.due_at); });
+      var parcalar = anahtar.split('-');
+      var etiketTarih = new Date(Number(parcalar[0]), Number(parcalar[1]) - 1, Number(parcalar[2]));
+      document.getElementById('pazarlama-takvim-gun-label').textContent = etiketTarih.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', weekday: 'long' }) + ' · ' + gununGorevleri.length + ' görev';
+      document.getElementById('pazarlama-takvim-gun-list').innerHTML = gununGorevleri.length
+        ? gununGorevleri.map(function (t) {
+            var saat = new Date(t.due_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+            return '<div class="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5">' +
+              '<span class="text-xs font-bold tabular-nums text-muted-foreground">' + saat + '</span>' +
+              '<span class="min-w-0 flex-1"><span class="block truncate text-xs font-bold">Dr. ' + escapeHtml(t.doctor ? t.doctor.full_name : '') + '</span>' +
+              '<span class="mt-0.5 block text-[11px] text-muted-foreground">' + escapeHtml(t.assignee ? t.assignee.full_name : '') + ' · ' + escapeHtml(t.title) + '</span></span></div>';
+          }).join('')
+        : '<p class="text-xs text-muted-foreground">Bu günde görev yok.</p>';
+      document.getElementById('pazarlama-takvim-gun-section').classList.remove('hidden');
     }
 
     function loadCashFlow() {
