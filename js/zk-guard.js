@@ -149,7 +149,9 @@ var ZK_STOK_ENABLED = false;
   function hideUi(p) {
     // Alt menü sekmeleri
     var TABS = {
-      'Stok': !!p.can_manage_stock,
+      // 26 Eylül 2026: Stok özelliği herkesten (yönetici dahil) kapalı
+      // (bu dosyada üstteki koşulsuz yönlendirme) — sekme de artık hep gizli.
+      'Stok': false,
       'Finans': !!p.can_view_finance, // 25 Eylül 2026: "Finans yetkisi" kutusuna bağlı.
       'Laboratuvarlar': false,
       'Ekip': false,

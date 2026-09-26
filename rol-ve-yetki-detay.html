@@ -288,7 +288,9 @@
     var PERMS = [
       { key: 'can_view_jobs', icon: 'lucide:eye', title: 'İş görüntüleme', desc: 'Üretim kayıtlarını görme' },
       { key: 'can_change_job_status', icon: 'lucide:forward', title: 'Durum ilerletme', desc: 'İşi bir sonraki aşamaya taşıma' },
-      { key: 'can_manage_stock', icon: 'lucide:package-check', title: 'Stok işlemleri', desc: 'Malzeme ve stok hareketleri' },
+      // 26 Eylül 2026, sahibinin isteği: "Stok işlemleri" kaldırıldı — Stok
+      // sayfası zaten herkesten (yönetici dahil) kapalı (js/zk-guard.js'te
+      // koşulsuz yönlendirme), bu yetki hiçbir şeyi açıp kapamıyordu.
       // 2026-09-12: Etiket "gorunurluk" diyordu ama bu bayrak ayni anda YAZMA
       // yetkisi de veriyor (tahsilat kaydi, fatura, kasa teslim onayi).
       // "Sadece gorsun" diye acilmasin diye adi duzeltildi. 24 Eylül 2026:
