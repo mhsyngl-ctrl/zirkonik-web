@@ -587,6 +587,31 @@
         // salt-okunur değil, TAMAMEN gizli.
         document.getElementById('f-price-section').classList.toggle('hidden', !canOverridePrice);
         zkRecalcPrice();
+
+        // 26 Eylül 2026, sahibinin bildirdiği hata: price_list_items artık
+        // yalnız admin+doktor için okunabiliyor (fiyat gizliliği) — bu ekran
+        // "İş türü" listesini doğrudan o tablodan dolduruyordu, sonuç:
+        // resepsiyon için liste TAMAMEN BOŞ geliyordu, sipariş hiç girilemiyordu.
+        // Admin dışındaki herkes fiyatsız zk_calisma_turleri_listele() RPC'sini
+        // kullanır (id/name/category/route_room_ids/currency — fiyat yok).
+        var itemsPromise = me.role === 'yonetici' ? ZirkonikData.listPriceItems() : ZirkonikData.listWorkTypes();
+        itemsPromise.then(function (r) {
+          priceItems = r.data || [];
+          var sel = document.getElementById('f-type');
+          var groups = {};
+          priceItems.forEach(function (p) {
+            if (!groups[p.category]) {
+              groups[p.category] = document.createElement('optgroup');
+              groups[p.category].label = p.category;
+              sel.appendChild(groups[p.category]);
+            }
+            var opt = document.createElement('option');
+            opt.value = p.id;
+            opt.textContent = p.name;
+            groups[p.category].appendChild(opt);
+          });
+          sel.addEventListener('change', zkRecalcPrice);
+        });
       });
 
       ZirkonikData.listPriceOverrides().then(function (r) {
@@ -595,24 +620,6 @@
       });
       document.getElementById('f-doctor').addEventListener('change', zkRecalcPrice);
       document.getElementById('f-lab').addEventListener('change', zkRecalcPrice);
-
-      ZirkonikData.listPriceItems().then(function (r) {
-        priceItems = r.data || [];
-        var sel = document.getElementById('f-type');
-        var groups = {};
-        priceItems.forEach(function (p) {
-          if (!groups[p.category]) {
-            groups[p.category] = document.createElement('optgroup');
-            groups[p.category].label = p.category;
-            sel.appendChild(groups[p.category]);
-          }
-          var opt = document.createElement('option');
-          opt.value = p.id;
-          opt.textContent = p.name;
-          groups[p.category].appendChild(opt);
-        });
-        sel.addEventListener('change', zkRecalcPrice);
-      });
 
       client.from('laboratories').select('id, name').order('name').then(function (r) {
         labs = r.data || [];
