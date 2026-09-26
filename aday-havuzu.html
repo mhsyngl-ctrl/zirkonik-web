@@ -66,6 +66,7 @@
   .zk-stage-tabs::-webkit-scrollbar { display: none; }
   .zk-stage-tab { flex: 0 0 auto; padding: 8px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; border: 1px solid var(--color-border); background: var(--color-card); color: var(--color-muted-foreground); }
   .zk-stage-tab.on { background: var(--color-primary); color: var(--color-primary-foreground); border-color: var(--color-primary); }
+  .zk-stage-tab-kesif { display: flex; align-items: center; gap: 5px; border-color: var(--color-primary); color: var(--color-primary); }
   .zk-prio-yuksek { background: rgba(239,83,80,.12); color: var(--color-destructive); }
   .zk-prio-orta { background: rgba(240,160,60,.12); color: var(--color-accent); }
   .zk-prio-dusuk { background: var(--color-muted); color: var(--color-muted-foreground); }
@@ -98,41 +99,13 @@
             <button onclick="zkOpenAddProspect()" class="flex h-10 w-10 items-center justify-center rounded-theme bg-primary text-primary-foreground" aria-label="Aday ekle"><iconify-icon icon="lucide:user-round-plus"></iconify-icon></button>
           </div>
         </div>
+        <!-- 26 Eylül 2026, sahibinin isteği: "Keşif görevleri" her zaman açık büyük
+             bir blok kaplıyordu — aşama sekmelerinin (Kayıp/Beklemede vb.) aynı
+             satırına, en sağa, tek bir buton olarak taşındı; içerik artık sheet'te. -->
         <div class="mt-4 zk-stage-tabs" id="stage-tabs"></div>
       </header>
 
       <main class="px-5">
-        <!-- 24 Eylül 2026, sahibinin isteği: Medicamine'deki Adaylar ekranıyla aynı mantık
-             — önce GÖREV, tek dokunuşla Yapıldı/Ertele. 26 Eylül 2026: "Keşif görevleri"ne
-             genişletildi — doctor_tasks tablosu, çoklu görev/tür, yapay zeka taslak onayı,
-             geçmiş (tamamlanan) görevler. -->
-        <section class="pt-5">
-          <div class="flex items-center justify-between">
-            <div>
-              <h2 class="font-heading text-lg font-bold">Keşif görevleri</h2>
-              <p id="task-subtitle" class="mt-0.5 text-xs text-muted-foreground">Bugün yapılacaklar</p>
-            </div>
-            <button onclick="zkOpenTaskModal()" class="flex h-9 items-center gap-1 rounded-full border border-border bg-card px-3 text-xs font-bold">
-              <iconify-icon icon="lucide:plus" class="text-base"></iconify-icon> Gelişme
-            </button>
-          </div>
-
-          <div id="task-draft-box" class="mt-3 hidden rounded-theme border border-primary/30 bg-primary/5 p-4">
-            <div class="flex items-center justify-between gap-2">
-              <div class="flex items-center gap-2">
-                <iconify-icon icon="lucide:sparkles" class="text-lg text-primary"></iconify-icon>
-                <p class="text-sm font-extrabold">Onay bekleyen taslaklar <span id="task-draft-count" class="rounded-full bg-primary px-2 py-0.5 text-[10px] text-primary-foreground">0</span></p>
-              </div>
-              <button onclick="zkApproveAllDrafts()" class="h-9 rounded-full bg-primary px-3 text-xs font-extrabold text-primary-foreground">Tümünü onayla</button>
-            </div>
-            <p class="mt-1 text-[11px] text-muted-foreground">Otomatik atama sisteminin sabah yazdığı görevler. Onaylanınca sorumlu pazarlamacıya düşer.</p>
-            <div id="task-draft-list" class="mt-3 space-y-2"></div>
-          </div>
-
-          <div id="task-list" class="mt-3 space-y-2"></div>
-          <p id="task-empty" class="hidden mt-3 text-center text-xs text-muted-foreground">Bekleyen keşif görevi yok.</p>
-        </section>
-
         <!-- 26 Eylül 2026, sahibinin isteği: liste büyüdükçe isim/telefon araması ve
              bölgeye göre hızlı filtre — "bugün görülecekler" de dahil. Tamamı istemci
              tarafında currentList üzerinde çalışır, sunucuya ek istek atmaz. -->
@@ -221,6 +194,40 @@
       </div>
       <p id="np-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
       <button onclick="zkSubmitAddProspect()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
+    </div>
+  </div>
+
+  <!-- Keşif görevleri (26 Eylül 2026: aşama sekmelerindeki butondan açılır) -->
+  <div id="tasks-sheet" class="fixed inset-0 z-40 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkCloseTasksSheet()"></div>
+    <div class="absolute bottom-0 left-0 flex max-h-[88vh] w-full flex-col rounded-t-theme bg-card">
+      <div class="flex shrink-0 items-start justify-between gap-3 px-5 pt-5 pb-2">
+        <div>
+          <h2 class="font-heading text-lg font-bold">Keşif görevleri</h2>
+          <p id="task-subtitle" class="mt-0.5 text-xs text-muted-foreground">Bugün yapılacaklar</p>
+        </div>
+        <button onclick="zkCloseTasksSheet()" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-theme bg-muted text-muted-foreground" aria-label="Kapat">✕</button>
+      </div>
+      <div class="min-h-0 flex-1 overflow-y-auto px-5 pb-8">
+        <button onclick="zkOpenTaskModal()" class="flex h-11 w-full items-center justify-center gap-1.5 rounded-theme border border-border bg-background text-xs font-bold">
+          <iconify-icon icon="lucide:plus" class="text-base"></iconify-icon> Gelişme ekle
+        </button>
+
+        <div id="task-draft-box" class="mt-3 hidden rounded-theme border border-primary/30 bg-primary/5 p-4">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <iconify-icon icon="lucide:sparkles" class="text-lg text-primary"></iconify-icon>
+              <p class="text-sm font-extrabold">Onay bekleyen taslaklar <span id="task-draft-count" class="rounded-full bg-primary px-2 py-0.5 text-[10px] text-primary-foreground">0</span></p>
+            </div>
+            <button onclick="zkApproveAllDrafts()" class="h-9 rounded-full bg-primary px-3 text-xs font-extrabold text-primary-foreground">Tümünü onayla</button>
+          </div>
+          <p class="mt-1 text-[11px] text-muted-foreground">Otomatik atama sisteminin sabah yazdığı görevler. Onaylanınca sorumlu pazarlamacıya düşer.</p>
+          <div id="task-draft-list" class="mt-3 space-y-2"></div>
+        </div>
+
+        <div id="task-list" class="mt-3 space-y-2"></div>
+        <p id="task-empty" class="hidden mt-3 text-center text-xs text-muted-foreground">Bekleyen keşif görevi yok.</p>
+      </div>
     </div>
   </div>
 
@@ -565,7 +572,11 @@
 
     document.getElementById('stage-tabs').innerHTML = STAGES.map(function (s) {
       return '<button type="button" class="zk-stage-tab' + (s.key === curStage ? ' on' : '') + '" data-stage="' + s.key + '" onclick="zkSetStage(\'' + s.key + '\')">' + s.label + '</button>';
-    }).join('');
+    }).join('') +
+      '<button type="button" onclick="zkOpenTasksSheet()" class="zk-stage-tab zk-stage-tab-kesif">' +
+        '<iconify-icon icon="lucide:clipboard-list" class="text-sm"></iconify-icon> Keşif görevleri' +
+        '<span id="kesif-tab-count" class="hidden rounded-full bg-destructive px-1.5 py-0.5 text-[10px] font-extrabold text-destructive-foreground">0</span>' +
+      '</button>';
 
     function zkSetStage(stage) {
       curStage = stage;
@@ -630,13 +641,26 @@
     function renderMyTasks() {
       document.getElementById('task-empty').classList.toggle('hidden', !!myTasks.length);
       document.getElementById('task-list').innerHTML = myTasks.map(function (x) { return taskCard(x, false); }).join('');
+      zkUpdateKesifBadge();
     }
     function renderDrafts() {
       var box = document.getElementById('task-draft-box');
       box.classList.toggle('hidden', !draftTasks.length);
       document.getElementById('task-draft-count').textContent = String(draftTasks.length);
       document.getElementById('task-draft-list').innerHTML = draftTasks.map(function (x) { return taskCard(x, true); }).join('');
+      zkUpdateKesifBadge();
     }
+    // 26 Eylül 2026: aşama sekmelerindeki "Keşif görevleri" butonunda kaç kayıt
+    // beklediğini gösteren rozet — sheet artık kapalı başlıyor, göz ardı edilmesin.
+    function zkUpdateKesifBadge() {
+      var el = document.getElementById('kesif-tab-count');
+      if (!el) return;
+      var toplam = myTasks.length + draftTasks.length;
+      el.textContent = String(toplam);
+      el.classList.toggle('hidden', !toplam);
+    }
+    function zkOpenTasksSheet() { document.getElementById('tasks-sheet').classList.remove('hidden'); }
+    function zkCloseTasksSheet() { document.getElementById('tasks-sheet').classList.add('hidden'); }
     function zkApproveDraft(id) {
       var draft = draftTasks.filter(function (x) { return x.id === id; })[0];
       ZKHiz.optimistic({
