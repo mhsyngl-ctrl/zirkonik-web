@@ -90,6 +90,7 @@
             <div>
               <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Doktor kazanımı</p>
               <h1 class="mt-1 font-heading text-2xl font-bold tracking-tight">Doktor Havuzu</h1>
+              <p id="dh-total-count" class="mt-0.5 text-xs text-muted-foreground"></p>
             </div>
           </div>
           <div class="flex items-center gap-2">
@@ -217,6 +218,13 @@
           <select id="nreg-il" onchange="zkIlChanged('nreg')" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"></select>
           <select id="nreg-ilce" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"><option value="">İlçe seçin</option></select>
         </div>
+        <!-- 26 Eylül 2026, sahibinin bildirdiği kafa karışıklığı: şehir/ilçe seçip
+             bölge ekledikten sonra, o bölgeyi bir temsilciye atamak için yukarı
+             kaydırıp listede o satırı bulmak gerekiyordu — iki ayrı adım gibi
+             hissettiriyordu. Artık aynı formda temsilci de seçilip TEK adımda atanır. -->
+        <select id="nreg-rep" class="mt-2 h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+          <option value="">Temsilci ata (opsiyonel)</option>
+        </select>
         <button onclick="zkAddRegion()" class="mt-2 flex h-12 w-full items-center justify-center rounded-theme bg-primary px-4 text-sm font-bold text-primary-foreground">Bölge olarak ekle</button>
         <p id="nreg-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
       </div>
@@ -242,6 +250,16 @@
         <button onclick="zkCloseDetail()" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-theme bg-muted text-muted-foreground" aria-label="Kapat">✕</button>
       </div>
       <div class="min-h-0 flex-1 overflow-y-auto px-5 pt-1 pb-8">
+
+      <!-- 26 Eylül 2026, sahibinin bildirdiği eksik: temsilci sahadan girdiği
+           doktor/klinik adını yanlış yazmış olabilir — önceden yalnız başlıkta
+           salt-okunur gösteriliyordu, düzeltme yolu yoktu. -->
+      <div class="mt-3 grid grid-cols-2 gap-2.5">
+        <label class="block"><span class="mb-1 block text-[11px] font-bold">Doktor adı</span>
+          <input id="dt-fullname" type="text" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs"></label>
+        <label class="block"><span class="mb-1 block text-[11px] font-bold">Klinik adı</span>
+          <input id="dt-clinicname" type="text" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs"></label>
+      </div>
 
       <div class="mt-4 grid grid-cols-2 gap-2.5">
         <label class="block"><span class="mb-1 block text-[11px] font-bold">Aşama</span>
@@ -761,7 +779,10 @@
         // (yalnız role !== 'doktor' filtresi vardı). Yalnız Satış Pazarlama Sorumlusu pozisyonu
         // temsilci olabilir.
         reps = ((res[1] && res[1].data) || []).filter(function (u) { return u.position === 'Satış Pazarlama Sorumlusu'; });
-        document.getElementById('dt-rep').innerHTML = '<option value="">—</option>' + reps.map(function (u) { return '<option value="' + u.id + '">' + escapeHtml(u.full_name) + '</option>'; }).join('');
+        var repOptions = reps.map(function (u) { return '<option value="' + u.id + '">' + escapeHtml(u.full_name) + '</option>'; }).join('');
+        document.getElementById('dt-rep').innerHTML = '<option value="">—</option>' + repOptions;
+        var nregRep = document.getElementById('nreg-rep');
+        if (nregRep) nregRep.innerHTML = '<option value="">Temsilci ata (opsiyonel)</option>' + repOptions;
       });
     }
     function zkOpenRegions() {
@@ -782,11 +803,21 @@
         ? '<span class="rounded-full bg-secondary px-2 py-1 text-[11px] font-bold text-secondary-foreground">' + (r.temsilci ? escapeHtml(r.temsilci.full_name) : 'Temsilci atanmadı') + '</span>'
         : '<select onchange="zkAssignRegionRep(\'' + r.id + '\', this.value)" class="h-9 rounded-lg border border-border bg-input px-2 text-[11px]">' +
           '<option value="">Temsilci ata</option>' + reps.map(function (u) { return '<option value="' + u.id + '"' + (r.assigned_rep_id === u.id ? ' selected' : '') + '>' + escapeHtml(u.full_name) + '</option>'; }).join('') +
-          '</select>';
+          '</select>' +
+          // 26 Eylül 2026, sahibinin isteği: bölge silme yalnız işveren/yöneticiye.
+          '<button type="button" onclick="zkDeleteRegion(\'' + r.id + '\',\'' + escapeHtml(r.name).replace(/'/g, "\\'") + '\')" class="ml-1.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border text-destructive" aria-label="Bölgeyi sil"><iconify-icon icon="lucide:trash-2" class="text-sm"></iconify-icon></button>';
       return '<div class="flex items-center justify-between rounded-theme border border-border bg-background p-3">' +
         '<div><p class="text-sm font-bold">' + escapeHtml(r.name) + '</p>' +
         (isSales ? '' : '<p class="mt-0.5 text-[11px] text-muted-foreground">' + (r.temsilci ? escapeHtml(r.temsilci.full_name) : 'Temsilci atanmadı') + '</p>') + '</div>' +
-        temsilciHtml + '</div>';
+        '<div class="flex items-center">' + temsilciHtml + '</div></div>';
+    }
+    function zkDeleteRegion(id, name) {
+      if (!confirm('"' + name + '" bölgesi silinsin mi? Bu bölgedeki doktorların bölge bilgisi boşalır.')) return;
+      ZirkonikData.deleteRegion(id).then(function (res) {
+        if (res.error) { zkToast('Silinemedi: ' + res.error.message); return; }
+        zkToast('Bölge silindi.');
+        loadRegionsAndReps().then(renderRegionsList);
+      });
     }
     function renderRegionsList() {
       var el = document.getElementById('regions-list');
@@ -816,11 +847,21 @@
       var ilce = ilceSel.value;
       if (!ilce) { errEl.textContent = 'İlçe seçilmelidir.'; errEl.classList.remove('hidden'); return; }
       var yaka = ilceSel.options[ilceSel.selectedIndex].getAttribute('data-yaka') || null;
+      // 26 Eylül 2026: şehir/ilçe seçilip eklendiğinde, aynı formdaki temsilci
+      // kutusunda biri seçiliyse TEK adımda ona da atanır — yukarı kaydırıp
+      // listede o satırı ayrıca bulmaya gerek kalmaz.
+      var repSel = document.getElementById('nreg-rep');
+      var repId = repSel ? repSel.value : '';
       ZirkonikData.bolgeBulVeyaOlustur(ilce, yaka).then(function (res) {
         if (res.error) { errEl.textContent = 'Eklenemedi: ' + res.error.message; errEl.classList.remove('hidden'); return; }
-        ilceSel.value = '';
-        zkToast('Bölge eklendi.');
-        loadRegionsAndReps().then(renderRegionsList);
+        var regionId = res.data;
+        var atama = repId ? ZirkonikData.updateRegion(regionId, { assigned_rep_id: repId }) : Promise.resolve({});
+        atama.then(function () {
+          ilceSel.value = '';
+          if (repSel) repSel.value = '';
+          zkToast(repId ? 'Bölge eklendi ve atandı.' : 'Bölge eklendi.');
+          loadRegionsAndReps().then(renderRegionsList);
+        });
       });
     }
 
@@ -892,6 +933,8 @@
       detailDoctor = d;
       document.getElementById('dt-name').textContent = 'Dr. ' + d.full_name;
       document.getElementById('dt-clinic').textContent = d.clinic_name || '—';
+      document.getElementById('dt-fullname').value = d.full_name || '';
+      document.getElementById('dt-clinicname').value = d.clinic_name || '';
       var activatorEl = document.getElementById('dt-activator');
       if (d.pipeline_stage === 'aktif' && d.activator) {
         activatorEl.textContent = d.activator.full_name + ' tarafından aktif edildi';
@@ -1005,7 +1048,15 @@
       var stage = document.getElementById('dt-stage').value;
       var nextDate = document.getElementById('dt-next-date').value;
       var nextTime = document.getElementById('dt-next-time').value || '09:00';
+      var fullName = document.getElementById('dt-fullname').value.trim();
+      if (!fullName) {
+        errEl.textContent = 'Doktor adı boş olamaz.';
+        errEl.classList.remove('hidden');
+        return;
+      }
       var payload = {
+        full_name: fullName,
+        clinic_name: document.getElementById('dt-clinicname').value.trim() || null,
         pipeline_stage: stage,
         priority: document.getElementById('dt-priority').value,
         lost_reason: stage === 'kayip' ? document.getElementById('dt-lost-reason').value : null,
@@ -1122,6 +1173,10 @@
     ZirkonikAuth.requireAuth().then(function (session) {
       if (!session) return;
       loadRegionsAndReps().then(function () { loadList(); renderFilterChips(); });
+      ZirkonikData.countAllDoctors().then(function (r) {
+        var el = document.getElementById('dh-total-count');
+        if (el && typeof r.count === 'number') el.textContent = 'Toplam ' + r.count + ' doktor';
+      });
       ZirkonikAuth.me().then(function (me) {
         if (!me) return;
         myId = me.id;

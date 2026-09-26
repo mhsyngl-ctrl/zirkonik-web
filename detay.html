@@ -68,6 +68,11 @@
             <button id="cancel-job-icon-btn" onclick="zkOpenCancelJob()" class="hidden flex h-10 w-10 items-center justify-center rounded-theme bg-secondary text-primary text-destructive" aria-label="İşi iptal et" title="İşi iptal et">
               <iconify-icon icon="lucide:ban" class="text-lg"></iconify-icon>
             </button>
+            <!-- 26 Eylül 2026, sahibinin isteği: tamamlanan işte hata varsa ya da
+                 baştan alınması gerekirse, yalnız işveren/yönetici yeniden açabilir. -->
+            <button id="reopen-job-icon-btn" onclick="zkReopenJob()" class="hidden flex h-10 w-10 items-center justify-center rounded-theme bg-secondary text-primary" aria-label="İşi yeniden aç" title="İşi yeniden aç">
+              <iconify-icon icon="lucide:rotate-ccw" class="text-lg"></iconify-icon>
+            </button>
           </div>
         </div>
 
@@ -680,12 +685,26 @@
 
       if (j.status === 'completed') {
         iconBtn.classList.add('hidden');
+        ZirkonikAuth.me().then(function (me) {
+          isAdminViewer = me.role === 'yonetici';
+          document.getElementById('reopen-job-icon-btn').classList.toggle('hidden', !isAdminViewer);
+        });
         return;
       }
+      document.getElementById('reopen-job-icon-btn').classList.add('hidden');
 
       ZirkonikAuth.me().then(function (me) {
         isAdminViewer = me.role === 'yonetici';
         iconBtn.classList.toggle('hidden', !isAdminViewer);
+      });
+    }
+    function zkReopenJob() {
+      if (!isAdminViewer || !currentJob) return;
+      if (!confirm('"' + currentJob.job_number + '" yeniden açılsın mı? İş tekrar aktif olur, bekleyen (ödenmemiş) hakediş varsa silinir.')) return;
+      ZirkonikData.reopenJob(jobId).then(function (res) {
+        if (res.error) { zkToast('Açılamadı: ' + res.error.message); return; }
+        zkToast('İş yeniden açıldı.');
+        loadJob();
       });
     }
 

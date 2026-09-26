@@ -291,6 +291,11 @@
       return client().from('regions').delete().eq('id', regionId);
     },
     // Aday/doktor listesi — aşama filtresiyle (aday-havuzu.html Kanban sekmeleri).
+    // 26 Eylül 2026, sahibinin isteği: doktor havuzu başlığında toplam sayı.
+    // Aşama filtresi olmadan, RLS neyi görebiliyorsa onu sayar.
+    countAllDoctors: function () {
+      return client().from('doctors').select('id', { count: 'exact', head: true });
+    },
     listPipelineDoctors: function (stage) {
       var q = client().from('doctors')
         .select('*, region:region_id(name), temsilci:assigned_rep_id(full_name), activator:activated_by(full_name), laboratories:primary_laboratory_id(name)')
@@ -513,6 +518,10 @@
     // hakedişler iptal edilir, tüketilen stok geri iade edilir.
     cancelJob: function (jobId, reason, category) {
       return client().rpc('cancel_job', { p_job_id: jobId, p_reason: reason || null, p_category: category || null });
+    },
+    // 26 Eylül 2026: tamamlanan işi yeniden açar — yalnız işveren/yönetici.
+    reopenJob: function (jobId) {
+      return client().rpc('reopen_job', { p_job_id: jobId });
     },
 
     // ---- Fiyat listesi ----
