@@ -920,7 +920,14 @@
         var dateStr = document.getElementById('tm-date').value;
         var timeStr = document.getElementById('tm-time').value || '09:00';
         if (!dateStr) { errEl.textContent = 'Tarih seçilmelidir.'; errEl.classList.remove('hidden'); return; }
-        ZirkonikData.addDoctorTask({
+        // 26 Eylül 2026, sahibinin isteği: "İleri planla" adı üstünde ileriye
+        // dönük olmalı — pazarlamacı geçmiş bir tarih seçerse (geçmişe dönük
+        // kayıt fabrikasyonu riski) doğrudan "bekliyor" değil, admin onayı
+        // bekleyen taslak olarak kaydedilir (var olan taslak+onay akışı).
+        var bugun = new Date(); bugun.setHours(0, 0, 0, 0);
+        var secilenGun = new Date(dateStr + 'T00:00:00');
+        var gecmise = secilenGun < bugun && !myIsAdmin;
+        var payload = {
           organization_id: doctor.organization_id,
           doctor_id: doctorId,
           assigned_to: myId,
@@ -929,10 +936,12 @@
           title: (TASK_KIND_LABELS[kind] || kind) + (note ? ': ' + note : ''),
           note: note,
           due_at: new Date(dateStr + 'T' + timeStr + ':00').toISOString()
-        }).then(function (res) {
+        };
+        if (gecmise) payload.status = 'taslak';
+        ZirkonikData.addDoctorTask(payload).then(function (res) {
           if (res.error) { errEl.textContent = 'Kaydedilemedi: ' + res.error.message; errEl.classList.remove('hidden'); return; }
           zkCloseTaskModal();
-          zkToast('Görev oluşturuldu.');
+          zkToast(gecmise ? 'Geçmiş tarihli kayıt işveren/yönetici onayına gönderildi.' : 'Görev oluşturuldu.');
           loadMyTasks();
         });
       }
