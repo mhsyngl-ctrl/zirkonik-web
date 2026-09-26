@@ -265,8 +265,9 @@
     })();
   </script>
 
-  <!-- Bilgileri düzelt (yönetici + Resepsiyon/can_manage_orders) — 25 Eylül 2026.
-       Yalnız üretimi etkilemeyen alanlar; çalışma türü/diş burada değiştirilmez. -->
+  <!-- Bilgileri düzelt (yönetici + Resepsiyon/can_manage_orders/can_edit_room_orders) —
+       25 Eylül 2026, 26 Eylül 2026'da tek kalemli işlerde çalışma türü/diş/adet eklendi
+       (fiyat hariç — bkz. zk_is_kalem_duzelt). -->
   <div id="edit-job-sheet" class="fixed inset-0 z-50 hidden">
     <div class="absolute inset-0 bg-black/40" onclick="zkCloseEditJob()"></div>
     <div class="absolute bottom-0 left-0 flex max-h-[85vh] w-full flex-col overflow-y-auto rounded-t-theme bg-card p-5 pb-8">
@@ -292,6 +293,21 @@
       <label class="mt-3 flex items-center gap-2 text-xs font-semibold">
         <input id="ej-priority" type="checkbox"> Öncelikli iş
       </label>
+
+      <!-- 26 Eylül 2026, sahibinin isteği: tek kalemli işlerde diş/çalışma türü/adet
+           de düzeltilebilsin — fiyat hiç gösterilmez/dokunulmaz (zk_calisma_turleri_listele
+           yalnız isim döner, zk_is_kalem_duzelt price alanına hiç yazmaz). Birden fazla
+           kalemli işlerde bu bölüm gizlenir, yalnız yönetici düzenleyebilir. -->
+      <div id="ej-item-section" class="mt-4 hidden border-t border-border pt-4">
+        <p class="text-xs font-bold">Çalışma detayları</p>
+        <label class="mt-2.5 block"><span class="mb-1.5 block text-xs font-bold">Çalışma türü</span>
+          <select id="ej-worktype" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"><option value="">Seçin</option></select>
+        </label>
+        <label class="mt-2.5 block w-32"><span class="mb-1.5 block text-xs font-bold">Adet</span>
+          <input id="ej-unit-count" type="number" min="1" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"></label>
+        <div id="ej-teeth-diagram" class="mt-2.5"></div>
+      </div>
+      <p id="ej-multi-item-note" class="mt-4 hidden text-xs text-muted-foreground">Bu iş birden fazla kalem içeriyor — çalışma detaylarını yalnız yönetici düzenleyebilir.</p>
 
       <p id="edit-job-error" class="mt-3 hidden text-xs font-semibold text-destructive"></p>
 
@@ -685,8 +701,9 @@
       renderCancelCategoryOptions();
     }
     // 25 Eylül 2026: hasta adı/protokol no/referans/teslim tarihi/öncelik
-    // düzeltmesi — yönetici + Resepsiyon (can_manage_orders). Çalışma türü/diş
-    // burada YOK: üretim rotasını etkiler, kapsam dışı bırakıldı.
+    // düzeltmesi — yönetici + Resepsiyon (can_manage_orders). 26 Eylül 2026:
+    // tek kalemli işlerde çalışma türü/diş/adet de eklendi (fiyat hariç).
+    var workTypes = null;
     function zkOpenEditJob() {
       if (!canFixJob || !currentJob) return;
       document.getElementById('ej-patient').value = currentJob.patient_name || '';
@@ -695,6 +712,34 @@
       document.getElementById('ej-delivery').value = currentJob.requested_delivery_at ? currentJob.requested_delivery_at.slice(0, 10) : '';
       document.getElementById('ej-priority').checked = !!currentJob.is_priority;
       document.getElementById('edit-job-error').classList.add('hidden');
+
+      var itemSec = document.getElementById('ej-item-section');
+      var multiNote = document.getElementById('ej-multi-item-note');
+      if (jobItems.length === 1) {
+        itemSec.classList.remove('hidden');
+        multiNote.classList.add('hidden');
+        var item = jobItems[0];
+        document.getElementById('ej-unit-count').value = item.unit_count || (item.teeth || []).length || 1;
+        (workTypes ? Promise.resolve({ data: workTypes }) : ZirkonikData.listWorkTypes()).then(function (r) {
+          workTypes = r.data || [];
+          var sel = document.getElementById('ej-worktype');
+          var groups = {};
+          sel.innerHTML = '<option value="">Seçin</option>';
+          workTypes.forEach(function (w) {
+            var opt = document.createElement('option');
+            opt.value = w.id;
+            opt.textContent = w.name;
+            sel.appendChild(opt);
+          });
+          sel.value = item.price_item_id || '';
+        });
+        var dia = document.getElementById('ej-teeth-diagram');
+        ZkWorkForm.render(dia, { diagramOnly: true });
+        ZkWorkForm.setTeeth(item.teeth || []);
+      } else {
+        itemSec.classList.add('hidden');
+        multiNote.classList.toggle('hidden', jobItems.length <= 1);
+      }
       document.getElementById('edit-job-sheet').classList.remove('hidden');
     }
     function zkCloseEditJob() {
@@ -711,18 +756,34 @@
         errEl.classList.remove('hidden');
         return;
       }
+      // Çalışma türü/diş bölümü İSTEĞE BAĞLI: yalnız hasta adı gibi bir alanı
+      // düzeltmek için açılmış olabilir. worktype+diş ikisi de doluysa kaydedilir,
+      // biri boşsa bu kalem sessizce atlanır — hasta bilgisi yine de kaydedilir.
+      var worktypeSec = document.getElementById('ej-item-section');
+      var itemEditing = jobItems.length === 1 && !worktypeSec.classList.contains('hidden');
+      var worktypeId = itemEditing ? document.getElementById('ej-worktype').value : '';
+      var teeth = itemEditing ? ZkWorkForm.getTeeth() : [];
+      itemEditing = itemEditing && !!worktypeId && teeth.length > 0;
       var deliveryVal = document.getElementById('ej-delivery').value;
       btn.disabled = true;
-      ZirkonikData.fixJobInfo(jobId, {
+      var istekler = [ZirkonikData.fixJobInfo(jobId, {
         patient_name: patientName,
         clinic_protocol_no: protocolNo,
         patient_reference: document.getElementById('ej-reference').value.trim() || null,
         requested_delivery_at: deliveryVal ? new Date(deliveryVal + 'T09:00:00').toISOString() : null,
         is_priority: document.getElementById('ej-priority').checked
-      }).then(function (res) {
+      })];
+      if (itemEditing) {
+        istekler.push(ZirkonikData.fixJobItem(
+          jobId, teeth, worktypeId,
+          Math.max(1, Number(document.getElementById('ej-unit-count').value) || teeth.length)
+        ));
+      }
+      Promise.all(istekler).then(function (rs) {
         btn.disabled = false;
-        if (res.error) {
-          errEl.textContent = 'Kaydedilemedi: ' + res.error.message;
+        var hata = rs.filter(function (r) { return r && r.error; })[0];
+        if (hata) {
+          errEl.textContent = 'Kaydedilemedi: ' + hata.error.message;
           errEl.classList.remove('hidden');
           return;
         }

@@ -422,6 +422,18 @@
         p_is_priority: fields.is_priority
       });
     },
+    // 26 Eylül 2026: çalışma türü seçimi fiyat göstermeden — price_list_items
+    // artık personele kapalı, bu RPC yalnız isim/kategori döner.
+    listWorkTypes: function () {
+      return client().rpc('zk_calisma_turleri_listele');
+    },
+    // Tek kalemli işlerde diş/çalışma türü/adet düzeltir — fiyata dokunmaz.
+    // Birden fazla kalemli işlerde sunucu reddeder (yalnız yönetici düzenler).
+    fixJobItem: function (jobId, teeth, priceItemId, unitCount) {
+      return client().rpc('zk_is_kalem_duzelt', {
+        p_job_id: jobId, p_teeth: teeth, p_price_item_id: priceItemId, p_unit_count: unitCount
+      });
+    },
     // "İş teslimi" iki taraflı: bu, işi bir sonraki odaya İTER (handled_by
     // burada set edilmez — teslim alan oda confirmJobStage() ile kendi
     // teslim aldığını onaylayana kadar boş kalır). Eski odanın kaydı

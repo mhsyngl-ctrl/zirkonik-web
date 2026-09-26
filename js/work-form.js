@@ -169,9 +169,15 @@
       });
     },
 
-    render: function (el) {
+    // 26 Eylül 2026: opts.diagramOnly ile yalnız diş diyagramı basılır — klinik
+    // talepler bloğu (renk/gingiva/DVO/materyal vb.) yok. Var olan work_form
+    // için henüz bir "geri doldurma" yolu olmadığından, o alanları göstermeden
+    // düzenletmek (sonra sessizce silmek yerine) daha güvenli — sipariş
+    // düzenleme yetkisiyle yalnız diş/çalışma türü/adet düzeltiliyor.
+    render: function (el, opts) {
       container = el;
       selected = {};
+      opts = opts || {};
       el.innerHTML =
         '<div class="rounded-theme border border-border bg-card p-4">' +
           '<p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Diş yerleşimi</p>' +
@@ -179,6 +185,7 @@
           '<p class="mt-3 text-xs text-muted-foreground">Seçilen diş: <span id="zk-wf-count" class="font-bold text-foreground">0</span> · <span id="zk-wf-teeth-list"></span></p>' +
         '</div>' +
 
+        (opts.diagramOnly ? '' :
         '<div class="mt-4 rounded-theme border border-border bg-card p-4 space-y-4">' +
           '<p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Klinik talepler</p>' +
           '<div><span class="mb-1.5 block text-xs font-bold">Renk / Shade (VITA)</span>' +
@@ -194,7 +201,7 @@
             '<input id="zk-wf-gulus-diger" type="text" class="mt-1.5 h-11 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="Diğer (fotoğraf eki açıklaması)"></div>' +
           '<label class="block"><span class="mb-1.5 block text-xs font-bold">Özel istek / açıklama</span>' +
             '<textarea id="zk-wf-ozel" rows="3" class="w-full rounded-theme border border-border bg-input px-3.5 py-2.5 text-sm" placeholder="Laboratuvara not..."></textarea></label>' +
-        '</div>';
+        '</div>');
 
       function toggleTooth(group) {
         var n = group.getAttribute('data-tooth');
