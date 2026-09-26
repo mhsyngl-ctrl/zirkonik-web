@@ -723,6 +723,23 @@
         renderList(true);
       });
     }
+    // 26 Eylül 2026, sahibinin bildirdiği hata: takvimde günün görevleri için
+    // taskCard() çok büyüktü (Medicamine'deki saat bazlı ince satırlarla
+    // karşılaştırınca). Takvimin gün listesi için saat solda, doktor/başlık
+    // sağda, küçük ikon butonlu kompakt satır.
+    function taskCardCompact(x) {
+      var overdue = new Date(x.due_at) < new Date();
+      var saat = new Date(x.due_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+      var doctorName = x.doctor ? x.doctor.full_name : '';
+      var who = (myIsAdmin && x.assignee) ? ' · ' + escapeHtml(x.assignee.full_name) : '';
+      return '<div class="flex items-center gap-2.5 rounded-lg border ' + (overdue ? 'border-destructive/30' : 'border-border') + ' bg-card px-3 py-2.5">' +
+        '<span class="shrink-0 text-xs font-bold tabular-nums ' + (overdue ? 'text-destructive' : 'text-muted-foreground') + '">' + saat + '</span>' +
+        '<div class="min-w-0 flex-1"><p class="truncate text-xs font-bold">Dr. ' + escapeHtml(doctorName) + '</p>' +
+          '<p class="truncate text-[11px] text-muted-foreground">' + escapeHtml(TASK_KIND_LABELS[x.kind] || x.kind) + who + '</p></div>' +
+        '<button onclick="zkTaskDone(\'' + x.id + '\')" aria-label="Yapıldı" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-success/10 text-success"><iconify-icon icon="lucide:check" class="text-sm"></iconify-icon></button>' +
+        '<button onclick="zkTaskSnooze(\'' + x.id + '\')" aria-label="Ertele" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground"><iconify-icon icon="lucide:alarm-clock" class="text-sm"></iconify-icon></button>' +
+      '</div>';
+    }
     function taskCard(x, isDraft) {
       var overdue = !isDraft && new Date(x.due_at) < new Date(new Date().setHours(0, 0, 0, 0));
       var doctorName = x.doctor ? x.doctor.full_name : '';
@@ -838,7 +855,7 @@
       var isoTarih = yil + '-' + String(ay).padStart(2, '0') + '-' + String(gun).padStart(2, '0');
       document.getElementById('task-cal-day-label').textContent = etiketTarih.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', weekday: 'long' }) + ' · ' + gununGorevleri.length + ' görev';
       document.getElementById('task-cal-day-list').innerHTML = gununGorevleri.length
-        ? gununGorevleri.map(function (x) { return taskCard(x, false); }).join('')
+        ? gununGorevleri.map(function (x) { return taskCardCompact(x); }).join('')
         : '<p class="text-xs text-muted-foreground">Bu günde görev yok — boş.</p>' +
           '<button type="button" onclick="zkOpenTaskModal(null,\'' + isoTarih + '\')" class="mt-2 flex h-10 w-full items-center justify-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 text-xs font-bold text-primary">' +
             '<iconify-icon icon="lucide:plus" class="text-sm"></iconify-icon> Bu güne görev ekle' +
