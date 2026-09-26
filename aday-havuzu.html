@@ -12,6 +12,20 @@
   <link rel="stylesheet" href="css/ipad.css">
   <link rel="stylesheet" href="css/zk-utils.css">
   <script src="js/zk-tema.js"></script>
+  <!-- 26 Eylül 2026, sahibinin bildirimi: Satış Pazarlama Sorumlusu için "Geri" geçmişteki
+       yasak bir sayfaya gidip zk-guard'ca buraya geri fırlatılıyordu — anlamsız zıplama,
+       hesabı kapatacak yeri de yoktu. Önbellekteki son bilinen pozisyona göre boyanmadan
+       önce Geri'yi gizler, Çıkış Yap'ı gösterir (kesin karar aşağıda me() ile doğrulanır). -->
+  <script>
+    (function () {
+      try {
+        var c = JSON.parse(localStorage.getItem('zk-guard') || 'null');
+        if (c && c.position === 'Satış Pazarlama Sorumlusu') {
+          document.write('<style>#ah-back-btn{display:none!important}#ah-logout-btn{display:flex!important}</style>');
+        }
+      } catch (e) {}
+    })();
+  </script>
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
@@ -63,8 +77,15 @@
       <header class="border-b border-border bg-card px-5 pb-5 pt-12" style="padding-top:max(3rem,calc(env(safe-area-inset-top) + 12px));">
         <div class="flex items-start justify-between">
           <div class="flex items-center gap-3">
-            <button onclick="history.length > 1 ? history.back() : (location.href='doktorlar.html')" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-background text-primary" aria-label="Geri">
+            <button id="ah-back-btn" onclick="history.length > 1 ? history.back() : (location.href='doktorlar.html')" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-background text-primary" aria-label="Geri">
               <iconify-icon icon="lucide:arrow-left" class="text-xl"></iconify-icon>
+            </button>
+            <!-- 26 Eylül 2026, sahibinin bildirimi: Satış Pazarlama Sorumlusu'nun bu sayfadan
+                 başka erişimi yok, "geri" geçmişteki yasak bir sayfaya gidip zk-guard'ca
+                 buraya geri fırlatılıyordu (anlamsız zıplama) — hesabı kapatacak yeri de
+                 yoktu. Bu pozisyon için Geri, Çıkış Yap ile değişir. -->
+            <button id="ah-logout-btn" onclick="ZirkonikAuth.signOut()" class="hidden flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-background text-primary" aria-label="Çıkış Yap">
+              <iconify-icon icon="lucide:log-out" class="text-xl"></iconify-icon>
             </button>
             <div>
               <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Doktor kazanımı</p>
@@ -973,6 +994,14 @@
         myId = me.id;
         myIsAdmin = me.role === 'yonetici';
         loadMyTasks();
+        // 26 Eylül 2026, sahibinin bildirimi: Satış Pazarlama Sorumlusu bu sayfadan
+        // başka yere gidemez — "Geri" geçmişteki yasak bir sayfaya gidip zk-guard'ca
+        // buraya zıplatılıyordu, hesabı kapatacak bir yer de yoktu. Bu pozisyonda
+        // Geri yerine Çıkış Yap gösterilir.
+        if (me.position === 'Satış Pazarlama Sorumlusu') {
+          document.getElementById('ah-back-btn').classList.add('hidden');
+          document.getElementById('ah-logout-btn').classList.remove('hidden');
+        }
       });
     });
 
