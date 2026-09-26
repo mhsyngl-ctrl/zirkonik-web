@@ -279,107 +279,13 @@
       </div>
       <div class="min-h-0 flex-1 overflow-y-auto px-5 pt-1 pb-8">
 
-      <!-- 26 Eylül 2026, sahibinin bildirdiği eksik: temsilci sahadan girdiği
-           doktor/klinik adını yanlış yazmış olabilir — önceden yalnız başlıkta
-           salt-okunur gösteriliyordu, düzeltme yolu yoktu. -->
-      <div class="mt-3 grid grid-cols-2 gap-2.5">
-        <label class="block"><span class="mb-1 block text-[11px] font-bold">Doktor adı</span>
-          <input id="dt-fullname" type="text" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs"></label>
-        <label class="block"><span class="mb-1 block text-[11px] font-bold">Klinik adı</span>
-          <input id="dt-clinicname" type="text" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs"></label>
-      </div>
-
-      <div class="mt-4 grid grid-cols-2 gap-2.5">
-        <label class="block"><span class="mb-1 block text-[11px] font-bold">Aşama</span>
-          <select id="dt-stage" onchange="zkStageChanged()" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs font-bold">
-            <option value="aday_havuzu">Doktor havuzu</option>
-            <option value="ilk_temas">İlk temas</option>
-            <option value="tanitim_yapildi">Tanıtım yapıldı</option>
-            <option value="deneme_vakasi">Deneme vakası</option>
-            <option value="onay_bekliyor">Onay bekliyor</option>
-            <!-- 25 Eylül 2026, sahibinin kuralı: "Aktif doktor" yalnız laboratuvar
-                 sahibinin onayıyla olur — bu seçenek yalnız yönetici görür (myIsAdmin),
-                 temsilci "Onaya Gönder" düğmesiyle onay_bekliyor'a taşır. Sunucuda da
-                 (trg_doktor_aktif_yalniz_admin) admin olmayan bu geçişi yapamaz. -->
-            <option id="dt-stage-aktif-opt" value="aktif">Aktif doktor</option>
-            <option value="uyuyan">Uyuyan doktor</option>
-            <option value="kayip">Kayıp</option>
-            <option value="beklemede">Beklemede</option>
-          </select>
-        </label>
-        <label class="block"><span class="mb-1 block text-[11px] font-bold">Öncelik</span>
-          <select id="dt-priority" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs font-bold">
-            <option value="yuksek">Yüksek</option><option value="orta">Orta</option><option value="dusuk">Düşük</option>
-          </select>
-        </label>
-      </div>
-
-      <div id="dt-lost-wrap" class="mt-2.5 hidden">
-        <span class="mb-1 block text-[11px] font-bold">Kayıp nedeni</span>
-        <select id="dt-lost-reason" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs font-bold">
-          <option value="fiyat">Fiyat</option>
-          <option value="mevcut_memnun">Mevcut laboratuvardan memnun</option>
-          <option value="kalite">Kalite şikayeti</option>
-          <option value="teslim_suresi">Teslim süresi</option>
-          <option value="ulasilamadi">Ulaşılamadı</option>
-          <option value="klinik_kapandi">Klinik kapandı</option>
-          <option value="sessizlik">Sessizlik (otomatik)</option>
-        </select>
-      </div>
-
-      <div class="mt-2.5 grid grid-cols-2 gap-2.5">
-        <label class="block"><span class="mb-1 block text-[11px] font-bold">İl</span>
-          <select id="dt-il" onchange="zkIlChanged('dt')" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs"></select>
-        </label>
-        <label class="block"><span class="mb-1 block text-[11px] font-bold">İlçe</span>
-          <select id="dt-ilce" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs"><option value="">İlçe</option></select>
-        </label>
-      </div>
-      <div class="mt-2.5 flex gap-2">
-        <input id="dt-mahalle" type="text" placeholder="Mahalle" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs">
-        <button type="button" onclick="zkKonumdanDoldur('dt')" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-theme border border-border bg-background text-primary" aria-label="Konumdan doldur" title="Konumdan doldur">
-          <iconify-icon id="dt-konum-icon" icon="lucide:map-pin"></iconify-icon>
-        </button>
-      </div>
-      <p id="dt-konum-hata" class="mt-1 hidden text-xs font-semibold text-destructive"></p>
-      <div class="mt-2.5">
-        <label class="block"><span class="mb-1 block text-[11px] font-bold">Temsilci</span>
-          <select id="dt-rep" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs"><option value="">—</option></select>
-        </label>
-      </div>
-
-      <!-- 26 Eylül 2026, sahibinin kararı: "sonraki aksiyon" alanları Keşif Görevleri
-           (doctor_tasks) ile çakışıyordu, iki ayrı planlama yolu anlamsızdı — kaldırıldı.
-           Randevu/aksiyon planlama artık yalnız görev sistemiyle yapılır. -->
-
-      <details class="mt-3 rounded-theme border border-border p-3" ontoggle="zkNudgeScroll(this)">
-        <summary class="cursor-pointer text-xs font-bold text-primary">Doktor bilgileri (opsiyonel)</summary>
-        <div class="mt-3 space-y-2.5">
-          <div class="grid grid-cols-2 gap-2.5">
-            <input id="dt-phone" type="tel" placeholder="Telefon" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs">
-            <input id="dt-email" type="email" placeholder="E-posta" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs">
-          </div>
-          <input id="dt-assistant-name" type="text" placeholder="Asistan adı" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs">
-          <input id="dt-assistant-phone" type="tel" placeholder="Asistan telefonu" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs">
-          <select id="dt-specialization" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs">
-            <option value="">Uzmanlık</option><option value="implantolog">İmplantolog</option><option value="protez">Protez</option>
-            <option value="estetik">Estetik</option><option value="genel">Genel</option>
-          </select>
-          <select id="dt-volume" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs">
-            <option value="">Tahmini aylık vaka hacmi</option><option value="kucuk">Küçük (0-5)</option><option value="orta">Orta (5-20)</option><option value="buyuk">Büyük (20+)</option>
-          </select>
-          <input id="dt-worktype" type="text" placeholder="Ağırlıklı işler (zirkon, e.max, implant üstü…)" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs">
-          <label class="flex items-center gap-2 text-xs font-semibold"><input id="dt-scanner" type="checkbox"> Intraoral tarayıcısı var</label>
-          <input id="dt-scanner-brand" type="text" placeholder="Tarayıcı markası" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs">
-          <select id="dt-priority-driver" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs">
-            <option value="">Doktorun önem verdiği</option><option value="fiyat">Fiyat</option><option value="hiz">Hız</option>
-            <option value="estetik">Estetik kalite</option><option value="olcu">Ölçü alma kolaylığı</option>
-          </select>
-        </div>
-      </details>
-
-      <p id="dt-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
-      <button onclick="zkSaveDetail()" class="mt-3 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
+      <!-- 26 Eylül 2026, sahibinin kararı: günlük iş "kayıt ekle" + görev
+           tamamlamaktan ibaret olmalı, doktor bilgileri/adresi her açılışta
+           önde durmamalı — o bölüm aşağıda katlı. -->
+      <button onclick="zkOpenTaskModal()" class="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-theme bg-primary text-sm font-bold text-primary-foreground">
+        <iconify-icon icon="lucide:plus" class="text-lg"></iconify-icon>
+        Kayıt ekle
+      </button>
 
       <!-- 25 Eylül 2026, sahibinin kuralı: temsilci artık doğrudan aktif edemez —
            kart laboratuvar sahibine onaya gider, o onaylayınca aktif olur ve o andan
@@ -403,74 +309,149 @@
       </div>
 
       <div class="mt-5 border-t border-border pt-4">
-        <p class="text-xs font-bold uppercase tracking-wide text-muted-foreground">Temas ekle</p>
-        <div class="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
-          <button onclick="zkAddTouch('ziyaret')" class="rounded-lg border border-border bg-background py-2 text-[11px] font-bold">Ziyaret</button>
-          <button onclick="zkAddTouch('arama')" class="rounded-lg border border-border bg-background py-2 text-[11px] font-bold">Arama</button>
-          <button onclick="zkAddTouch('whatsapp')" class="rounded-lg border border-border bg-background py-2 text-[11px] font-bold">WhatsApp</button>
-          <button onclick="zkAddTouch('numune')" class="rounded-lg border border-border bg-background py-2 text-[11px] font-bold">Numune</button>
-          <!-- 24 Eylül 2026, sahibinin senaryosu: temsilci kliniğe gidiyor, doktor müsait
-               değil, resepsiyon ileri bir tarihte randevu veriyor. Kaydedilince doktorun
-               sonraki aksiyon tarihi otomatik o güne kurulur, Görevlerim'e düşer. -->
-          <button onclick="zkAddTouch('randevu')" class="rounded-lg border border-primary/30 bg-primary/5 py-2 text-[11px] font-bold text-primary">Randevu verildi</button>
-          <button onclick="zkAddTouch('sikayet')" class="rounded-lg border border-destructive/30 bg-destructive/5 py-2 text-[11px] font-bold text-destructive">Şikayet</button>
-          <button onclick="zkAddTouch('not')" class="rounded-lg border border-border bg-background py-2 text-[11px] font-bold">Not</button>
-        </div>
-        <div id="touch-list" class="mt-3 space-y-2"></div>
+        <p class="text-xs font-bold uppercase tracking-wide text-muted-foreground">Geçmiş</p>
+        <div id="touch-list" class="mt-2 space-y-2"></div>
       </div>
+
+      <!-- 26 Eylül 2026, sahibinin bildirdiği eksik: temsilci sahadan girdiği
+           doktor/klinik adını yanlış yazmış olabilir — önceden yalnız başlıkta
+           salt-okunur gösteriliyordu, düzeltme yolu yoktu. Bu bölüm artık katlı:
+           bir kere girilir, günlük işe karışmaz. -->
+      <details class="mt-5 rounded-theme border border-border p-3" ontoggle="zkNudgeScroll(this)">
+        <summary class="cursor-pointer text-xs font-bold text-primary">Doktor bilgilerini düzenle</summary>
+        <div class="mt-3 space-y-2.5">
+          <div class="grid grid-cols-2 gap-2.5">
+            <label class="block"><span class="mb-1 block text-[11px] font-bold">Doktor adı</span>
+              <input id="dt-fullname" type="text" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs"></label>
+            <label class="block"><span class="mb-1 block text-[11px] font-bold">Klinik adı</span>
+              <input id="dt-clinicname" type="text" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs"></label>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5">
+            <label class="block"><span class="mb-1 block text-[11px] font-bold">Aşama</span>
+              <select id="dt-stage" onchange="zkStageChanged()" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs font-bold">
+                <option value="aday_havuzu">Doktor havuzu</option>
+                <option value="ilk_temas">İlk temas</option>
+                <option value="tanitim_yapildi">Tanıtım yapıldı</option>
+                <option value="deneme_vakasi">Deneme vakası</option>
+                <option value="onay_bekliyor">Onay bekliyor</option>
+                <!-- 25 Eylül 2026, sahibinin kuralı: "Aktif doktor" yalnız laboratuvar
+                     sahibinin onayıyla olur — bu seçenek yalnız yönetici görür (myIsAdmin),
+                     temsilci "Onaya Gönder" düğmesiyle onay_bekliyor'a taşır. Sunucuda da
+                     (trg_doktor_aktif_yalniz_admin) admin olmayan bu geçişi yapamaz. -->
+                <option id="dt-stage-aktif-opt" value="aktif">Aktif doktor</option>
+                <option value="uyuyan">Uyuyan doktor</option>
+                <option value="kayip">Kayıp</option>
+                <option value="beklemede">Beklemede</option>
+              </select>
+            </label>
+            <label class="block"><span class="mb-1 block text-[11px] font-bold">Öncelik</span>
+              <select id="dt-priority" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs font-bold">
+                <option value="yuksek">Yüksek</option><option value="orta">Orta</option><option value="dusuk">Düşük</option>
+              </select>
+            </label>
+          </div>
+
+          <div id="dt-lost-wrap" class="hidden">
+            <span class="mb-1 block text-[11px] font-bold">Kayıp nedeni</span>
+            <select id="dt-lost-reason" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs font-bold">
+              <option value="fiyat">Fiyat</option>
+              <option value="mevcut_memnun">Mevcut laboratuvardan memnun</option>
+              <option value="kalite">Kalite şikayeti</option>
+              <option value="teslim_suresi">Teslim süresi</option>
+              <option value="ulasilamadi">Ulaşılamadı</option>
+              <option value="klinik_kapandi">Klinik kapandı</option>
+              <option value="sessizlik">Sessizlik (otomatik)</option>
+            </select>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5">
+            <label class="block"><span class="mb-1 block text-[11px] font-bold">İl</span>
+              <select id="dt-il" onchange="zkIlChanged('dt')" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs"></select>
+            </label>
+            <label class="block"><span class="mb-1 block text-[11px] font-bold">İlçe</span>
+              <select id="dt-ilce" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs"><option value="">İlçe</option></select>
+            </label>
+          </div>
+          <div class="flex gap-2">
+            <input id="dt-mahalle" type="text" placeholder="Mahalle" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs">
+            <button type="button" onclick="zkKonumdanDoldur('dt')" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-theme border border-border bg-background text-primary" aria-label="Konumdan doldur" title="Konumdan doldur">
+              <iconify-icon id="dt-konum-icon" icon="lucide:map-pin"></iconify-icon>
+            </button>
+          </div>
+          <p id="dt-konum-hata" class="hidden text-xs font-semibold text-destructive"></p>
+          <label class="block"><span class="mb-1 block text-[11px] font-bold">Temsilci</span>
+            <select id="dt-rep" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs"><option value="">—</option></select>
+          </label>
+
+          <details class="rounded-theme border border-border p-3" ontoggle="zkNudgeScroll(this)">
+            <summary class="cursor-pointer text-xs font-bold text-primary">Diğer bilgiler (opsiyonel)</summary>
+            <div class="mt-3 space-y-2.5">
+              <div class="grid grid-cols-2 gap-2.5">
+                <input id="dt-phone" type="tel" placeholder="Telefon" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs">
+                <input id="dt-email" type="email" placeholder="E-posta" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs">
+              </div>
+              <input id="dt-assistant-name" type="text" placeholder="Asistan adı" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs">
+              <input id="dt-assistant-phone" type="tel" placeholder="Asistan telefonu" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs">
+              <select id="dt-specialization" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs">
+                <option value="">Uzmanlık</option><option value="implantolog">İmplantolog</option><option value="protez">Protez</option>
+                <option value="estetik">Estetik</option><option value="genel">Genel</option>
+              </select>
+              <select id="dt-volume" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs">
+                <option value="">Tahmini aylık vaka hacmi</option><option value="kucuk">Küçük (0-5)</option><option value="orta">Orta (5-20)</option><option value="buyuk">Büyük (20+)</option>
+              </select>
+              <input id="dt-worktype" type="text" placeholder="Ağırlıklı işler (zirkon, e.max, implant üstü…)" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs">
+              <label class="flex items-center gap-2 text-xs font-semibold"><input id="dt-scanner" type="checkbox"> Intraoral tarayıcısı var</label>
+              <input id="dt-scanner-brand" type="text" placeholder="Tarayıcı markası" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs">
+              <select id="dt-priority-driver" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-xs">
+                <option value="">Doktorun önem verdiği</option><option value="fiyat">Fiyat</option><option value="hiz">Hız</option>
+                <option value="estetik">Estetik kalite</option><option value="olcu">Ölçü alma kolaylığı</option>
+              </select>
+            </div>
+          </details>
+
+          <p id="dt-error" class="hidden text-xs font-semibold text-destructive"></p>
+          <button onclick="zkSaveDetail()" class="flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
+        </div>
+      </details>
       </div>
     </div>
   </div>
 
-  <!-- 26 Eylül 2026: Keşif görevi ekle (elle) -->
+  <!-- 26 Eylül 2026, sahibinin kararı: "Temas ekle" ve "Görev ekle" iki ayrı
+       akıştı — profesyonel CRM'lerin (Salesforce, HubSpot) standardı tek akış:
+       "şimdi oldu" (geçmişe kayıt) ya da "ileri planla" (görev) seçimiyle tek
+       sheet. Doktor kartındaki hızlı "+Görev" ve üstteki "Kayıt ekle" de aynı
+       sheet'i açar. -->
   <div id="task-sheet" class="fixed inset-0 z-50 hidden">
     <div class="absolute inset-0 bg-black/40" onclick="zkCloseTaskModal()"></div>
     <div class="absolute bottom-0 left-0 max-h-[88vh] w-full overflow-y-auto rounded-t-theme bg-card p-5 pb-8">
-      <p class="font-heading text-lg font-bold">Görev ekle</p>
-      <label class="mt-3 block"><span class="mb-1.5 block text-xs font-bold">Doktor</span>
+      <p class="font-heading text-lg font-bold">Kayıt ekle</p>
+      <label id="tm-doctor-wrap" class="mt-3 block"><span class="mb-1.5 block text-xs font-bold">Doktor</span>
         <select id="tm-doctor" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"><option value="">Seçin</option></select></label>
-      <label class="mt-3 block"><span class="mb-1.5 block text-xs font-bold">Görev</span>
-        <input id="tm-title" type="text" placeholder="Örn. Tekrar ara" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"></label>
-      <label class="mt-3 block"><span class="mb-1.5 block text-xs font-bold">Tür</span>
-        <select id="tm-kind" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
-          <option value="arama">Arama</option>
-          <option value="ziyaret">Ziyaret</option>
-          <option value="whatsapp">WhatsApp</option>
-          <option value="randevu">Randevu</option>
-        </select></label>
       <div class="mt-3 grid grid-cols-2 gap-2">
+        <button type="button" id="tm-mode-simdi" onclick="zkKayitModeChanged('simdi')" class="h-11 rounded-lg text-xs font-bold">Şimdi oldu</button>
+        <button type="button" id="tm-mode-ileri" onclick="zkKayitModeChanged('ileri')" class="h-11 rounded-lg text-xs font-bold">İleri planla</button>
+      </div>
+      <label class="mt-3 block"><span class="mb-1.5 block text-xs font-bold">Tür</span>
+        <select id="tm-kind" onchange="zkKayitKindChanged()" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"></select></label>
+      <div id="tm-date-wrap" class="mt-3 hidden grid grid-cols-2 gap-2">
         <label class="block"><span class="mb-1.5 block text-xs font-bold">Tarih</span>
           <input id="tm-date" type="date" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"></label>
         <label class="block"><span class="mb-1.5 block text-xs font-bold">Saat</span>
           <input id="tm-time" type="time" value="09:00" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"></label>
       </div>
+      <div id="tm-satisfaction-wrap" class="mt-3 hidden">
+        <p class="mb-1.5 text-xs font-bold">Memnuniyet puanı</p>
+        <div class="grid grid-cols-5 gap-1.5" id="tm-satisfaction"></div>
+      </div>
       <label class="mt-3 block"><span class="mb-1.5 block text-xs font-bold">Not (opsiyonel)</span>
-        <textarea id="tm-note" rows="2" class="w-full rounded-theme border border-border bg-input px-3.5 py-2.5 text-sm"></textarea></label>
+        <textarea id="tm-note" rows="3" placeholder="Ne konuşuldu / ne oldu?" class="w-full rounded-theme border border-border bg-input px-3.5 py-2.5 text-sm"></textarea></label>
       <p id="tm-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
       <div class="mt-4 grid grid-cols-2 gap-2">
         <button onclick="zkCloseTaskModal()" class="flex h-12 items-center justify-center rounded-theme border border-border bg-input text-sm font-bold">Vazgeç</button>
         <button onclick="zkSubmitTask()" class="flex h-12 items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
       </div>
-    </div>
-  </div>
-
-  <!-- Temas notu girişi -->
-  <div id="touch-note-sheet" class="fixed inset-0 z-50 hidden">
-    <div class="absolute inset-0 bg-black/40" onclick="zkCloseTouchNote()"></div>
-    <div class="absolute bottom-0 left-0 w-full rounded-t-theme bg-card p-5 pb-8">
-      <p id="tn-title" class="font-heading text-lg font-bold">Not</p>
-      <div id="tn-date-wrap" class="mt-3 hidden grid grid-cols-2 gap-2">
-        <label class="block"><span class="mb-1.5 block text-xs font-bold">Randevu tarihi</span>
-          <input id="tn-date" type="date" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"></label>
-        <label class="block"><span class="mb-1.5 block text-xs font-bold">Saat</span>
-          <input id="tn-time" type="time" value="09:00" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"></label>
-      </div>
-      <textarea id="tn-note" rows="5" placeholder="Ne konuşuldu / ne oldu?" class="mt-3 w-full rounded-theme border border-border bg-input p-3 text-sm"></textarea>
-      <div id="tn-satisfaction-wrap" class="mt-3 hidden">
-        <p class="mb-1.5 text-xs font-bold">Memnuniyet puanı</p>
-        <div class="grid grid-cols-5 gap-1.5" id="tn-satisfaction"></div>
-      </div>
-      <button onclick="zkSubmitTouchNote()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
     </div>
   </div>
 
@@ -538,7 +519,6 @@
     var reps = [];
     var currentList = [];
     var detailDoctor = null;
-    var pendingTouchType = null;
     // 26 Eylül 2026: arama + bölge/bugün hızlı filtresi — currentList üzerinde çalışır.
     // Sahibinin bildirdiği "takılıyor" hatası: her tuş vuruşunda renderList()
     // giriş animasyonunu (stagger — her kart için zorunlu reflow) yeniden
@@ -761,49 +741,110 @@
         '</article>';
       }).join('');
     }
-    // ---- Görev ekle (elle) ----
+    // ---- Kayıt ekle (temas + görev birleşik, 26 Eylül 2026) ----
+    // "Şimdi oldu" -> temas kaydı (doctor_touches), varsa aynı türden açık
+    // görevi otomatik kapatır. "İleri planla" -> görev (doctor_tasks).
+    var kayitMode = 'simdi';
+    var KIND_OPTS_SIMDI = [['ziyaret', 'Ziyaret'], ['arama', 'Arama'], ['whatsapp', 'WhatsApp'], ['numune', 'Numune bırakıldı'], ['sikayet', 'Şikayet'], ['memnuniyet_aramasi', 'Memnuniyet araması'], ['not', 'Not']];
+    var KIND_OPTS_ILERI = [['arama', 'Arama'], ['ziyaret', 'Ziyaret'], ['whatsapp', 'WhatsApp'], ['randevu', 'Randevu']];
     // 26 Eylül 2026, sahibinin isteği: kart üstündeki görev düğmesinden açılınca
-    // o doktor önceden seçili gelsin.
+    // o doktor önceden seçili gelsin; doktor detayı açıkken doktor zaten belli,
+    // seçim kutusu gizlenir.
     function zkOpenTaskModal(preselectDoctorId) {
       var sel = document.getElementById('tm-doctor');
       sel.innerHTML = '<option value="">Seçin</option>' + currentList.map(function (d) { return '<option value="' + d.id + '">Dr. ' + escapeHtml(d.full_name) + '</option>'; }).join('');
-      if (preselectDoctorId) sel.value = preselectDoctorId;
-      document.getElementById('tm-title').value = '';
+      var pre = preselectDoctorId || (detailDoctor ? detailDoctor.id : '');
+      if (pre) sel.value = pre;
+      document.getElementById('tm-doctor-wrap').classList.toggle('hidden', !!detailDoctor);
       document.getElementById('tm-note').value = '';
-      document.getElementById('tm-kind').value = 'arama';
       document.getElementById('tm-date').value = new Date().toISOString().slice(0, 10);
       document.getElementById('tm-time').value = '09:00';
       document.getElementById('tm-error').classList.add('hidden');
+      zkKayitModeChanged('simdi');
       document.getElementById('task-sheet').classList.remove('hidden');
     }
     function zkCloseTaskModal() { document.getElementById('task-sheet').classList.add('hidden'); }
+    function zkKayitModeChanged(mode) {
+      kayitMode = mode;
+      var on = 'h-11 rounded-lg text-xs font-bold bg-primary text-primary-foreground';
+      var off = 'h-11 rounded-lg text-xs font-bold border border-border bg-input text-muted-foreground';
+      document.getElementById('tm-mode-simdi').className = mode === 'simdi' ? on : off;
+      document.getElementById('tm-mode-ileri').className = mode === 'ileri' ? on : off;
+      var kindSel = document.getElementById('tm-kind');
+      var mevcut = kindSel.value;
+      var opts = mode === 'simdi' ? KIND_OPTS_SIMDI : KIND_OPTS_ILERI;
+      kindSel.innerHTML = opts.map(function (o) { return '<option value="' + o[0] + '">' + o[1] + '</option>'; }).join('');
+      if (opts.some(function (o) { return o[0] === mevcut; })) kindSel.value = mevcut;
+      document.getElementById('tm-date-wrap').classList.toggle('hidden', mode !== 'ileri');
+      zkKayitKindChanged();
+    }
+    function zkKayitKindChanged() {
+      var kind = document.getElementById('tm-kind').value;
+      var satWrap = document.getElementById('tm-satisfaction-wrap');
+      if (kind === 'memnuniyet_aramasi') {
+        satWrap.classList.remove('hidden');
+        document.getElementById('tm-satisfaction').innerHTML = [1, 2, 3, 4, 5].map(function (n) {
+          return '<button type="button" data-sat="' + n + '" onclick="zkSetSat(' + n + ')" class="h-10 rounded-lg border border-border text-sm font-bold">' + n + '</button>';
+        }).join('');
+        window.__tnSat = null;
+      } else { satWrap.classList.add('hidden'); }
+    }
+    function zkSetSat(n) {
+      window.__tnSat = n;
+      document.querySelectorAll('#tm-satisfaction [data-sat]').forEach(function (b) {
+        b.className = 'h-10 rounded-lg border text-sm font-bold ' + (Number(b.getAttribute('data-sat')) === n ? 'border-primary bg-primary/10 text-primary' : 'border-border');
+      });
+    }
     function zkSubmitTask() {
       var errEl = document.getElementById('tm-error');
       errEl.classList.add('hidden');
-      var doctorId = document.getElementById('tm-doctor').value;
-      var title = document.getElementById('tm-title').value.trim();
-      var dateStr = document.getElementById('tm-date').value;
-      var timeStr = document.getElementById('tm-time').value || '09:00';
+      var doctorId = detailDoctor ? detailDoctor.id : document.getElementById('tm-doctor').value;
+      var kind = document.getElementById('tm-kind').value;
+      var note = document.getElementById('tm-note').value.trim() || null;
       if (!doctorId) { errEl.textContent = 'Doktor seçilmelidir.'; errEl.classList.remove('hidden'); return; }
-      if (!title) { errEl.textContent = 'Görev başlığı boş olamaz.'; errEl.classList.remove('hidden'); return; }
-      if (!dateStr) { errEl.textContent = 'Tarih seçilmelidir.'; errEl.classList.remove('hidden'); return; }
-      var doctor = currentList.filter(function (d) { return d.id === doctorId; })[0];
+      var doctor = detailDoctor || currentList.filter(function (d) { return d.id === doctorId; })[0];
       if (!doctor) { errEl.textContent = 'Doktor bulunamadı.'; errEl.classList.remove('hidden'); return; }
-      ZirkonikData.addDoctorTask({
-        organization_id: doctor.organization_id,
-        doctor_id: doctorId,
-        assigned_to: myId,
-        created_by: myId,
-        kind: document.getElementById('tm-kind').value,
-        title: title,
-        note: document.getElementById('tm-note').value.trim() || null,
-        due_at: new Date(dateStr + 'T' + timeStr + ':00').toISOString()
-      }).then(function (res) {
-        if (res.error) { errEl.textContent = 'Kaydedilemedi: ' + res.error.message; errEl.classList.remove('hidden'); return; }
-        zkCloseTaskModal();
-        zkToast('Görev eklendi.');
-        loadMyTasks();
-      });
+
+      if (kayitMode === 'simdi') {
+        var fields = { type: kind, note: note };
+        if (kind === 'memnuniyet_aramasi' && window.__tnSat) fields.satisfaction_score = window.__tnSat;
+        var istekler = [ZirkonikData.addDoctorTouch(doctorId, fields)];
+        // Aynı gün "Dr. Kenan neden gecikti" sorusu: temas kaydı, o doktor için
+        // açık duran aynı türde görevi kapatmıyordu. Temas kaydedilince eşleşen
+        // görev de otomatik "yapıldı" işaretlensin.
+        if (['ziyaret', 'arama', 'whatsapp'].indexOf(kind) !== -1) {
+          var eslesenGorev = myTasks.filter(function (t) { return t.doctor_id === doctorId && t.kind === kind; })
+            .sort(function (a, b) { return new Date(a.due_at) - new Date(b.due_at); })[0];
+          if (eslesenGorev) istekler.push(ZirkonikData.markDoctorTaskDone(eslesenGorev.id, note));
+        }
+        Promise.all(istekler).then(function (rs) {
+          var hata = rs.filter(function (r) { return r && r.error; })[0];
+          if (hata) { errEl.textContent = 'Kaydedilemedi: ' + hata.error.message; errEl.classList.remove('hidden'); return; }
+          zkCloseTaskModal();
+          zkToast('Kayıt eklendi.');
+          if (detailDoctor) loadTouches(doctorId);
+          loadMyTasks();
+        });
+      } else {
+        var dateStr = document.getElementById('tm-date').value;
+        var timeStr = document.getElementById('tm-time').value || '09:00';
+        if (!dateStr) { errEl.textContent = 'Tarih seçilmelidir.'; errEl.classList.remove('hidden'); return; }
+        ZirkonikData.addDoctorTask({
+          organization_id: doctor.organization_id,
+          doctor_id: doctorId,
+          assigned_to: myId,
+          created_by: myId,
+          kind: kind,
+          title: (TASK_KIND_LABELS[kind] || kind) + (note ? ': ' + note : ''),
+          note: note,
+          due_at: new Date(dateStr + 'T' + timeStr + ':00').toISOString()
+        }).then(function (res) {
+          if (res.error) { errEl.textContent = 'Kaydedilemedi: ' + res.error.message; errEl.classList.remove('hidden'); return; }
+          zkCloseTaskModal();
+          zkToast('Görev oluşturuldu.');
+          loadMyTasks();
+        });
+      }
     }
 
     function loadList() {
@@ -1305,82 +1346,6 @@
         }).join('') : '<p class="text-xs text-muted-foreground">Henüz temas kaydı yok.</p>';
       });
     }
-    function zkAddTouch(type) {
-      pendingTouchType = type;
-      document.getElementById('tn-title').textContent = TOUCH_LABELS[type];
-      document.getElementById('tn-note').value = '';
-      document.getElementById('tn-note').placeholder = type === 'randevu' ? 'Kiminle görüşüldü, ne söylendi? (opsiyonel)' : 'Ne konuşuldu / ne oldu?';
-      var satWrap = document.getElementById('tn-satisfaction-wrap');
-      if (type === 'memnuniyet_aramasi') {
-        satWrap.classList.remove('hidden');
-        document.getElementById('tn-satisfaction').innerHTML = [1, 2, 3, 4, 5].map(function (n) {
-          return '<button type="button" data-sat="' + n + '" onclick="zkSetSat(' + n + ')" class="h-10 rounded-lg border border-border text-sm font-bold">' + n + '</button>';
-        }).join('');
-        window.__tnSat = null;
-      } else { satWrap.classList.add('hidden'); }
-      // Randevu: klinik/doktor ileri bir tarih verdiyse — kaydedilince doktorun
-      // sonraki aksiyon tarihi otomatik bu güne kurulur (24 Eylül 2026).
-      var dateWrap = document.getElementById('tn-date-wrap');
-      if (type === 'randevu') {
-        dateWrap.classList.remove('hidden');
-        var yarin = new Date(); yarin.setDate(yarin.getDate() + 1);
-        document.getElementById('tn-date').value = yarin.toISOString().slice(0, 10);
-      } else { dateWrap.classList.add('hidden'); }
-      document.getElementById('touch-note-sheet').classList.remove('hidden');
-    }
-    function zkSetSat(n) {
-      window.__tnSat = n;
-      document.querySelectorAll('#tn-satisfaction [data-sat]').forEach(function (b) {
-        b.className = 'h-10 rounded-lg border text-sm font-bold ' + (Number(b.getAttribute('data-sat')) === n ? 'border-primary bg-primary/10 text-primary' : 'border-border');
-      });
-    }
-    function zkCloseTouchNote() { document.getElementById('touch-note-sheet').classList.add('hidden'); }
-    function zkSubmitTouchNote() {
-      if (!detailDoctor || !pendingTouchType) return;
-      var randevuTarih = null, randevuSaat = '09:00';
-      if (pendingTouchType === 'randevu') {
-        randevuTarih = document.getElementById('tn-date').value;
-        randevuSaat = document.getElementById('tn-time').value || '09:00';
-        if (!randevuTarih) { zkToast('Randevu tarihi seçin.'); return; }
-      }
-      var note = document.getElementById('tn-note').value.trim() || null;
-      var fields = { type: pendingTouchType, note: note };
-      if (pendingTouchType === 'memnuniyet_aramasi' && window.__tnSat) fields.satisfaction_score = window.__tnSat;
-      var doctorId = detailDoctor.id;
-      var istekler = [ZirkonikData.addDoctorTouch(doctorId, fields)];
-      // 26 Eylül 2026, sahibinin kararı: "sonraki aksiyon" alanı kaldırıldı, tek
-      // planlama yolu artık Keşif Görevleri (doctor_tasks) — Randevu kaydı da
-      // doğrudan bir görev oluşturur.
-      // Aynı gün "Dr. Kenan neden gecikti" sorusu: temas kaydı, o doktor için
-      // açık duran aynı türde görevi kapatmıyordu — görev "bekliyor" kalıp
-      // gecikmiş görünmeye devam ediyordu. Temas kaydedilince eşleşen görev de
-      // otomatik "yapıldı" işaretlensin.
-      if (['ziyaret', 'arama', 'whatsapp'].indexOf(pendingTouchType) !== -1) {
-        var eslesenGorev = myTasks.filter(function (t) { return t.doctor_id === doctorId && t.kind === pendingTouchType; })
-          .sort(function (a, b) { return new Date(a.due_at) - new Date(b.due_at); })[0];
-        if (eslesenGorev) istekler.push(ZirkonikData.markDoctorTaskDone(eslesenGorev.id, note));
-      }
-      if (randevuTarih) {
-        istekler.push(ZirkonikData.addDoctorTask({
-          organization_id: detailDoctor.organization_id,
-          doctor_id: doctorId,
-          assigned_to: myId,
-          created_by: myId,
-          kind: 'randevu',
-          title: 'Randevu' + (note ? ': ' + note : ''),
-          due_at: new Date(randevuTarih + 'T' + randevuSaat + ':00').toISOString()
-        }));
-      }
-      Promise.all(istekler).then(function (rs) {
-        var hata = rs.filter(function (r) { return r && r.error; })[0];
-        if (hata) { zkToast('Olmadı: ' + hata.error.message); return; }
-        zkToast(randevuTarih ? 'Randevu görevi oluşturuldu.' : 'Temas kaydedildi.');
-        zkCloseTouchNote();
-        loadTouches(doctorId);
-        loadMyTasks();
-      });
-    }
-
     ZirkonikAuth.requireAuth().then(function (session) {
       if (!session) return;
       loadRegionsAndReps().then(function () { loadList(); renderFilterChips(); });
