@@ -234,6 +234,11 @@
     },
 
     // ---- Doktorlar ----
+    // 26 Eylül 2026: aşama sekmelerinin yanındaki sayılar için — RLS zaten
+    // kendi görebildiğine daraltıyor, tek sütun (hafif).
+    listDoctorStages: function () {
+      return client().from('doctors').select('pipeline_stage');
+    },
     listDoctors: function (status, opts) {
       // 26 Eylül 2026: hesap:user_id(email) — doktorun UYGULAMAYA GİRİŞ e-postası
       // (auth.users, app_users'ta aynalanır), doctors.email (iletişim/ekstre)
@@ -322,6 +327,12 @@
     // (jobs/invoices/payments FK'leri) açık bir hatayla engeller.
     deleteDoctor: function (doctorId) {
       return client().from('doctors').delete().eq('id', doctorId);
+    },
+    // 26 Eylül 2026: pazarlamacı bölgesi dışında eklediği doktoru işveren/
+    // yönetici onaylar — kart açılır, bölge boşsa (kimsenin değilse) o
+    // pazarlamacıya bağlanır.
+    approveOutOfRegionDoctor: function (doctorId) {
+      return client().rpc('zk_bolge_disi_doktor_onayla', { p_doctor_id: doctorId });
     },
     listDoctorTouches: function (doctorId) {
       return client().from('doctor_touches').select('*, yazan:created_by(full_name)').eq('doctor_id', doctorId).order('created_at', { ascending: false });

@@ -166,7 +166,7 @@
              ana iş orada), mahalle GPS'ten ("Konumdan Doldur") ya da elle. -->
         <div class="grid grid-cols-2 gap-2">
           <select id="np-il" onchange="zkIlChanged('np')" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"></select>
-          <select id="np-ilce" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"><option value="">İlçe</option></select>
+          <select id="np-ilce" onchange="zkUpdateAddProspectSubmitLabel()" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"><option value="">İlçe</option></select>
         </div>
         <div class="flex gap-2">
           <input id="np-mahalle" type="text" placeholder="Mahalle" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
@@ -192,8 +192,9 @@
           </div>
         </div>
       </div>
+      <p id="np-onay-uyari" class="mt-2 hidden text-xs font-semibold text-accent">Bu ilçe senin bölgen değil — kayıt işveren/yönetici onayına gidecek, onaylanana kadar kart kilitli kalır.</p>
       <p id="np-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
-      <button onclick="zkSubmitAddProspect()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
+      <button id="np-submit-btn" onclick="zkSubmitAddProspect()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
     </div>
   </div>
 
@@ -281,10 +282,21 @@
       </div>
       <div class="min-h-0 flex-1 overflow-y-auto px-5 pt-1 pb-8">
 
+      <!-- 26 Eylül 2026, sahibinin isteği: bölge dışı eklenen doktor onay
+           bekleyene kadar kilitli — pazarlamacıya uyarı, admin'e onay butonu. -->
+      <div id="dt-lock-banner" class="hidden rounded-theme border border-accent/40 bg-accent/10 p-3.5">
+        <p class="text-xs font-bold text-accent">Bölge dışı — ön onay bekliyor</p>
+        <p id="dt-lock-desc" class="mt-1 text-[11px] text-muted-foreground">Bu doktor kendi bölgen dışında eklendi, işveren/yönetici onaylayana kadar düzenleyemezsin.</p>
+        <button id="dt-lock-approve-btn" onclick="zkApproveOutOfRegion()" class="mt-2.5 hidden flex h-11 w-full items-center justify-center gap-2 rounded-theme bg-primary text-xs font-bold text-primary-foreground">
+          <iconify-icon icon="lucide:check" class="text-base"></iconify-icon>
+          Onayla, kilidi aç
+        </button>
+      </div>
+
       <!-- 26 Eylül 2026, sahibinin kararı: günlük iş "kayıt ekle" + görev
            tamamlamaktan ibaret olmalı, doktor bilgileri/adresi her açılışta
            önde durmamalı — o bölüm aşağıda katlı. -->
-      <button onclick="zkOpenTaskModal()" class="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-theme bg-primary text-sm font-bold text-primary-foreground">
+      <button id="dt-add-btn" onclick="zkOpenTaskModal()" class="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-theme bg-primary text-sm font-bold text-primary-foreground">
         <iconify-icon icon="lucide:plus" class="text-lg"></iconify-icon>
         Gelişme ekle
       </button>
@@ -584,13 +596,39 @@
       wrap.innerHTML = html;
     }
 
-    document.getElementById('stage-tabs').innerHTML = STAGES.map(function (s) {
-      return '<button type="button" class="zk-stage-tab' + (s.key === curStage ? ' on' : '') + '" data-stage="' + s.key + '" onclick="zkSetStage(\'' + s.key + '\')">' + s.label + '</button>';
-    }).join('') +
-      '<button type="button" onclick="zkOpenTasksSheet()" class="zk-stage-tab zk-stage-tab-kesif">' +
-        '<iconify-icon icon="lucide:clipboard-list" class="text-sm"></iconify-icon> Keşif görevleri' +
-        '<span id="kesif-tab-count" class="hidden rounded-full bg-destructive px-1.5 py-0.5 text-[10px] font-extrabold text-destructive-foreground">0</span>' +
-      '</button>';
+    // 26 Eylül 2026, sahibinin isteği: bölge çiplerindeki gibi her aşama
+    // sekmesinin yanında da kaç doktor olduğu görünsün.
+    var stageCounts = {};
+    function renderStageTabs() {
+      document.getElementById('stage-tabs').innerHTML = STAGES.map(function (s) {
+        var n = stageCounts[s.key];
+        var sayi = (n != null) ? ' <span class="opacity-70">' + n + '</span>' : '';
+        return '<button type="button" class="zk-stage-tab' + (s.key === curStage ? ' on' : '') + '" data-stage="' + s.key + '" onclick="zkSetStage(\'' + s.key + '\')">' + s.label + sayi + '</button>';
+      }).join('') +
+        '<button type="button" onclick="zkOpenTasksSheet()" class="zk-stage-tab zk-stage-tab-kesif">' +
+          '<iconify-icon icon="lucide:clipboard-list" class="text-sm"></iconify-icon> Keşif görevleri' +
+          '<span id="kesif-tab-count" class="hidden rounded-full bg-destructive px-1.5 py-0.5 text-[10px] font-extrabold text-destructive-foreground">0</span>' +
+        '</button>';
+    }
+    renderStageTabs();
+    // Süreç sekmesindeki sayılar: yalnız pipeline_stage sütununu çekip
+    // istemcide sayıyoruz — RLS zaten kendi görebildiğine daraltıyor, ayrı
+    // bir RPC gerekmiyor.
+    function loadStageCounts() {
+      ZirkonikData.listDoctorStages().then(function (r) {
+        if (r.error) return;
+        var sayac = {}, toplam = 0, aktifOlmayan = 0;
+        (r.data || []).forEach(function (row) {
+          sayac[row.pipeline_stage] = (sayac[row.pipeline_stage] || 0) + 1;
+          toplam++;
+          if (row.pipeline_stage !== 'aktif') aktifOlmayan++;
+        });
+        sayac[''] = aktifOlmayan;
+        stageCounts = sayac;
+        renderStageTabs();
+      });
+    }
+    loadStageCounts();
 
     function zkSetStage(stage) {
       curStage = stage;
@@ -922,14 +960,20 @@
           : [d.clinic_name, d.mahalle, d.ilce, d.il].filter(Boolean).join(', ');
         var mapBtn = mapQuery ? '<a href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(mapQuery) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary" aria-label="Yol tarifi"><iconify-icon icon="lucide:map-pin" class="text-sm"></iconify-icon></a>' : '';
         var taskBtn = '<button type="button" onclick="event.stopPropagation();zkOpenTaskModal(\'' + d.id + '\')" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary" aria-label="Gelişme ekle"><iconify-icon icon="lucide:calendar-days" class="text-sm"></iconify-icon></button>';
-        return '<div role="button" tabindex="0" onclick="zkOpenDetail(\'' + d.id + '\')" onkeydown="if(event.key===\'Enter\')zkOpenDetail(\'' + d.id + '\')" class="block w-full cursor-pointer rounded-theme border border-border bg-card p-4 text-left">' +
+        // 26 Eylül 2026, sahibinin isteği: bölge dışı eklenen doktor onay
+        // bekleyene kadar pazarlamacı için kart kilitli — hızlı butonlar
+        // yerine "Ön onay bekliyor" rozeti gösterilir. Admin normal görür.
+        var kilitli = d.region_locked && !myIsAdmin;
+        var kartButonlari = kilitli ? '' : (callBtn + mapBtn + taskBtn);
+        return '<div role="button" tabindex="0" onclick="zkOpenDetail(\'' + d.id + '\')" onkeydown="if(event.key===\'Enter\')zkOpenDetail(\'' + d.id + '\')" class="block w-full cursor-pointer rounded-theme border ' + (d.region_locked ? 'border-accent/40' : 'border-border') + ' bg-card p-4 text-left">' +
           '<div class="flex items-start justify-between gap-2">' +
           '<div class="min-w-0"><p class="truncate font-heading text-sm font-bold">Dr. ' + escapeHtml(d.full_name) + '</p>' +
           '<p class="mt-0.5 truncate text-xs text-muted-foreground">' + escapeHtml(d.clinic_name || '—') + (d.region ? ' · ' + escapeHtml(d.region.name) : '') + '</p></div>' +
-          '<div class="flex shrink-0 items-center gap-1.5">' + callBtn + mapBtn + taskBtn +
+          '<div class="flex shrink-0 items-center gap-1.5">' + kartButonlari +
           '<span class="shrink-0 rounded-full ' + prioCls + ' px-2 py-1 text-[10px] font-bold">' + (d.priority === 'yuksek' ? 'Yüksek' : d.priority === 'dusuk' ? 'Düşük' : 'Orta') + '</span></div></div>' +
           '<div class="mt-2 flex flex-wrap items-center gap-1.5">' +
           '<span class="rounded-full bg-secondary px-2 py-1 text-[10px] font-bold text-secondary-foreground">' + STAGE_LABELS[d.pipeline_stage] + '</span>' +
+          (d.region_locked ? '<span class="rounded-full bg-accent/10 px-2 py-1 text-[10px] font-bold text-accent">Ön onay bekliyor</span>' : '') +
           (d.temsilci ? '<span class="rounded-full bg-muted px-2 py-1 text-[10px] text-muted-foreground">' + escapeHtml(d.temsilci.full_name) + '</span>' : '') +
           (gorev ? '<span class="rounded-full ' + (overdue ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground') + ' px-2 py-1 text-[10px] font-bold">' + (overdue ? 'Gecikti: ' : '') + new Date(gorev.due_at).toLocaleDateString('tr-TR') + '</span>' : '') +
           '</div></div>';
@@ -1146,8 +1190,27 @@
       });
     }
     zkSetPrio('orta');
-    function zkOpenAddProspect() { document.getElementById('add-prospect-sheet').classList.remove('hidden'); }
+    function zkOpenAddProspect() {
+      document.getElementById('add-prospect-sheet').classList.remove('hidden');
+      zkUpdateAddProspectSubmitLabel();
+    }
     function zkCloseAddProspect() { document.getElementById('add-prospect-sheet').classList.add('hidden'); }
+    // 26 Eylül 2026, sahibinin isteği: pazarlamacı kendi bölgesi dışında bir
+    // ilçe seçerse butonun "Ön Onay Gönder" demesi, kaydın işveren/yönetici
+    // onayına gideceğini baştan söylesin.
+    function zkIsMyRegion(ilceAdi) {
+      if (myPosition !== 'Satış Pazarlama Sorumlusu') return true;
+      return regions.some(function (r) { return r.assigned_rep_id === myId && r.name === ilceAdi; });
+    }
+    function zkUpdateAddProspectSubmitLabel() {
+      var btn = document.getElementById('np-submit-btn');
+      var warn = document.getElementById('np-onay-uyari');
+      if (!btn) return;
+      var ilce = document.getElementById('np-ilce').value;
+      var disariBolgede = !!ilce && !zkIsMyRegion(ilce);
+      btn.textContent = disariBolgede ? 'Ön Onay Gönder' : 'Kaydet';
+      warn.classList.toggle('hidden', !disariBolgede);
+    }
     // İlçe seçiliyse bölgeyi bulur/oluşturur (admin olmayan da can_manage_prospects
     // ile çağırabilir — zk_bolge_bul_veya_olustur RPC'si), seçili değilse null döner.
     function zkResolveRegionId(prefix) {
@@ -1167,6 +1230,7 @@
       var il = document.getElementById('np-il').value || null;
       var ilce = document.getElementById('np-ilce').value || null;
       var mahalle = document.getElementById('np-mahalle').value.trim() || null;
+      var disariBolgede = !!ilce && !zkIsMyRegion(ilce);
       Promise.all([ZirkonikAuth.me(), zkResolveRegionId('np')]).then(function (res) {
         var me = res[0], regionId = res[1];
         return ZirkonikData.createProspect({
@@ -1179,7 +1243,8 @@
           region_id: regionId,
           source: document.getElementById('np-source').value || null,
           priority: newProspectPrio,
-          assigned_rep_id: (me.role === 'personel') ? me.id : null
+          assigned_rep_id: (me.role === 'personel') ? me.id : null,
+          region_locked: disariBolgede
         });
       }).then(function (res) {
         if (res.error) throw res.error;
@@ -1188,8 +1253,10 @@
         zkFillIlSelect('np');
         zkIlChanged('np');
         zkSetPrio('orta');
-        zkToast('Aday eklendi.');
+        zkUpdateAddProspectSubmitLabel();
+        zkToast(disariBolgede ? 'Ön onay için gönderildi — işveren/yönetici onaylayana kadar kart kilitli.' : 'Aday eklendi.');
         zkSetStage('aday_havuzu');
+        loadStageCounts();
       }).catch(function (err) {
         errEl.textContent = 'Eklenemedi: ' + err.message;
         errEl.classList.remove('hidden');
@@ -1244,6 +1311,14 @@
       document.getElementById('dt-make-active-btn').classList.toggle('hidden', pendingOrActive);
       document.getElementById('dt-approve-btn').classList.toggle('hidden', !(myIsAdmin && d.pipeline_stage === 'onay_bekliyor'));
       document.getElementById('dt-delete-btn').classList.toggle('hidden', !myIsAdmin);
+      // 26 Eylül 2026, sahibinin isteği: bölge dışı eklenen doktor onaya kadar
+      // kilitli — pazarlamacı için "Gelişme ekle" de kapanır, admin onaylar.
+      document.getElementById('dt-lock-banner').classList.toggle('hidden', !d.region_locked);
+      document.getElementById('dt-lock-approve-btn').classList.toggle('hidden', !(d.region_locked && myIsAdmin));
+      document.getElementById('dt-lock-desc').textContent = (d.region_locked && myIsAdmin)
+        ? (d.temsilci ? d.temsilci.full_name : 'Pazarlamacı') + ' bu doktoru kendi bölgesi dışında ekledi — onaylarsan bölge de (boşsa) ona bağlanır.'
+        : 'Bu doktor kendi bölgen dışında eklendi, işveren/yönetici onaylayana kadar düzenleyemezsin.';
+      document.getElementById('dt-add-btn').classList.toggle('hidden', !!(d.region_locked && !myIsAdmin));
       document.getElementById('detail-sheet').classList.remove('hidden');
       loadTouches(id);
       loadDoctorJobs(id);
@@ -1279,6 +1354,7 @@
         zkToast('Dr. ' + detailDoctor.full_name + ' laboratuvar sahibinin onayına gönderildi.');
         zkCloseDetail();
         loadList();
+        loadStageCounts();
       });
     }
     // Yalnız yönetici — sunucuda da trg_doktor_aktif_yalniz_admin bunu zorunlu kılar.
@@ -1291,6 +1367,7 @@
         zkToast('Dr. ' + detailDoctor.full_name + ' onaylandı, aktif doktor oldu.');
         zkCloseDetail();
         loadList();
+        loadStageCounts();
       });
     }
     function zkCloseDetail() { document.getElementById('detail-sheet').classList.add('hidden'); detailDoctor = null; }
@@ -1325,6 +1402,7 @@
         detailDoctor.pipeline_stage = stage;
         zkToast('Aşama güncellendi.');
         loadList();
+        loadStageCounts();
       });
     }
     function zkPriorityAutoSave() {
@@ -1352,6 +1430,7 @@
         detailDoctor.pipeline_stage = 'kayip';
         zkToast('Kayıp olarak işaretlendi.');
         loadList();
+        loadStageCounts();
       });
     }
     function zkSaveDetail() {
@@ -1417,6 +1496,22 @@
         zkToast('Kayıt silindi.');
         zkCloseDetail();
         loadList();
+        loadStageCounts();
+      });
+    }
+    // 26 Eylül 2026, sahibinin isteği: bölge dışı eklenen doktoru işveren/
+    // yönetici onaylar — kilidi açar, bölge boşsa (kimsenin değilse) o
+    // pazarlamacıya bağlar.
+    function zkApproveOutOfRegion() {
+      if (!detailDoctor) return;
+      ZirkonikData.approveOutOfRegionDoctor(detailDoctor.id).then(function (res) {
+        if (res.error) { zkToast('Onaylanamadı: ' + res.error.message); return; }
+        detailDoctor.region_locked = false;
+        document.getElementById('dt-lock-banner').classList.add('hidden');
+        document.getElementById('dt-add-btn').classList.remove('hidden');
+        zkToast('Onaylandı, kilit açıldı.');
+        loadList();
+        loadRegionsAndReps();
       });
     }
 
