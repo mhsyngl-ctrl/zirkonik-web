@@ -197,7 +197,7 @@
           sel.appendChild(opt);
         });
       });
-      client.from('doctors').select('id, full_name, clinic_name').eq('status', 'approved').order('full_name').then(function (r) {
+      client.from('doctors').select('id, full_name, clinic_name').eq('status', 'approved').eq('pipeline_stage', 'aktif').order('full_name').then(function (r) {
         var sel = document.getElementById('f-doctor');
         (r.data || []).forEach(function (d) {
           var opt = document.createElement('option');
