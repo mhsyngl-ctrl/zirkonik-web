@@ -11,9 +11,8 @@
  *    Yeni İş Oluştur'da fiyat kutusu bu kutudan bağımsız hep gizli kalır.
  *  - personel (Satış Pazarlama Sorumlusu): YALNIZ Aday Havuzu — uygulamanın
  *    başka hiçbir yerine erişemez (25 Eylül 2026).
- *  - Ekip, Laboratuvarlar, Fiyat Listesi yönetici işidir; Stok şimdilik
- *    herkesten (yönetici dahil) tamamen kapalı. Finans/Ciro ve Yeni İş
- *    Oluştur varsayılan kapalı ama ilgili yetki kutusuyla personele
+ *  - Ekip, Laboratuvarlar, Fiyat Listesi yönetici işidir. Finans/Ciro ve
+ *    Yeni İş Oluştur varsayılan kapalı ama ilgili yetki kutusuyla personele
  *    açılabilir (25 Eylül 2026).
  *  - doktor: yalnız kendi paneli (+ bildirimler, profil).
  *
@@ -23,23 +22,10 @@
  * Asıl güvenlik RLS'tedir (personel işleri oda bazlı görür, iş ekleyemez).
  */
 
-// ---- Stok modülü geçici olarak kapalı (25 Eylül 2026, sahibinin kararı) ----
-// Ürün henüz kullanıma hazır değil; herkesten (yönetici dahil) gizlenir.
-// Bağımsız/tek parça: geri açmak için tek satır — ZK_STOK_ENABLED = true.
-var ZK_STOK_ENABLED = false;
-(function () {
-  if (ZK_STOK_ENABLED) return;
-  var page = (location.pathname.split('/').pop() || '').toLowerCase().replace('.html', '');
-  if (page === 'stok') { location.replace('retim.html'); return; }
-  function hide() {
-    var els = document.querySelectorAll('[data-fv-tab="Stok"],a[href*="stok.html"],[onclick*="stok.html"]');
-    for (var i = 0; i < els.length; i++) els[i].style.display = 'none';
-  }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', hide);
-  else hide();
-  setTimeout(hide, 800);
-  setTimeout(hide, 2500);
-})();
+// 28 Eylül 2026: "Stok" modülü (sayfa, sekme, izin) tamamen kaldırıldı —
+// hiç kullanıma açılmamıştı. Not: material_stock tablosu ve iş bazlı
+// malzeme tüketimi (reçete düşümü) BUNUN DIŞINDA, hâlâ çalışan gerçek bir
+// özellik — kaldırılan yalnız ayrı stok yönetim ekranıydı.
 
 // ---- Bağlantı durumu şeridi ----
 // 24 Eylül 2026: js/net-guard.js üstlendi (ağ hatası bandı + yeniden deneme + hata
@@ -172,7 +158,6 @@ var ZK_STOK_ENABLED = false;
     var snap = {
       role: me.role,
       position: me.position || null,
-      can_manage_stock: !!p.can_manage_stock,
       can_view_finance: !!p.can_view_finance,
       can_view_doctors: !!p.can_view_doctors,
       can_manage_orders: !!p.can_manage_orders,

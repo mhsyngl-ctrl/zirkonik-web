@@ -40,7 +40,6 @@
     }
     if (pg === 'doktor-siparis') { location.replace('retim.html'); return true; }
     if (ADMIN_PAGES[pg]) { location.replace('retim.html'); return true; }
-    if (pg === 'stok' && !p.can_manage_stock) { location.replace('retim.html'); return true; }
     // Finans/Ciro: varsayılan kapalı, "Finans yetkisi" kutusuyla açılır (25 Eylül 2026 —
     // sahibi kutuyu gerçekten işlevli olsun istedi, önceki sabit kapalı kural kaldırıldı).
     if ((pg === 'finans' || pg === 'ciro') && !p.can_view_finance) { location.replace('retim.html'); return true; }
@@ -58,9 +57,6 @@
   function hideUi(p) {
     // Alt menü sekmeleri
     var TABS = {
-      // 26 Eylül 2026: Stok özelliği herkesten (yönetici dahil) kapalı
-      // (zk-guard.js'teki koşulsuz yönlendirme) — sekme de artık hep gizli.
-      'Stok': false,
       'Finans': !!p.can_view_finance, // 25 Eylül 2026: "Finans yetkisi" kutusuna bağlı.
       'Laboratuvarlar': false,
       'Ekip': false,
@@ -109,7 +105,6 @@
               'a[href*="ekip"],[onclick*="ekip.html"]';
     // Finans/Ciro: "Finans yetkisi" kutusuna bağlı (25 Eylül 2026).
     if (!p.can_view_finance) sel += ',a[href*="finans"],[onclick*="finans"],a[href*="ciro"],[onclick*="ciro"]';
-    if (!p.can_manage_stock) sel += ',a[href*="stok"],[onclick*="stok"]';
     if (!p.can_view_doctors) sel += ',a[href*="doktorlar"],[onclick*="doktorlar"]';
     // Siparişler + Yeni İş Oluştur: can_manage_orders (25 Eylül 2026).
     if (!p.can_manage_orders) sel += ',a[href*="siparisler"],[onclick*="siparisler"],a[href*="yeni-giri-i"],[onclick*="yeni-giri-i"]';

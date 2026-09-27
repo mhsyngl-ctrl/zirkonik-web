@@ -119,8 +119,6 @@
 
             <button onclick="location.href='finans.html'" class="zk-stat zk-stat-amber"><span class="zk-stat-icon"><iconify-icon icon="lucide:wallet-cards"></iconify-icon></span><p id="stat-receivables" class="zk-stat-value zk-stat-value-sm">—</p><p class="zk-stat-label">Bekleyen tahsilat</p><iconify-icon class="zk-stat-ghost" icon="lucide:wallet-cards"></iconify-icon></button>
 
-            <button onclick="location.href='stok.html'" class="zk-stat zk-stat-amber"><span class="zk-stat-icon"><iconify-icon icon="lucide:boxes"></iconify-icon></span><p id="stat-critical-stock" class="zk-stat-value">—</p><p class="zk-stat-label">Kritik stok uyarısı</p><iconify-icon class="zk-stat-ghost" icon="lucide:boxes"></iconify-icon></button>
-
             <button onclick="location.href='siparisler.html'" class="zk-stat zk-stat-teal"><span class="zk-stat-icon"><iconify-icon icon="lucide:inbox"></iconify-icon></span><p id="stat-pending-orders" class="zk-stat-value">—</p><p class="zk-stat-label">Bekleyen sipariş</p><iconify-icon class="zk-stat-ghost" icon="lucide:inbox"></iconify-icon></button>
 
             <!-- Doktor kazanım süreci — 24 Eylül 2026, Medicamine'deki "Adaylar" kartıyla aynı mantık:
@@ -399,10 +397,6 @@
           <iconify-icon icon="lucide:columns-3"></iconify-icon>
           <span>Üretim</span>
         </button>
-          <button data-fv-tab="Stok">
-          <iconify-icon icon="lucide:boxes"></iconify-icon>
-          <span>Stok</span>
-        </button>
           <button data-fv-tab="Finans">
           <iconify-icon icon="lucide:chart-no-axes-combined"></iconify-icon>
           <span>Finans</span>
@@ -455,7 +449,7 @@
 
   <script>
     (function() {
-      var routes = {"Üretim": "retim.html", "Stok": "stok.html", "Finans": "finans.html", "Laboratuvarlar": "laboratuvarlar.html", "Ekip": "ekip.html", "Doktorlar": "doktorlar.html"};
+      var routes = {"Üretim": "retim.html", "Finans": "finans.html", "Laboratuvarlar": "laboratuvarlar.html", "Ekip": "ekip.html", "Doktorlar": "doktorlar.html"};
       var bar = document.querySelector('[data-fv-tabbar]');
       if (!bar) return;
       bar.querySelectorAll('[data-fv-tab]').forEach(function(btn) {
@@ -528,7 +522,6 @@
       document.getElementById('stat-overdue').textContent = o.overdue || 0;
       document.getElementById('stat-qc').textContent = o.qc || 0;
       document.getElementById('stat-receivables').textContent = ZirkonikMoney.formatTotals(o.bekleyen || {}, 0);
-      document.getElementById('stat-critical-stock').textContent = o.criticalStock || 0;
       document.getElementById('stat-pending-orders').textContent = o.pendingOrders || 0;
       document.getElementById('stat-leads').textContent = o.leads || 0;
     }
@@ -564,10 +557,6 @@
       // indirilip JS'te toplanıyordu (1000 satırda sessiz kesinti).
       var financePromise = client.rpc('zk_finans_ozet').then(function (r) { return (r && r.data) || {}; });
 
-      var stockPromise = client.from('material_stock').select('quantity_on_hand, min_threshold').then(function (r) {
-        return (r.data || []).filter(function (x) { return Number(x.quantity_on_hand) <= Number(x.min_threshold); }).length;
-      });
-
       Promise.all([
         client.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'active'),
         client.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
@@ -577,15 +566,14 @@
           .lt('requested_delivery_at', todayStart.toISOString()),
         qcPromise,
         financePromise,
-        stockPromise,
         client.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
         // Doktor Havuzu kartı: süreçteki (henüz aktif ya da kayıp olmamış) aday/doktor sayısı.
         client.from('doctors').select('id', { count: 'exact', head: true }).not('pipeline_stage', 'in', '(aktif,kayip)')
       ]).then(function (r) {
         var o = {
           active: r[0].count || 0, completed: r[1].count || 0, dueToday: r[2].count || 0, overdue: r[3].count || 0,
-          qc: r[4].count || 0, bekleyen: r[5].bekleyen || {}, criticalStock: r[6], pendingOrders: r[7].count || 0,
-          leads: r[8].count || 0
+          qc: r[4].count || 0, bekleyen: r[5].bekleyen || {}, pendingOrders: r[6].count || 0,
+          leads: r[7].count || 0
         };
         zkPaintDashStats(o);
         if (window.ZKHiz) ZKHiz.cachePut('dash_stats', o);
@@ -659,21 +647,16 @@
 
       Promise.all([
         client.from('jobs').select('id, job_number, requested_delivery_at, doctors(full_name)').eq('status', 'active').lt('requested_delivery_at', todayStart.toISOString()).limit(3),
-        client.from('material_stock').select('materials(name), quantity_on_hand, min_threshold').limit(50),
         client.from('doctors').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
         client.from('invoices').select('id', { count: 'exact', head: true }).eq('status', 'overdue')
       ]).then(function (results) {
         var overdueJobs = results[0].data || [];
-        var criticalStock = (results[1].data || []).filter(function (x) { return Number(x.quantity_on_hand) <= Number(x.min_threshold); });
-        var pendingDoctors = results[2].count || 0;
-        var overdueInvoices = results[3].count || 0;
+        var pendingDoctors = results[1].count || 0;
+        var overdueInvoices = results[2].count || 0;
 
         var rows = [];
         if (overdueJobs.length) {
           rows.push({ href: 'isler.html?status=active', icon: 'lucide:clock-3', title: 'Geciken işler', sub: overdueJobs.map(function(j){return j.job_number;}).join(', '), badge: overdueJobs.length });
-        }
-        if (criticalStock.length) {
-          rows.push({ href: 'stok.html', icon: 'lucide:package-x', title: 'Kritik stok', sub: criticalStock.slice(0,3).map(function(x){return x.materials ? x.materials.name : '';}).join(', '), badge: criticalStock.length });
         }
         if (pendingDoctors) {
           rows.push({ href: 'doktorlar.html', icon: 'lucide:stethoscope', title: 'Onay bekleyen doktor', sub: 'İnceleme kuyruğunda', badge: pendingDoctors });

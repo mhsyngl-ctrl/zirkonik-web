@@ -213,10 +213,6 @@
           <iconify-icon icon="lucide:columns-3"></iconify-icon>
           <span>Üretim</span>
         </button>
-          <button data-fv-tab="Stok">
-          <iconify-icon icon="lucide:boxes"></iconify-icon>
-          <span>Stok</span>
-        </button>
           <button data-fv-tab="Finans" data-fv-tab-active="true">
           <iconify-icon icon="lucide:chart-no-axes-combined"></iconify-icon>
           <span>Finans</span>
@@ -415,7 +411,7 @@
 
   <script>
     (function() {
-      var routes = {"Üretim": "retim.html", "Stok": "stok.html", "Finans": "finans.html", "Laboratuvarlar": "laboratuvarlar.html", "Ekip": "ekip.html", "Doktorlar": "doktorlar.html"};
+      var routes = {"Üretim": "retim.html", "Finans": "finans.html", "Laboratuvarlar": "laboratuvarlar.html", "Ekip": "ekip.html", "Doktorlar": "doktorlar.html"};
       var bar = document.querySelector('[data-fv-tabbar]');
       if (!bar) return;
       bar.querySelectorAll('[data-fv-tab]').forEach(function(btn) {
