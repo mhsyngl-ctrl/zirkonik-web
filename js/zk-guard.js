@@ -215,7 +215,22 @@ var ZK_STOK_ENABLED = false;
     function run() { hideUi(p); }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
     else run();
-    // Dinamik içerik (kartlar sonradan çizilir) için ikinci geçiş
+    // 27 Eylül 2026, sahibinin bildirdiği hata: kartlar sunucu verisiyle
+    // sonradan çiziliyor ama gizleme yalnız 800ms/2500ms'de tekrar
+    // deneniyordu — arada kalan kart "1 saniyeliğine" görünüp kayboluyordu.
+    // Artık DOM'a yeni bir şey eklendiği AN (birkaç ms içinde) tekrar
+    // uygulanıyor; sabit gecikmeler MutationObserver olmayan eski
+    // tarayıcılar için yedek olarak kalıyor.
+    if (typeof MutationObserver !== 'undefined') {
+      var beklemede = null;
+      var izle = function () {
+        new MutationObserver(function () {
+          if (beklemede) return;
+          beklemede = setTimeout(function () { beklemede = null; run(); }, 30);
+        }).observe(document.body, { childList: true, subtree: true });
+      };
+      if (document.body) izle(); else document.addEventListener('DOMContentLoaded', izle);
+    }
     setTimeout(run, 800);
     setTimeout(run, 2500);
   }
