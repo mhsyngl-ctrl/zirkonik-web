@@ -812,15 +812,18 @@
     // ve gerçekleşen (plansız ziyaret/arama dahil) temaslarını tek yerden görsün.
     var pazarlamaTumGorevler = [];
     function loadPazarlamaOzeti() {
+      // 27 Eylül 2026, sahibinin kararı: tamamlanan görev bu özetten de
+      // kaybolmasın — işveren/yönetici hep görebilsin.
       Promise.all([
         ZirkonikData.listStaff(),
         ZirkonikData.listDoctorTasks({ status: 'bekliyor', limit: 300 }),
+        ZirkonikData.listDoctorTasks({ status: 'tamamlandi', limit: 300 }),
         ZirkonikData.todayTouchesByRep()
       ]).then(function (r) {
         var reps = ((r[0] && r[0].data) || []).filter(function (u) { return u.position === 'Satış Pazarlama Sorumlusu'; });
-        var allTasks = (r[1] && r[1].data) || [];
+        var allTasks = ((r[1] && r[1].data) || []).concat((r[2] && r[2].data) || []);
         pazarlamaTumGorevler = allTasks;
-        var touches = (r[2] && r[2].data) || [];
+        var touches = (r[3] && r[3].data) || [];
         var bugun = new Date().toDateString();
         var bugunkuGorevler = allTasks.filter(function (t) { return new Date(t.due_at).toDateString() === bugun; });
 
@@ -848,10 +851,12 @@
         bugunkuGorevler.sort(function (a, b) { return new Date(a.due_at) - new Date(b.due_at); });
         tasksEl.innerHTML = bugunkuGorevler.map(function (t, i) {
           var saat = new Date(t.due_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-          return '<div class="flex items-center gap-3 px-4 py-3' + (i < bugunkuGorevler.length - 1 ? ' border-b border-border' : '') + '">' +
+          var tamamlandi = t.status === 'tamamlandi';
+          return '<div class="flex items-center gap-3 px-4 py-3' + (i < bugunkuGorevler.length - 1 ? ' border-b border-border' : '') + (tamamlandi ? ' opacity-70' : '') + '">' +
             '<span class="text-xs font-bold tabular-nums text-muted-foreground">' + saat + '</span>' +
             '<span class="min-w-0 flex-1"><span class="block truncate text-sm font-bold">Dr. ' + escapeHtml(t.doctor ? t.doctor.full_name : '') + '</span>' +
-            '<span class="mt-0.5 block text-xs text-muted-foreground">' + escapeHtml(t.assignee ? t.assignee.full_name : '') + ' · ' + escapeHtml(t.title) + '</span></span></div>';
+            '<span class="mt-0.5 block text-xs text-muted-foreground">' + escapeHtml(t.assignee ? t.assignee.full_name : '') + ' · ' + escapeHtml(t.title) + '</span></span>' +
+            (tamamlandi ? '<iconify-icon icon="lucide:lock" class="shrink-0 text-sm text-success" aria-label="Tamamlandı"></iconify-icon>' : '') + '</div>';
         }).join('');
       });
     }
@@ -918,10 +923,12 @@
       document.getElementById('pazarlama-takvim-gun-list').innerHTML = gununGorevleri.length
         ? gununGorevleri.map(function (t) {
             var saat = new Date(t.due_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-            return '<div class="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5">' +
+            var tamamlandi = t.status === 'tamamlandi';
+            return '<div class="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5' + (tamamlandi ? ' opacity-70' : '') + '">' +
               '<span class="text-xs font-bold tabular-nums text-muted-foreground">' + saat + '</span>' +
               '<span class="min-w-0 flex-1"><span class="block truncate text-xs font-bold">Dr. ' + escapeHtml(t.doctor ? t.doctor.full_name : '') + '</span>' +
-              '<span class="mt-0.5 block text-[11px] text-muted-foreground">' + escapeHtml(t.assignee ? t.assignee.full_name : '') + ' · ' + escapeHtml(t.title) + '</span></span></div>';
+              '<span class="mt-0.5 block text-[11px] text-muted-foreground">' + escapeHtml(t.assignee ? t.assignee.full_name : '') + ' · ' + escapeHtml(t.title) + '</span></span>' +
+              (tamamlandi ? '<iconify-icon icon="lucide:lock" class="shrink-0 text-sm text-success" aria-label="Tamamlandı"></iconify-icon>' : '') + '</div>';
           }).join('')
         : '<p class="text-xs text-muted-foreground">Bu günde görev yok.</p>';
       document.getElementById('pazarlama-takvim-gun-section').classList.remove('hidden');
