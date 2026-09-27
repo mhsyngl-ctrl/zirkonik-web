@@ -200,7 +200,7 @@
 
         var client = ZirkonikAuth.client();
         var sel = document.getElementById('pl-scope');
-        client.from('doctors').select('id, full_name').eq('status', 'approved').order('full_name').then(function (r) {
+        client.from('doctors').select('id, full_name').eq('status', 'approved').eq('pipeline_stage', 'aktif').order('full_name').then(function (r) {
           if (!(r.data || []).length) return;
           var og = document.createElement('optgroup');
           og.label = 'Doktora özel';
