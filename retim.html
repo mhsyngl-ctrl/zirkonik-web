@@ -5,31 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://code.iconify.design; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://cuujupeindodpsdjcivm.supabase.co wss://cuujupeindodpsdjcivm.supabase.co https://api.iconify.design https://api.simplesvg.com https://api.unisvg.com; object-src 'none'; base-uri 'self'; form-action 'self'">
   <title>Üretim — Zirkonik</title>
+  <script src="js/zk-guard-core.js"></script>
+  <script src="js/zk-erken-koruma.js"></script>
 
   <!-- Tailwind CSS (pinned — matches the renderer/screenshot surfaces) -->
   <link rel="stylesheet" href="css/tailwind.css">
   <link rel="stylesheet" href="css/ipad.css">
   <link rel="stylesheet" href="css/zk-utils.css">
   <script src="js/zk-tema.js"></script>
-  <!-- 25 Eylül 2026, sahibinin hata bildirimi: teknisyen ana ekrana girince
-       istatistik şeridi/tamamlanan bir an görünüp SONRA gizleniyordu —
-       zk-guard.js body sonunda yüklendiği için hideUi() ancak sayfa
-       boyandıktan sonra çalışabiliyordu. Bu, aynı zk-tema.js gibi <head>'te,
-       hiçbir şey boyanmadan ÖNCE, önbellekteki son bilinen role/pozisyona
-       göre CSS ile sessizce kapatır — zk-guard.js hâlâ asıl yetki kararını
-       verir, bu yalnız ilk boyamayı önler (yanlış önbellekse zk-guard.js
-       düzeltir, ekstra gizleme zararsızdır).
-  -->
-  <script>
-    (function () {
-      try {
-        var c = JSON.parse(localStorage.getItem('zk-guard') || 'null');
-        if (c && c.role === 'personel' && c.position !== 'Resepsiyon Sorumlusu') {
-          document.write('<style>#today-overview-section,#board-tab-completed,#weekly-distribution-section{display:none!important}</style>');
-        }
-      } catch (e) {}
-    })();
-  </script>
+  <!-- 25 Eylül 2026'daki bu sayfaya özel erken gizleme, 28 Eylül 2026'da
+       js/zk-erken-koruma.js ile TÜM sayfaları kapsayan genel mekanizmaya
+       taşındı (bkz. o dosyadaki not) — burada tekrar etmeye gerek yok. -->
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
@@ -483,6 +469,18 @@
           window.location.href = href;
         });
       });
+    })();
+  </script>
+
+  <!-- 28 Eylul 2026: js/zk-erken-koruma.js govdeyi gizli birakmis olabilir -
+       gorunur icerik burada bitiyor, ag'a bagimli betikler (supabase-js vb.)
+       asagida basliyor. Onlari beklemeden, kilitli bolumleri simdi gizleyip
+       govdeyi ac. -->
+  <script>
+    (function () {
+      if (!window.__zkErkenGizliP) return;
+      if (window.ZkGuardCore) ZkGuardCore.hideUi(window.__zkErkenGizliP);
+      document.documentElement.style.visibility = '';
     })();
   </script>
 

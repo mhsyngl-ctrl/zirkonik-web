@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://code.iconify.design; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://cuujupeindodpsdjcivm.supabase.co wss://cuujupeindodpsdjcivm.supabase.co https://api.iconify.design https://api.simplesvg.com https://api.unisvg.com; object-src 'none'; base-uri 'self'; form-action 'self'">
   <title>Bildirimler — Zirkonik</title>
+  <script src="js/zk-guard-core.js"></script>
+  <script src="js/zk-erken-koruma.js"></script>
 
   <link rel="stylesheet" href="css/tailwind.css">
   <link rel="stylesheet" href="css/ipad.css">
@@ -75,6 +77,18 @@
   </div>
 
   <div id="zk-toast" style="position:fixed;left:50%;bottom:40px;transform:translate(-50%,16px);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;background:#17242C;color:#fff;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;padding:10px 16px;border-radius:12px;z-index:9999;max-width:86%;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.18);"></div>
+
+  <!-- 28 Eylul 2026: js/zk-erken-koruma.js govdeyi gizli birakmis olabilir -
+       gorunur icerik burada bitiyor, ag'a bagimli betikler (supabase-js vb.)
+       asagida basliyor. Onlari beklemeden, kilitli bolumleri simdi gizleyip
+       govdeyi ac. -->
+  <script>
+    (function () {
+      if (!window.__zkErkenGizliP) return;
+      if (window.ZkGuardCore) ZkGuardCore.hideUi(window.__zkErkenGizliP);
+      document.documentElement.style.visibility = '';
+    })();
+  </script>
 
   <script src="vendor/supabase-js.min.js"></script>
   <script src="supabase-config.js"></script>
