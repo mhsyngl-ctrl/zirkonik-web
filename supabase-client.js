@@ -1361,8 +1361,22 @@
           return { data: data, error: null };
         });
     },
+    // 28 Eylül 2026: eskiden düz bir count sorgusuydu — listeNotifications'ın
+    // "tamamlanan/iptal işe bağlı bildirim artık bildirim değil" kuralını
+    // uygulamıyordu. Sonuç: bir iş tamamlandığında bildirimi listeden
+    // düşüyordu ama rozette saymaya devam ediyordu — hiç okunamadığı için
+    // rozet kalıcı olarak şişiyordu (60 iş tamamlanınca 150+ bildirimle
+    // gözlemlendi). Artık aynı filtre burada da uygulanıyor.
     unreadNotifCount: function () {
-      return client().from('notifications').select('id', { count: 'exact', head: true }).is('read_at', null);
+      return client().from('notifications').select('id, job_id, jobs(status)').is('read_at', null)
+        .then(function (r) {
+          if (r.error) return r;
+          var count = (r.data || []).filter(function (n) {
+            if (!n.jobs) return true;
+            return n.jobs.status !== 'completed' && n.jobs.status !== 'cancelled';
+          }).length;
+          return { count: count, error: null };
+        });
     },
     markAllNotifsRead: function () {
       return client().from('notifications').update({ read_at: new Date().toISOString() }).is('read_at', null);
