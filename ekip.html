@@ -114,10 +114,52 @@
               <button type="button" id="tp-year-btn" onclick="zkSetTeamPerfPeriod('year')" class="rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-muted-foreground">Yıl</button>
             </div>
           </div>
+          <div class="mt-2 flex items-center justify-between">
+            <button type="button" onclick="zkShiftTeamPerfOffset(-1)" class="flex h-8 w-8 items-center justify-center rounded-theme border border-border bg-card" aria-label="Önceki dönem">
+              <iconify-icon icon="lucide:chevron-left" class="text-base"></iconify-icon>
+            </button>
+            <p id="tp-period-label" class="text-xs font-bold text-foreground">Bu ay</p>
+            <button type="button" id="tp-next-btn" onclick="zkShiftTeamPerfOffset(1)" class="flex h-8 w-8 items-center justify-center rounded-theme border border-border bg-card disabled:opacity-30" aria-label="Sonraki dönem">
+              <iconify-icon icon="lucide:chevron-right" class="text-base"></iconify-icon>
+            </button>
+          </div>
+
+          <div id="tp-top-card" class="mt-4 hidden items-center gap-3 rounded-theme border border-accent bg-accent/10 p-4">
+            <iconify-icon icon="lucide:trophy" class="shrink-0 text-2xl text-accent"></iconify-icon>
+            <div class="min-w-0">
+              <p class="text-[11px] font-bold uppercase tracking-wide text-accent">Bu dönemin yıldızı</p>
+              <p id="tp-top-name" class="truncate font-heading text-base font-extrabold">—</p>
+              <p id="tp-top-stat" class="text-xs text-muted-foreground">—</p>
+            </div>
+          </div>
+
+          <h3 class="mb-1 mt-4 text-sm font-bold text-foreground">Üretim hakedişi — çalışan bazlı</h3>
+          <p class="mb-2 text-[11px] text-muted-foreground">Kim sipariş aldığına değil, kim ürettiğine göre (işin tutarı, aşama başına payıyla).</p>
+          <svg id="tp-earn-chart-svg" viewBox="0 0 340 100" class="w-full" role="img" aria-label="Çalışan bazlı üretim hakedişi">
+            <g id="tp-earn-chart-bars"></g>
+          </svg>
           <p class="mt-1 text-[11px] text-muted-foreground">Tamamlanan üretim aşaması sayısına göre sıralı (teslim alıp onaylanan işler)</p>
-          <div id="team-performance-list" class="mt-4 space-y-2">
+          <div id="team-performance-list" class="mt-2 space-y-2">
             <p class="text-xs text-muted-foreground">Yükleniyor…</p>
           </div>
+
+          <h3 class="mb-1 mt-4 text-sm font-bold text-foreground">Sipariş performansı — kim aldı</h3>
+          <p class="mb-2 text-[11px] text-muted-foreground">Bu dönemde sisteme yeni girilen siparişlerin toplam tutarı, kim işlediyse.</p>
+          <svg id="tp-order-chart-svg" viewBox="0 0 340 100" class="w-full" role="img" aria-label="Sipariş performansı, çalışan bazlı">
+            <g id="tp-order-chart-bars"></g>
+          </svg>
+          <div id="tp-order-list" class="mt-2 space-y-2">
+            <p class="text-xs text-muted-foreground">Yükleniyor…</p>
+          </div>
+
+          <h3 class="mb-1 mt-4 text-sm font-bold text-foreground">İlerleme</h3>
+          <p id="tp-progress-title" class="mb-2 text-[11px] text-muted-foreground">Son 6 ay, çalışan bazlı üretim hakedişi.</p>
+          <svg id="tp-progress-svg" viewBox="0 0 340 170" class="w-full" role="img" aria-label="Çalışanların dönemsel ilerlemesi">
+            <g id="tp-progress-grid"></g>
+            <g id="tp-progress-lines"></g>
+            <g id="tp-progress-labels"></g>
+          </svg>
+          <div id="tp-progress-legend" class="mt-2 flex flex-wrap gap-3"></div>
         </section>
 
         <section id="salary-calc-section" class="hidden pt-6">
@@ -430,6 +472,7 @@
         if (me && me.role === 'yonetici') {
           document.getElementById('team-performance-section').classList.remove('hidden');
           loadTeamPerformance();
+          loadTeamProgress();
           document.getElementById('salary-calc-section').classList.remove('hidden');
           zkLoadPayrollParams(me);
         }
@@ -437,42 +480,402 @@
     });
 
     // ---- Ekip performansı (yönetici) ----
+    // Medicamine'deki ekip performansı ekranından uyarlandı (28 Eylül 2026,
+    // kullanıcı isteği). Zirkonik'in kendi grafik renkleri (chart1-5)
+    // dataviz skill'inin validate_palette.js kontrolünden geçemedi — 5
+    // renkten 4'ü tek başına bile "kroma tabanının altında, griye yakın
+    // okunuyor" diye FAIL veriyordu (bu proje genelinde bilinçli olarak koyu/
+    // az doygun bir tema kullanılıyor, ama kategorik grafik için yetersiz).
+    // Bu yüzden burada dataviz skill'in doğrulanmış referans paleti
+    // kullanılıyor — marka rengiyle aynı olmasa da veri gerçekten okunabiliyor.
+    var TP_CHART_COLORS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4'];
+    var TP_CHART_OTHER_COLOR = 'var(--color-muted-foreground)';
+
+    function tpColorFor(index) {
+      return index < TP_CHART_COLORS.length ? TP_CHART_COLORS[index] : TP_CHART_OTHER_COLOR;
+    }
+    // Renk, kişiye (created_at sırasına göre) sabit atanır — Medicamine'deki
+    // staffColor ile aynı mantık: sıralama dönemden döneme değişse de (kim
+    // önde/arkada), aynı çalışan her zaman aynı renkte görünür.
+    var tpColorIndexByUserId = {};
+    function tpBuildColorIndex(staffList) {
+      tpColorIndexByUserId = {};
+      (staffList || []).forEach(function (u, i) { tpColorIndexByUserId[u.id] = i; });
+    }
+    function tpColorForUser(userId) {
+      var idx = tpColorIndexByUserId[userId];
+      return idx === undefined ? tpColorFor(TP_CHART_COLORS.length) : tpColorFor(idx);
+    }
+
+    // Yatay bar grafik — Medicamine'deki renderStaffBarChart ile aynı çizim
+    // mantığı. Para birimi karışık olabildiği için (bazı anlaşmalar USD/EUR)
+    // bar uzunluğu SADECE kuruluşun varsayılan para birimindeki tutara göre
+    // ölçeklenir; farklı para birimindeki tutar değer etiketinde ayrıca durur
+    // (kur çevrimi yapılmıyor, iki para birimi aynı barda karşılaştırılmıyor).
+    function tpRenderBarChart(svgId, gId, entries) {
+      var svg = document.getElementById(svgId);
+      var g = document.getElementById(gId);
+      if (!svg || !g) return;
+      g.innerHTML = '';
+      var rowH = 34, topPad = 6;
+      var height = entries.length ? entries.length * rowH + topPad : 40;
+      svg.setAttribute('viewBox', '0 0 340 ' + height);
+      if (!entries.length) return;
+      var svgNs = 'http://www.w3.org/2000/svg';
+      var max = Math.max.apply(null, entries.map(function (e) { return e.value; })) || 1;
+      var barMax = 340, barHeight = 10;
+      entries.forEach(function (e, i) {
+        var rowY = topPad + i * rowH;
+        var barY = rowY + 16;
+        var w = Math.max((e.value / max) * barMax, e.value > 0 ? 10 : 0);
+
+        var label = document.createElementNS(svgNs, 'text');
+        label.setAttribute('x', 0); label.setAttribute('y', rowY + 9);
+        label.setAttribute('font-size', '11'); label.setAttribute('font-weight', '700');
+        label.setAttribute('fill', 'var(--color-foreground)');
+        label.textContent = e.label;
+        g.appendChild(label);
+
+        var value = document.createElementNS(svgNs, 'text');
+        value.setAttribute('x', 340); value.setAttribute('y', rowY + 9);
+        value.setAttribute('text-anchor', 'end'); value.setAttribute('font-size', '11');
+        value.setAttribute('fill', 'var(--color-muted-foreground)');
+        value.textContent = e.valueLabel;
+        g.appendChild(value);
+
+        var track = document.createElementNS(svgNs, 'rect');
+        track.setAttribute('x', 0); track.setAttribute('y', barY);
+        track.setAttribute('width', barMax); track.setAttribute('height', barHeight);
+        track.setAttribute('rx', barHeight / 2); track.setAttribute('fill', 'var(--color-muted)');
+        g.appendChild(track);
+
+        var bar = document.createElementNS(svgNs, 'rect');
+        bar.setAttribute('x', 0); bar.setAttribute('y', barY);
+        bar.setAttribute('width', w); bar.setAttribute('height', barHeight);
+        bar.setAttribute('rx', barHeight / 2); bar.setAttribute('fill', e.color);
+        g.appendChild(bar);
+      });
+    }
+
     var teamPerfPeriod = 'month';
+    var teamPerfOffset = 0; // 0 = içinde bulunduğumuz dönem; gelecek dönemlere gidilmez.
     function zkSetTeamPerfPeriod(period) {
       teamPerfPeriod = period;
-      loadTeamPerformance();
-    }
-    function loadTeamPerformance() {
-      var now = new Date();
-      var from, to = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-      if (teamPerfPeriod === 'week') {
-        from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
-      } else if (teamPerfPeriod === 'year') {
-        from = new Date(now.getFullYear(), 0, 1);
-      } else {
-        from = new Date(now.getFullYear(), now.getMonth(), 1);
-      }
+      teamPerfOffset = 0;
       ['week', 'month', 'year'].forEach(function (p) {
         var btn = document.getElementById('tp-' + p + '-btn');
         if (btn) btn.className = 'rounded-lg px-2.5 py-1.5 text-[10px] font-bold ' + (p === teamPerfPeriod ? 'bg-card' : 'text-muted-foreground');
       });
-      ZirkonikData.getTeamPerformance(from.toISOString(), to.toISOString()).then(function (rows) {
+      loadTeamPerformance();
+      loadTeamProgress();
+    }
+    function zkShiftTeamPerfOffset(delta) {
+      teamPerfOffset = Math.min(0, teamPerfOffset + delta);
+      loadTeamPerformance();
+    }
+    function tpRange(now) {
+      if (teamPerfPeriod === 'week') {
+        var day = now.getDay();
+        var diffToMonday = day === 0 ? 6 : day - 1;
+        var thisMonday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffToMonday);
+        var from = new Date(thisMonday.getFullYear(), thisMonday.getMonth(), thisMonday.getDate() + teamPerfOffset * 7);
+        return { from: from, to: new Date(from.getFullYear(), from.getMonth(), from.getDate() + 7) };
+      }
+      if (teamPerfPeriod === 'year') {
+        var y = now.getFullYear() + teamPerfOffset;
+        return { from: new Date(y, 0, 1), to: new Date(y + 1, 0, 1) };
+      }
+      var m = now.getMonth() + teamPerfOffset;
+      return { from: new Date(now.getFullYear(), m, 1), to: new Date(now.getFullYear(), m + 1, 1) };
+    }
+    function tpRangeLabel(range) {
+      var locale = (window.ZirkonikMoney && ZirkonikMoney.LOCALE) || 'tr-TR';
+      if (teamPerfPeriod === 'week') {
+        var opts = { day: 'numeric', month: 'short' };
+        var lastDay = new Date(range.to.getTime() - 86400000);
+        return range.from.toLocaleDateString(locale, opts) + ' – ' + lastDay.toLocaleDateString(locale, opts);
+      }
+      if (teamPerfPeriod === 'year') return range.from.toLocaleDateString(locale, { year: 'numeric' });
+      return range.from.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
+    }
+    // Bir kişinin (muhtemelen tek para biriminde) toplamını grafik için tek
+    // sayıya indirger — kuruluşun varsayılan para birimi öncelikli, yoksa
+    // elindeki ilk para birimi kullanılır. groupTotals zaten para birimi
+    // bazında ayrı tutuyor; burada sadece "bar ne kadar uzasın" sorusuna
+    // cevap arıyoruz, toplam metni ayrıca formatTotals ile tam gösterilir.
+    function tpPrimaryAmount(totals) {
+      var def = (window.ZirkonikMoney && ZirkonikMoney.DEFAULT) || '₺';
+      if (totals[def]) return totals[def];
+      var keys = Object.keys(totals);
+      return keys.length ? totals[keys[0]] : 0;
+    }
+    function loadTeamPerformance() {
+      var now = new Date();
+      var range = tpRange(now);
+      document.getElementById('tp-period-label').textContent = tpRangeLabel(range);
+      var nextBtn = document.getElementById('tp-next-btn');
+      if (nextBtn) nextBtn.disabled = teamPerfOffset >= 0;
+
+      ZirkonikData.getTeamPerformance(range.from.toISOString(), range.to.toISOString()).then(function (res) {
+        var rows = res.rows || [];
+        var orderRows = res.orderRows || [];
+        tpBuildColorIndex(res.staffList || []);
         var el = document.getElementById('team-performance-list');
-        if (!rows.length) { el.innerHTML = '<p class="text-xs text-muted-foreground">Bu dönemde tamamlanan aşama yok.</p>'; return; }
-        var maxCount = Math.max.apply(null, rows.map(function (r) { return r.stageCount; }));
-        el.innerHTML = rows.map(function (r, i) {
-          var pct = Math.max(6, Math.round((r.stageCount / maxCount) * 100));
-          return '<div class="rounded-theme border border-border bg-card p-3.5">' +
-            '<div class="flex items-center justify-between gap-2">' +
-            '<p class="min-w-0 flex-1 truncate text-sm font-bold">' + (i + 1) + '. ' + escapeHtml(r.name) + '</p>' +
-            '<p class="shrink-0 text-xs font-bold tabular-nums text-primary">' + r.stageCount + ' aşama</p></div>' +
-            '<p class="mt-0.5 text-[11px] text-muted-foreground">' + r.jobCount + ' farklı iş</p>' +
-            '<div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted"><div class="h-full rounded-full bg-primary" style="width:' + pct + '%"></div></div>' +
-            '</div>';
-        }).join('');
+        var topCard = document.getElementById('tp-top-card');
+
+        if (!rows.length) {
+          el.innerHTML = '<p class="text-xs text-muted-foreground">Bu dönemde tamamlanan aşama yok.</p>';
+          tpRenderBarChart('tp-earn-chart-svg', 'tp-earn-chart-bars', []);
+          topCard.classList.add('hidden'); topCard.classList.remove('flex');
+        } else {
+          var byEarnings = rows.slice().sort(function (a, b) { return tpPrimaryAmount(b.earnings) - tpPrimaryAmount(a.earnings); });
+
+          // Kart tasarımı Medicamine'deki çalışan kartlarıyla aynı: renk
+          // noktası + isim, sağda aşama sayısı, büyük puntoda hakediş, ve en
+          // çok yapılan restorasyon türleri chip olarak (8'den sonra "+N iş
+          // türü daha" ile açılıyor) — düz liste/paragraf yerine.
+          var MAX_CHIPS = 8;
+          el.innerHTML = byEarnings.map(function (r) {
+            var color = tpColorForUser(r.userId);
+            var types = Object.keys(r.restorationTypes || {}).sort(function (x, y) { return r.restorationTypes[y] - r.restorationTypes[x]; });
+            var shown = types.slice(0, MAX_CHIPS);
+            var rest = types.slice(MAX_CHIPS);
+            var chipsGroupId = 'tpChips_' + r.userId;
+            var chips = shown.map(function (n) {
+              return '<span class="rounded-full bg-muted px-2 py-1 text-[11px] font-semibold text-foreground">' + escapeHtml(n) + ' · ' + r.restorationTypes[n] + '</span>';
+            }).join('');
+            chips += rest.map(function (n) {
+              return '<span class="hidden rounded-full bg-muted px-2 py-1 text-[11px] font-semibold text-foreground" data-chip-group="' + escapeHtml(chipsGroupId) + '">' + escapeHtml(n) + ' · ' + r.restorationTypes[n] + '</span>';
+            }).join('');
+            if (rest.length > 0) chips += '<button type="button" onclick="tpExpandChips(this, \'' + escapeHtml(chipsGroupId) + '\')" class="rounded-full bg-muted px-2 py-1 text-[11px] font-bold text-primary">+' + rest.length + ' iş türü daha</button>';
+            return '<div class="rounded-theme border border-border bg-card p-4">' +
+              '<div class="flex items-center justify-between">' +
+                '<div class="flex min-w-0 items-center gap-2">' +
+                  '<span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background:' + escapeHtml(color) + '"></span>' +
+                  '<span class="truncate font-bold">' + escapeHtml(r.name) + '</span>' +
+                '</div>' +
+                '<span class="shrink-0 rounded-full bg-muted px-2.5 py-1 text-xs font-bold text-muted-foreground">' + r.stageCount + ' aşama</span>' +
+              '</div>' +
+              '<p class="mt-2 font-heading text-xl font-extrabold text-primary">' + escapeHtml(ZirkonikMoney.formatTotals(r.earnings)) + '</p>' +
+              '<p class="text-[11px] text-muted-foreground">' + r.jobCount + ' farklı iş · üretim hakedişi</p>' +
+              (chips ? '<div class="mt-3 flex flex-wrap gap-1.5">' + chips + '</div>' : '') +
+              '</div>';
+          }).join('');
+
+          tpRenderBarChart('tp-earn-chart-svg', 'tp-earn-chart-bars', byEarnings.map(function (r) {
+            return { label: r.name, value: tpPrimaryAmount(r.earnings), valueLabel: ZirkonikMoney.formatTotals(r.earnings), color: tpColorForUser(r.userId) };
+          }));
+
+          var top = byEarnings[0];
+          if (top && tpPrimaryAmount(top.earnings) > 0) {
+            topCard.classList.remove('hidden'); topCard.classList.add('flex');
+            document.getElementById('tp-top-name').textContent = top.name;
+            document.getElementById('tp-top-stat').textContent = top.stageCount + ' aşama · ' + ZirkonikMoney.formatTotals(top.earnings) + ' hakediş';
+          } else {
+            topCard.classList.add('hidden'); topCard.classList.remove('flex');
+          }
+        }
+
+        var orderEl = document.getElementById('tp-order-list');
+        if (!orderRows.length) {
+          orderEl.innerHTML = '<p class="text-xs text-muted-foreground">Bu dönemde yeni sipariş yok.</p>';
+          tpRenderBarChart('tp-order-chart-svg', 'tp-order-chart-bars', []);
+        } else {
+          orderEl.innerHTML = orderRows.map(function (r) {
+            return '<div class="flex items-center justify-between rounded-theme border border-border bg-card p-3 text-sm">' +
+              '<span class="font-bold">' + escapeHtml(r.name) + '</span>' +
+              '<span class="text-muted-foreground">' + escapeHtml(ZirkonikMoney.formatTotals(r.totals)) + '</span></div>';
+          }).join('');
+          tpRenderBarChart('tp-order-chart-svg', 'tp-order-chart-bars', orderRows.map(function (r) {
+            return { label: r.name, value: tpPrimaryAmount(r.totals), valueLabel: ZirkonikMoney.formatTotals(r.totals), color: tpColorForUser(r.userId) };
+          }));
+        }
       }).catch(function (err) {
         zkToast('Ekip performansı yüklenemedi: ' + ((err && err.message) || 'bilinmeyen hata'));
       });
+    }
+    function tpExpandChips(btn, chipsGroupId) {
+      document.querySelectorAll('[data-chip-group="' + chipsGroupId + '"]').forEach(function (el) { el.classList.remove('hidden'); });
+      btn.remove();
+    }
+
+    // ---- İlerleme grafiği: dönem birimine göre uyarlanan çoklu çizgi ----
+    function tpProgressUnitFor(period) {
+      if (period === 'week') return { unit: 'week', count: 8 };
+      if (period === 'year') return { unit: 'year', count: 5 };
+      return { unit: 'month', count: 6 };
+    }
+    function tpUnitStart(now, unit, offset) {
+      if (unit === 'week') {
+        var day = now.getDay();
+        var diffToMonday = day === 0 ? 6 : day - 1;
+        var thisMonday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffToMonday);
+        return new Date(thisMonday.getFullYear(), thisMonday.getMonth(), thisMonday.getDate() + offset * 7);
+      }
+      if (unit === 'year') return new Date(now.getFullYear() + offset, 0, 1);
+      return new Date(now.getFullYear(), now.getMonth() + offset, 1);
+    }
+    function tpUnitKey(start, unit) {
+      if (unit === 'week') return start.getFullYear() + '-' + start.getMonth() + '-' + start.getDate();
+      if (unit === 'year') return String(start.getFullYear());
+      return start.getFullYear() + '-' + start.getMonth();
+    }
+    function tpUnitKeyFromDate(d, unit) {
+      if (unit === 'week') {
+        var day = d.getDay();
+        var diff = day === 0 ? 6 : day - 1;
+        return tpUnitKey(new Date(d.getFullYear(), d.getMonth(), d.getDate() - diff), unit);
+      }
+      if (unit === 'year') return tpUnitKey(d, unit);
+      return tpUnitKey(new Date(d.getFullYear(), d.getMonth(), 1), unit);
+    }
+    function tpUnitLabel(start, unit, locale) {
+      if (unit === 'week') return start.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
+      if (unit === 'year') return start.toLocaleDateString(locale, { year: 'numeric' });
+      return start.toLocaleDateString(locale, { month: 'short' });
+    }
+    function loadTeamProgress() {
+      var now = new Date();
+      var cfg = tpProgressUnitFor(teamPerfPeriod);
+      var titleEl = document.getElementById('tp-progress-title');
+      if (titleEl) {
+        titleEl.textContent = cfg.unit === 'week' ? 'Son 8 hafta, çalışan bazlı üretim hakedişi.'
+          : cfg.unit === 'year' ? 'Son 5 yıl, çalışan bazlı üretim hakedişi.'
+          : 'Son 6 ay, çalışan bazlı üretim hakedişi.';
+      }
+      var currentRangeStart = tpUnitStart(now, cfg.unit, -(cfg.count - 1));
+      var fromDate = cfg.unit === 'year' ? currentRangeStart
+        : new Date(currentRangeStart.getFullYear() - 1, currentRangeStart.getMonth(), currentRangeStart.getDate());
+      var toDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+      // getTeamPerformance zaten job.price/toplam aşama payını hesaplıyor;
+      // burada tek fark, sonucu aya/haftaya/yıla göre AYRI AYRI istememiz —
+      // bu yüzden aynı fonksiyonu tüm aralık için çağırıp burada tarih
+      // bazında yeniden gruplamak yerine, tarihli ham veriye ihtiyaç var.
+      // ZirkonikData.getTeamPerformance dönem toplamı döndürdüğü için,
+      // ilerleme grafiği kendi ham sorgusunu yapar (ZirkonikData.getTeamProgressRaw).
+      ZirkonikData.getTeamProgressRaw(fromDate.toISOString(), toDate.toISOString()).then(function (data) {
+        var staffNameById = {};
+        (data.staffList || []).forEach(function (u) { staffNameById[u.id] = u.full_name || 'İsimsiz'; });
+
+        var locale = (window.ZirkonikMoney && ZirkonikMoney.LOCALE) || 'tr-TR';
+        var currentKeys = [], priorKeys = [], labels = [];
+        for (var i = 0; i < cfg.count; i++) {
+          var s = tpUnitStart(now, cfg.unit, -(cfg.count - 1) + i);
+          currentKeys.push(tpUnitKey(s, cfg.unit));
+          labels.push(tpUnitLabel(s, cfg.unit, locale));
+          if (cfg.unit !== 'year') {
+            var priorRaw = new Date(s.getFullYear() - 1, s.getMonth(), s.getDate());
+            if (cfg.unit === 'week') {
+              var day = priorRaw.getDay();
+              var diff = day === 0 ? 6 : day - 1;
+              priorRaw = new Date(priorRaw.getFullYear(), priorRaw.getMonth(), priorRaw.getDate() - diff);
+            }
+            priorKeys.push(tpUnitKey(priorRaw, cfg.unit));
+          }
+        }
+
+        var byStaffUnit = {};
+        (data.stages || []).forEach(function (s) {
+          var key = tpUnitKeyFromDate(new Date(s.confirmed_at), cfg.unit);
+          var staffId = s.confirmed_by || '_unassigned';
+          if (!byStaffUnit[staffId]) byStaffUnit[staffId] = {};
+          byStaffUnit[staffId][key] = (byStaffUnit[staffId][key] || 0) + tpPrimaryAmount(s.value || {});
+        });
+
+        tpBuildColorIndex(data.staffList || []);
+        var staffKeys = Object.keys(byStaffUnit).sort(function (a, b) {
+          var ta = currentKeys.reduce(function (sum, k) { return sum + (byStaffUnit[a][k] || 0); }, 0);
+          var tb = currentKeys.reduce(function (sum, k) { return sum + (byStaffUnit[b][k] || 0); }, 0);
+          return tb - ta;
+        });
+
+        var series = staffKeys.map(function (key) {
+          var priorValues = cfg.unit === 'year' ? null : priorKeys.map(function (k) { return byStaffUnit[key][k] || 0; });
+          var hasPrior = priorValues && priorValues.some(function (v) { return v > 0; });
+          return {
+            label: key === '_unassigned' ? 'Belirtilmedi' : (staffNameById[key] || 'Bilinmeyen'),
+            color: tpColorForUser(key),
+            values: currentKeys.map(function (k) { return byStaffUnit[key][k] || 0; }),
+            priorValues: hasPrior ? priorValues : null
+          };
+        });
+
+        tpRenderProgressChart(labels, series);
+      }).catch(function () {});
+    }
+    function tpRenderProgressChart(labels, series) {
+      var gridG = document.getElementById('tp-progress-grid');
+      var linesG = document.getElementById('tp-progress-lines');
+      var labelsG = document.getElementById('tp-progress-labels');
+      var legendEl = document.getElementById('tp-progress-legend');
+      if (!gridG || !linesG || !labelsG) return;
+      gridG.innerHTML = ''; linesG.innerHTML = ''; labelsG.innerHTML = '';
+      if (legendEl) legendEl.innerHTML = '';
+      if (!series.length) {
+        if (legendEl) legendEl.innerHTML = '<p class="py-2 text-center text-sm text-muted-foreground">Bu aralıkta tamamlanan aşama yok.</p>';
+        return;
+      }
+      var svgNs = 'http://www.w3.org/2000/svg';
+      var chartLeft = 18, chartRight = 322, chartTop = 10, chartBottom = 140;
+      var chartHeight = chartBottom - chartTop;
+      var n = labels.length;
+      var maxVal = 1;
+      var hasAnyPrior = false;
+      series.forEach(function (s) {
+        s.values.forEach(function (v) { if (v > maxVal) maxVal = v; });
+        if (s.priorValues) { hasAnyPrior = true; s.priorValues.forEach(function (v) { if (v > maxVal) maxVal = v; }); }
+      });
+      function xAt(i) { return n > 1 ? chartLeft + (i / (n - 1)) * (chartRight - chartLeft) : (chartLeft + chartRight) / 2; }
+      function yAt(v) { return chartBottom - (v / maxVal) * chartHeight; }
+      [0, 0.5, 1].forEach(function (f) {
+        var line = document.createElementNS(svgNs, 'line');
+        line.setAttribute('x1', chartLeft); line.setAttribute('x2', chartRight);
+        line.setAttribute('y1', yAt(maxVal * f)); line.setAttribute('y2', yAt(maxVal * f));
+        line.setAttribute('stroke', 'var(--color-border)'); line.setAttribute('stroke-width', '1');
+        gridG.appendChild(line);
+      });
+      series.forEach(function (s) {
+        if (s.priorValues) {
+          var priorPoints = s.priorValues.map(function (v, i) { return xAt(i) + ',' + yAt(v); }).join(' ');
+          var priorPoly = document.createElementNS(svgNs, 'polyline');
+          priorPoly.setAttribute('points', priorPoints);
+          priorPoly.setAttribute('fill', 'none'); priorPoly.setAttribute('stroke', s.color);
+          priorPoly.setAttribute('stroke-width', '2'); priorPoly.setAttribute('stroke-linecap', 'round');
+          priorPoly.setAttribute('stroke-linejoin', 'round'); priorPoly.setAttribute('stroke-dasharray', '4 3');
+          priorPoly.setAttribute('opacity', '0.4');
+          linesG.appendChild(priorPoly);
+        }
+        var points = s.values.map(function (v, i) { return xAt(i) + ',' + yAt(v); }).join(' ');
+        var poly = document.createElementNS(svgNs, 'polyline');
+        poly.setAttribute('points', points);
+        poly.setAttribute('fill', 'none'); poly.setAttribute('stroke', s.color);
+        poly.setAttribute('stroke-width', '2'); poly.setAttribute('stroke-linecap', 'round');
+        poly.setAttribute('stroke-linejoin', 'round');
+        linesG.appendChild(poly);
+        s.values.forEach(function (v, i) {
+          var c = document.createElementNS(svgNs, 'circle');
+          c.setAttribute('cx', xAt(i)); c.setAttribute('cy', yAt(v)); c.setAttribute('r', 3.5);
+          c.setAttribute('fill', s.color);
+          linesG.appendChild(c);
+        });
+      });
+      labels.forEach(function (lb, i) {
+        var t = document.createElementNS(svgNs, 'text');
+        t.setAttribute('x', xAt(i)); t.setAttribute('y', chartBottom + 16);
+        t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '10');
+        t.setAttribute('fill', 'var(--color-muted-foreground)');
+        t.textContent = lb;
+        labelsG.appendChild(t);
+      });
+      if (legendEl) {
+        var html = series.map(function (s) {
+          return '<span class="flex items-center gap-1.5 text-[11px] font-semibold text-foreground">' +
+            '<span class="h-2 w-2 rounded-full" style="background:' + escapeHtml(s.color) + '"></span>' + escapeHtml(s.label) + '</span>';
+        }).join('');
+        if (hasAnyPrior) html += '<span class="flex items-center gap-1.5 text-[11px] text-muted-foreground"><span class="h-0 w-3 border-t-2 border-dashed border-muted-foreground"></span>geçen yıl aynı dönem</span>';
+        legendEl.innerHTML = html;
+      }
     }
 
     /* 2026-09-19: bu fonksiyon YALNIZ izin bayraklarina bakiyordu, role hic

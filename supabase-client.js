@@ -1128,29 +1128,135 @@
     // aldığında (confirmed_by/confirmed_at) gerçekten o aşamayı tamamlamış
     // sayılır. Dönem: [fromIso, toIso) — confirmed_at bazlı (kullanıcı
     // isteği: Medicamine'deki ekip performans tablosu, 22 Eylül 2026).
+    // 28 Eylül 2026: Medicamine'deki ekip performansına eklenen hakediş/ciro
+    // ayrımı buraya da taşındı. İki metrik kasıtlı olarak ayrı tutulur —
+    // Medicamine'de "kim sattı" ile "kim uyguladı" karıştırılınca, hizmeti
+    // veren uzmanın cirosu satışı işleyen resepsiyona yazılmış bulunmuştu:
+    //   - earnings (üretim hakedişi): bir işi FİİLEN kim ürettiyse ona göre —
+    //     job.price / o işin toplam onaylı aşama sayısı × kişinin yaptığı
+    //     aşama sayısı. staff_earnings tablosuna KASITLI olarak bakılmıyor —
+    //     0 satır (henüz bağlanmamış/manuel onay bekleyen ayrı bir süreç),
+    //     bunun yerine job_stage_history + jobs.price üzerinden canlı
+    //     hesaplanıyor (bkz. dosya başındaki not).
+    //   - orderRows (sipariş performansı): bu dönemde YENİ siparişi sisteme
+    //     kim girdiyse (jobs.created_by) ona göre, tutar iptal olmayan
+    //     siparişlerin toplamı — resepsiyon/yönetim performansı, üretimi kim
+    //     yaptığından bağımsız.
+    // Para birimi karışık olabildiği için (bazı doktor/laboratuvar anlaşmaları
+    // USD) her iki taraf da para birimi bazında ayrı toplanır, tek bir sayıda
+    // birleştirilmez.
     getTeamPerformance: function (fromIso, toIso) {
       var c = client();
-      return Promise.all([
-        c.from('job_stage_history').select('confirmed_by, job_id').not('confirmed_by', 'is', null)
-          .gte('confirmed_at', fromIso).lt('confirmed_at', toIso),
-        c.from('app_users').select('id, full_name').neq('role', 'doktor')
-      ]).then(function (res) {
-        var stages = res[0].data || [];
-        var nameById = {};
-        (res[1].data || []).forEach(function (u) { nameById[u.id] = u.full_name; });
-        var byUser = {};
-        stages.forEach(function (s) {
-          var u = byUser[s.confirmed_by] || (byUser[s.confirmed_by] = { userId: s.confirmed_by, name: nameById[s.confirmed_by] || '—', stageCount: 0, jobIds: {} });
-          u.stageCount++;
-          u.jobIds[s.job_id] = true;
+      return c.from('job_stage_history').select('confirmed_by, job_id').not('confirmed_by', 'is', null)
+        .gte('confirmed_at', fromIso).lt('confirmed_at', toIso).then(function (stageRes) {
+          var stages = stageRes.data || [];
+          var jobIds = [];
+          var seenJob = {};
+          stages.forEach(function (s) { if (s.job_id && !seenJob[s.job_id]) { seenJob[s.job_id] = true; jobIds.push(s.job_id); } });
+
+          return Promise.all([
+            Promise.resolve(stages),
+            // created_at'e göre sıralı — Medicamine'deki salon_members
+            // sırasıyla aynı mantık: grafik renkleri bu sıraya göre sabit
+            // atanır, bir dönemden diğerine veya sıralama değişince kaymaz.
+            c.from('app_users').select('id, full_name').neq('role', 'doktor').order('created_at'),
+            jobIds.length ? c.from('jobs').select('id, price, currency, restoration_type').in('id', jobIds) : Promise.resolve({ data: [] }),
+            // Bu işlerin TÜM ZAMANLARDAKİ onaylı aşama sayısı — pay hesabının
+            // paydası, "bu dönemde kaç aşama oldu" ile karıştırılmamalı.
+            jobIds.length ? c.from('job_stage_history').select('job_id').not('confirmed_by', 'is', null).in('job_id', jobIds) : Promise.resolve({ data: [] }),
+            c.from('jobs').select('created_by, price, currency').gte('created_at', fromIso).lt('created_at', toIso).is('cancelled_at', null)
+          ]);
+        }).then(function (res) {
+          var stages = res[0];
+          var staffList = res[1].data || [];
+          var nameById = {};
+          staffList.forEach(function (u) { nameById[u.id] = u.full_name; });
+          var jobById = {};
+          (res[2].data || []).forEach(function (j) { jobById[j.id] = j; });
+          var totalStagesByJob = {};
+          (res[3].data || []).forEach(function (s) { totalStagesByJob[s.job_id] = (totalStagesByJob[s.job_id] || 0) + 1; });
+          function stageValue(s) {
+            var job = jobById[s.job_id];
+            var total = totalStagesByJob[s.job_id];
+            if (!job || !job.price || !total) return null;
+            return { amount: Math.round((Number(job.price) || 0) / total), currency: normalizeCurrency(job.currency) };
+          }
+
+          // Üretim hakedişi çalışan bazlı hesaplanır (kim sipariş aldığı
+          // değil, kim ürettiği) — Medicamine'deki "hizmet cirosu" ile aynı
+          // mantık. restorationTypes, Medicamine'deki "hizmet dağılımı"
+          // chip'lerinin karşılığı: her onaylanan aşama, o işin restorasyon
+          // türüne (Kron, Köprü vb.) +1 yazar.
+          var byUser = {};
+          stages.forEach(function (s) {
+            var u = byUser[s.confirmed_by] || (byUser[s.confirmed_by] = { userId: s.confirmed_by, name: nameById[s.confirmed_by] || '—', stageCount: 0, jobIds: {}, earnings: {}, restorationTypes: {} });
+            u.stageCount++;
+            u.jobIds[s.job_id] = true;
+            var v = stageValue(s);
+            if (v) u.earnings[v.currency] = (u.earnings[v.currency] || 0) + v.amount;
+            var job = jobById[s.job_id];
+            var rt = (job && job.restoration_type) || 'Belirtilmedi';
+            u.restorationTypes[rt] = (u.restorationTypes[rt] || 0) + 1;
+          });
+          var rows = Object.keys(byUser).map(function (uid) {
+            var u = byUser[uid];
+            return { userId: uid, name: u.name, stageCount: u.stageCount, jobCount: Object.keys(u.jobIds).length, earnings: u.earnings, restorationTypes: u.restorationTypes };
+          });
+          rows.sort(function (a, b) { return b.stageCount - a.stageCount; });
+
+          var byOrderer = {};
+          (res[4].data || []).forEach(function (j) {
+            if (!j.created_by) return;
+            var u = byOrderer[j.created_by] || (byOrderer[j.created_by] = { userId: j.created_by, name: nameById[j.created_by] || '—', totals: {} });
+            var cur = normalizeCurrency(j.currency);
+            u.totals[cur] = (u.totals[cur] || 0) + (Number(j.price) || 0);
+          });
+          var orderRows = Object.keys(byOrderer).map(function (uid) { return byOrderer[uid]; });
+          orderRows.sort(function (a, b) {
+            var ta = Object.keys(a.totals).reduce(function (s, cur) { return s + a.totals[cur]; }, 0);
+            var tb = Object.keys(b.totals).reduce(function (s, cur) { return s + b.totals[cur]; }, 0);
+            return tb - ta;
+          });
+
+          return { rows: rows, orderRows: orderRows, staffList: staffList };
         });
-        var rows = Object.keys(byUser).map(function (uid) {
-          var u = byUser[uid];
-          return { userId: uid, name: u.name, stageCount: u.stageCount, jobCount: Object.keys(u.jobIds).length };
+    },
+
+    // İlerleme grafiği için ham veri — getTeamPerformance ile aynı pay
+    // hesabını (job.price / toplam onaylı aşama sayısı) kullanır ama tek bir
+    // dönem toplamı yerine HER aşamayı kendi confirmed_at'iyle döndürür ki
+    // arayan taraf bunları haftaya/aya/yıla göre kendi gruplayabilsin.
+    getTeamProgressRaw: function (fromIso, toIso) {
+      var c = client();
+      return c.from('job_stage_history').select('confirmed_by, job_id, confirmed_at').not('confirmed_by', 'is', null)
+        .gte('confirmed_at', fromIso).lt('confirmed_at', toIso).then(function (stageRes) {
+          var stages = stageRes.data || [];
+          var jobIds = [];
+          var seenJob = {};
+          stages.forEach(function (s) { if (s.job_id && !seenJob[s.job_id]) { seenJob[s.job_id] = true; jobIds.push(s.job_id); } });
+          return Promise.all([
+            Promise.resolve(stages),
+            c.from('app_users').select('id, full_name').neq('role', 'doktor').order('created_at'),
+            jobIds.length ? c.from('jobs').select('id, price, currency').in('id', jobIds) : Promise.resolve({ data: [] }),
+            jobIds.length ? c.from('job_stage_history').select('job_id').not('confirmed_by', 'is', null).in('job_id', jobIds) : Promise.resolve({ data: [] })
+          ]);
+        }).then(function (res) {
+          var stages = res[0];
+          var jobById = {};
+          (res[2].data || []).forEach(function (j) { jobById[j.id] = j; });
+          var totalStagesByJob = {};
+          (res[3].data || []).forEach(function (s) { totalStagesByJob[s.job_id] = (totalStagesByJob[s.job_id] || 0) + 1; });
+          var stagesWithValue = stages.map(function (s) {
+            var job = jobById[s.job_id];
+            var total = totalStagesByJob[s.job_id];
+            var value = {};
+            if (job && job.price && total) {
+              value[normalizeCurrency(job.currency)] = Math.round((Number(job.price) || 0) / total);
+            }
+            return { confirmed_by: s.confirmed_by, confirmed_at: s.confirmed_at, value: value };
+          });
+          return { stages: stagesWithValue, staffList: res[1].data || [] };
         });
-        rows.sort(function (a, b) { return b.stageCount - a.stageCount; });
-        return rows;
-      });
     },
 
     listStaffEarnings: function (period) {
