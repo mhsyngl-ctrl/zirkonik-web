@@ -20,6 +20,16 @@
  * İçerik taşsa bile sayfa gövdesi asla yana kaymasın. */
 .h-screen.w-screen.overflow-y-auto { overflow-x: hidden; }
 
+/* 30 Eylül 2026, sahibinin bildirdiği "tarih kutuları kayık" hatası (iOS):
+ * WKWebView'da <input type="date"> kendi doğal genişliğini dayatır ve iki
+ * sütunlu grid'de küçülmeyi reddeder — ikinci kutu kartın dışına taşıyordu.
+ * Sistem görünümü kapatılıp küçülmeye izin verilir; grid hücresi de
+ * (min-width:auto varsayılanı yüzünden) daraltılabilir yapılır. Boş tarih
+ * kutusunun iOS'ta sıfır yükseklikte çizilmesi min-height ile önlenir. */
+input[type="date"] { -webkit-appearance: none; appearance: none; min-width: 0; width: 100%; display: block; }
+input[type="date"]::-webkit-date-and-time-value { text-align: left; min-height: 1.25em; }
+.grid-cols-2 > label { min-width: 0; }
+
 /* ============ Gösterge kartları — karanlık neon güverte ============ */
 .zk-stats-deck { position: relative; margin-top: 12px; }
 .zk-stats-grid { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
