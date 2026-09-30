@@ -126,14 +126,17 @@
             </label>
             <label class="block">
               <span class="mb-1.5 block text-xs font-bold text-card-foreground">Pozisyon</span>
-              <select id="pi-position" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+              <select id="pi-position" onchange="zkPozisyonDegisti()" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
                 <option value="Teknisyen">Teknisyen</option>
                 <option value="Resepsiyon Sorumlusu">Resepsiyon Sorumlusu</option>
                 <option value="Satış Pazarlama Sorumlusu">Satış Pazarlama Sorumlusu</option>
                 <option value="Yönetici">Yönetici (tam yetki)</option>
                 <option value="İşveren">İşveren (tam yetki)</option>
               </select>
-              <span class="mt-1 block text-[11px] text-muted-foreground">Yönetici/İşveren her şeyi görür; Teknisyen aşağıdaki izin ve oda kapsamına tabidir.</span>
+              <span class="mt-1 block text-[11px] text-muted-foreground">Yönetici/İşveren her şeyi görür. Diğer pozisyonlar aşağıdaki yetki anahtarlarına ve oda kapsamına tabidir; pozisyonda etkisiz anahtarlar gri görünür.</span>
+              <button type="button" onclick="zkSablonUygula()" class="mt-2 flex h-9 items-center gap-1.5 rounded-theme border border-border bg-background px-3 text-xs font-bold text-primary">
+                <iconify-icon icon="lucide:wand-2" class="text-sm"></iconify-icon> Pozisyon şablonunu uygula
+              </button>
             </label>
             <div class="grid grid-cols-2 gap-2.5">
               <label class="block">
@@ -299,9 +302,17 @@
       });
     }
 
+    // 30 Eylül 2026, sahibinin isteği ("yetkileri profesyonel hale getir"):
+    // - "İş görüntüleme" (can_view_jobs) ve "Teslimat onayı" (can_approve_delivery)
+    //   KALDIRILDI: canlıda hiçbir RLS/RPC/ekran bu bayraklara bakmıyordu; iş
+    //   görünürlüğü oda erişimiyle, teslimat "Teslimat" odası erişimiyle belirlenir.
+    //   Sütunlar veritabanında duruyor (zararsız), ekranda gösterilmiyor.
+    // - Anahtarlar gruplandı (grup alanı) ve pozisyona göre etkisiz olanlar
+    //   POS_KURAL ile gri/kilitli gösteriliyor — pozisyon sayfa kapısı yetkiden
+    //   güçlü olduğu için ("Resepsiyon'a finans yetkisi versem de Finans
+    //   açılmıyor" karışıklığı).
     var PERMS = [
-      { key: 'can_view_jobs', icon: 'lucide:eye', title: 'İş görüntüleme', desc: 'Üretim kayıtlarını görme' },
-      { key: 'can_change_job_status', icon: 'lucide:forward', title: 'Durum ilerletme', desc: 'İşi bir sonraki aşamaya taşıma' },
+      { key: 'can_change_job_status', grup: 'Üretim', icon: 'lucide:forward', title: 'Durum ilerletme', desc: 'İşi/kalemi bir sonraki odaya taşıma' },
       // 26 Eylül 2026, sahibinin isteği: "Stok işlemleri" kaldırıldı — Stok
       // sayfası zaten herkesten (yönetici dahil) kapalı (js/zk-guard.js'te
       // koşulsuz yönlendirme), bu yetki hiçbir şeyi açıp kapamıyordu.
@@ -309,16 +320,18 @@
       // yetkisi de veriyor (tahsilat kaydi, fatura, kasa teslim onayi).
       // "Sadece gorsun" diye acilmasin diye adi duzeltildi. 24 Eylül 2026:
       // fiyat değişikliği artık bu yetkiye dahil değil — yalnız yönetici/işveren.
-      { key: 'can_view_finance', icon: 'lucide:wallet-cards', title: 'Finans yetkisi', desc: 'Tahsilat/ödeme kaydı, fatura — salt-okunur DEĞİL. Fiyat listesi bu yetkiye dahil değil.' },
-      // 30 Eylül 2026, sahibinin kuralı: fiyatı yönetici VE açıkça yetki verilen personel görür
-      // (sunucuda job_prices / job_item_prices / price_list_item_prices RLS'i bu izne bağlı).
-      { key: 'can_view_prices', icon: 'lucide:banknote', title: 'Fiyatları görebilir', desc: 'İş, kalem ve fiyat listesi tutarlarını görür. Yalnız görme; fiyat düzenleme finans yetkisiyle.' },
-      { key: 'can_view_doctors', icon: 'lucide:stethoscope', title: 'Doktorları görme', desc: 'Doktor listesi ve iletişim (salt-okunur)' },
-      { key: 'can_approve_delivery', icon: 'lucide:badge-check', title: 'Teslimat onayı', desc: 'Kalite kontrol sonrası teslimat' },
       // 25 Eylül 2026: yetkili olduğu odadaki işin hasta adı/protokol/teslim
       // tarihi gibi bilgilerini düzeltebilsin — fiyat/durum bu yetkiye dahil
       // değil, yalnız kendi odasındaki işler (oda erişimi ayrıca kontrol edilir).
-      { key: 'can_edit_room_orders', icon: 'lucide:pencil-line', title: 'Sipariş düzenleme', desc: 'Yetkili olduğu odadaki işlerde hasta adı/protokol/teslim tarihi düzeltme — fiyat/durum hariç' },
+      { key: 'can_edit_room_orders', grup: 'Üretim', icon: 'lucide:pencil-line', title: 'Sipariş düzenleme', desc: 'Kendi odasındaki işte hasta adı, protokol, teslim tarihi, çalışma türü düzeltme — fiyat ve durum hariç' },
+      { key: 'can_manage_orders', grup: 'Ofis', icon: 'lucide:inbox', title: 'Sipariş yönetimi', desc: 'Siparişler ve Yeni İş sayfaları: gelen siparişi onaylama/reddetme' },
+      // Sunucuda kural yok: personel (pazarlamacı hariç) doktor listesini zaten
+      // okuyabilir; bu anahtar yalnız Doktorlar sekmesini açıp kapatır.
+      { key: 'can_view_doctors', grup: 'Ofis', icon: 'lucide:stethoscope', title: 'Doktorları görme', desc: 'Doktorlar sekmesini açar (liste ve iletişim). Sadece ekran; sunucuda ayrıca kısıtlamaz.' },
+      // 30 Eylül 2026, sahibinin kuralı: fiyatı yönetici VE açıkça yetki verilen personel görür
+      // (sunucuda job_prices / job_item_prices / price_list_item_prices RLS'i bu izne bağlı).
+      { key: 'can_view_prices', grup: 'Para', icon: 'lucide:banknote', title: 'Fiyatları görebilir', desc: 'Görebildiği işlerin tutarı, katalog ve fiyat listesi. Yalnız görme; fiyat düzenleme finans yetkisiyle.' },
+      { key: 'can_view_finance', grup: 'Para', icon: 'lucide:wallet-cards', title: 'Finans yetkisi', desc: 'Tahsilat, ödeme, fatura, kasa teslimi YAZAR; Finans ve Ciro sayfaları. Salt-okunur değil.' },
       // can_view_payroll BİLEREK burada yok (25 Eylül 2026, sahibinin kararı):
       // personelin BAŞKA personelin hakedişini görmesine gerek yok — kendi
       // hakedişini zaten her zaman görür (earnings_select politikası
@@ -330,9 +343,37 @@
       // 24 Eylül 2026: Resepsiyon Sorumlusu ve Satış Pazarlama Sorumlusu pozisyonları için.
       // Fiyat listesini görme izni BİLEREK burada yok — sahibinin kuralı: fiyatları
       // hiçbir personel göremez/değiştiremez, yalnız yönetici/işveren.
-      { key: 'can_manage_orders', icon: 'lucide:inbox', title: 'Sipariş yönetimi', desc: 'Siparişler sayfası: gelen siparişi onaylama/reddetme (resepsiyon), tutar görünmez' },
-      { key: 'can_manage_prospects', icon: 'lucide:map-pinned', title: 'Aday/doktor kazanım süreci', desc: 'Doktor Havuzu ve Bölgeler sayfaları: aday ekleme, aşama ilerletme, temas kaydı' }
+      { key: 'can_manage_prospects', grup: 'Satış', icon: 'lucide:map-pinned', title: 'Aday/doktor kazanım süreci', desc: 'Doktor Havuzu ve Bölgeler: aday ekleme, aşama ilerletme, temas kaydı' }
     ];
+
+    // Pozisyon şablonları: "varsayilan" şablon uygulanınca açılır; "izinli" bu
+    // pozisyonda anlamlı anahtarlar (js/zk-guard-core.js sayfa kapılarıyla tutarlı:
+    // Resepsiyon Finans/Doktor Havuzu'na, Satış-Pazarlama Doktor Havuzu dışına giremez).
+    var POS_KURAL = {
+      'Teknisyen': { varsayilan: ['can_change_job_status'], izinli: ['can_change_job_status', 'can_edit_room_orders', 'can_manage_orders', 'can_view_doctors', 'can_view_prices', 'can_view_finance', 'can_manage_prospects'] },
+      'Resepsiyon Sorumlusu': { varsayilan: ['can_manage_orders', 'can_view_doctors'], izinli: ['can_change_job_status', 'can_edit_room_orders', 'can_manage_orders', 'can_view_doctors', 'can_view_prices'] },
+      'Satış Pazarlama Sorumlusu': { varsayilan: ['can_manage_prospects'], izinli: ['can_manage_prospects'] }
+    };
+    function zkSeciliPozisyon() {
+      var el = document.getElementById('pi-position');
+      return (el && el.value) || 'Teknisyen';
+    }
+    function zkIzinliMi(key) {
+      var kural = POS_KURAL[zkSeciliPozisyon()];
+      return !kural || kural.izinli.indexOf(key) >= 0;
+    }
+    // Pozisyon değişince etkisiz anahtarlar kapanır ve liste yeniden çizilir.
+    function zkPozisyonDegisti() {
+      PERMS.forEach(function (p) { if (!zkIzinliMi(p.key)) currentPerms[p.key] = false; });
+      renderPermissions();
+    }
+    function zkSablonUygula() {
+      var kural = POS_KURAL[zkSeciliPozisyon()];
+      if (!kural) return;
+      PERMS.forEach(function (p) { currentPerms[p.key] = kural.varsayilan.indexOf(p.key) >= 0; });
+      renderPermissions();
+      zkToast(zkSeciliPozisyon() + ' şablonu uygulandı — kaydetmeyi unutmayın.');
+    }
 
     var userId = new URLSearchParams(location.search).get('user');
     var currentPerms = {};
@@ -526,20 +567,28 @@
     }
 
     function renderPermissions() {
+      var sonGrup = null;
       document.getElementById('permissions-list').innerHTML = PERMS.map(function (p, i) {
         var granted = !!currentPerms[p.key];
-        return '<div class="flex items-center justify-between gap-3 px-4 py-3.5' + (i < PERMS.length - 1 ? ' border-b border-border' : '') + '">' +
+        var izinli = zkIzinliMi(p.key);
+        var baslik = '';
+        if (p.grup !== sonGrup) {
+          sonGrup = p.grup;
+          baslik = '<p class="bg-muted px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground' + (i > 0 ? ' border-t border-border' : '') + '">' + escapeHtml(p.grup) + '</p>';
+        }
+        return baslik + '<div class="flex items-center justify-between gap-3 px-4 py-3.5' + (i < PERMS.length - 1 ? ' border-b border-border' : '') + (izinli ? '' : ' opacity-50') + '">' +
           '<div class="flex min-w-0 items-center gap-3">' +
           '<span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-theme bg-secondary text-primary"><iconify-icon icon="' + p.icon + '" class="text-base"></iconify-icon></span>' +
-          '<div><p class="text-sm font-bold">' + escapeHtml(p.title) + '</p><p class="mt-0.5 text-[11px] text-muted-foreground">' + escapeHtml(p.desc) + '</p></div></div>' +
+          '<div><p class="text-sm font-bold">' + escapeHtml(p.title) + '</p><p class="mt-0.5 text-[11px] text-muted-foreground">' + escapeHtml(izinli ? p.desc : 'Bu pozisyonda etkisiz — ' + zkSeciliPozisyon() + ' bu sayfalara pozisyon gereği giremez.') + '</p></div></div>' +
           '<div class="flex shrink-0 items-center gap-2">' +
-          '<span class="zk-perm-label text-[11px] font-bold ' + (granted ? 'text-success' : 'text-muted-foreground') + '">' + (granted ? 'Açık' : 'Kapalı') + '</span>' +
-          '<button type="button" onclick="zkTogglePermission(\'' + p.key + '\', this)" aria-label="' + escapeHtml(p.title) + '" class="zk-switch' + (granted ? ' zk-on' : '') + '"><span class="zk-switch-knob"></span></button>' +
+          '<span class="zk-perm-label text-[11px] font-bold ' + (granted ? 'text-success' : 'text-muted-foreground') + '">' + (izinli ? (granted ? 'Açık' : 'Kapalı') : 'Kilitli') + '</span>' +
+          '<button type="button" onclick="zkTogglePermission(\'' + p.key + '\', this)" aria-label="' + escapeHtml(p.title) + '"' + (izinli ? '' : ' disabled aria-disabled="true"') + ' class="zk-switch' + (granted ? ' zk-on' : '') + '"><span class="zk-switch-knob"></span></button>' +
           '</div></div>';
       }).join('');
     }
 
     function zkTogglePermission(key, btn) {
+      if (!zkIzinliMi(key)) return;
       currentPerms[key] = !currentPerms[key];
       var granted = currentPerms[key];
       btn.classList.toggle('zk-on', granted);
