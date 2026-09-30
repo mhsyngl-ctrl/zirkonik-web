@@ -800,25 +800,47 @@
     }
     // 25 Eylül 2026, sahibinin isteği: işveren ana ekranda oda geçişlerini
     // canlı takip etsin — kim, hangi işi, hangi odaya ne zaman taşıdı.
+    // iOS Safari bazen <details> açılınca kaydırma alanının yüksekliğini
+    // yeniden hesaplamıyor — 1px kaydırıp geri alarak yeniden çizdiriyoruz
+    // (aday-havuzu.html/doktorlar.html'deki aynı çözüm, 26 Eylül 2026).
+    function zkNudgeScroll(detailsEl) {
+      var kutu = detailsEl.closest('.overflow-y-auto');
+      if (!kutu) return;
+      var y = kutu.scrollTop;
+      kutu.scrollTop = y + 1;
+      kutu.scrollTop = y;
+    }
+    // 30 Eylül 2026, sahibinin isteği: liste 2-3 satırdan uzunsa katlı olsun.
+    function zkJobProgressSatir(h, sonMu) {
+      var j = h.jobs || {};
+      var kimTxt = h.app_users ? h.app_users.full_name : 'Bilinmiyor';
+      var odaTxt = h.rooms ? h.rooms.name : 'Bekleyen';
+      var zaman = h.entered_at ? new Date(h.entered_at).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
+      return '<div class="flex items-start gap-3 px-4 py-3' + (sonMu ? '' : ' border-b border-border') + '">' +
+        '<span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-theme bg-primary/10 text-primary"><iconify-icon icon="lucide:move-right" class="text-sm"></iconify-icon></span>' +
+        '<div class="min-w-0 flex-1"><p class="text-xs font-bold">' + escapeHtml(j.job_number || '—') +
+        (j.restoration_type ? ' · ' + escapeHtml(j.restoration_type) : '') + '</p>' +
+        '<p class="mt-0.5 text-xs text-muted-foreground">' + escapeHtml(odaTxt) + ' — ' + escapeHtml(kimTxt) + '</p>' +
+        (h.note ? '<p class="mt-0.5 text-[11px] text-muted-foreground">' + escapeHtml(h.note) + '</p>' : '') + '</div>' +
+        '<span class="shrink-0 text-[10px] font-semibold text-muted-foreground">' + zaman + '</span></div>';
+    }
     function loadJobProgressLog() {
       var el = document.getElementById('job-progress-log');
       ZirkonikData.listRecentJobProgress(20).then(function (r) {
         if (r.error) { el.innerHTML = '<p class="p-4 text-xs text-destructive">Yüklenemedi: ' + escapeHtml(r.error.message) + '</p>'; return; }
         var rows = r.data || [];
         if (!rows.length) { el.innerHTML = '<p class="p-4 text-xs text-muted-foreground">Henüz bir oda geçişi yok.</p>'; return; }
-        el.innerHTML = rows.map(function (h, i) {
-          var j = h.jobs || {};
-          var kimTxt = h.app_users ? h.app_users.full_name : 'Bilinmiyor';
-          var odaTxt = h.rooms ? h.rooms.name : 'Bekleyen';
-          var zaman = h.entered_at ? new Date(h.entered_at).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
-          return '<div class="flex items-start gap-3 px-4 py-3' + (i < rows.length - 1 ? ' border-b border-border' : '') + '">' +
-            '<span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-theme bg-primary/10 text-primary"><iconify-icon icon="lucide:move-right" class="text-sm"></iconify-icon></span>' +
-            '<div class="min-w-0 flex-1"><p class="text-xs font-bold">' + escapeHtml(j.job_number || '—') +
-            (j.restoration_type ? ' · ' + escapeHtml(j.restoration_type) : '') + '</p>' +
-            '<p class="mt-0.5 text-xs text-muted-foreground">' + escapeHtml(odaTxt) + ' — ' + escapeHtml(kimTxt) + '</p>' +
-            (h.note ? '<p class="mt-0.5 text-[11px] text-muted-foreground">' + escapeHtml(h.note) + '</p>' : '') + '</div>' +
-            '<span class="shrink-0 text-[10px] font-semibold text-muted-foreground">' + zaman + '</span></div>';
-        }).join('');
+        var GOSTERILEN = 3;
+        var ilk = rows.slice(0, GOSTERILEN);
+        var kalan = rows.slice(GOSTERILEN);
+        var html = ilk.map(function (h, i) { return zkJobProgressSatir(h, kalan.length === 0 && i === ilk.length - 1); }).join('');
+        if (kalan.length) {
+          html += '<details ontoggle="zkNudgeScroll(this)">' +
+            '<summary class="cursor-pointer border-t border-border px-4 py-2.5 text-xs font-bold text-primary">Daha fazla göster (' + kalan.length + ')</summary>' +
+            kalan.map(function (h, i) { return zkJobProgressSatir(h, i === kalan.length - 1); }).join('') +
+            '</details>';
+        }
+        el.innerHTML = html;
       });
     }
 
