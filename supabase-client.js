@@ -388,6 +388,20 @@
       return client().from('jobs').select('id, job_number, restoration_type, unit_count, status, created_at')
         .eq('doctor_id', doctorId).order('created_at', { ascending: false }).limit(10);
     },
+    // 30 Eylül 2026: fiyatlar ayrı tablolara taşındı (job_prices / job_item_prices /
+    // price_list_item_prices — RLS: yalnız yönetici ve ilgili doktor okur; personelde
+    // embed boş döner). Ekranlar eski alan adlarını (price/currency/unit_price)
+    // kullanmaya devam etsin diye embed düzleştirilir.
+    fiyatDuzle: function (row, embedKey, alanlar) {
+      if (!row) return row;
+      var e = row[embedKey];
+      if (Array.isArray(e)) e = e[0];
+      (alanlar || ['price', 'currency']).forEach(function (a) {
+        row[a] = e && e[a] != null ? e[a] : (a === 'currency' ? (row[a] || '$') : null);
+      });
+      delete row[embedKey];
+      return row;
+    },
     // 30 Eylül 2026, sahibinin isteği: Doktorlar listesinde her kartın üstünde
     // doktorun gönderdiği toplam diş/iş sayısı ve ciro (yalnız yönetici görür).
     // Doktor başına ayrı sorgu atmak yerine (N+1) tüm işler çekilip istemcide
@@ -397,11 +411,11 @@
       var SAYFA = 1000;
       var hepsi = [];
       function sayfa(from) {
-        return client().from('jobs').select('id, doctor_id, price, currency, unit_count')
+        return client().from('jobs').select('id, doctor_id, unit_count, job_prices(price, currency)')
           .neq('status', 'cancelled').order('id', { ascending: true }).range(from, from + SAYFA - 1)
           .then(function (r) {
             if (r.error) return r;
-            var parca = r.data || [];
+            var parca = (r.data || []).map(function (j) { return Data.fiyatDuzle(j, 'job_prices'); });
             hepsi = hepsi.concat(parca);
             if (parca.length < SAYFA) return { data: hepsi, error: null };
             return sayfa(from + SAYFA);
@@ -520,7 +534,10 @@
     },
     getJob: function (jobId, includePrice) {
       var cols = includePrice === false ? Data.JOB_COLS_NO_PRICE : '*';
-      return client().from('jobs').select(cols + ', doctors(*), laboratories(name), rooms:current_room_id(name)').eq('id', jobId).single();
+      var fiyatli = cols === '*';
+      var q = client().from('jobs').select(cols + (fiyatli ? ', job_prices(price, currency)' : '') + ', doctors(*), laboratories(name), rooms:current_room_id(name)').eq('id', jobId).single();
+      if (!fiyatli) return q;
+      return q.then(function (r) { if (r.data) Data.fiyatDuzle(r.data, 'job_prices'); return r; });
     },
     nextJobNumber: function (labId) {
       return client().from('jobs').select('job_number', { count: 'exact', head: true }).eq('laboratory_id', labId).then(function (r) {
@@ -591,19 +608,26 @@
     // ayna olarak guncel tutuluyor (en geride olan aktif kalemin odasi), bu
     // sayede hakedis/stok/bildirim tetikleyicileri bugunku gibi calisiyor.
     ITEM_COLS_NO_PRICE: 'id, job_id, organization_id, price_item_id, restoration_type, teeth, unit_count, planned_route, current_room_id, status, color_index, sort_order, created_at, work_form',
+    // Fiyat istenirse job_item_prices embed'i çekilir ve price/currency'ye düzleştirilir
+    // (30 Eylül 2026, fiyatlar ayrı tabloda).
     listJobItems: function (jobId, includePrice) {
-      var cols = includePrice === false ? Data.ITEM_COLS_NO_PRICE : '*';
-      return client().from('job_items')
+      var fiyatli = includePrice !== false;
+      var cols = fiyatli ? '*, job_item_prices(price, currency)' : Data.ITEM_COLS_NO_PRICE;
+      var q = client().from('job_items')
         .select(cols + ', rooms:current_room_id(name), price_list_items(name)')
         .eq('job_id', jobId).order('sort_order').order('created_at');
+      if (!fiyatli) return q;
+      return q.then(function (r) { (r.data || []).forEach(function (k) { Data.fiyatDuzle(k, 'job_item_prices'); }); return r; });
     },
     listActiveItems: function (laboratoryId, includePrice) {
-      var cols = includePrice === false ? Data.ITEM_COLS_NO_PRICE : '*';
+      var fiyatli = includePrice !== false;
+      var cols = fiyatli ? '*, job_item_prices(price, currency)' : Data.ITEM_COLS_NO_PRICE;
       var q = client().from('job_items')
         .select(cols + ', jobs!inner(id, job_number, laboratory_id, doctor_id, is_priority, requested_delivery_at, patient_name, clinic_protocol_no, status, doctors(full_name))')
         .eq('status', 'active').eq('jobs.status', 'active');
       if (laboratoryId) q = q.eq('jobs.laboratory_id', laboratoryId);
-      return q;
+      if (!fiyatli) return q;
+      return q.then(function (r) { (r.data || []).forEach(function (k) { Data.fiyatDuzle(k, 'job_item_prices'); }); return r; });
     },
     // 25 Eylül 2026: job_item_select artık oda bazlı (yalnız yetkili olunan
     // oda) — bir önceki odadan gelmekte olan işin YALNIZ numarasını bu RPC
@@ -641,10 +665,12 @@
     },
 
     // ---- Fiyat listesi ----
+    // unit_price artık price_list_item_prices tablosunda (30 Eylül 2026); embed
+    // düzleştirilir, personelde RLS boş döndürür (zaten listWorkTypes kullanır).
     listPriceItems: function (includeInactive) {
-      var q = client().from('price_list_items').select('*').order('sort_order').order('name');
+      var q = client().from('price_list_items').select('*, price_list_item_prices(unit_price, currency)').order('sort_order').order('name');
       if (!includeInactive) q = q.eq('is_active', true);
-      return q;
+      return q.then(function (r) { (r.data || []).forEach(function (p) { Data.fiyatDuzle(p, 'price_list_item_prices', ['unit_price', 'currency']); }); return r; });
     },
     createPriceItem: function (fields) {
       return client().from('price_list_items').insert(fields).select().single();
@@ -736,7 +762,7 @@
     listOrders: function (filters) {
       filters = filters || {};
       var sayfali = filters.limit != null;
-      var priceEmbed = filters.includePrice === false ? 'price_list_items(name)' : 'price_list_items(name, unit_price, currency)';
+      var priceEmbed = filters.includePrice === false ? 'price_list_items(name)' : 'price_list_items(name, price_list_item_prices(unit_price, currency))';
       var q = client().from('orders').select('*, doctors(full_name, clinic_name), ' + priceEmbed, sayfali ? { count: 'exact' } : undefined)
         .order('created_at', { ascending: false }).order('id', { ascending: true });
       if (filters.status) q = q.eq('status', filters.status);
@@ -746,7 +772,12 @@
         var limit = Math.max(1, Math.min(filters.limit, 500)), offset = Math.max(0, filters.offset || 0);
         q = q.range(offset, offset + limit - 1);
       }
-      return q;
+      if (filters.includePrice === false) return q;
+      // Katalog fiyatı ayrı tabloda (30 Eylül 2026): iç embed unit_price/currency'ye düzleştirilir.
+      return q.then(function (r) {
+        (r.data || []).forEach(function (o) { if (o.price_list_items) Data.fiyatDuzle(o.price_list_items, 'price_list_item_prices', ['unit_price', 'currency']); });
+        return r;
+      });
     },
     reviewOrder: function (orderId, fields) {
       return client().from('orders').update(fields).eq('id', orderId).select().single();
@@ -924,6 +955,7 @@
       var now = new Date();
       function mapRowsShared(rows) {
         return (rows || []).map(function (j) {
+          Data.fiyatDuzle(j, 'job_prices');
           return {
             id: j.id, price: Number(j.price) || 0, currency: window.ZirkonikMoney.normalize(j.currency),
             date: j.created_at, doctorName: (j.doctors && j.doctors.full_name) || '—',
@@ -931,7 +963,7 @@
           };
         });
       }
-      var SELECT_SHARED = 'id, price, currency, created_at, price_item_id, doctor_id, price_list_items(category, name), doctors(full_name)';
+      var SELECT_SHARED = 'id, created_at, price_item_id, doctor_id, job_prices(price, currency), price_list_items(category, name), doctors(full_name)';
       // "Tümü" (doktorun cari panelindeki dönem seçiciyle aynı) — tarih
       // sınırı yok, karşılaştırılacak "önceki dönem" de yok.
       if (period === 'all') {
@@ -1211,11 +1243,11 @@
             // sırasıyla aynı mantık: grafik renkleri bu sıraya göre sabit
             // atanır, bir dönemden diğerine veya sıralama değişince kaymaz.
             c.from('app_users').select('id, full_name').neq('role', 'doktor').order('created_at'),
-            jobIds.length ? c.from('jobs').select('id, price, currency, restoration_type').in('id', jobIds) : Promise.resolve({ data: [] }),
+            jobIds.length ? c.from('jobs').select('id, restoration_type, job_prices(price, currency)').in('id', jobIds) : Promise.resolve({ data: [] }),
             // Bu işlerin TÜM ZAMANLARDAKİ onaylı aşama sayısı — pay hesabının
             // paydası, "bu dönemde kaç aşama oldu" ile karıştırılmamalı.
             jobIds.length ? c.from('job_stage_history').select('job_id').not('confirmed_by', 'is', null).in('job_id', jobIds) : Promise.resolve({ data: [] }),
-            c.from('jobs').select('created_by, price, currency').gte('created_at', fromIso).lt('created_at', toIso).is('cancelled_at', null)
+            c.from('jobs').select('created_by, job_prices(price, currency)').gte('created_at', fromIso).lt('created_at', toIso).is('cancelled_at', null)
           ]);
         }).then(function (res) {
           var stages = res[0];
@@ -1223,7 +1255,7 @@
           var nameById = {};
           staffList.forEach(function (u) { nameById[u.id] = u.full_name; });
           var jobById = {};
-          (res[2].data || []).forEach(function (j) { jobById[j.id] = j; });
+          (res[2].data || []).forEach(function (j) { Data.fiyatDuzle(j, 'job_prices'); jobById[j.id] = j; });
           var totalStagesByJob = {};
           (res[3].data || []).forEach(function (s) { totalStagesByJob[s.job_id] = (totalStagesByJob[s.job_id] || 0) + 1; });
           function stageValue(s) {
@@ -1257,6 +1289,7 @@
 
           var byOrderer = {};
           (res[4].data || []).forEach(function (j) {
+            Data.fiyatDuzle(j, 'job_prices');
             if (!j.created_by) return;
             var u = byOrderer[j.created_by] || (byOrderer[j.created_by] = { userId: j.created_by, name: nameById[j.created_by] || '—', totals: {} });
             var cur = normalizeCurrency(j.currency);
@@ -1288,13 +1321,13 @@
           return Promise.all([
             Promise.resolve(stages),
             c.from('app_users').select('id, full_name').neq('role', 'doktor').order('created_at'),
-            jobIds.length ? c.from('jobs').select('id, price, currency').in('id', jobIds) : Promise.resolve({ data: [] }),
+            jobIds.length ? c.from('jobs').select('id, job_prices(price, currency)').in('id', jobIds) : Promise.resolve({ data: [] }),
             jobIds.length ? c.from('job_stage_history').select('job_id').not('confirmed_by', 'is', null).in('job_id', jobIds) : Promise.resolve({ data: [] })
           ]);
         }).then(function (res) {
           var stages = res[0];
           var jobById = {};
-          (res[2].data || []).forEach(function (j) { jobById[j.id] = j; });
+          (res[2].data || []).forEach(function (j) { Data.fiyatDuzle(j, 'job_prices'); jobById[j.id] = j; });
           var totalStagesByJob = {};
           (res[3].data || []).forEach(function (s) { totalStagesByJob[s.job_id] = (totalStagesByJob[s.job_id] || 0) + 1; });
           var stagesWithValue = stages.map(function (s) {

@@ -438,6 +438,8 @@
         perms = (perms && perms[0]) || perms || {};
         canFixJob = myRole === 'yonetici' || !!perms.can_manage_orders;
         canEditRoomOrdersPerm = !!perms.can_edit_room_orders;
+        // 30 Eylül 2026: fiyatı yönetici VE "fiyatları görebilir" yetkisi verilen personel görür.
+        window.zkCanSeePrices = myRole === 'yonetici' || !!perms.can_view_prices;
         var editBtn = document.getElementById('edit-job-icon-btn');
         if (editBtn) editBtn.classList.toggle('hidden', !canFixJob);
         loadJob();
@@ -546,7 +548,7 @@
         var tasinan = ZKHiz.takeHandoff('job:' + jobId) || ZKHiz.cachePeek('job_' + jobId);
         if (tasinan) { try { renderJobHeaderBasics(tasinan); } catch (e) {} }
       }
-      ZirkonikData.getJob(jobId, myRole === 'yonetici').then(function (jobRes) {
+      ZirkonikData.getJob(jobId, !!window.zkCanSeePrices).then(function (jobRes) {
         if (jobRes.error || !jobRes.data) throw jobRes.error || new Error('İş bulunamadı');
         currentJob = jobRes.data;
         ZKHiz.cachePut('job_' + jobId, currentJob);
@@ -561,7 +563,7 @@
             }
           });
         }
-        return ZirkonikData.listJobItems(jobId, myRole === 'yonetici');
+        return ZirkonikData.listJobItems(jobId, !!window.zkCanSeePrices);
       }).then(function (itemsRes) {
         jobItems = itemsRes.data || [];
         // Secili kalemi koru (yenileme sonrasi kullanici basa donmesin).
@@ -636,7 +638,7 @@
       // tek sayi olarak karisik siparisin tamamini gosteremez.
       var fiyatliKalemler = jobItems.filter(function (k) { return k.price != null; });
       var priceBox = document.getElementById('job-price-box');
-      if (myRole === 'yonetici') {
+      if (window.zkCanSeePrices) {
         priceBox.classList.remove('hidden');
         document.getElementById('job-price').textContent =
           fiyatliKalemler.length ? ZirkonikMoney.totalText(fiyatliKalemler, 'price', 'currency', 0)
@@ -1169,7 +1171,7 @@
               .update({ status: 'completed' }).eq('id', currentItem.id)
               .then(function (r) {
                 if (r.error) throw r.error;
-                return ZirkonikData.listJobItems(jobId, myRole === 'yonetici');
+                return ZirkonikData.listJobItems(jobId, !!window.zkCanSeePrices);
               }).then(function (r) {
                 var kalan = (r.data || []).filter(function (i) { return i.status === 'active'; });
                 if (kalan.length) return { done: false };

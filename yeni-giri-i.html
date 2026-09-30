@@ -608,7 +608,8 @@
         // resepsiyon için liste TAMAMEN BOŞ geliyordu, sipariş hiç girilemiyordu.
         // Admin dışındaki herkes fiyatsız zk_calisma_turleri_listele() RPC'sini
         // kullanır (id/name/category/route_room_ids/currency — fiyat yok).
-        var itemsPromise = me.role === 'yonetici' ? ZirkonikData.listPriceItems() : ZirkonikData.listWorkTypes();
+        // 30 Eylül 2026: fiyatı yönetici VE "fiyatları görebilir" yetkisi verilen personel görür.
+        var itemsPromise = (me.role === 'yonetici' || !!perms.can_view_prices) ? ZirkonikData.listPriceItems() : ZirkonikData.listWorkTypes();
         itemsPromise.then(function (r) {
           // 26 Eylül 2026: bu istek sessizce hata verirse liste boş gelip hiçbir
           // şey görünmüyordu, kullanıcı neden sipariş giremediğini anlamıyordu

@@ -46,9 +46,9 @@
     if (pg === 'doktorlar' && !p.can_view_doctors) { location.replace('retim.html'); return true; }
     // Siparişler + Yeni İş Oluştur: resepsiyonun işi (can_manage_orders).
     if ((pg === 'siparisler' || pg === 'yeni-giri-i') && !p.can_manage_orders) { location.replace('retim.html'); return true; }
-    // Fiyat Listesi: sahibinin kuralı (24 Eylül 2026) — fiyatları yalnız
-    // yönetici/işveren görür, hiçbir personel izniyle açılamaz.
-    if (pg === 'fiyat-listesi') { location.replace('retim.html'); return true; }
+    // Fiyat Listesi: 30 Eylül 2026, sahibinin kuralı — yönetici/işveren ve
+    // "Fiyatları görebilir" (can_view_prices) yetkisi verilen personel açar.
+    if (pg === 'fiyat-listesi' && !p.can_view_prices) { location.replace('retim.html'); return true; }
     // Aday Havuzu: doktor kazanım süreci — 24 Eylül 2026.
     if (pg === 'aday-havuzu' && !p.can_manage_prospects) { location.replace('retim.html'); return true; }
     return false;
@@ -108,8 +108,8 @@
     if (!p.can_view_doctors) sel += ',a[href*="doktorlar"],[onclick*="doktorlar"]';
     // Siparişler + Yeni İş Oluştur: can_manage_orders (25 Eylül 2026).
     if (!p.can_manage_orders) sel += ',a[href*="siparisler"],[onclick*="siparisler"],a[href*="yeni-giri-i"],[onclick*="yeni-giri-i"]';
-    // Fiyat Listesi: personelden her zaman gizli, izinle açılmaz (24 Eylül 2026).
-    sel += ',a[href*="fiyat-listesi"],[onclick*="fiyat-listesi"]';
+    // Fiyat Listesi: "Fiyatları görebilir" yetkisine bağlı (30 Eylül 2026).
+    if (!p.can_view_prices) sel += ',a[href*="fiyat-listesi"],[onclick*="fiyat-listesi"]';
     if (!p.can_manage_prospects) sel += ',a[href*="aday-havuzu"],[onclick*="aday-havuzu"]';
     var links = document.querySelectorAll(sel);
     for (var k = 0; k < links.length; k++) links[k].style.display = 'none';

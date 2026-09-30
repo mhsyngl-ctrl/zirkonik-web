@@ -310,6 +310,9 @@
       // "Sadece gorsun" diye acilmasin diye adi duzeltildi. 24 Eylül 2026:
       // fiyat değişikliği artık bu yetkiye dahil değil — yalnız yönetici/işveren.
       { key: 'can_view_finance', icon: 'lucide:wallet-cards', title: 'Finans yetkisi', desc: 'Tahsilat/ödeme kaydı, fatura — salt-okunur DEĞİL. Fiyat listesi bu yetkiye dahil değil.' },
+      // 30 Eylül 2026, sahibinin kuralı: fiyatı yönetici VE açıkça yetki verilen personel görür
+      // (sunucuda job_prices / job_item_prices / price_list_item_prices RLS'i bu izne bağlı).
+      { key: 'can_view_prices', icon: 'lucide:banknote', title: 'Fiyatları görebilir', desc: 'İş, kalem ve fiyat listesi tutarlarını görür. Yalnız görme; fiyat düzenleme finans yetkisiyle.' },
       { key: 'can_view_doctors', icon: 'lucide:stethoscope', title: 'Doktorları görme', desc: 'Doktor listesi ve iletişim (salt-okunur)' },
       { key: 'can_approve_delivery', icon: 'lucide:badge-check', title: 'Teslimat onayı', desc: 'Kalite kontrol sonrası teslimat' },
       // 25 Eylül 2026: yetkili olduğu odadaki işin hasta adı/protokol/teslim

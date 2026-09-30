@@ -1173,17 +1173,20 @@
 
       var client = ZirkonikAuth.client();
       Promise.all([
-        client.from('jobs').select('*, laboratories(name), rooms:current_room_id(name)').eq('id', jobId).single(),
+        client.from('jobs').select('*, job_prices(price, currency), laboratories(name), rooms:current_room_id(name)').eq('id', jobId).single(),
         client.from('job_stage_history').select('room_id, entered_at, exited_at, confirmed_at, rooms(name)').eq('job_id', jobId).order('entered_at'),
         client.from('rooms').select('id, name'),
         // Kalemler: cene semasini kendi renkleriyle boyamak icin.
-        client.from('job_items').select('teeth, color_index, restoration_type, price, currency').eq('job_id', jobId).order('sort_order')
+        client.from('job_items').select('teeth, color_index, restoration_type, job_item_prices(price, currency)').eq('job_id', jobId).order('sort_order')
       ]).then(function (res) {
         if (res[0].error) {
           body.innerHTML = '<p class="text-xs text-destructive">Açılamadı: ' + escapeHtml(res[0].error.message) + '</p>';
           return;
         }
         var j = res[0].data;
+        // Fiyatlar ayrı tabloda (30 Eylül 2026); doktor kendi işinin fiyatını görür.
+        ZirkonikData.fiyatDuzle(j, 'job_prices');
+        (res[3].data || []).forEach(function (k) { ZirkonikData.fiyatDuzle(k, 'job_item_prices'); });
         var stages = res[1].data || [];
         var roomName = {};
         (res[2].data || []).forEach(function (r) { roomName[r.id] = r.name; });

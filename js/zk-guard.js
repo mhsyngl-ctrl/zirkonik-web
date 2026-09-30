@@ -159,6 +159,7 @@
       role: me.role,
       position: me.position || null,
       can_view_finance: !!p.can_view_finance,
+      can_view_prices: !!p.can_view_prices, // 30 Eylül 2026: fiyat listesi sayfası bu izinle açılır
       can_view_doctors: !!p.can_view_doctors,
       can_manage_orders: !!p.can_manage_orders,
       can_manage_prospects: !!p.can_manage_prospects

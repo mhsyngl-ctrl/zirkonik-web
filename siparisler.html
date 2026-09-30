@@ -153,6 +153,8 @@
     // 24 Eylül 2026, sahibinin kuralı: fiyatları yalnız yönetici/işveren
     // görür. Resepsiyon siparişi yine onaylar ama tutarı hiç görmez.
     var myRole = null;
+    // 30 Eylül 2026: fiyatı yönetici VE "fiyatları görebilir" yetkisi verilen personel görür.
+    var canSeePrices = false;
     // 2026-09-12: listede ve onay ekraninda liste fiyati gosteriliyordu, ama
     // fatura anlasmali fiyat (price_overrides) uzerinden kesiliyordu. Personel
     // onayladigi isin gercek tutarini hic gormuyordu.
@@ -169,6 +171,9 @@
       });
       ZirkonikAuth.me().then(function (me) {
         myRole = me ? me.role : null;
+        var fiyatPerms = (me && me.user_permissions) || {};
+        fiyatPerms = (fiyatPerms && fiyatPerms[0]) || fiyatPerms || {};
+        canSeePrices = myRole === 'yonetici' || !!fiyatPerms.can_view_prices;
         if (myRole !== 'yonetici') { loadOrders(); return; }
         // Anlasmali fiyatlar ve fiyat kalemleri gelmeden liste ciziliyordu; tek
         // sefer, hata olsa bile liste yine yuklensin diye ayri yakalaniyor.
@@ -266,7 +271,7 @@
     function loadMoreOrders() { ordersAppend = true; loadOrders(); }
     function loadOrders() {
       var append = ordersAppend; ordersAppend = false;
-      var filtre = { limit: ORDER_PAGE, offset: append ? orders.length : 0, includePrice: myRole === 'yonetici' };
+      var filtre = { limit: ORDER_PAGE, offset: append ? orders.length : 0, includePrice: canSeePrices };
       if (curTab === 'pending') filtre.status = 'pending'; else filtre.notStatus = 'pending';
       // Hız hissi (24 Eylül 2026): ilk sayfa önbellekten anında çizilir, sunucu
       // cevabı gelince üstüne yazılır. Sekme değişince de aynı.
@@ -301,8 +306,8 @@
           var wfBits = wfSummary(o);
           // Fiyat yalnız yönetici/işveren görür — personel görünümünde bu
           // segment hiç oluşturulmaz (24 Eylül 2026).
-          var pr = myRole === 'yonetici' ? zkOrderPrice(o, null) : null;
-          var priceInfo = myRole === 'yonetici'
+          var pr = canSeePrices ? zkOrderPrice(o, null) : null;
+          var priceInfo = canSeePrices
             ? (pr ? pr.totalText + (pr.isSpecial ? ' (anlaşmalı)' : '') : 'Fiyat sorunuz')
             : null;
           var actions = o.status === 'pending'
