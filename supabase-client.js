@@ -545,8 +545,37 @@
         return 'DY-' + (2000 + n);
       });
     },
+    // 30 Eylül 2026 (2. aşama): jobs tablosunda artık price/currency YOK; fiyat
+    // job_prices'ta. İş açılınca tetikleyici boş fiyat satırını kurar, burada
+    // fiyat verildiyse üstüne yazılır (RLS: yönetici veya sipariş+fiyat yetkili).
     createJob: function (fields) {
-      return client().from('jobs').insert(fields).select().single();
+      var f = Object.assign({}, fields);
+      var price = f.price, currency = f.currency;
+      delete f.price; delete f.currency;
+      return client().from('jobs').insert(f).select().single().then(function (jr) {
+        if (jr.error || !jr.data || (price == null && !currency)) return jr;
+        return Data.setJobPrice(jr.data, price, currency).then(function (pr) {
+          if (pr.error) return { data: null, error: pr.error };
+          jr.data.price = price == null ? null : price;
+          jr.data.currency = currency || '$';
+          return jr;
+        });
+      });
+    },
+    setJobPrice: function (job, price, currency) {
+      return client().from('job_prices').upsert({
+        job_id: job.id, organization_id: job.organization_id, doctor_id: job.doctor_id,
+        price: price == null ? null : price, currency: currency || '$'
+      }, { onConflict: 'job_id' });
+    },
+    // Kalem fiyatları: rows = [{ id, job_id, organization_id, price, currency }]
+    setJobItemPrices: function (rows) {
+      var payload = (rows || []).filter(function (r) { return r && r.id && (r.price != null || r.currency); }).map(function (r) {
+        return { job_item_id: r.id, job_id: r.job_id, organization_id: r.organization_id,
+                 price: r.price == null ? null : r.price, currency: r.currency || '$' };
+      });
+      if (!payload.length) return Promise.resolve({ data: [], error: null });
+      return client().from('job_item_prices').upsert(payload, { onConflict: 'job_item_id' });
     },
     // 25 Eylül 2026: Resepsiyon + yönetici hata düzeltebilsin diye — yalnız
     // üretimi etkilemeyen alanlar (RPC'nin kendisi de bunu zorunlu kılar).
@@ -636,7 +665,18 @@
       return client().rpc('zk_gelen_is_numaralari', { p_laboratory_id: laboratoryId });
     },
     createJobItem: function (fields) {
-      return client().from('job_items').insert(fields).select().single();
+      var f = Object.assign({}, fields);
+      var price = f.price, currency = f.currency;
+      delete f.price; delete f.currency;
+      return client().from('job_items').insert(f).select().single().then(function (ir) {
+        if (ir.error || !ir.data || (price == null && !currency)) return ir;
+        return Data.setJobItemPrices([{ id: ir.data.id, job_id: ir.data.job_id, organization_id: ir.data.organization_id, price: price, currency: currency }]).then(function (pr) {
+          if (pr.error) return { data: null, error: pr.error };
+          ir.data.price = price == null ? null : price;
+          ir.data.currency = currency || '$';
+          return ir;
+        });
+      });
     },
     // Tek RPC: onceki asamayi kapat, yenisini ac, kalemi tasi, aynayi
     // guncelle. Istemciden uc ayri cagri yapilsa yari kalmis hal olusabilirdi.
@@ -672,11 +712,45 @@
       if (!includeInactive) q = q.eq('is_active', true);
       return q.then(function (r) { (r.data || []).forEach(function (p) { Data.fiyatDuzle(p, 'price_list_item_prices', ['unit_price', 'currency']); }); return r; });
     },
+    // 2. aşama: price_list_items'ta unit_price/currency YOK; fiyat
+    // price_list_item_prices'ta (kalem eklenince tetikleyici boş satır kurar).
     createPriceItem: function (fields) {
-      return client().from('price_list_items').insert(fields).select().single();
+      var f = Object.assign({}, fields);
+      var unit = f.unit_price, currency = f.currency;
+      delete f.unit_price; delete f.currency;
+      return client().from('price_list_items').insert(f).select().single().then(function (r) {
+        if (r.error || !r.data || (unit == null && !currency)) return r;
+        return client().from('price_list_item_prices').upsert({
+          price_item_id: r.data.id, organization_id: r.data.organization_id,
+          unit_price: unit == null ? null : unit, currency: currency || '$'
+        }, { onConflict: 'price_item_id' }).then(function (pr) {
+          if (pr.error) return { data: null, error: pr.error };
+          r.data.unit_price = unit == null ? null : unit;
+          r.data.currency = currency || '$';
+          return r;
+        });
+      });
     },
     updatePriceItem: function (id, fields) {
-      return client().from('price_list_items').update(fields).eq('id', id).select().single();
+      var f = Object.assign({}, fields);
+      var fiyat = {};
+      if ('unit_price' in f) { fiyat.unit_price = f.unit_price; delete f.unit_price; }
+      if ('currency' in f) { fiyat.currency = f.currency; delete f.currency; }
+      var kalem = Object.keys(f).length
+        ? client().from('price_list_items').update(f).eq('id', id).select().single()
+        : Promise.resolve({ data: null, error: null });
+      return kalem.then(function (r) {
+        if (r.error || !Object.keys(fiyat).length) return r;
+        fiyat.updated_at = new Date().toISOString();
+        return client().from('price_list_item_prices').update(fiyat).eq('price_item_id', id).select().then(function (pr) {
+          if (pr.error) return { data: null, error: pr.error };
+          if (!pr.data || !pr.data.length) return { data: null, error: { message: 'Fiyat satırı bulunamadı ya da yetkiniz yok.' } };
+          var out = r.data || { id: id };
+          if ('unit_price' in fiyat) out.unit_price = fiyat.unit_price;
+          if ('currency' in fiyat) out.currency = fiyat.currency;
+          return { data: out, error: null };
+        });
+      });
     },
     /* Fiyat kalemini TAMAMEN siler. Yalniz laboratuvar sahibi yapabilir
      * (price_items_delete politikasi = is_org_admin).

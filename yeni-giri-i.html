@@ -783,10 +783,10 @@
             var c = ZirkonikMoney.normalize(x.currency);
             tutarGruplari[c] = (tutarGruplari[c] || 0) + Number(x.price);
           });
-          // jobs.price/jobs.currency ESKI toplama alanlari: tek sayi
-          // tutuyorlar, farkli para birimleri toplanamaz. Bu yuzden yalnizca
+          // job_prices.price/currency (30 Eylül 2026'dan beri ayrı tablo) tek
+          // sayi tutar, farkli para birimleri toplanamaz. Bu yuzden yalnizca
           // isin kendi para birimindeki (ilk kalemin) tutari yaziliyor —
-          // karisik siparislerde gercek toplam job_items'ta ve faturalarda.
+          // karisik siparislerde gercek toplam job_item_prices'ta ve faturalarda.
           var isParaBirimi = ZirkonikMoney.normalize(first.currency);
           var toplamFiyat = tutarGruplari[isParaBirimi] || 0;
           var toplamDis = draftItems.reduce(function (s, x) { return s + (Number(x.unit_count) || 0); }, 0);
@@ -820,6 +820,8 @@
           if (jr.error) throw jr.error;
           var job = jr.data;
           // Kalemler. Sipariş kabı oluştu, şimdi odalarda dolaşacak birimler.
+          // Fiyatlar kalem satırında DEĞİL, job_item_prices'ta (2. aşama):
+          // kalemler yazılıp id'leri alınır, sonra fiyat satırları yazılır.
           return ZirkonikAuth.client().from('job_items').insert(draftItems.map(function (it, i) {
             return {
               job_id: job.id,
@@ -828,16 +830,21 @@
               restoration_type: it.name,
               teeth: it.teeth || [],
               unit_count: Math.max(1, Number(it.unit_count) || 1),
-              price: it.price,
-              currency: it.currency || '$',
               work_form: it.work_form || null,
               planned_route: it._route,
               color_index: it.color_index || 0,
               sort_order: i
             };
-          })).then(function (ir) {
+          })).select('id, sort_order').then(function (ir) {
             if (ir.error) throw ir.error;
-            return { data: job, tutarGruplari: tutarGruplari };
+            var fiyatSatirlari = (ir.data || []).map(function (row) {
+              var it = draftItems[row.sort_order] || {};
+              return { id: row.id, job_id: job.id, organization_id: job.organization_id, price: it.price, currency: it.currency || '$' };
+            }).filter(function (r) { return r.price != null; });
+            return ZirkonikData.setJobItemPrices(fiyatSatirlari).then(function (pr) {
+              if (pr.error) throw pr.error;
+              return { data: job, tutarGruplari: tutarGruplari };
+            });
           });
         });
         });
