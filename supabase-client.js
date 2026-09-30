@@ -351,6 +351,20 @@
       var baslangic = new Date(); baslangic.setHours(0, 0, 0, 0);
       return client().from('doctor_touches').select('created_by').gte('created_at', baslangic.toISOString());
     },
+    // 30 Eylül 2026, sahibinin isteği: Pazarlama Özeti'ne hafta/ay/yıl dönem
+    // filtresi — ziyaret edilen doktor sayısı ve tekrar ziyaretler bundan
+    // hesaplanıyor (dönem içinde bir doktora birden fazla ziyaret = tekrar).
+    touchesInRange: function (startIso, endIso) {
+      return client().from('doctor_touches').select('doctor_id, created_at')
+        .eq('type', 'ziyaret').gte('created_at', startIso).lt('created_at', endIso);
+    },
+    // Aynı dönem filtresi için: o dönemde "aktif doktor" aşamasına geçenlerin
+    // sayısı (stage_changed_at ile) — toplam aktif sayısı değil, o dönemde
+    // aktifleşen sayısı.
+    activatedInRange: function (startIso, endIso) {
+      return client().from('doctors').select('id', { count: 'exact', head: true })
+        .eq('pipeline_stage', 'aktif').gte('stage_changed_at', startIso).lt('stage_changed_at', endIso);
+    },
     // Doktor kazanım kartında "gönderilen işler" listesi — temsilci başka ekrana
     // gitmeden bu doktora gerçekten iş gelip gelmediğini, kaç iş geldiğini görsün
     // (24 Eylül 2026, sahibinin bulduğu görünürlük boşluğu).

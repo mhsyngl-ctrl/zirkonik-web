@@ -279,6 +279,39 @@
             </button>
           </div>
 
+          <!-- 30 Eylül 2026, sahibinin isteği: ziyaret edilen doktor, tekrar
+               ziyaretler ve aktif doktor sayısı — hafta/ay/yıl dönem filtreli. -->
+          <div class="mt-3 flex items-center justify-between">
+            <div class="flex items-center gap-1 rounded-theme bg-muted p-0.5">
+              <button type="button" id="pz-week-btn" onclick="zkSetPazarlamaPeriod('week')" class="rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-muted-foreground">Hafta</button>
+              <button type="button" id="pz-month-btn" onclick="zkSetPazarlamaPeriod('month')" class="rounded-lg bg-card px-2.5 py-1.5 text-[10px] font-bold">Ay</button>
+              <button type="button" id="pz-year-btn" onclick="zkSetPazarlamaPeriod('year')" class="rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-muted-foreground">Yıl</button>
+            </div>
+            <div class="flex items-center gap-1">
+              <button type="button" onclick="zkShiftPazarlama(-1)" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Önceki dönem">
+                <iconify-icon icon="lucide:chevron-left" class="text-base"></iconify-icon>
+              </button>
+              <p id="pz-period-label" class="min-w-[92px] text-center text-xs font-bold text-muted-foreground">—</p>
+              <button type="button" onclick="zkShiftPazarlama(1)" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Sonraki dönem">
+                <iconify-icon icon="lucide:chevron-right" class="text-base"></iconify-icon>
+              </button>
+            </div>
+          </div>
+          <div class="mt-3 grid grid-cols-3 gap-2">
+            <div class="rounded-theme border border-border bg-card p-3">
+              <p class="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Ziyaret edilen</p>
+              <p id="pz-ziyaret-edilen" class="mt-1.5 font-heading text-xl font-bold tabular-nums">—</p>
+            </div>
+            <div class="rounded-theme border border-border bg-card p-3">
+              <p class="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Tekrar ziyaret</p>
+              <p id="pz-tekrar-ziyaret" class="mt-1.5 font-heading text-xl font-bold tabular-nums">—</p>
+            </div>
+            <div class="rounded-theme border border-border bg-card p-3">
+              <p class="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Aktif doktor</p>
+              <p id="pz-aktif-doktor" class="mt-1.5 font-heading text-xl font-bold tabular-nums text-primary">—</p>
+            </div>
+          </div>
+
           <div id="pazarlama-takvim-wrap" class="mt-3 hidden rounded-theme border border-border bg-background p-3">
             <div class="flex items-center justify-between">
               <button type="button" onclick="zkPtCalShiftMonth(-1)" class="flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Önceki ay"><iconify-icon icon="lucide:chevron-left"></iconify-icon></button>
@@ -701,6 +734,7 @@
           loadJobProgressLog();
           document.getElementById('pazarlama-ozeti-section').classList.remove('hidden');
           loadPazarlamaOzeti();
+          loadPazarlamaMetrikleri();
         }
         var perms = me && me.user_permissions;
         if (Object.prototype.toString.call(perms) === '[object Array]') perms = perms[0] || {};
@@ -839,6 +873,45 @@
             '<span class="mt-0.5 block text-xs text-muted-foreground">' + escapeHtml(t.assignee ? t.assignee.full_name : '') + ' · ' + escapeHtml(t.title) + '</span></span>' +
             (tamamlandi ? '<iconify-icon icon="lucide:lock" class="shrink-0 text-sm text-success" aria-label="Tamamlandı"></iconify-icon>' : '') + '</div>';
         }).join('');
+      });
+    }
+
+    // 30 Eylül 2026, sahibinin isteği: Pazarlama Özeti'ne hafta/ay/yıl dönem
+    // filtresi — ziyaret edilen doktor sayısı, tekrar ziyaretler (dönem
+    // içinde aynı doktora 2. ve sonraki ziyaretler) ve o dönemde aktif
+    // olan doktor sayısı. rtComputeRange (Oda Doluluğu için yazılmıştı,
+    // aşağıda tanımlı) dönem hesaplamasında burada da kullanılıyor.
+    var pzPeriod = 'month';
+    var pzOffset = 0;
+    function zkSetPazarlamaPeriod(period) {
+      pzPeriod = period;
+      pzOffset = 0;
+      loadPazarlamaMetrikleri();
+    }
+    function zkShiftPazarlama(dir) {
+      pzOffset += dir;
+      loadPazarlamaMetrikleri();
+    }
+    function loadPazarlamaMetrikleri() {
+      ['week', 'month', 'year'].forEach(function (p) {
+        var btn = document.getElementById('pz-' + p + '-btn');
+        if (btn) btn.className = 'rounded-lg px-2.5 py-1.5 text-[10px] font-bold ' + (p === pzPeriod ? 'bg-card' : 'text-muted-foreground');
+      });
+      var range = rtComputeRange(pzPeriod, pzOffset);
+      document.getElementById('pz-period-label').textContent = range.label;
+      Promise.all([
+        ZirkonikData.touchesInRange(range.rangeStart.toISOString(), range.rangeEnd.toISOString()),
+        ZirkonikData.activatedInRange(range.rangeStart.toISOString(), range.rangeEnd.toISOString())
+      ]).then(function (r) {
+        var touches = (r[0] && r[0].data) || [];
+        var perDoktor = {};
+        touches.forEach(function (t) { perDoktor[t.doctor_id] = (perDoktor[t.doctor_id] || 0) + 1; });
+        var ziyaretEdilen = Object.keys(perDoktor).length;
+        document.getElementById('pz-ziyaret-edilen').textContent = ziyaretEdilen;
+        document.getElementById('pz-tekrar-ziyaret').textContent = touches.length - ziyaretEdilen;
+        document.getElementById('pz-aktif-doktor').textContent = (r[1] && typeof r[1].count === 'number') ? r[1].count : '—';
+      }).catch(function (err) {
+        zkToast('Pazarlama özeti yüklenemedi: ' + ((err && err.message) || 'bilinmeyen hata'));
       });
     }
 
