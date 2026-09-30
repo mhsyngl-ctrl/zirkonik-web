@@ -589,6 +589,7 @@
   <script src="js/zk-picker.js"></script>
   <script src="js/zk-ptr.js"></script>
   <script src="js/zk-hiz.js"></script>
+  <script src="js/zk-cevrimdisi.js"></script>
   <script src="js/zk-yenile.js"></script>
   <script>
     function escapeHtml(s) {
@@ -1081,6 +1082,25 @@
           var hata = rs.filter(function (r) { return r && r.error; })[0];
           if (hata) { errEl.textContent = 'Kaydedilemedi: ' + hata.error.message; errEl.classList.remove('hidden'); return; }
           zkCloseTaskModal();
+          // 30 Eylül 2026: internet yokken kayıt kuyruğa girer. Listeyi sunucudan
+          // yeniden çekmek eski hâli getirirdi; kaydı ekranda "bekliyor" olarak göster.
+          if (rs.some(function (r) { return r && r.kuyrukta; })) {
+            zkToast('Çevrimdışı kaydedildi — internet gelince gönderilecek.');
+            var yeni = (rs[0] && rs[0].data) || fields;
+            var tl = detailDoctor ? document.getElementById('touch-list') : null;
+            if (tl) {
+              if (/Henüz temas kaydı yok/.test(tl.innerHTML)) tl.innerHTML = '';
+              tl.insertAdjacentHTML('afterbegin', '<div class="rounded-theme border border-dashed border-border bg-background p-3">' +
+                '<div class="flex items-center justify-between"><span class="text-xs font-bold">' + escapeHtml(TOUCH_LABELS[yeni.type] || yeni.type) + '</span>' +
+                '<span class="text-[10px] font-bold text-muted-foreground">İnternet bekliyor</span></div>' +
+                (yeni.note ? '<p class="mt-1 text-xs text-muted-foreground">' + escapeHtml(yeni.note) + '</p>' : '') + '</div>');
+            }
+            if (eslesenGorev) {
+              myTasks = myTasks.map(function (x) { return x.id === eslesenGorev.id ? Object.assign({}, x, { status: 'tamamlandi', done_at: new Date().toISOString(), result_note: note }) : x; });
+              renderMyTasks();
+            }
+            return;
+          }
           zkToast('Gelişme eklendi.');
           if (detailDoctor) loadTouches(doctorId);
           loadMyTasks();

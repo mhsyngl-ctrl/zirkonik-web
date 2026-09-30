@@ -35,6 +35,9 @@
     try { if (opts.apply) opts.apply(); } catch (e) { /* ekran hatası isteği engellemesin */ }
     return Promise.resolve().then(function () { return opts.request(); }).then(function (res) {
       if (res && res.error) throw res.error;
+      // 30 Eylül 2026: internet yokken işlem kuyruğa girdi — ekran zaten güncel,
+      // kullanıcı bilsin ki sunucuya sonra gidecek.
+      if (res && res.kuyrukta) toast(opts.kuyrukMesaji || 'Kaydedildi — internet gelince gönderilecek.');
       return res || {};
     }).catch(function (err) {
       try { if (opts.revert) opts.revert(err); } catch (e) {}

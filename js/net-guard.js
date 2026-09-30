@@ -11,16 +11,26 @@
 //  3. Yakalanmamış JS hataları ve reddedilen promise'ler sunucudaki hata günlüğüne
 //     yazılır (RPC adı configure ile verilir). Ağ hataları günlüğe YAZILMAZ (banda düşer),
 //     aynı hata oturumda bir kez yazılır, oturum başına en fazla 30 kayıt.
+//  4. (30 Eylül 2026) Çevrimdışı okuma: configure({cache}) ile bir depo takılırsa
+//     (js/zk-cevrimdisi.js) başarılı okuma cevapları (GET/HEAD + salt okunur RPC'ler)
+//     depoya yazılır; internet yokken ya da sunucu YAVAS_MS içinde cevap vermezken
+//     aynı isteğe depodaki son cevap verilir ve turuncu "son görülen veriler" bandı
+//     çıkar. Bağlantı geri gelince önce bekleyen işlem kuyruğu (ZKKuyruk) gönderilir,
+//     sonra sayfa yenilenir.
 (function (global) {
   var cfg = {
     version: '',
     rpc: 'log_client_error',
     getClient: null,
     context: function () { return {}; },
-    t: function (s) { return s; }
+    t: function (s) { return s; },
+    cache: null
   };
-  var state = { offline: false, failed: false, banner: null, sent: {}, queue: [], count: 0, reconnected: false };
+  var state = { offline: false, failed: false, cached: false, banner: null, sent: {}, queue: [], count: 0, reconnected: false };
   var MAX_PER_SESSION = 30;
+  var YAVAS_MS = 6000;
+  // Yan etkisi olmayan RPC'ler: cevapları önbelleğe alınabilir.
+  var OKUNUR_RPC = ['zk_finans_ozet', 'zk_doktor_cari', 'has_room_access', 'zk_gelen_is_numaralari', 'zk_calisma_turleri_listele', 'my_org_status', 'calc_annual_leave_days'];
 
   function t(s) { try { return cfg.t(s) || s; } catch (e) { return s; } }
   function safe(fn) { try { return fn ? fn() : null; } catch (e) { return null; } }
@@ -45,14 +55,31 @@
     state.banner = el;
     return el;
   }
-  function show(text, btnText) {
+  function show(text, btnText, renk) {
     var el = banner();
     el.querySelector('#netguard-msg').textContent = text;
     el.querySelector('#netguard-retry').textContent = btnText || t('Tekrar dene');
+    el.style.background = renk || '#B42318';
     el.style.display = 'block';
   }
   function hide() { if (state.banner) state.banner.style.display = 'none'; }
   function retry() { global.location.reload(); }
+  function yasMetni(t0) {
+    var dk = Math.round((Date.now() - (t0 || Date.now())) / 60000);
+    if (dk < 1) return t('az önce');
+    if (dk < 60) return dk + ' ' + t('dk önce');
+    var sa = Math.round(dk / 60);
+    if (sa < 48) return sa + ' ' + t('saat önce');
+    return Math.round(sa / 24) + ' ' + t('gün önce');
+  }
+  // Önbellekten cevap verildi: turuncu bant. failed=true kalır ki bağlantı gelince
+  // sayfa yenilensin (son görülen veri gerçek veriyle değişsin).
+  function cachedShow(entry, yavas) {
+    state.failed = true;
+    state.cached = true;
+    var kaynak = yavas ? t('Bağlantı yavaş — son görülen veriler gösteriliyor') : t('Çevrimdışı — son görülen veriler gösteriliyor');
+    show(kaynak + ' (' + yasMetni(entry && entry.t) + ')', t('Tekrar dene'), '#B54708');
+  }
 
   // Sayfada kullanıcının yazdığı bir şey var mı? Varsa kendiliğinden yenilemeyiz.
   function formDolu() {
@@ -79,9 +106,14 @@
   }
   function ok() {
     if ((state.failed || state.offline) && navigator.onLine !== false) {
+      var eskiCached = state.cached;
       state.failed = false;
       state.offline = false;
+      state.cached = false;
       hide();
+      // "Yavaş bağlantı" bandıyla eski veri gösterilmişken sunucu sonunda cevap verdi:
+      // sayfa verisini yumuşakça tazele (sayfa yeniden YÜKLENMEZ, form kaybolmaz).
+      if (eskiCached) setTimeout(function () { try { if (global.ZkYenile) global.ZkYenile.tazele('baglanti'); } catch (e) {} }, 300);
     }
   }
 
@@ -91,24 +123,83 @@
   });
   global.addEventListener('online', function () {
     state.offline = false;
-    if (!state.failed) { hide(); return; }
-    if (formDolu()) {
-      show(t('Bağlantı geri geldi.'), t('Yenile'));
-    } else {
-      show(t('Bağlantı geri geldi, yenileniyor…'), t('Yenile'));
-      setTimeout(retry, 700);
-    }
+    // Önce internet yokken sıraya giren işlemler gitsin, sonra sayfa yenilensin.
+    var kuyruk = null;
+    try { kuyruk = global.ZKKuyruk ? global.ZKKuyruk.bosalt() : null; } catch (e) {}
+    Promise.resolve(kuyruk).catch(function () {}).then(function () {
+      if (!state.failed) { hide(); return; }
+      if (formDolu()) {
+        show(t('Bağlantı geri geldi.'), t('Yenile'));
+      } else {
+        show(t('Bağlantı geri geldi, yenileniyor…'), t('Yenile'));
+        setTimeout(retry, 700);
+      }
+    });
   });
 
-  // ---- fetch sarmalayıcı: GET'lerde 2 yeniden deneme, ağ hatasında bant ----
+  // ---- Önbellek anahtarı: kullanıcı (JWT sub) + yöntem + adres (+ RPC gövdesi) ----
+  function urlOf(input) { return typeof input === 'string' ? input : ((input && input.url) || ''); }
+  function headerOf(init, input, ad) {
+    try {
+      var h = init && init.headers;
+      if (h) {
+        if (typeof h.get === 'function') return h.get(ad);
+        for (var k in h) if (Object.prototype.hasOwnProperty.call(h, k) && k.toLowerCase() === ad) return h[k];
+      }
+      if (input && input.headers && typeof input.headers.get === 'function') return input.headers.get(ad);
+    } catch (e) {}
+    return null;
+  }
+  function jwtSub(init, input) {
+    try {
+      var a = headerOf(init, input, 'authorization') || '';
+      var jwt = a.split(' ')[1];
+      if (!jwt) return 'anon';
+      var b = jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+      var j = JSON.parse(atob(b));
+      return j.sub || 'anon';
+    } catch (e) { return 'anon'; }
+  }
+  function cacheKey(method, url, init, input) {
+    if (!cfg.cache || !url || url.indexOf('/rest/v1/') < 0) return null;
+    if (method === 'GET' || method === 'HEAD') return jwtSub(init, input) + '|' + method + '|' + url;
+    if (method === 'POST') {
+      var m = /\/rest\/v1\/rpc\/([a-z0-9_]+)/i.exec(url);
+      if (m && OKUNUR_RPC.indexOf(m[1]) >= 0) {
+        var body = init && init.body;
+        return jwtSub(init, input) + '|RPC|' + url + '|' + (typeof body === 'string' ? body : '');
+      }
+    }
+    return null;
+  }
+  function cachedResponse(e) {
+    var h = { 'x-zk-onbellek': '1' };
+    if (e.ct) h['content-type'] = e.ct;
+    if (e.cr) h['content-range'] = e.cr;
+    return new Response(e.b || '', { status: e.s || 200, headers: h });
+  }
+  function cacheRead(key) {
+    try { return Promise.resolve(cfg.cache.oku(key)).catch(function () { return null; }); } catch (e) { return Promise.resolve(null); }
+  }
+  function cacheWrite(key, res) {
+    try {
+      res.clone().text().then(function (b) {
+        cfg.cache.yaz(key, { s: res.status, ct: res.headers.get('content-type'), cr: res.headers.get('content-range'), b: b, t: Date.now() });
+      }, function () {});
+    } catch (e) {}
+  }
+
+  // ---- fetch sarmalayıcı: GET'lerde 2 yeniden deneme, ağ hatasında bant ya da önbellek ----
   function wrapFetch(baseFetch) {
     return function (input, init) {
       var method = ((init && init.method) || (input && input.method) || 'GET').toUpperCase();
       var retriable = method === 'GET' || method === 'HEAD';
+      var key = cacheKey(method, urlOf(input), init, input);
       var attempt = 0;
       function run() {
         return baseFetch(input, init).then(function (res) {
           ok();
+          if (key && res && res.ok) cacheWrite(key, res);
           return res;
         }, function (err) {
           var net = isNetworkError(err);
@@ -117,11 +208,40 @@
             attempt++;
             return new Promise(function (r) { setTimeout(r, attempt === 1 ? 700 : 2000); }).then(run);
           }
+          if (net && !iptal && key) {
+            return cacheRead(key).then(function (e) {
+              if (e) { cachedShow(e, false); return cachedResponse(e); }
+              fail(err);
+              throw err;
+            });
+          }
           if (net && !iptal) fail(err);
           throw err;
         });
       }
-      return run();
+      var ag = run();
+      if (!key) return ag;
+      // Yavaş bağlantı: YAVAS_MS içinde cevap yoksa ve önbellekte varsa onu ver;
+      // ağ isteği arkada sürer, gelince önbelleği tazeler ve ok() sayfayı yumuşak yeniler.
+      return new Promise(function (resolve, reject) {
+        var bitti = false;
+        var zamanlayici = setTimeout(function () {
+          if (bitti) return;
+          cacheRead(key).then(function (e) {
+            if (bitti || !e) return;
+            bitti = true;
+            cachedShow(e, true);
+            resolve(cachedResponse(e));
+          });
+        }, YAVAS_MS);
+        ag.then(function (res) {
+          clearTimeout(zamanlayici);
+          if (!bitti) { bitti = true; resolve(res); }
+        }, function (err) {
+          clearTimeout(zamanlayici);
+          if (!bitti) { bitti = true; reject(err); }
+        });
+      });
     };
   }
   var wrapped = wrapFetch(function (a, b) { return global.fetch(a, b); });
@@ -185,10 +305,12 @@
       flush();
     },
     fetch: function (input, init) { return wrapped(input, init); },
+    wrapFetch: wrapFetch,
     report: report,
     fail: fail,
     ok: ok,
     hide: hide,
-    isNetworkError: isNetworkError
+    isNetworkError: isNetworkError,
+    durum: function () { return { offline: state.offline, failed: state.failed, cached: state.cached }; }
   };
 })(window);

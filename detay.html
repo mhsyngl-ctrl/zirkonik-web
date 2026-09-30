@@ -382,6 +382,7 @@
   <script src="js/zk-guard.js"></script>
   <script src="js/zk-ptr.js"></script>
   <script src="js/zk-hiz.js"></script>
+  <script src="js/zk-cevrimdisi.js"></script>
   <script src="js/zk-yenile.js"></script>
   <!-- Salt okunur diş şeması için (renderChartOnly). Form alanları
        kullanılmıyor, yalnızca şema çiziliyor. -->
@@ -1145,7 +1146,7 @@
           },
           request: function () {
             return currentItem
-              ? ZirkonikData.confirmJobItemStage(currentItem.id, zkCurRoom())
+              ? ZirkonikData.confirmJobItemStage(currentItem.id, zkCurRoom(), (currentJob.job_number || 'İş') + ' — teslim alındı')
               : ZirkonikAuth.me().then(function (me) { return ZirkonikData.confirmJobStage(jobId, zkCurRoom(), me.id); });
           },
           revert: function (err) {
@@ -1154,7 +1155,9 @@
             errEl.textContent = 'Teslim alınamadı: ' + (err && err.message ? err.message : err);
             errEl.classList.remove('hidden');
           }
-        }).then(function (res) { if (!res.error) loadJob(); });
+          // Kuyruğa girdiyse (çevrimdışı) yeniden yükleme: önbellekteki eski hâl
+          // iyimser ekranın üstüne yazılmasın; internet gelince kuyruk boşalır ve tazelenir.
+        }).then(function (res) { if (!res.error && !res.kuyrukta) loadJob(); });
         return;
       }
 
@@ -1209,7 +1212,7 @@
         },
         request: function () {
           return currentItem
-            ? ZirkonikData.advanceJobItem(currentItem.id, nextRoom.id)
+            ? ZirkonikData.advanceJobItem(currentItem.id, nextRoom.id, null, (currentJob.job_number || 'İş') + ' → ' + (nextRoom.name || 'sonraki oda'))
             : ZirkonikData.advanceJobStage(jobId, zkCurRoom(), nextRoom.id);
         },
         revert: function (err) {
@@ -1220,7 +1223,7 @@
           errEl.textContent = 'İşlem başarısız: ' + (err && err.message ? err.message : err);
           errEl.classList.remove('hidden');
         }
-      }).then(function (res) { if (!res.error) loadJob(); });
+      }).then(function (res) { if (!res.error && !res.kuyrukta) loadJob(); });
     });
   
     /* Yumusak tazeleme: sayfa verisi yalniz acilista cekiliyordu, baskasi

@@ -148,8 +148,12 @@
     /** Girişli kullanıcının app_users satırı + izinleri (cache'lenir). */
     me: function () {
       if (_meCache) return Promise.resolve(_meCache);
-      return client().auth.getUser().then(function (r) {
-        var uid = r.data && r.data.user ? r.data.user.id : null;
+      // 30 Eylül 2026: getUser() sunucuya gidiyordu (internet yokken her sayfa
+      // patlıyordu); kimlik cihazdaki oturumdan okunur, app_users satırı ise
+      // NetGuard önbelleğinden gelir. RLS zaten gerçek kimliği doğrular.
+      return client().auth.getSession().then(function (r) {
+        var s = r.data && r.data.session;
+        var uid = s && s.user ? s.user.id : null;
         if (!uid) return null;
         return client()
           .from('app_users')
@@ -431,8 +435,39 @@
         .order('entered_at', { ascending: false })
         .limit(limit || 20);
     },
-    addDoctorTouch: function (doctorId, fields) {
-      return client().from('doctor_touches').insert(Object.assign({ doctor_id: doctorId }, fields)).select().single();
+    // ---- Çevrimdışı kuyruk (30 Eylül 2026) ----
+    // Dört akış (oda ilerletme, teslim alma, temas kaydı, görev tamamlama) HER ZAMAN
+    // zk_kuyruk_isle RPC'sinden geçer: işlem kimliği cihazda üretilir, sunucu aynı
+    // kimliği ikinci kez görürse yok sayar (cevap kaybolup tekrar gönderilse de çift
+    // kayıt olmaz). İnternet yoksa ya da istek ağ hatası verirse işlem ZKKuyruk'a
+    // girer ve {kuyrukta:true} döner; ekran iyimser güncellenir, internet gelince gider.
+    kimlikUret: function () {
+      try { if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID(); } catch (e) {}
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        var r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16);
+      });
+    },
+    kuyrukluIslem: function (tur, veri, ozet, sahteData) {
+      var K = window.ZKKuyruk;
+      var opId = Data.kimlikUret();
+      veri = veri || {};
+      function kuyrukla() {
+        K.ekle(tur, veri, ozet, opId);
+        return { data: sahteData === undefined ? null : sahteData, error: null, kuyrukta: true, op_id: opId };
+      }
+      function agHatasi(err) { return !!(K && window.NetGuard && window.NetGuard.isNetworkError(err)); }
+      if (K && K.cevrimdisiMi()) return Promise.resolve(kuyrukla());
+      return client().rpc('zk_kuyruk_isle', { p_op_id: opId, p_tur: tur, p_veri: veri }).then(function (r) {
+        if (r && r.error) return agHatasi(r.error) ? kuyrukla() : r;
+        return { data: sahteData === undefined ? (r ? r.data : null) : sahteData, error: null, sonuc: r ? r.data : null };
+      }, function (err) {
+        if (agHatasi(err)) return kuyrukla();
+        throw err;
+      });
+    },
+    addDoctorTouch: function (doctorId, fields, ozet) {
+      var satir = Object.assign({ id: Data.kimlikUret(), doctor_id: doctorId, created_at: new Date().toISOString() }, fields || {});
+      return Data.kuyrukluIslem('temas', satir, ozet || 'Temas kaydı', satir);
     },
 
     // ---- Keşif görevleri (doctor_tasks) — 26 Eylül 2026, Medicamine ile aynı mantık ----
@@ -453,8 +488,11 @@
     updateDoctorTask: function (id, fields) {
       return client().from('doctor_tasks').update(fields).eq('id', id).select();
     },
-    markDoctorTaskDone: function (id, note) {
-      return client().from('doctor_tasks').update({ status: 'tamamlandi', done_at: new Date().toISOString(), result_note: note || null }).eq('id', id).select();
+    markDoctorTaskDone: function (id, note, ozet) {
+      // done_at sunucuda now() olur (doctor_tasks_update politikası ±1 saat ister;
+      // çevrimdışı saatler sonra gönderilse de reddedilmesin).
+      return Data.kuyrukluIslem('gorev_tamamla', { id: id, result_note: note || null }, ozet || 'Görev tamamlama',
+        [{ id: id, status: 'tamamlandi', done_at: new Date().toISOString(), result_note: note || null }]);
     },
     approveDoctorTasks: function (ids) {
       if (!ids || !ids.length) return Promise.resolve({ data: [], error: null });
@@ -680,13 +718,12 @@
     },
     // Tek RPC: onceki asamayi kapat, yenisini ac, kalemi tasi, aynayi
     // guncelle. Istemciden uc ayri cagri yapilsa yari kalmis hal olusabilirdi.
-    advanceJobItem: function (itemId, toRoomId, note) {
-      return client().rpc('advance_job_item', {
-        p_item_id: itemId, p_to_room_id: toRoomId, p_note: note || null
-      });
+    // Çevrimdışı kuyruklu (bkz. kuyrukluIslem): sunucuda zk_kuyruk_isle → advance_job_item.
+    advanceJobItem: function (itemId, toRoomId, note, ozet) {
+      return Data.kuyrukluIslem('oda_ilerlet', { item_id: itemId, to_room_id: toRoomId, note: note || null }, ozet || 'İş ilerletme');
     },
-    confirmJobItemStage: function (itemId, roomId) {
-      return client().rpc('confirm_job_item_stage', { p_item_id: itemId, p_room_id: roomId });
+    confirmJobItemStage: function (itemId, roomId, ozet) {
+      return Data.kuyrukluIslem('teslim_al', { item_id: itemId, room_id: roomId }, ozet || 'Teslim alma');
     },
     listItemStages: function (itemId) {
       return client().from('job_stage_history')
