@@ -81,6 +81,46 @@
         </section>
 
         <section id="rooms-section" class="px-5 pt-6"></section>
+
+        <!-- 30 Eylül 2026, sahibinin isteği: ana ekrandan buraya taşındı —
+             laboratuvarla ilgili her şey tek ekranda olsun. -->
+        <section id="room-throughput-section" class="hidden px-5 pt-7">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Sadece yönetici görür</p>
+              <h2 class="mt-1 font-heading text-lg font-extrabold">Oda Doluluğu</h2>
+            </div>
+            <div class="flex items-center gap-1 rounded-theme bg-muted p-0.5">
+              <button type="button" id="rt-week-btn" onclick="zkSetRoomThroughputPeriod('week')" class="rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-muted-foreground">Hafta</button>
+              <button type="button" id="rt-month-btn" onclick="zkSetRoomThroughputPeriod('month')" class="rounded-lg bg-card px-2.5 py-1.5 text-[10px] font-bold">Ay</button>
+              <button type="button" id="rt-year-btn" onclick="zkSetRoomThroughputPeriod('year')" class="rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-muted-foreground">Yıl</button>
+            </div>
+          </div>
+          <div class="mt-3 flex items-center justify-between">
+            <button type="button" onclick="zkShiftRoomThroughput(-1)" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Önceki dönem">
+              <iconify-icon icon="lucide:chevron-left" class="text-base"></iconify-icon>
+            </button>
+            <p id="rt-period-label" class="text-xs font-bold text-muted-foreground">—</p>
+            <button type="button" onclick="zkShiftRoomThroughput(1)" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Sonraki dönem">
+              <iconify-icon icon="lucide:chevron-right" class="text-base"></iconify-icon>
+            </button>
+          </div>
+          <p class="mt-1 text-[11px] text-muted-foreground">Hangi oda bu dönemde en çok iş işledi — canlı "Destek gerekebilir" uyarısının geçmiş dönem karşılaştırması</p>
+          <div id="room-throughput-list" class="mt-3 rounded-theme border border-border bg-card p-4">
+            <p class="text-xs text-muted-foreground">Yükleniyor…</p>
+          </div>
+        </section>
+
+        <section id="job-progress-log-section" class="hidden px-5 pt-7">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Sadece yönetici görür</p>
+            <h2 class="mt-1 font-heading text-lg font-extrabold">İş İlerleme Günlüğü</h2>
+            <p class="mt-0.5 text-xs text-muted-foreground">Odalar arası son geçişler — kim, hangi işi, ne zaman ilerletti</p>
+          </div>
+          <div id="job-progress-log" class="mt-3 rounded-theme border border-border bg-card">
+            <p class="p-4 text-xs text-muted-foreground">Yükleniyor…</p>
+          </div>
+        </section>
       </main>
 
       <nav data-fv-tabbar class="zk-tabbar">
@@ -478,9 +518,139 @@
       });
     }
 
+    // 30 Eylül 2026, sahibinin isteği: ana ekrandan buraya taşındı —
+    // laboratuvarla ilgili her şey tek ekranda olsun.
+    // ---- Oda Doluluğu (yönetici) ----
+    var rtPeriod = 'month';
+    var rtOffset = 0;
+    function zkSetRoomThroughputPeriod(period) {
+      rtPeriod = period;
+      rtOffset = 0;
+      loadRoomThroughput();
+    }
+    function zkShiftRoomThroughput(dir) {
+      rtOffset += dir;
+      loadRoomThroughput();
+    }
+    function rtComputeRange(period, offset) {
+      var now = new Date();
+      var rangeStart, rangeEnd, label;
+      if (period === 'week') {
+        var jsDay = now.getDay();
+        var mondayOffset = jsDay === 0 ? -6 : 1 - jsDay;
+        rangeStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() + mondayOffset + offset * 7);
+        rangeEnd = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), rangeStart.getDate() + 7);
+        var rangeLast = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), rangeStart.getDate() + 6);
+        label = rangeStart.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) + ' – ' + rangeLast.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+      } else if (period === 'year') {
+        var y = now.getFullYear() + offset;
+        rangeStart = new Date(y, 0, 1);
+        rangeEnd = new Date(y + 1, 0, 1);
+        label = String(y);
+      } else {
+        rangeStart = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+        rangeEnd = new Date(rangeStart.getFullYear(), rangeStart.getMonth() + 1, 1);
+        label = rangeStart.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
+      }
+      return { rangeStart: rangeStart, rangeEnd: rangeEnd, label: label };
+    }
+    // Yuvarlak (donut) grafik — sabit kategorili "toplamdan pay" verileri
+    // için (kullanıcı isteği: "yuvarlak grafikler belki kullanabilirsin",
+    // 22 Eylül 2026). Harici kütüphane yok, saf SVG stroke-dasharray
+    // tekniği; yarıçap 15.9155 seçilirse çevre tam 100 olur, yani pay
+    // yüzdesi doğrudan dasharray değeri olarak kullanılabilir.
+    var ZK_DONUT_COLORS = ['#3D7CDC', '#10B981', '#F0A03C', '#7A5AF8', '#5B87A8', '#EF5350', '#C6CBD6', '#98A0AD'];
+    function zkRenderDonut(rows, labelKey, valueKey) {
+      var total = rows.reduce(function (s, r) { return s + r[valueKey]; }, 0);
+      if (!total) return '<p class="text-xs text-muted-foreground">Veri yok.</p>';
+      var cumulative = 25; // 12 hizasından başlasın diye çeyrek ofset
+      var segs = rows.map(function (row, i) {
+        var pct = (row[valueKey] / total) * 100;
+        var circle = '<circle cx="18" cy="18" r="15.9155" fill="transparent" stroke="' + ZK_DONUT_COLORS[i % ZK_DONUT_COLORS.length] +
+          '" stroke-width="4" stroke-dasharray="' + pct.toFixed(2) + ' ' + (100 - pct).toFixed(2) + '" stroke-dashoffset="' + cumulative.toFixed(2) + '"></circle>';
+        cumulative -= pct;
+        return circle;
+      }).join('');
+      var legend = rows.map(function (row, i) {
+        return '<div class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 shrink-0 rounded-sm" style="background:' + ZK_DONUT_COLORS[i % ZK_DONUT_COLORS.length] + '"></span>' +
+          '<span class="min-w-0 flex-1 truncate text-[11px]">' + escapeHtml(row[labelKey]) + '</span>' +
+          '<span class="shrink-0 text-[11px] font-bold tabular-nums">' + row[valueKey] + '</span></div>';
+      }).join('');
+      return '<div class="flex items-center gap-4">' +
+        '<svg viewBox="0 0 36 36" class="h-24 w-24 shrink-0">' + segs + '</svg>' +
+        '<div class="min-w-0 flex-1 space-y-1.5">' + legend + '</div></div>';
+    }
+    function loadRoomThroughput() {
+      ['week', 'month', 'year'].forEach(function (p) {
+        var btn = document.getElementById('rt-' + p + '-btn');
+        if (btn) btn.className = 'rounded-lg px-2.5 py-1.5 text-[10px] font-bold ' + (p === rtPeriod ? 'bg-card' : 'text-muted-foreground');
+      });
+      var range = rtComputeRange(rtPeriod, rtOffset);
+      document.getElementById('rt-period-label').textContent = range.label;
+      ZirkonikData.getRoomThroughput(range.rangeStart.toISOString(), range.rangeEnd.toISOString()).then(function (rows) {
+        var listEl = document.getElementById('room-throughput-list');
+        if (!rows.length) { listEl.innerHTML = '<p class="text-xs text-muted-foreground">Bu dönemde işlenen iş yok.</p>'; return; }
+        listEl.innerHTML = zkRenderDonut(rows, 'name', 'jobCount');
+      }).catch(function (err) {
+        zkToast('Oda doluluğu yüklenemedi: ' + ((err && err.message) || 'bilinmeyen hata'));
+      });
+    }
+
+    // ---- İş İlerleme Günlüğü (yönetici) ----
+    // iOS Safari bazen <details> açılınca kaydırma alanının yüksekliğini
+    // yeniden hesaplamıyor — 1px kaydırıp geri alarak yeniden çizdiriyoruz
+    // (aday-havuzu.html/doktorlar.html'deki aynı çözüm).
+    function zkNudgeScroll(detailsEl) {
+      var kutu = detailsEl.closest('.overflow-y-auto');
+      if (!kutu) return;
+      var y = kutu.scrollTop;
+      kutu.scrollTop = y + 1;
+      kutu.scrollTop = y;
+    }
+    function zkJobProgressSatir(h, sonMu) {
+      var j = h.jobs || {};
+      var kimTxt = h.app_users ? h.app_users.full_name : 'Bilinmiyor';
+      var odaTxt = h.rooms ? h.rooms.name : 'Bekleyen';
+      var zaman = h.entered_at ? new Date(h.entered_at).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
+      return '<div class="flex items-start gap-3 px-4 py-3' + (sonMu ? '' : ' border-b border-border') + '">' +
+        '<span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-theme bg-primary/10 text-primary"><iconify-icon icon="lucide:move-right" class="text-sm"></iconify-icon></span>' +
+        '<div class="min-w-0 flex-1"><p class="text-xs font-bold">' + escapeHtml(j.job_number || '—') +
+        (j.restoration_type ? ' · ' + escapeHtml(j.restoration_type) : '') + '</p>' +
+        '<p class="mt-0.5 text-xs text-muted-foreground">' + escapeHtml(odaTxt) + ' — ' + escapeHtml(kimTxt) + '</p>' +
+        (h.note ? '<p class="mt-0.5 text-[11px] text-muted-foreground">' + escapeHtml(h.note) + '</p>' : '') + '</div>' +
+        '<span class="shrink-0 text-[10px] font-semibold text-muted-foreground">' + zaman + '</span></div>';
+    }
+    function loadJobProgressLog() {
+      var el = document.getElementById('job-progress-log');
+      ZirkonikData.listRecentJobProgress(20).then(function (r) {
+        if (r.error) { el.innerHTML = '<p class="p-4 text-xs text-destructive">Yüklenemedi: ' + escapeHtml(r.error.message) + '</p>'; return; }
+        var rows = r.data || [];
+        if (!rows.length) { el.innerHTML = '<p class="p-4 text-xs text-muted-foreground">Henüz bir oda geçişi yok.</p>'; return; }
+        var GOSTERILEN = 3;
+        var ilk = rows.slice(0, GOSTERILEN);
+        var kalan = rows.slice(GOSTERILEN);
+        var html = ilk.map(function (h, i) { return zkJobProgressSatir(h, kalan.length === 0 && i === ilk.length - 1); }).join('');
+        if (kalan.length) {
+          html += '<details ontoggle="zkNudgeScroll(this)">' +
+            '<summary class="cursor-pointer border-t border-border px-4 py-2.5 text-xs font-bold text-primary">Daha fazla göster (' + kalan.length + ')</summary>' +
+            kalan.map(function (h, i) { return zkJobProgressSatir(h, i === kalan.length - 1); }).join('') +
+            '</details>';
+        }
+        el.innerHTML = html;
+      });
+    }
+
     ZirkonikAuth.requireAuth().then(function (session) {
       if (!session) return;
       loadLabs();
+      ZirkonikAuth.me().then(function (me) {
+        if (me && me.role === 'yonetici') {
+          document.getElementById('room-throughput-section').classList.remove('hidden');
+          loadRoomThroughput();
+          document.getElementById('job-progress-log-section').classList.remove('hidden');
+          loadJobProgressLog();
+        }
+      });
     });
   
     /* Yumusak tazeleme: sayfa verisi yalniz acilista cekiliyordu, baskasi
