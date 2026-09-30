@@ -354,9 +354,25 @@
     // 30 Eylül 2026, sahibinin isteği: Pazarlama Özeti'ne hafta/ay/yıl dönem
     // filtresi — ziyaret edilen doktor sayısı ve tekrar ziyaretler bundan
     // hesaplanıyor (dönem içinde bir doktora birden fazla ziyaret = tekrar).
+    // PostgREST 1000 satırda keser (finans özeti aynı sebeple RPC'ye taşınmıştı);
+    // yıl görünümünde temas sayısı 1000'i aşınca sayaç sessizce eksik çıkmasın
+    // diye sayfa sayfa çekiliyor.
     touchesInRange: function (startIso, endIso) {
-      return client().from('doctor_touches').select('doctor_id, created_at')
-        .eq('type', 'ziyaret').gte('created_at', startIso).lt('created_at', endIso);
+      var SAYFA = 1000;
+      var hepsi = [];
+      function sayfa(from) {
+        return client().from('doctor_touches').select('doctor_id, created_at')
+          .eq('type', 'ziyaret').gte('created_at', startIso).lt('created_at', endIso)
+          .order('created_at', { ascending: true }).range(from, from + SAYFA - 1)
+          .then(function (r) {
+            if (r.error) return r;
+            var parca = r.data || [];
+            hepsi = hepsi.concat(parca);
+            if (parca.length < SAYFA) return { data: hepsi, error: null };
+            return sayfa(from + SAYFA);
+          });
+      }
+      return sayfa(0);
     },
     // Aynı dönem filtresi için: o dönemde "aktif doktor" aşamasına geçenlerin
     // sayısı (stage_changed_at ile) — toplam aktif sayısı değil, o dönemde
@@ -374,10 +390,24 @@
     },
     // 30 Eylül 2026, sahibinin isteği: Doktorlar listesinde her kartın üstünde
     // doktorun gönderdiği toplam diş/iş sayısı ve ciro (yalnız yönetici görür).
-    // Doktor başına ayrı sorgu atmak yerine (N+1) TEK sorguda tüm işler çekilip
-    // istemcide doctor_id'ye göre gruplanıyor.
+    // Doktor başına ayrı sorgu atmak yerine (N+1) tüm işler çekilip istemcide
+    // doctor_id'ye göre gruplanıyor. PostgREST 1000 satırda keser; iş sayısı
+    // büyüyünce toplamlar sessizce eksik çıkmasın diye sayfa sayfa çekiliyor.
     listDoctorJobStats: function () {
-      return client().from('jobs').select('doctor_id, price, currency, unit_count').neq('status', 'cancelled');
+      var SAYFA = 1000;
+      var hepsi = [];
+      function sayfa(from) {
+        return client().from('jobs').select('id, doctor_id, price, currency, unit_count')
+          .neq('status', 'cancelled').order('id', { ascending: true }).range(from, from + SAYFA - 1)
+          .then(function (r) {
+            if (r.error) return r;
+            var parca = r.data || [];
+            hepsi = hepsi.concat(parca);
+            if (parca.length < SAYFA) return { data: hepsi, error: null };
+            return sayfa(from + SAYFA);
+          });
+      }
+      return sayfa(0);
     },
     // 25 Eylül 2026: işveren ana ekranda son oda geçişlerini görsün diye —
     // yalnız yönetici çağırır, RLS zaten org bazında sınırlıyor.
