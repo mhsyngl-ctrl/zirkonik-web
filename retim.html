@@ -291,6 +291,13 @@
           </div>
 
           <div id="pazarlama-ozeti-reps" class="mt-3 space-y-2"></div>
+          <!-- 30 Eylül 2026, sahibinin isteği: çalışanların "Bugünkü Görevlerim"
+               listesinde gördüğü doktor takipleri (tarihi gelmiş/geçmiş) burada da,
+               temsilci adıyla. -->
+          <p class="mt-4 text-xs font-bold">Çalışanların takipleri</p>
+          <div id="pazarlama-ozeti-takipler" class="mt-2 rounded-theme border border-border bg-card">
+            <p class="p-4 text-xs text-muted-foreground">Yükleniyor…</p>
+          </div>
           <p class="mt-4 text-xs font-bold">Bugünkü görevler</p>
           <div id="pazarlama-ozeti-tasks" class="mt-2 rounded-theme border border-border bg-card">
             <p class="p-4 text-xs text-muted-foreground">Yükleniyor…</p>
@@ -669,7 +676,10 @@
         }
         var perms = me && me.user_permissions;
         if (Object.prototype.toString.call(perms) === '[object Array]') perms = perms[0] || {};
-        if (zkIsAdmin || (perms && perms.can_manage_prospects)) {
+        // 30 Eylül 2026, sahibinin kararı: "Bugünkü Görevlerim" çalışanlara
+        // kalsın; yönetici/işveren kendi listesini değil, Pazarlama Özeti'nde
+        // çalışanların takiplerini görür.
+        if (!zkIsAdmin && perms && perms.can_manage_prospects) {
           window.__zkMeId = me.id;
           document.getElementById('my-tasks-section').classList.remove('hidden');
           loadMyTasks(me.id);
@@ -705,12 +715,16 @@
         ZirkonikData.listStaff(),
         ZirkonikData.listDoctorTasks({ status: 'bekliyor', limit: 300 }),
         ZirkonikData.listDoctorTasks({ status: 'tamamlandi', limit: 300 }),
-        ZirkonikData.todayTouchesByRep()
+        ZirkonikData.todayTouchesByRep(),
+        // 30 Eylül 2026: çalışanların "Bugünkü Görevlerim"de gördüğü doktor
+        // takipleri (tüm temsilciler) — yönetici burada görür.
+        ZirkonikData.myTodayTasks(null, false)
       ]).then(function (r) {
         var reps = ((r[0] && r[0].data) || []).filter(function (u) { return u.position === 'Satış Pazarlama Sorumlusu'; });
         var allTasks = ((r[1] && r[1].data) || []).concat((r[2] && r[2].data) || []);
         pazarlamaTumGorevler = allTasks;
         var touches = (r[3] && r[3].data) || [];
+        var takipler = (r[4] && r[4].data) || [];
         var bugun = new Date().toDateString();
         var bugunkuGorevler = allTasks.filter(function (t) { return new Date(t.due_at).toDateString() === bugun; });
 
@@ -718,6 +732,8 @@
         touches.forEach(function (t) { if (t.created_by) temasSayaci[t.created_by] = (temasSayaci[t.created_by] || 0) + 1; });
         var gorevSayaci = {};
         bugunkuGorevler.forEach(function (t) { gorevSayaci[t.assigned_to] = (gorevSayaci[t.assigned_to] || 0) + 1; });
+        var takipSayaci = {};
+        takipler.forEach(function (d) { if (d.assigned_rep_id) takipSayaci[d.assigned_rep_id] = (takipSayaci[d.assigned_rep_id] || 0) + 1; });
 
         var repsEl = document.getElementById('pazarlama-ozeti-reps');
         if (!reps.length) {
@@ -726,7 +742,22 @@
           repsEl.innerHTML = reps.map(function (u) {
             return '<div class="flex items-center justify-between rounded-theme border border-border bg-card p-3">' +
               '<p class="text-sm font-bold">' + escapeHtml(u.full_name) + '</p>' +
-              '<p class="text-xs text-muted-foreground">' + (gorevSayaci[u.id] || 0) + ' görev (bugün) · ' + (temasSayaci[u.id] || 0) + ' temas (bugün)</p></div>';
+              '<p class="text-xs text-muted-foreground">' + (takipSayaci[u.id] || 0) + ' takip · ' + (gorevSayaci[u.id] || 0) + ' görev · ' + (temasSayaci[u.id] || 0) + ' temas (bugün)</p></div>';
+          }).join('');
+        }
+
+        var takipEl = document.getElementById('pazarlama-ozeti-takipler');
+        if (!takipler.length) {
+          takipEl.innerHTML = '<p class="p-4 text-xs text-muted-foreground">Bugün bekleyen takip yok.</p>';
+        } else {
+          var gunBasi = new Date(); gunBasi.setHours(0, 0, 0, 0);
+          takipEl.innerHTML = takipler.map(function (d, i) {
+            var gecikti = new Date(d.next_action_at) < gunBasi;
+            return '<a href="aday-havuzu.html" class="flex items-center gap-3 px-4 py-3' + (i < takipler.length - 1 ? ' border-b border-border' : '') + '">' +
+              '<span class="min-w-0 flex-1"><span class="block truncate text-sm font-bold">Dr. ' + escapeHtml(d.full_name) + '</span>' +
+              '<span class="mt-0.5 block truncate text-xs text-muted-foreground">' + escapeHtml(d.temsilci ? d.temsilci.full_name : 'Atanmamış') +
+              (d.next_action_note || d.clinic_name ? ' · ' + escapeHtml(d.next_action_note || d.clinic_name) : '') + '</span></span>' +
+              '<span class="shrink-0 rounded-full ' + (gecikti ? 'bg-destructive/10 text-destructive' : 'bg-accent/10 text-accent') + ' px-2 py-1 text-[10px] font-bold">' + (gecikti ? 'Gecikti' : 'Bugün') + '</span></a>';
           }).join('');
         }
 
