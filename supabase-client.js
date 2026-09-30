@@ -372,6 +372,13 @@
       return client().from('jobs').select('id, job_number, restoration_type, unit_count, status, created_at')
         .eq('doctor_id', doctorId).order('created_at', { ascending: false }).limit(10);
     },
+    // 30 Eylül 2026, sahibinin isteği: Doktorlar listesinde her kartın üstünde
+    // doktorun gönderdiği toplam diş/iş sayısı ve ciro (yalnız yönetici görür).
+    // Doktor başına ayrı sorgu atmak yerine (N+1) TEK sorguda tüm işler çekilip
+    // istemcide doctor_id'ye göre gruplanıyor.
+    listDoctorJobStats: function () {
+      return client().from('jobs').select('doctor_id, price, currency, unit_count').neq('status', 'cancelled');
+    },
     // 25 Eylül 2026: işveren ana ekranda son oda geçişlerini görsün diye —
     // yalnız yönetici çağırır, RLS zaten org bazında sınırlıyor.
     listRecentJobProgress: function (limit) {

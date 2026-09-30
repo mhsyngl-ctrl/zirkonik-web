@@ -63,8 +63,8 @@
             <p class="mt-1.5 max-w-[260px] text-xs leading-4 text-muted-foreground">Doktor/klinik kayıtları ve onay merkezi</p>
           </div>
           <div class="flex items-center gap-2">
-            <a href="aday-havuzu.html" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-background text-primary" aria-label="Doktor Havuzu" title="Doktor Havuzu">
-              <iconify-icon icon="lucide:map-pinned" class="text-lg"></iconify-icon>
+            <a href="aday-havuzu.html" class="flex h-10 shrink-0 items-center gap-1.5 rounded-theme border border-border bg-background px-3 text-xs font-bold text-primary" aria-label="Doktor Havuzu" title="Doktor Havuzu">
+              <iconify-icon icon="lucide:map-pinned" class="text-sm"></iconify-icon> Doktor Havuzu
             </a>
             <button onclick="zkOpenAddDoctor()" class="flex h-10 w-10 items-center justify-center rounded-theme bg-primary text-primary-foreground">
               <iconify-icon icon="lucide:plus" class="text-lg"></iconify-icon>
@@ -482,6 +482,29 @@
 
     var allDoctorsCache = [];
     var approvedDoctorsCache = [];
+    // 30 Eylül 2026, sahibinin isteği: kart üstünde doktor performansı
+    // (gönderilen diş/iş sayısı + ciro) — yalnız yönetici görür.
+    var docJobStats = {};
+    function loadDoctorJobStats() {
+      ZirkonikData.listDoctorJobStats().then(function (r) {
+        if (r.error) return;
+        var byDoctor = {};
+        (r.data || []).forEach(function (j) {
+          if (!j.doctor_id) return;
+          (byDoctor[j.doctor_id] = byDoctor[j.doctor_id] || []).push(j);
+        });
+        var stats = {};
+        Object.keys(byDoctor).forEach(function (id) {
+          var rows = byDoctor[id];
+          stats[id] = {
+            unitCount: rows.reduce(function (s, j) { return s + (Number(j.unit_count) || 0); }, 0),
+            revenueText: ZirkonikMoney.totalText(rows, 'price', 'currency', 0)
+          };
+        });
+        docJobStats = stats;
+        renderApprovedList(document.getElementById('doctor-search').value);
+      });
+    }
     // Türkçe karakter/büyük-küçük harf duyarsız arama — "Ş,Ç,Ğ,İ,Ö,Ü" gibi
     // harfler locale'siz toLowerCase()'de yanlış küçülür (İ→i̇ gibi).
     function trFold(s) {
@@ -584,7 +607,14 @@
         ? '<button onclick="event.stopPropagation();zkOpenDoctorPass(\'' + d.user_id + '\',\'' + escapeHtml(d.full_name).replace(/'/g, "\\'") + '\',\'' + escapeHtml((d.hesap && d.hesap.email) || '').replace(/'/g, "\\'") + '\')" class="flex h-8 w-8 items-center justify-center rounded-lg bg-success/10 text-success" aria-label="Giriş bilgilerini güncelle" title="Uygulama hesabı var — giriş bilgilerini güncelle"><iconify-icon icon="lucide:key-round" class="text-sm"></iconify-icon></button>'
         : '<button onclick="event.stopPropagation();zkOpenDoctorAccount(\'' + d.id + '\',\'' + escapeHtml(d.full_name).replace(/'/g, "\\'") + '\',\'' + escapeHtml(d.email || '') + '\')" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-accent" aria-label="Uygulama hesabı aç"><iconify-icon icon="lucide:key-round" class="text-sm"></iconify-icon></button>';
       var nameEsc = escapeHtml(d.full_name).replace(/'/g, "\\'");
-      return '<div onclick="zkOpenDoctorCari(\'' + d.id + '\',\'' + nameEsc + '\')" class="flex items-center gap-3 rounded-theme border border-border bg-card p-3 active:opacity-70">' +
+      var perf = docJobStats[d.id];
+      var perfHtml = perf
+        ? '<div class="mt-2 flex items-center gap-3 border-t border-border pt-2 text-[11px] font-bold text-muted-foreground">' +
+          '<span class="flex items-center gap-1"><iconify-icon icon="lucide:stethoscope" class="text-xs"></iconify-icon>' + perf.unitCount + ' diş</span>' +
+          '<span class="flex items-center gap-1 text-success"><iconify-icon icon="lucide:banknote" class="text-xs"></iconify-icon>' + perf.revenueText + '</span></div>'
+        : '';
+      return '<div onclick="zkOpenDoctorCari(\'' + d.id + '\',\'' + nameEsc + '\')" class="rounded-theme border border-border bg-card p-3 active:opacity-70">' +
+        '<div class="flex items-center gap-3">' +
         '<div class="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground">' + escapeHtml((d.full_name || '?').charAt(0)) + '</div>' +
         '<div class="min-w-0 flex-1"><p class="truncate text-sm font-bold">Dr. ' + escapeHtml(d.full_name) + '</p>' +
         '<p class="truncate text-xs text-muted-foreground">' + escapeHtml(d.clinic_name || '—') +
@@ -592,7 +622,8 @@
         '<button onclick="event.stopPropagation();zkOpenEditDoctor(\'' + d.id + '\')" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Bilgileri düzenle" title="Bilgileri düzenle"><iconify-icon icon="lucide:pencil" class="text-sm"></iconify-icon></button>' +
         accountBtn +
         '<button onclick="event.stopPropagation();zkOpenStatement(\'' + d.id + '\',\'' + nameEsc + '\')" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-primary" aria-label="Ekstre gönder"><iconify-icon icon="lucide:send" class="text-sm"></iconify-icon></button>' +
-        '<span class="rounded-full bg-success/10 px-2 py-1 text-[10px] font-bold text-success">Onaylı</span></div>';
+        '<span class="rounded-full bg-success/10 px-2 py-1 text-[10px] font-bold text-success">Onaylı</span></div>' +
+        perfHtml + '</div>';
     }
 
     var daDoctorId = null;
@@ -859,6 +890,8 @@
           if (addBtn) addBtn.style.display = 'none';
           var pendingSection = document.getElementById('pending-list');
           if (pendingSection && pendingSection.parentElement) pendingSection.parentElement.style.display = 'none';
+        } else {
+          loadDoctorJobStats();
         }
         loadDoctors();
       });
