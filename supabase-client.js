@@ -236,6 +236,17 @@
     updateRoom: function (roomId, fields) {
       return client().from('rooms').update(fields).eq('id', roomId).select().single();
     },
+    // 4 Ekim 2026, sahibinin isteği: laboratuvar sahibi odayı silebilir. Sunucu
+    // (trg_oda_silme_kontrol) geçmişi/aktif işi/stoğu olan odayı açık bir hatayla
+    // reddeder. Yetkisizse RLS sessizce 0 satır siler — bunu da hata sayıyoruz.
+    deleteRoom: function (roomId) {
+      return client().from('rooms').delete().eq('id', roomId).select('id').then(function (r) {
+        if (!r.error && (!r.data || !r.data.length)) {
+          return { data: null, error: { message: 'Oda silinemedi (yetkiniz olmayabilir).' } };
+        }
+        return r;
+      });
+    },
 
     // ---- Doktorlar ----
     // 26 Eylül 2026: aşama sekmelerinin yanındaki sayılar için — RLS zaten

@@ -251,7 +251,7 @@
 
       <div class="fixed bottom-0 left-0 z-30 w-full border-t border-border bg-card/95 px-5 pb-6 pt-3 backdrop-blur-md">
         <p id="advance-error" class="mb-2 hidden text-center text-[11px] font-semibold text-destructive"></p>
-        <button id="advance-btn" class="flex h-14 w-full items-center justify-center gap-2 rounded-theme bg-primary px-4 font-heading text-sm font-bold text-primary-foreground shadow-lg shadow-primary/20">
+        <button id="advance-btn" disabled class="flex h-14 w-full items-center justify-center gap-2 rounded-theme bg-primary px-4 font-heading text-sm font-bold text-primary-foreground opacity-50 shadow-lg shadow-primary/20">
           <iconify-icon icon="lucide:arrow-right-circle" class="text-xl"></iconify-icon>
           <span id="advance-label">Sonraki aşamaya taşı</span>
         </button>
@@ -1131,6 +1131,9 @@
     document.getElementById('advance-btn').addEventListener('click', function () {
       var errEl = document.getElementById('advance-error');
       errEl.classList.add('hidden');
+      // 4 Ekim 2026: sayfa veriyi yüklemeden gelen (hayalet/erken) dokunuş, oda
+      // listesi boşken "son aşama" sanıp işi tamamlıyordu. Veri gelmeden hiçbir şey yapma.
+      if (!currentJob || !rooms.length || this.disabled) return;
 
       // Teslim onayi ve ilerletme SECILI KALEM uzerinden. Kalem yoksa eski
       // is bazli yola dusulur (teorik; geri dolum her ise bir kalem yaratti).

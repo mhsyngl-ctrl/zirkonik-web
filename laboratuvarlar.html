@@ -209,6 +209,7 @@
       </div>
       <p id="er-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
       <button onclick="zkSubmitEditRoom()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
+      <button id="er-delete-btn" onclick="zkDeleteRoom()" class="mt-2 flex h-12 w-full items-center justify-center rounded-theme border border-destructive/30 text-sm font-bold text-destructive">Odayı sil</button>
     </div>
   </div>
 
@@ -498,6 +499,27 @@
       document.getElementById('edit-room-sheet').classList.remove('hidden');
     }
     function zkCloseEditRoom() { document.getElementById('edit-room-sheet').classList.add('hidden'); }
+
+    // Geri alınamaz işlem (hız kuralı 1'in dışı): önce onay, sonra sunucu, sonra ekran.
+    function zkDeleteRoom() {
+      var errEl = document.getElementById('er-error');
+      errEl.classList.add('hidden');
+      var name = document.getElementById('er-name').value.trim() || 'Bu oda';
+      if (!window.confirm('"' + name + '" odası silinsin mi? Bu işlem geri alınamaz.')) return;
+      var btn = document.getElementById('er-delete-btn');
+      btn.disabled = true;
+      ZirkonikData.deleteRoom(editingRoomId).then(function (res) {
+        btn.disabled = false;
+        if (res.error) throw res.error;
+        zkCloseEditRoom();
+        zkToast('Oda silindi.');
+        loadRooms(activeLabForRoom);
+      }).catch(function (err) {
+        btn.disabled = false;
+        errEl.textContent = 'Silinemedi: ' + (err && err.message ? err.message : err);
+        errEl.classList.remove('hidden');
+      });
+    }
 
     function zkSubmitEditRoom() {
       var errEl = document.getElementById('er-error');
