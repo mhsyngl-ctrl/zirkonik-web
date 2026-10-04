@@ -653,7 +653,9 @@
 
       // 25 Eylül 2026, sahibinin kuralı: havuzdaki (henüz aktif olmayan) adaylar
       // burada görünmez — laboratuvar sahibi onaylayıp aktif yapmadan iş girilemez.
-      client.from('doctors').select('id, full_name, clinic_name').eq('status', 'approved').eq('pipeline_stage', 'aktif').order('full_name').then(function (r) {
+      // 4 Ekim 2026, sahibinin kararı: uyuyan doktor da listelenir; ona iş açılınca
+      // trg_doktor_pipeline_ilk_vaka (jobs INSERT) doktoru otomatik tekrar aktif yapar.
+      client.from('doctors').select('id, full_name, clinic_name').eq('status', 'approved').in('pipeline_stage', ['aktif', 'uyuyan']).order('full_name').then(function (r) {
         doctors = r.data || [];
         var sel = document.getElementById('f-doctor');
         doctors.forEach(function (d) {
