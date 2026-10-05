@@ -635,7 +635,9 @@
         p_clinic_protocol_no: fields.clinic_protocol_no,
         p_patient_reference: fields.patient_reference,
         p_requested_delivery_at: fields.requested_delivery_at,
-        p_is_priority: fields.is_priority
+        p_is_priority: fields.is_priority,
+        p_clinical_notes: fields.clinical_notes == null ? null : fields.clinical_notes,
+        p_notu_guncelle: fields.notu_guncelle === true
       });
     },
     // 26 Eylül 2026: çalışma türü seçimi fiyat göstermeden — price_list_items

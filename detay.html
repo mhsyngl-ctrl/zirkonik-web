@@ -173,12 +173,16 @@
           <div class="mt-4 grid grid-cols-2 gap-3">
             <div class="rounded-theme border border-border bg-background px-3 py-3">
               <p class="text-[10px] text-muted-foreground">İç referans</p>
-              <p id="job-reference" class="mt-1 text-sm font-bold">—</p>
+              <p id="job-reference" class="mt-1 whitespace-pre-line break-words text-sm font-bold">—</p>
             </div>
             <div class="rounded-theme border border-border bg-background px-3 py-3">
               <p class="text-[10px] text-muted-foreground">Laboratuvar</p>
               <p id="job-lab" class="mt-1 text-sm font-bold">—</p>
             </div>
+          </div>
+          <div id="job-doctor-note-box" class="mt-3 hidden rounded-theme border border-border bg-background px-3 py-3">
+            <p class="text-[10px] text-muted-foreground">Doktor notu</p>
+            <p id="job-doctor-note" class="mt-1 whitespace-pre-line break-words text-sm font-bold"></p>
           </div>
         </section>
 
@@ -293,6 +297,11 @@
         <span class="mb-1.5 block text-xs font-bold">İç referans / not</span>
         <input id="ej-reference" type="text" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
       </label>
+      <label class="mt-3 block">
+        <span class="mb-1.5 block text-xs font-bold">Doktor notu</span>
+        <textarea id="ej-doctor-note" rows="3" class="w-full rounded-theme border border-border bg-input px-3.5 py-2.5 text-sm"></textarea>
+      </label>
+      <p id="ej-notes-lock" class="mt-1.5 hidden text-[11px] text-muted-foreground">Notları yalnız işveren ve yönetici düzenleyebilir.</p>
       <label class="mt-3 block">
         <span class="mb-1.5 block text-xs font-bold">Teslim tarihi</span>
         <input id="ej-delivery" type="date" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
@@ -632,6 +641,11 @@
         patientEl.classList.add('hidden');
       }
       document.getElementById('job-reference').textContent = j.patient_reference || '—';
+      var dnBox = document.getElementById('job-doctor-note');
+      if (dnBox) {
+        dnBox.textContent = j.clinical_notes || '';
+        document.getElementById('job-doctor-note-box').classList.toggle('hidden', !j.clinical_notes);
+      }
       document.getElementById('job-lab').textContent = j.laboratories ? j.laboratories.name : '—';
       // Tutar: bir siparisin kalemleri farkli para birimlerinde olabiliyor
       // (kalem bazinda ayri anlasma). Toplam kalemlerden, para birimi basina
@@ -745,6 +759,12 @@
       document.getElementById('ej-patient').value = currentJob.patient_name || '';
       document.getElementById('ej-protocol').value = currentJob.clinic_protocol_no || '';
       document.getElementById('ej-reference').value = currentJob.patient_reference || '';
+      document.getElementById('ej-doctor-note').value = currentJob.clinical_notes || '';
+      // Notları yalnız işveren/yönetici değiştirir; diğerleri görür (sunucu da zorlar).
+      var notYetkili = myRole === 'yonetici';
+      document.getElementById('ej-reference').disabled = !notYetkili;
+      document.getElementById('ej-doctor-note').disabled = !notYetkili;
+      document.getElementById('ej-notes-lock').classList.toggle('hidden', notYetkili);
       document.getElementById('ej-delivery').value = currentJob.requested_delivery_at ? currentJob.requested_delivery_at.slice(0, 10) : '';
       document.getElementById('ej-priority').checked = !!currentJob.is_priority;
       document.getElementById('edit-job-error').classList.add('hidden');
@@ -807,7 +827,9 @@
         clinic_protocol_no: protocolNo,
         patient_reference: document.getElementById('ej-reference').value.trim() || null,
         requested_delivery_at: deliveryVal ? new Date(deliveryVal + 'T09:00:00').toISOString() : null,
-        is_priority: document.getElementById('ej-priority').checked
+        is_priority: document.getElementById('ej-priority').checked,
+        clinical_notes: document.getElementById('ej-doctor-note').value.trim() || null,
+        notu_guncelle: myRole === 'yonetici'
       })];
       if (itemEditing) {
         istekler.push(ZirkonikData.fixJobItem(
