@@ -178,6 +178,10 @@
         <input id="el-address" type="text" placeholder="Adres" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         <input id="el-phone" type="tel" placeholder="Telefon" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         <input id="el-email" type="email" placeholder="E-posta" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <label class="flex items-start gap-3 rounded-theme border border-border bg-input px-3.5 py-3">
+          <input id="el-auto-approve" type="checkbox" class="mt-0.5 h-5 w-5 shrink-0">
+          <span class="text-sm"><span class="font-bold">Siparişleri otomatik onayla</span><br><span class="text-xs text-muted-foreground">Onaylı doktorların siparişleri resepsiyon onayı beklemeden doğrudan ilk odaya geçer. Rotası tanımsız siparişler yine bekleyene düşer.</span></span>
+        </label>
       </div>
       <p id="el-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
       <button onclick="zkSubmitEditLab()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
@@ -429,6 +433,7 @@
       document.getElementById('el-address').value = lab.address || '';
       document.getElementById('el-phone').value = lab.phone || '';
       document.getElementById('el-email').value = lab.email || '';
+      document.getElementById('el-auto-approve').checked = lab.auto_approve_orders === true;
       document.getElementById('el-error').classList.add('hidden');
       document.getElementById('edit-lab-sheet').classList.remove('hidden');
     }
@@ -444,7 +449,8 @@
         city: document.getElementById('el-city').value.trim() || null,
         address: document.getElementById('el-address').value.trim() || null,
         phone: document.getElementById('el-phone').value.trim() || null,
-        email: document.getElementById('el-email').value.trim() || null
+        email: document.getElementById('el-email').value.trim() || null,
+        auto_approve_orders: document.getElementById('el-auto-approve').checked
       }).then(function (res) {
         if (res.error) { errEl.textContent = 'Kaydedilemedi: ' + res.error.message; errEl.classList.remove('hidden'); return; }
         zkCloseEditLab();
