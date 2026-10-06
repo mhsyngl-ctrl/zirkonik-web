@@ -21,8 +21,9 @@
   <script src="vendor/lucide-icons.js"></script>
   <script src="vendor/iconify-icon.min.js" defer></script>
   <link rel="stylesheet" href="css/fonts.css">
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+  <script src="vendor/jspdf.umd.min.js"></script>
+  <script src="vendor/jspdf.plugin.autotable.min.js"></script>
+  <script src="js/zk-pdf-font.js"></script>
 
   <style>
   :root {
@@ -1270,6 +1271,8 @@
     function buildStatementPdf(name, invoices, payments) {
       var jsPDFCtor = window.jspdf.jsPDF;
       var doc = new jsPDFCtor();
+      // Türkçe karakterler (ı, ş, ğ, İ) için Unicode yazı tipi; yüklenemezse varsayılan kalır.
+      var PF = (window.ZkPdfFont && ZkPdfFont.uygula(doc)) ? 'Roboto' : undefined;
       doc.setFontSize(14);
       doc.text('Dr. ' + name + ' — Cari Hesap Ekstresi', 14, 16);
       doc.setFontSize(9);
@@ -1287,7 +1290,7 @@
         startY: 28,
         head: [['Tarih', 'Tür', 'Açıklama', 'Tutar']],
         body: rows.length ? rows : [['—', '—', 'Kayıt yok', '—']],
-        styles: { fontSize: 9 },
+        styles: Object.assign({ fontSize: 9 }, PF ? { font: PF } : {}),
         headStyles: { fillColor: [18, 59, 74] },
       });
 

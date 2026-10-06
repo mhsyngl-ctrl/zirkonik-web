@@ -21,8 +21,9 @@
   <script src="vendor/lucide-icons.js"></script>
   <script src="vendor/iconify-icon.min.js" defer></script>
   <link rel="stylesheet" href="css/fonts.css">
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+  <script src="vendor/jspdf.umd.min.js"></script>
+  <script src="vendor/jspdf.plugin.autotable.min.js"></script>
+  <script src="js/zk-pdf-font.js"></script>
 
   <style>
   :root {
@@ -369,6 +370,8 @@
       }
       var jsPDFCtor = window.jspdf.jsPDF;
       var doc = new jsPDFCtor();
+      // Türkçe karakterler (ı, ş, ğ, İ) için Unicode yazı tipi; yüklenemezse varsayılan kalır.
+      var PF = (window.ZkPdfFont && ZkPdfFont.uygula(doc)) ? 'Roboto' : undefined;
       var title = currentTab === 'active' ? 'Aktif İşler Raporu' : 'Tamamlanan İşler Raporu';
       var docLabel = document.getElementById('f-doctor').selectedOptions[0].textContent;
       var staffLabel = document.getElementById('f-staff').selectedOptions[0].textContent;
@@ -397,7 +400,7 @@
         startY: 28,
         head: [['İş No', 'Doktor', 'Restorasyon', 'Diş', currentTab === 'completed' ? 'Tamamlanma' : 'Teslim']],
         body: rows,
-        styles: { fontSize: 8 },
+        styles: Object.assign({ fontSize: 8 }, PF ? { font: PF } : {}),
         headStyles: { fillColor: [18, 59, 74] },
         foot: [['Toplam', '', '', String(totalTeeth) + ' diş', String(currentJobs.length) + ' iş']],
         footStyles: { fillColor: [231, 236, 238], textColor: [23, 36, 44], fontStyle: 'bold' }

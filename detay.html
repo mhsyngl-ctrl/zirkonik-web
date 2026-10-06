@@ -21,7 +21,8 @@
   <script src="vendor/lucide-icons.js"></script>
   <script src="vendor/iconify-icon.min.js" defer></script>
   <link rel="stylesheet" href="css/fonts.css">
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+  <script src="vendor/jspdf.umd.min.js"></script>
+  <script src="js/zk-pdf-font.js"></script>
 
   <style>
   :root {
@@ -1005,6 +1006,8 @@
       var j = currentJob;
       var jsPDFCtor = window.jspdf.jsPDF;
       var doc = new jsPDFCtor();
+      // Türkçe karakterler (ı, ş, ğ, İ) için Unicode yazı tipi; yüklenemezse varsayılan kalır.
+      var PF = (window.ZkPdfFont && ZkPdfFont.uygula(doc)) ? 'Roboto' : undefined;
       var labName = j.laboratories ? j.laboratories.name : 'Zirkonik Laboratuvarı';
       var fmt = function (iso) { return iso ? new Date(iso).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'; };
       var desc = [j.restoration_type, j.unit_count ? (j.unit_count + ' diş') : null, j.teeth_numbers ? ('Diş no: ' + j.teeth_numbers) : null].filter(Boolean).join(' · ') || '—';
@@ -1036,8 +1039,8 @@
       doc.setFontSize(11);
       rows.forEach(function (row) {
         doc.setTextColor(20);
-        doc.setFont(undefined, 'bold'); doc.text(row[0] + ':', 14, y);
-        doc.setFont(undefined, 'normal');
+        doc.setFont(PF, 'bold'); doc.text(row[0] + ':', 14, y);
+        doc.setFont(PF, 'normal');
         var lines = doc.splitTextToSize(String(row[1]), 130);
         doc.text(lines, 62, y);
         y += 9 * lines.length;
@@ -1047,9 +1050,9 @@
         y += 4;
         doc.setFontSize(12);
         doc.setTextColor(20);
-        doc.setFont(undefined, 'bold');
+        doc.setFont(PF, 'bold');
         doc.text('Üretim süreci', 14, y);
-        doc.setFont(undefined, 'normal');
+        doc.setFont(PF, 'normal');
         doc.setFontSize(10);
         y += 8;
         historyRows.forEach(function (h) {
