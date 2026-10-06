@@ -134,6 +134,10 @@
       // Bekleyen günlük kayıtları ve son adımlar bu kullanıcıya ait: ortak cihazda bir
       // sonraki kullanıcının adıyla (ve başka laboratuvarın kaydı olarak) gitmesin.
       try { localStorage.removeItem('zk_gunluk_bekleyen'); sessionStorage.removeItem('zk_son_adimlar'); } catch (e) {}
+      // 6 Ekim 2026: internetsiz "son görülen veri" önbelleği (iş, doktor, finans cevapları) çıkışta
+      // cihazdan silinir; ortak/kaybolan cihazda kalmasın. Gönderilmemiş BEKLEYEN işlemler
+      // (ZKKuyruk) silinmez — kullanıcının yaptığı iş kaybolmasın, aynı hesapla girince gider.
+      try { if (window.ZKCevrimdisi && window.ZKCevrimdisi.depo && window.ZKCevrimdisi.depo.bosalt) window.ZKCevrimdisi.depo.bosalt(); } catch (e) {}
       return client().auth.signOut().then(function () {
         window.location.href = 'giris.html';
       });

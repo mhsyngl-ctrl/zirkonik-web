@@ -117,6 +117,21 @@
 
           <details class="rounded-theme border border-border bg-card" ontoggle="zkNudgeScroll(this)">
             <summary class="flex items-center gap-3 px-4 py-3.5">
+              <iconify-icon icon="lucide:smartphone" class="shrink-0 text-lg text-primary"></iconify-icon>
+              <span class="flex-1 text-sm font-bold">Uygulamayı nasıl kurarım ve giriş yaparım?</span>
+              <iconify-icon icon="lucide:chevron-right" class="kv-ok shrink-0 text-base text-muted-foreground"></iconify-icon>
+            </summary>
+            <div class="border-t border-border px-4 py-3.5 text-xs leading-5 text-muted-foreground">
+              <p><b class="text-card-foreground">Telefon:</b> App Store’da “Zirkonik” uygulamasını indirin. <b class="text-card-foreground">Bilgisayar:</b> app.zirkonik.com adresini açın.</p>
+              <p class="mt-2"><b class="text-card-foreground">Laboratuvar sahibiyseniz:</b> giriş ekranından kayıt olun, e-postanıza gelen onay bağlantısına dokunun. Kayıt olan ilk kullanıcı yönetici olur.</p>
+              <p class="mt-2"><b class="text-card-foreground">Personel ya da doktorsanız:</b> hesabınızı laboratuvar sahibi açar; size e-posta ve geçici şifre gelir. İlk girişten sonra “Şifremi unuttum” ile kendi şifrenizi belirleyin.</p>
+              <p class="mt-2">Telefonda “Bildirimlere izin ver” sorusuna <b class="text-card-foreground">İzin ver</b> deyin; yeni iş ve teslim bildirimleri böyle gelir. Yanlışlıkla reddettiyseniz: iPhone Ayarlar → Bildirimler → Zirkonik.</p>
+              <p class="mt-2">Giriş yaptıktan sonra aşağıdaki “Kuruluma nereden başlarım?” bölümüne geçin.</p>
+            </div>
+          </details>
+
+          <details class="rounded-theme border border-border bg-card" ontoggle="zkNudgeScroll(this)">
+            <summary class="flex items-center gap-3 px-4 py-3.5">
               <iconify-icon icon="lucide:rocket" class="shrink-0 text-lg text-primary"></iconify-icon>
               <span class="flex-1 text-sm font-bold">Kuruluma nereden başlarım?</span>
               <iconify-icon icon="lucide:chevron-right" class="kv-ok shrink-0 text-base text-muted-foreground"></iconify-icon>
@@ -145,7 +160,71 @@
               <p><b class="text-card-foreground">Aç →</b> Doktor, hasta adı ve protokol numarası zorunlu. İş numarası otomatik verilir.</p>
               <p class="mt-2"><b class="text-card-foreground">Odalar →</b> İş, o çalışma türünün rotasındaki odalardan sırayla geçer.</p>
               <p class="mt-2"><b class="text-card-foreground">Teslim →</b> Her odada teknisyen “Teslim Al” der. Diş başına hakediş teslim alana yazılır.</p>
-              <p class="mt-2"><b class="text-card-foreground">Bitiş →</b> Son odadan çıkınca iş tamamlanır: fatura kesilir, hakediş yazılır, stok düşer.</p>
+              <p class="mt-2"><b class="text-card-foreground">Bitiş →</b> Son odadan çıkınca iş tamamlanır: fatura kesilir, hakediş yazılır.</p>
+            </div>
+          </details>
+
+          <details class="rounded-theme border border-border bg-card" ontoggle="zkNudgeScroll(this)">
+            <summary class="flex items-center gap-3 px-4 py-3.5">
+              <iconify-icon icon="lucide:inbox" class="shrink-0 text-lg text-primary"></iconify-icon>
+              <span class="flex-1 text-sm font-bold">Doktor siparişi işe nasıl dönüşür?</span>
+              <iconify-icon icon="lucide:chevron-right" class="kv-ok shrink-0 text-base text-muted-foreground"></iconify-icon>
+            </summary>
+            <div class="border-t border-border px-4 py-3.5 text-xs leading-5 text-muted-foreground">
+              <p>Doktor sipariş gönderir. İki yol vardır:</p>
+              <p class="mt-2"><b class="text-card-foreground">Elle onay (varsayılan):</b> Siparişler ekranında resepsiyon ya da yönetici siparişi onaylar; iş oluşur.</p>
+              <p class="mt-2"><b class="text-card-foreground">Otomatik onay:</b> Laboratuvar sahibi Laboratuvarlar → kalem simgesi → “Laboratuvarı düzenle” penceresinden <b class="text-card-foreground">Siparişleri otomatik onayla</b> kutusunu açar. Onaylı doktorun siparişi resepsiyona uğramadan işe dönüşür ve rotasının ilk odasına girer.</p>
+              <p class="mt-2">Odadaki teknisyen yine <b class="text-card-foreground">Teslim Al</b> der; bu adım değişmez.</p>
+              <p class="mt-2 rounded-theme border border-accent/40 bg-background p-2.5 text-[11px] leading-4">Rotası tanımsız bir kalem varsa ya da doktor henüz onaylı değilse sipariş otomatik geçmez, “Bekleyen”de kalır ve elle onaylanır.</p>
+            </div>
+          </details>
+
+          <details class="rounded-theme border border-border bg-card" ontoggle="zkNudgeScroll(this)">
+            <summary class="flex items-center gap-3 px-4 py-3.5">
+              <iconify-icon icon="lucide:sticky-note" class="shrink-0 text-lg text-primary"></iconify-icon>
+              <span class="flex-1 text-sm font-bold">Notlar: kim yazar, kim görür?</span>
+              <iconify-icon icon="lucide:chevron-right" class="kv-ok shrink-0 text-base text-muted-foreground"></iconify-icon>
+            </summary>
+            <div class="border-t border-border px-4 py-3.5 text-xs leading-5 text-muted-foreground">
+              <p><b class="text-card-foreground">Doktor notu:</b> Doktor siparişe “Laboratuvara iletmek istediğin not”u yazar. İş açılınca iş detayında “Doktor notu” olarak görünür; işi gören herkes okur.</p>
+              <p class="mt-2"><b class="text-card-foreground">İç referans / not:</b> Laboratuvarın kendi notudur, doktora gösterilmez.</p>
+              <p class="mt-2">Her iki notu da yalnızca <b class="text-card-foreground">işveren ve yönetici</b> değiştirebilir (iş detayı → Bilgileri düzelt). Teknisyen ve diğer personel notu görür ama değiştiremez. Doktor, siparişi gönderdikten sonra notu değiştiremez.</p>
+            </div>
+          </details>
+
+          <details class="rounded-theme border border-border bg-card" ontoggle="zkNudgeScroll(this)">
+            <summary class="flex items-center gap-3 px-4 py-3.5">
+              <iconify-icon icon="lucide:trash-2" class="shrink-0 text-lg text-primary"></iconify-icon>
+              <span class="flex-1 text-sm font-bold">Kullanılmayan odayı silmek</span>
+              <iconify-icon icon="lucide:chevron-right" class="kv-ok shrink-0 text-base text-muted-foreground"></iconify-icon>
+            </summary>
+            <div class="border-t border-border px-4 py-3.5 text-xs leading-5 text-muted-foreground">
+              <p>Laboratuvar sahibi Laboratuvarlar ekranında odaya dokunup <b class="text-card-foreground">Odayı sil</b> der.</p>
+              <p class="mt-2">İşi, geçmişi ya da malzeme kaydı olan oda silinmez; sistem nedenini söyler. Silinen odanın fiyat kalemlerindeki rota satırı da kendiliğinden temizlenir.</p>
+            </div>
+          </details>
+
+          <details class="rounded-theme border border-border bg-card" ontoggle="zkNudgeScroll(this)">
+            <summary class="flex items-center gap-3 px-4 py-3.5">
+              <iconify-icon icon="lucide:moon" class="shrink-0 text-lg text-primary"></iconify-icon>
+              <span class="flex-1 text-sm font-bold">Uzun süredir iş göndermeyen doktorlar</span>
+              <iconify-icon icon="lucide:chevron-right" class="kv-ok shrink-0 text-base text-muted-foreground"></iconify-icon>
+            </summary>
+            <div class="border-t border-border px-4 py-3.5 text-xs leading-5 text-muted-foreground">
+              <p>Bir süre iş göndermeyen doktor “uyuyan” sayılır; silinmez. Yeni iş girerken listede görünür. Ona iş açtığınızda doktor otomatik olarak yeniden aktif olur.</p>
+            </div>
+          </details>
+
+          <details class="rounded-theme border border-border bg-card" ontoggle="zkNudgeScroll(this)">
+            <summary class="flex items-center gap-3 px-4 py-3.5">
+              <iconify-icon icon="lucide:wifi-off" class="shrink-0 text-lg text-primary"></iconify-icon>
+              <span class="flex-1 text-sm font-bold">İnternet yokken ne çalışır?</span>
+              <iconify-icon icon="lucide:chevron-right" class="kv-ok shrink-0 text-base text-muted-foreground"></iconify-icon>
+            </summary>
+            <div class="border-t border-border px-4 py-3.5 text-xs leading-5 text-muted-foreground">
+              <p>İnternetsiz çalışma <b class="text-card-foreground">yalnızca telefon uygulamasında</b> vardır; web sitesinde (app.zirkonik.com) yoktur.</p>
+              <p class="mt-2">İnternet yokken son görülen veriler “son görülen veriler” bandıyla gösterilir. Şu işlemler sıraya alınır ve internet gelince kendiliğinden gider: odayı ilerletme, teslim alma, doktor teması, görev tamamlama. Ekranda “işlem internet bekliyor” rozeti görünür.</p>
+              <p class="mt-2">Para işlemleri (tahsilat, ödeme), silme, iptal, sipariş onayı ve fiyat değişikliği internetsiz yapılmaz; bunlar için bağlantı gerekir. Çıkış yapınca cihazdaki son görülen veriler silinir, gönderilmemiş işlemleriniz saklanır.</p>
             </div>
           </details>
 
@@ -158,7 +237,7 @@
             <div class="border-t border-border px-4 py-3.5 text-xs leading-5 text-muted-foreground">
               <p>İş detayında laboratuvar sahibine üç düğme var:</p>
               <p class="mt-2"><b class="text-card-foreground">Geri al</b> — işi bir önceki odaya döndürür.</p>
-              <p class="mt-1.5"><b class="text-card-foreground">İptal et</b> — faturayı ve hakedişi iptal eder, stoğu iade eder. Kayıt durur.</p>
+              <p class="mt-1.5"><b class="text-card-foreground">İptal et</b> — faturayı ve hakedişi iptal eder. Kayıt durur.</p>
               <p class="mt-1.5"><b class="text-card-foreground">Sil</b> — yalnızca hiç kaydı olmayan yeni işlerde.</p>
               <p class="mt-2 rounded-theme border border-accent/40 bg-background p-2.5 text-[11px] leading-4">
                 Üçü de <b class="text-accent">iş tamamlanmadan önce</b> çalışır. Tamamlanan iş kilitlidir.
@@ -177,7 +256,7 @@
               <p class="mt-2"><b class="text-card-foreground">Doktora özel fiyat:</b> üstten doktoru seçip yazın. Kutuyu boşaltırsanız genel listeye döner.</p>
               <p class="mt-2"><b class="text-card-foreground">Oda rotası:</b> kalemin yanındaki rota simgesi. Odalara sırayla dokunun; tekrar dokunmak çıkarır.</p>
               <p class="mt-2">Rota kalemin kendi özelliğidir — doktora göre değişmez, fiyat yazmak rotayı bozmaz.</p>
-              <p class="mt-2">Tüm tutarlar dolardır ($).</p>
+              <p class="mt-2">Tutarlar her kalemin kendi para biriminde gösterilir (varsayılan: $).</p>
             </div>
           </details>
 
