@@ -43,7 +43,7 @@
   }
 
   // Hata günlüğünde görünen uygulama sürümü; Xcode MARKETING_VERSION (2.2) ile elle aynı tutulur.
-  var ZK_APP_VERSION = '2.3';
+  var ZK_APP_VERSION = '2.7';   // hata günlüğündeki sürüm etiketi — her mağaza sürümünde güncelle
 
   function client() {
     if (!_client) {

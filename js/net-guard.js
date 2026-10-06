@@ -428,6 +428,9 @@
       if (!message) return;
       message = String(message).slice(0, 500);
       if (/log_client_error|netguard/i.test(message)) return;   // kendi hatamızla döngüye girmeyelim
+      // Tarayıcının sayfa geçişi animasyonu (View Transition) sayfa değişirken kendini iptal edince
+      // verdiği zararsız uyarılar: kullanıcıyı etkilemez, günlüğü doldurmasın (6 Ekim 2026).
+      if (/Skipping view transition|Transition was aborted because of invalid state|^Script error\.?$/i.test(message)) return;
       // Ağ hataları banda düşer, günlüğe değil — zaman aşımı/kuyruk kayıtları hariç.
       if (!AG_TURLERI[kind] && isNetworkError({ message: message })) return;
       var key = kind + '|' + message;

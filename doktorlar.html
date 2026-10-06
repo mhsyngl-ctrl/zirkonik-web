@@ -1110,6 +1110,7 @@
     // burada RLS'e değil, açıkça seçilen doktorun id'sine (cariDoctorId)
     // göre filtreleniyor — işveren birden çok doktor arasında geziniyor.
     function dcpBuildBuckets(rows, period, rangeStart) {
+      rangeStart = new Date(rangeStart);   // önbellekten gelen tarih metin olabilir (doktor-siparis.html'deki aynı düzeltme)
       var buckets = [];
       var keyFn;
       if (period === 'week') {
