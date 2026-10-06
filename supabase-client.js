@@ -26,6 +26,13 @@
     return promise.then(function (res) {
       if (!res.error) return res;
       var ctx = res.error.context;
+      // 5 Ekim 2026: istek sunucuya hiç ulaşmadıysa (internet yok, bağlantı koptu)
+      // supabase-js İngilizce "Failed to send a request to the Edge Function" der.
+      if (res.error.name === 'FunctionsFetchError') {
+        var e = new Error(navigator.onLine === false ? 'İnternet bağlantısı yok.' : 'Sunucuya ulaşılamadı. Bağlantını kontrol edip tekrar dene.');
+        e.zkAg = true;
+        return { data: res.data, error: e };
+      }
       if (ctx && typeof ctx.json === 'function') {
         return ctx.json().then(function (body) {
           return { data: res.data, error: new Error((body && body.error) || res.error.message) };
@@ -124,6 +131,9 @@
     signOut: function () {
       _meCache = null;
       try { localStorage.removeItem('zk-guard'); } catch (e) {}
+      // Bekleyen günlük kayıtları ve son adımlar bu kullanıcıya ait: ortak cihazda bir
+      // sonraki kullanıcının adıyla (ve başka laboratuvarın kaydı olarak) gitmesin.
+      try { localStorage.removeItem('zk_gunluk_bekleyen'); sessionStorage.removeItem('zk_son_adimlar'); } catch (e) {}
       return client().auth.signOut().then(function () {
         window.location.href = 'giris.html';
       });
@@ -199,11 +209,42 @@
       if (t.indexOf('rate limit') >= 0 || t.indexOf('too many requests') >= 0) return 'Çok fazla deneme yapıldı, birkaç dakika sonra tekrar deneyin.';
       if (t.indexOf('user is banned') >= 0 || t.indexOf('banned') >= 0) return 'Bu hesap kapatılmış. Laboratuvar yöneticinizle görüşün.';
       if (t.indexOf('token has expired') >= 0 || t.indexOf('invalid token') >= 0 || t.indexOf('expired') >= 0) return 'Bağlantının süresi dolmuş, yeni bir bağlantı isteyin.';
-      if (t.indexOf('failed to fetch') >= 0 || t.indexOf('networkerror') >= 0 || t.indexOf('network') >= 0) return 'İnternet bağlantısı kurulamadı, bağlantınızı kontrol edin.';
+      // NetGuard'ın Türkçe bağlantı hataları ("Bağlantı: Sunucu 20 saniye içinde…") olduğu gibi kalır.
+      if (/^Bağlantı: /.test(m)) return m.replace(/^Bağlantı: /, '');
+      if (t.indexOf('failed to fetch') >= 0 || t.indexOf('networkerror') >= 0 || t.indexOf('network') >= 0 || t.indexOf('load failed') >= 0 || t.indexOf('failed to send a request') >= 0) return 'İnternet bağlantısı kurulamadı, bağlantınızı kontrol edin.';
+      if (t.indexOf('timed out') >= 0 || t.indexOf('request was aborted') >= 0) return 'Sunucu zamanında cevap vermedi. Bağlantınızı kontrol edip tekrar deneyin.';
       if (t.indexOf('email address is invalid') >= 0 || t.indexOf('invalid email') >= 0) return 'E-posta adresi geçersiz.';
       return m || 'Bilinmeyen bir hata oluştu.';
     }
   };
+
+  /** Tek seferlik ekleme (5 Ekim 2026, "ölü buton"): isteklerin artık 20 sn
+   *  süre sınırı var; süre dolan bir kayıt sunucuya ulaşmış olabilir. Sayfa satır
+   *  kimliğini (fields.id) form açılışında bir kez üretir ve tekrar denemede aynı
+   *  kimliği gönderir: ilk deneme kaydolmuşsa ikinci deneme birincil anahtara
+   *  takılır (23505) ve mevcut satır döner — çift tahsilat/çift kayıt olmaz.
+   *  Dönen sonuçta zatenVardi=true ise kayıt önceki denemede yapılmıştı. */
+  // Kayıtlı satır bu alanlarda gönderilenden farklıysa (kullanıcı ilk denemeden sonra
+  // tutarı/kişiyi değiştirdi) sessizce "kaydedildi" denmez, hata döner.
+  var TEK_SEFERLIK_ALANLAR = ['amount', 'currency', 'doctor_id', 'invoice_id', 'supplier_id'];
+  function tekSeferlikEkle(tablo, fields) {
+    return client().from(tablo).insert(fields).select().single().then(function (res) {
+      if (!(res.error && res.error.code === '23505' && fields && fields.id)) return res;
+      return client().from(tablo).select().eq('id', fields.id).single().then(function (r) {
+        if (r.error || !r.data) return res;
+        var farkli = TEK_SEFERLIK_ALANLAR.filter(function (k) {
+          return fields[k] !== undefined && r.data[k] !== undefined && String(fields[k]) !== String(r.data[k]) &&
+            !(k === 'amount' && Number(fields[k]) === Number(r.data[k]));
+        });
+        if (farkli.length) {
+          return { data: null, error: { code: 'zk_farkli', message: 'Bu kayıt önceki denemede farklı bilgilerle kaydedilmiş' +
+            (r.data.amount !== undefined ? ' (tutar: ' + r.data.amount + ')' : '') + '. Çift kayıt olmaması için formu kapatıp listeyi kontrol edin.' } };
+        }
+        r.zatenVardi = true;
+        return r;
+      });
+    });
+  }
 
   var Data = {
     // ---- Laboratuvarlar / Odalar ----
@@ -466,6 +507,9 @@
         K.ekle(tur, veri, ozet, opId);
         return { data: sahteData === undefined ? null : sahteData, error: null, kuyrukta: true, op_id: opId };
       }
+      // Acil kapatma anahtarı (app_flags.cevrimdisi_kuyruk) kapalıysa sıraya alma yok:
+      // aynı RPC doğrudan gider, ağ hatası sayfaya hata olarak döner (eski davranış).
+      if (K && K.acikMi && !K.acikMi()) K = null;
       function agHatasi(err) { return !!(K && window.NetGuard && window.NetGuard.isNetworkError(err)); }
       if (K && K.cevrimdisiMi()) return Promise.resolve(kuyrukla());
       return client().rpc('zk_kuyruk_isle', { p_op_id: opId, p_tur: tur, p_veri: veri }).then(function (r) {
@@ -956,7 +1000,7 @@
       return q;
     },
     createSupplierInvoice: function (fields) {
-      return client().from('supplier_invoices').insert(fields).select().single();
+      return tekSeferlikEkle('supplier_invoices', fields);
     },
     listSupplierPayments: function (supplierId) {
       var q = client().from('supplier_payments').select('*').order('paid_at', { ascending: false });
@@ -964,7 +1008,7 @@
       return q;
     },
     createSupplierPayment: function (fields) {
-      return client().from('supplier_payments').insert(fields).select().single();
+      return tekSeferlikEkle('supplier_payments', fields);
     },
 
     // ---- Sabit giderler (kira, SGK, elektrik vb. — nakit akışı öngörüsüne
@@ -973,7 +1017,7 @@
       return client().from('recurring_expenses').select('*').order('is_active', { ascending: false }).order('name');
     },
     createRecurringExpense: function (fields) {
-      return client().from('recurring_expenses').insert(fields).select().single();
+      return tekSeferlikEkle('recurring_expenses', fields);
     },
     updateRecurringExpense: function (id, fields) {
       return client().from('recurring_expenses').update(fields).eq('id', id);
@@ -1020,7 +1064,7 @@
       return q;
     },
     recordPayment: function (fields) {
-      return client().from('payments').insert(fields).select().single();
+      return tekSeferlikEkle('payments', fields);
     },
 
     // ---- Kasa teslimi (personel -> yönetici, tüm yöntemler) ----
@@ -1033,11 +1077,14 @@
     },
     /** Bir teslim fisi tek para birimindedir; cagiran taraf secimi para
      *  birimine gore ayirip her biri icin ayri cagirir. */
-    createCashHandover: function (organizationId, staffId, paymentIds, amount, note, currency) {
-      return client().from('cash_handovers').insert({
+    // id: sayfanın ürettiği tek seferlik kimlik (bkz. tekSeferlikEkle) — verilmezse sunucu üretir.
+    createCashHandover: function (organizationId, staffId, paymentIds, amount, note, currency, id) {
+      var satir = {
         organization_id: organizationId, staff_id: staffId, amount: amount,
         currency: window.ZirkonikMoney.normalize(currency), note: note || null
-      }).select().single().then(function (res) {
+      };
+      if (id) satir.id = id;
+      return tekSeferlikEkle('cash_handovers', satir).then(function (res) {
         if (res.error) return res;
         return client().from('payments').update({ handover_id: res.data.id }).in('id', paymentIds).then(function (updRes) {
           if (updRes.error) return updRes;

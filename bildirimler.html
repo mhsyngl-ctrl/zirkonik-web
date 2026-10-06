@@ -128,7 +128,9 @@
       payment: 'lucide:circle-dollar-sign',
       low_stock: 'lucide:package-x',
       system: 'lucide:bell-ring',
-      gunluk_ziyaret_listesi: 'lucide:map-pin'
+      gunluk_ziyaret_listesi: 'lucide:map-pin',
+      hata_bildirimi: 'lucide:bug',
+      hata_ozeti: 'lucide:clipboard-list'
     };
     var TYPE_COLORS = {
       new_order: 'text-primary',
@@ -141,7 +143,9 @@
       payment: 'text-success',
       low_stock: 'text-destructive',
       system: 'text-primary',
-      gunluk_ziyaret_listesi: 'text-primary'
+      gunluk_ziyaret_listesi: 'text-primary',
+      hata_bildirimi: 'text-destructive',
+      hata_ozeti: 'text-primary'
     };
 
     var myRole = null;
@@ -158,6 +162,8 @@
       // Doktor iş detay sayfasını açamaz — kendi paneline döner.
       if (myRole === 'doktor') return 'doktor-siparis.html';
       if (n.job_id) return 'detay.html?id=' + n.job_id;
+      // Hata bildirimleri yalnız platform sahibine gider; dokununca hata günlüğü (Profil) açılır.
+      if (n.type === 'hata_bildirimi' || n.type === 'hata_ozeti') return 'profil.html#pf-errors-section';
       if (n.order_id && myRole === 'yonetici') return 'siparisler.html';
       return null;
     }

@@ -133,21 +133,38 @@
     return false;
   }
 
+  // Acil kapatma anahtarı (5 Ekim 2026, app_flags.cevrimdisi_kuyruk): kapalıysa yeni
+  // işlem sıraya alınmaz (Data.kuyrukluIslem doğrudan sunucuya gider) ve bekleyenler
+  // kendiliğinden gönderilmez; cihazda kalırlar, çipten görülür, "Şimdi göndermeyi dene"
+  // ya da Vazgeç ile elle yönetilir. Anahtar açılınca kaldıkları yerden gider.
+  function kuyrukAcik() {
+    try { return !global.NetGuard || !global.NetGuard.acikMi || global.NetGuard.acikMi('cevrimdisi_kuyruk'); } catch (e) { return true; }
+  }
+  // Hata günlüğüne kuyruk olayı (NetGuard cihazda bekletir, bağlantı gelince gönderir).
+  function gunluk(mesaj, ek, tekrarli) {
+    try { if (global.NetGuard && global.NetGuard.report) global.NetGuard.report('kuyruk', mesaj, null, ek || null, tekrarli); } catch (e) {}
+  }
+
   function ekle(tur, veri, ozet, opId) {
     var kuyruk = listeOku(K_KUYRUK());
     var op = { op_id: opId || kimlik(), tur: tur, veri: veri || {}, ozet: ozet || tur, t: Date.now() };
     kuyruk.push(op);
     listeYaz(K_KUYRUK(), kuyruk);
+    // Türü başına sayfa açılışında bir kez (günlük şişmesin); kaç tane beklediği ekte.
+    gunluk('Sıraya alındı: ' + tur, { op_id: op.op_id, ozet: op.ozet, bekleyen: kuyruk.length });
     cipCiz();
     if (!cevrimdisiMi()) setTimeout(function () { bosalt(); }, 100);
     return op;
   }
 
   var bosaltiliyor = null;
-  function bosalt() {
+  // zorla: kullanıcı "Şimdi göndermeyi dene"ye bastı (anahtar kapalı olsa da gönderir).
+  function bosalt(zorla) {
     if (bosaltiliyor) return bosaltiliyor;
     var kuyruk = listeOku(K_KUYRUK());
     if (!kuyruk.length) { cipCiz(); return Promise.resolve({ gonderilen: 0, hatali: 0 }); }
+    if (zorla !== true && !kuyrukAcik()) { cipCiz(); return Promise.resolve({ gonderilen: 0, hatali: 0, durduruldu: true }); }
+    var enEski = kuyruk.reduce(function (m, x) { return Math.min(m, x.t || Date.now()); }, Date.now());
     if (cevrimdisiMi()) { cipCiz(); return Promise.resolve({ gonderilen: 0, hatali: 0, cevrimdisi: true }); }
     var istemci = null;
     try { istemci = global.ZirkonikAuth && global.ZirkonikAuth.client(); } catch (e) {}
@@ -168,6 +185,7 @@
           h.push(Object.assign({}, op, { hata: r.error.message || String(r.error), ht: Date.now() }));
           listeYaz(K_HATA(), h);
           hatali++;
+          gunluk('Sunucu reddetti: ' + op.tur + ' — ' + (r.error.message || String(r.error)), { op_id: op.op_id, ozet: op.ozet }, true);
         } else {
           gonderilen++;
         }
@@ -180,6 +198,7 @@
         h.push(Object.assign({}, op, { hata: (err && err.message) || String(err), ht: Date.now() }));
         listeYaz(K_HATA(), h);
         hatali++;
+        gunluk('Sunucu reddetti: ' + op.tur + ' — ' + ((err && err.message) || String(err)), { op_id: op.op_id, ozet: op.ozet }, true);
         listeYaz(K_KUYRUK(), listeOku(K_KUYRUK()).filter(function (x) { return x.op_id !== op.op_id; }));
         return sirayla(i);
       });
@@ -187,6 +206,10 @@
     bosaltiliyor = sirayla(0).then(function () {
       bosaltiliyor = null;
       cipCiz();
+      if (gonderilen || hatali) {
+        gunluk('Gönderildi: ' + gonderilen + ' işlem' + (hatali ? ', ' + hatali + ' reddedildi' : ''),
+          { gonderilen: gonderilen, hatali: hatali, en_eski_bekleme_dk: Math.round((Date.now() - enEski) / 60000) }, true);
+      }
       if (gonderilen) {
         toast(gonderilen + ' bekleyen işlem gönderildi.');
         try { global.dispatchEvent(new global.CustomEvent('zk-kuyruk-bosaldi', { detail: { gonderilen: gonderilen, hatali: hatali } })); } catch (e) {}
@@ -206,7 +229,7 @@
     k.push({ op_id: op.op_id, tur: op.tur, veri: op.veri, ozet: op.ozet, t: op.t });
     listeYaz(K_KUYRUK(), k);
     cipCiz();
-    bosalt();
+    bosalt(true);   // kullanıcı istedi: anahtar kapalı olsa da dener
   }
   function vazgec(opId) {
     listeYaz(K_HATA(), listeOku(K_HATA()).filter(function (x) { return x.op_id !== opId; }));
@@ -279,7 +302,7 @@
     kap.addEventListener('click', function (ev) {
       var t = ev.target;
       if (t === kap || (t && t.id === 'zk-kuyruk-kapat')) { kap.parentNode.removeChild(kap); return; }
-      if (t && t.id === 'zk-kuyruk-gonder') { kap.parentNode.removeChild(kap); bosalt(); return; }
+      if (t && t.id === 'zk-kuyruk-gonder') { kap.parentNode.removeChild(kap); bosalt(true); return; }
       var tekrar = t && t.getAttribute && t.getAttribute('data-tekrar');
       var vaz = t && t.getAttribute && t.getAttribute('data-vazgec');
       if (tekrar) { kap.parentNode.removeChild(kap); tekrarDene(tekrar); }
@@ -299,6 +322,15 @@
       if (global.document.visibilityState === 'visible') bosalt();
     });
     global.addEventListener('online', function () { setTimeout(bosalt, 300); });
+    // 5 Ekim 2026: bağlantı "online" olayı vermeden sessizce düzelebiliyor (zayıf
+    // wifi, mobil veri geri geldi). Bekleyen iş varken ve sayfa öndeyken 20 sn'de
+    // bir tekrar denenir; kuyruk boşken hiçbir istek atılmaz.
+    var periyot = setInterval(function () {
+      if (global.document.visibilityState === 'hidden') return;
+      if (!listeOku(K_KUYRUK()).length || cevrimdisiMi()) return;
+      bosalt();
+    }, 20000);
+    if (periyot && periyot.unref) periyot.unref();   // node birim testi süreci beklemesin
     // Kuyruk boşalınca sayfa verisini tazele (sayfa zkRefresh tanımladıysa).
     global.addEventListener('zk-kuyruk-bosaldi', function () {
       try { if (global.ZkYenile) global.ZkYenile.tazele('kuyruk'); } catch (e) {}
@@ -307,7 +339,7 @@
 
   global.ZKKuyruk = {
     ekle: ekle, bosalt: bosalt, tekrarDene: tekrarDene, vazgec: vazgec, kimlik: kimlik,
-    cevrimdisiMi: cevrimdisiMi,
+    cevrimdisiMi: cevrimdisiMi, acikMi: kuyrukAcik,
     bekleyenler: function () { return listeOku(K_KUYRUK()); },
     hatalilar: function () { return listeOku(K_HATA()); },
     goster: listeGoster,

@@ -422,6 +422,14 @@
 
   <div id="zk-toast" style="position:fixed;left:50%;bottom:96px;transform:translate(-50%,16px);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;background:#17242C;color:#fff;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;padding:10px 16px;border-radius:12px;z-index:9999;max-width:86%;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.18);"></div>
   <script>
+    // Tek seferlik kayıt kimlikleri (5 Ekim 2026, "ölü buton"): form açılınca bir
+    // kez üretilir, tekrar denemede aynı kalır; ilk deneme sunucuya ulaşmışsa ikinci
+    // deneme yeni satır açmaz (bkz. supabase-client.js tekSeferlikEkle).
+    var zkTekKimlik = {};
+    function zkKimlik(ad) { return zkTekKimlik[ad] || (zkTekKimlik[ad] = ZirkonikData.kimlikUret()); }
+    function zkKimlikSifirla(onEk) { Object.keys(zkTekKimlik).forEach(function (k) { if (k.indexOf(onEk) === 0) delete zkTekKimlik[k]; }); }
+    // Butonu "Kaydediliyor…" gösterir; bitir() eski hâline döndürür.
+    function zkMesgul(btn, metin) { return window.ZKHiz && ZKHiz.mesgul ? ZKHiz.mesgul(btn, metin) : function (ac) { if (ac !== false) btn.disabled = false; }; }
     function zkToast(msg){
       var el = document.getElementById('zk-toast');
       if(!el) return;
@@ -753,6 +761,7 @@
 
     function zkOpenAddFixedExpense() {
       feEditId = null;
+      zkKimlikSifirla('fe');
       document.getElementById('fe-title').textContent = 'Sabit gider ekle';
       ['fe-amount', 'fe-due', 'fe-note', 'fe-enddate'].forEach(function (id) { document.getElementById(id).value = ''; });
       document.getElementById('fe-name').value = '';
@@ -807,7 +816,7 @@
 
       var btn = document.getElementById('fe-submit');
       if (btn.disabled) return;
-      btn.disabled = true;
+      var bitir = zkMesgul(btn, 'Kaydediliyor…');
 
       var fields = {
         name: name,
@@ -822,19 +831,21 @@
       var p = feEditId
         ? ZirkonikData.updateRecurringExpense(feEditId, fields)
         : ZirkonikAuth.me().then(function (me) {
+            fields.id = zkKimlik('fe');
             fields.organization_id = me.organization_id;
             fields.created_by = me.id;
             return ZirkonikData.createRecurringExpense(fields);
           });
 
       p.then(function (res) {
-        btn.disabled = false;
+        bitir();
         if (res.error) { errEl.textContent = 'Kaydedilemedi: ' + res.error.message; errEl.classList.remove('hidden'); return; }
+        zkKimlikSifirla('fe');
         zkCloseFixedExpense();
         zkToast(feEditId ? 'Sabit gider güncellendi.' : 'Sabit gider eklendi.');
         loadFixedExpenses();
       }).catch(function (err) {
-        btn.disabled = false;
+        bitir();
         errEl.textContent = 'Kaydedilemedi: ' + err.message;
         errEl.classList.remove('hidden');
       });
@@ -884,6 +895,7 @@
 
     function zkOpenSupOp(supplierId, type) {
       supOpSupplierId = supplierId;
+      zkKimlikSifirla('sup');
       var s = null;
       supList.forEach(function (x) { if (x.id === supplierId) s = x; });
       document.getElementById('sup-op-title').textContent = s ? s.name : 'Tedarikçi işlemi';
@@ -910,12 +922,13 @@
       // .catch() yoktu: hata atarsa kullanici hicbir sey gormuyordu.
       var btn = document.getElementById('sup-op-submit');
       if (btn.disabled) return;
-      btn.disabled = true;
+      var bitir = zkMesgul(btn, 'Kaydediliyor…');
 
       var isInv = document.getElementById('sup-op-type').value === 'fatura';
       ZirkonikAuth.me().then(function (me) {
         if (isInv) {
           return ZirkonikData.createSupplierInvoice({
+            id: zkKimlik('sup-fatura'),
             organization_id: me.organization_id,
             supplier_id: supOpSupplierId,
             amount: amount,
@@ -924,6 +937,7 @@
           });
         }
         return ZirkonikData.createSupplierPayment({
+          id: zkKimlik('sup-odeme'),
           organization_id: me.organization_id,
           supplier_id: supOpSupplierId,
           amount: amount,
@@ -932,8 +946,9 @@
           performed_by: me.id
         });
       }).then(function (res) {
-        btn.disabled = false;
+        bitir();
         if (res.error) { errEl.textContent = 'Kaydedilemedi: ' + res.error.message; errEl.classList.remove('hidden'); return; }
+        zkKimlikSifirla('sup');
         zkCloseSupOp();
         document.getElementById('sup-op-amount').value = '';
         document.getElementById('sup-op-due').value = '';
@@ -941,7 +956,7 @@
         zkToast(isInv ? 'Alış faturası kaydedildi.' : 'Tedarikçi ödemesi kaydedildi.');
         loadSuppliers();
       }).catch(function (err) {
-        btn.disabled = false;
+        bitir();
         errEl.textContent = 'Kaydedilemedi: ' + err.message;
         errEl.classList.remove('hidden');
       });
@@ -1200,6 +1215,7 @@
     }
 
     function zkOpenPayment() {
+      zkKimlikSifirla('pay');
       document.getElementById('payment-sheet').classList.remove('hidden');
       zkPayMode('cari');
     }
@@ -1216,7 +1232,7 @@
         if (!docId || !amount) { errEl.textContent = 'Doktor ve tutar zorunludur.'; errEl.classList.remove('hidden'); return; }
         var cbtn = document.getElementById('pay-submit');
         if (cbtn.disabled) return;
-        cbtn.disabled = true;
+        var cbitir = zkMesgul(cbtn, 'Kaydediliyor…');
         ZirkonikAuth.client().rpc('record_doctor_payment', {
           p_doctor_id: docId,
           p_amount: Number(amount),
@@ -1225,14 +1241,27 @@
           p_note: null
         }).then(function (res) {
           if (res.error) {
-            cbtn.disabled = false;
-            errEl.textContent = 'Kaydedilemedi: ' + res.error.message;
+            // 5 Ekim 2026: istek gitti ama cevap gelmediyse (süre doldu, bağlantı
+            // koptu) tahsilat sunucuda kaydolmuş olabilir. Bu RPC tek seferlik
+            // değil: körlemesine tekrar basmak çift tahsilat yazar. Buton kilitli
+            // kalır; önce sayfa yenilenip cari kontrol edilir. İnternet hiç yokken
+            // istek gitmediği için tekrar denemek güvenli.
+            var gitmedi = /istek gönderilmedi/.test(res.error.message || '');
+            var belirsiz = !gitmedi && window.NetGuard && NetGuard.isNetworkError(res.error);
+            cbitir(!belirsiz);
+            errEl.textContent = belirsiz
+              ? 'Sunucudan cevap gelmedi; tahsilat kaydedilmiş olabilir. Çift kayıt olmaması için sayfayı yenileyip doktorun carisini kontrol edin.'
+              : 'Kaydedilemedi: ' + res.error.message;
             errEl.classList.remove('hidden');
             return;
           }
           zkClosePayment();
           zkToast('Tahsilat cariye işlendi, faturalar en eskiden başlayarak mahsup edildi.');
           setTimeout(function () { location.reload(); }, 600);
+        }).catch(function (err) {
+          cbitir();
+          errEl.textContent = 'Kaydedilemedi: ' + ((err && err.message) || 'bilinmeyen hata');
+          errEl.classList.remove('hidden');
         });
         return;
       }
@@ -1246,7 +1275,7 @@
       // ayni desen: islem bitene kadar kilitli.
       var btn = document.getElementById('pay-submit');
       if (btn.disabled) return;
-      btn.disabled = true;
+      var bitir = zkMesgul(btn, 'Kaydediliyor…');
 
       var client = ZirkonikAuth.client();
       var invoiceAmount = 0;
@@ -1258,6 +1287,7 @@
         invoiceAmount = Number(r.data.amount);
         return ZirkonikAuth.me().then(function (me) {
           return ZirkonikData.recordPayment({
+            id: zkKimlik('pay'),
             doctor_id: r.data.doctor_id,
             invoice_id: invoiceId,
             amount: Number(amount),
@@ -1279,11 +1309,13 @@
       }).then(function () {
         // Basarili yolda kilidi ACMIYORUZ: sayfa 600 ms sonra yenileniyor,
         // o aralikta ikinci tiklamanin onune geciyor.
+        bitir(false);
+        zkKimlikSifirla('pay');
         zkClosePayment();
         zkToast('Tahsilat kaydedildi.');
         setTimeout(function () { location.reload(); }, 600);
       }).catch(function (err) {
-        btn.disabled = false;
+        bitir();
         errEl.textContent = 'Kaydedilemedi: ' + err.message;
         errEl.classList.remove('hidden');
       });
@@ -1312,7 +1344,7 @@
               '<div class="shrink-0 text-right">' +
               '<p class="text-sm font-bold tabular-nums">' + ZirkonikMoney.format(h.amount, h.currency, 0) + '</p>' +
               (isPending && canConfirm
-                ? '<button onclick="zkConfirmHandover(\'' + h.id + '\')" class="mt-1 rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold text-primary-foreground">Teslim alındı işaretle</button>'
+                ? '<button onclick="zkConfirmHandover(\'' + h.id + '\', this)" class="mt-1 rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold text-primary-foreground">Teslim alındı işaretle</button>'
                 : '<span class="text-[10px] font-bold ' + (isPending ? 'text-accent' : 'text-success') + '">' + (isPending ? 'Onay bekliyor' : 'Teslim alındı') + '</span>') +
               (isYonetici
                 ? '<button onclick="zkUndoHandover(\'' + h.id + '\')" class="mt-1 block text-[10px] font-bold text-destructive">Geri al</button>'
@@ -1324,6 +1356,7 @@
     }
 
     function zkOpenHandover() {
+      zkKimlikSifirla('ho');
       document.getElementById('handover-error').classList.add('hidden');
       document.getElementById('handover-note').value = '';
       document.getElementById('handover-sheet').classList.remove('hidden');
@@ -1385,7 +1418,8 @@
       });
 
       var btn = document.getElementById('handover-submit');
-      btn.disabled = true;
+      if (btn.disabled) return;
+      var bitir = zkMesgul(btn, 'Gönderiliyor…');
       ZirkonikAuth.me().then(function (me) {
         return Object.keys(gruplar).reduce(function (zincir, sym) {
           // Sirayla: hepsi ayni anda gonderilirse hata mesajinda hangi para
@@ -1396,31 +1430,39 @@
             return ZirkonikData.createCashHandover(
               me.organization_id, me.id,
               grup.map(function (p) { return p.id; }),
-              toplam, note, sym
+              toplam, note, sym, zkKimlik('ho:' + sym)
             ).then(function (res) { if (res.error) throw res.error; });
           });
         }, Promise.resolve());
       }).then(function () {
-        btn.disabled = false;
+        bitir();
+        zkKimlikSifirla('ho');
         zkCloseHandover();
         zkToast(Object.keys(gruplar).length > 1
           ? 'Para birimi başına ayrı kasa teslim talebi oluşturuldu.'
           : 'Kasa teslim talebi oluşturuldu.');
         loadHandovers();
       }).catch(function (err) {
-        btn.disabled = false;
+        bitir();
         errEl.textContent = 'Oluşturulamadı: ' + err.message;
         errEl.classList.remove('hidden');
       });
     }
 
-    function zkConfirmHandover(id) {
+    // Onay bir güncelleme (status=confirmed): iki kez gitse de sonuç aynı.
+    function zkConfirmHandover(id, btn) {
+      if (btn && btn.disabled) return;
+      var bitir = btn ? zkMesgul(btn, 'Onaylanıyor…') : function () {};
       ZirkonikAuth.me().then(function (me) {
         return ZirkonikData.confirmCashHandover(id, me.id);
       }).then(function (res) {
+        bitir();
         if (res.error) { zkToast('Onaylanamadı: ' + res.error.message); return; }
         zkToast('Kasa teslimi onaylandı.');
         loadHandovers();
+      }).catch(function (err) {
+        bitir();
+        zkToast('Onaylanamadı: ' + ((err && err.message) || 'bilinmeyen hata'));
       });
     }
     // Sadece yönetici görür (RPC içinde de kontrol edilir) — geri alınca

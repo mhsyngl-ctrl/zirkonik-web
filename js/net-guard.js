@@ -17,6 +17,27 @@
 //     aynı isteğe depodaki son cevap verilir ve turuncu "son görülen veriler" bandı
 //     çıkar. Bağlantı geri gelince önce bekleyen işlem kuyruğu (ZKKuyruk) gönderilir,
 //     sonra sayfa yenilenir.
+//  5. (5 Ekim 2026, Medicamine'deki "ölü buton" dersi) Süre sınırı: veri ve giriş
+//     istekleri (/rest/v1/, /auth/v1/) en fazla SURE_MS bekler. Zayıf ağda ya da
+//     wifi↔mobil geçişinde iOS ölü bağlantıdaki isteği süresiz bekletebiliyor; bu
+//     istek oturum kilidini tutuyorsa sonraki tüm istekler de sıraya giriyor ve
+//     butonlar uygulama kapatılana kadar kilitli kalıyordu. Dosya yükleme
+//     (/storage/v1/) ve edge function'lar (/functions/v1/) muaf: uzun sürebilirler.
+//     İnternet hiç yokken veri isteği denenmeden anında hatayla döner. Veri
+//     isteklerinin ağ hataları code='ABORT_ERR' ile döner: supabase-js (postgrest)
+//     okumaları kendi içinde 3 kez daha deniyordu (1+2+4 sn); bu kodu görünce
+//     denemez (biz zaten 2 kez denedik). Hata metni Türkçedir.
+//  6. (5 Ekim 2026) Acil kapatma anahtarları: sunucudaki app_flags tablosu
+//     (cevrimdisi_okuma, cevrimdisi_kuyruk, istek_sure_siniri). Bir anahtar kapalıysa o
+//     parça eski davranışa döner. Son bilinen değerler cihazda durur (internet yokken de
+//     geçerli); her sayfa açılışında arkadan sunucudan tazelenir.
+//  7. (5 Ekim 2026) Zaman aşımı ve sıraya alma olayları da hata günlüğüne yazılır
+//     ('zaman_asimi', 'kuyruk'). Bunlar tam da bağlantı kötüyken oluştuğu için cihazda
+//     bekletilir (localStorage) ve bağlantı gelince gönderilir; olayın gerçek saati extra.t.
+//  8. (5 Ekim 2026) Son adımlar: her günlük kaydına hatadan önceki son 12 adım eklenir
+//     (açılan sayfa, dokunulan düğme, ağ hatası). KİŞİSEL VERİ YOK: düğmenin yazısı değil
+//     yalnız kimliği (id) ya da çağırdığı fonksiyonun adı yazılır; adreslerden sorgu atılır.
+//     Hata günlüğünü yalnız platform sahibi görür (client_errors RLS, is_platform_admin).
 (function (global) {
   var cfg = {
     version: '',
@@ -24,15 +45,51 @@
     getClient: null,
     context: function () { return {}; },
     t: function (s) { return s; },
-    cache: null
+    cache: null,
+    sureMs: 0   // 0 → SURE_MS; testler configure({sureMs}) ile kısaltır
   };
   var state = { offline: false, failed: false, cached: false, banner: null, sent: {}, queue: [], count: 0, reconnected: false };
   var MAX_PER_SESSION = 30;
   var YAVAS_MS = 6000;
+  var SURE_MS = 20000;
   // Yan etkisi olmayan RPC'ler: cevapları önbelleğe alınabilir.
   var OKUNUR_RPC = ['zk_finans_ozet', 'zk_doktor_cari', 'has_room_access', 'zk_gelen_is_numaralari', 'zk_calisma_turleri_listele', 'my_org_status', 'calc_annual_leave_days'];
 
   function t(s) { try { return cfg.t(s) || s; } catch (e) { return s; } }
+
+  // ---- Acil kapatma anahtarları ----
+  var ANAHTAR_DEPO = 'zk_anahtarlar';
+  var anahtarlar = {};
+  try { anahtarlar = JSON.parse(global.localStorage.getItem(ANAHTAR_DEPO) || '{}') || {}; } catch (e) {}
+  // Bilinmeyen ya da hiç okunamamış anahtar = açık (tablo yoksa her şey eskisi gibi çalışır).
+  // 6 Ekim 2026, sahibinin kararı: internetsiz çalışma (son görülen veri + bekleyen işlem
+  // kuyruğu) YALNIZ telefon uygulamasında. Tarayıcıdaki web sitesinde (https + gerçek alan
+  // adı, ör. app.zirkonik.com) kapalı: istekler doğrudan sunucuya gider, internet yoksa
+  // bant uyarır. iOS kabuğu file://, Android https://localhost, yerel testler localhost'tur.
+  function webSitesiMi() {
+    try {
+      var l = global.location;
+      if (!l || (l.protocol !== 'http:' && l.protocol !== 'https:')) return false;
+      var h = String(l.hostname || '').toLowerCase();
+      return !(h === 'localhost' || h === '127.0.0.1' || h === '[::1]' || h === '');
+    } catch (e) { return false; }
+  }
+  function acikMi(ad) {
+    if ((ad === 'cevrimdisi_okuma' || ad === 'cevrimdisi_kuyruk') && webSitesiMi()) return false;
+    return anahtarlar[ad] !== false;
+  }
+  function anahtarlariTazele() {
+    var sb = safe(cfg.getClient);
+    if (!sb || typeof sb.from !== 'function' || navigator.onLine === false) return Promise.resolve(anahtarlar);
+    return Promise.resolve(sb.from('app_flags').select('key, enabled')).then(function (r) {
+      if (!r || r.error || !Array.isArray(r.data)) return anahtarlar;   // hata: son bilinenler kalır
+      var yeni = {};
+      r.data.forEach(function (x) { if (x && x.key) yeni[x.key] = x.enabled !== false; });
+      anahtarlar = yeni;
+      try { global.localStorage.setItem(ANAHTAR_DEPO, JSON.stringify(yeni)); } catch (e) {}
+      return anahtarlar;
+    }, function () { return anahtarlar; });
+  }
   function safe(fn) { try { return fn ? fn() : null; } catch (e) { return null; } }
 
   // ---- Bant ----
@@ -93,14 +150,30 @@
   }
 
   // ---- Sınıflandırma ----
+  // Bizim ürettiğimiz bağlantı hataları (bilerek çevrilmez: AG_MESAJ bunları tanır).
+  // supabase-js mesajı "<ad>: <mesaj>" diye birleştirir ("Bağlantı: İnternet
+  // bağlantısı yok."); sayfalar bunu olduğu gibi gösterir.
+  var AG_MESAJ = /İnternet bağlantısı yok|Sunucu \d+ saniye içinde cevap vermedi|Sunucuya ulaşılamadı\./;
+  function agHatasi(mesaj, kaynak) {
+    var e = new Error(mesaj);
+    e.name = 'Bağlantı';
+    e.code = 'ABORT_ERR';   // supabase-js bu kodu görünce yeniden denemez
+    e.zkAg = true;
+    if (kaynak) e.cause = kaynak;
+    return e;
+  }
+  function sureliMi(url) { return /\/(rest|auth)\/v1\//.test(url); }
   function isNetworkError(err) {
     if (navigator.onLine === false) return true;
     if (!err) return false;
+    if (err.zkAg) return true;
     var m = String((err && (err.message || err.details)) || err);
+    if (AG_MESAJ.test(m)) return true;
     if (/Failed to fetch|NetworkError|Load failed|network request failed|connection appears to be offline|ERR_INTERNET|ERR_NETWORK|ERR_CONNECTION|fetch failed|AbortError.*timeout|timed out/i.test(m)) return true;
     return err.name === 'TypeError' && /fetch/i.test(m);
   }
   function fail(err) {
+    if (!state.failed) adim('ağ hatası' + (navigator.onLine === false ? ' (internet yok)' : ''));
     state.failed = true;
     show(navigator.onLine === false ? t('İnternet bağlantısı yok.') : t('Sunucuya ulaşılamıyor. Bağlantını kontrol et.'));
   }
@@ -111,6 +184,7 @@
       state.offline = false;
       state.cached = false;
       hide();
+      if (state.gunlukBekliyor) setTimeout(flush, 0);
       // "Yavaş bağlantı" bandıyla eski veri gösterilmişken sunucu sonunda cevap verdi:
       // sayfa verisini yumuşakça tazele (sayfa yeniden YÜKLENMEZ, form kaybolmaz).
       if (eskiCached) setTimeout(function () { try { if (global.ZkYenile) global.ZkYenile.tazele('baglanti'); } catch (e) {} }, 300);
@@ -161,7 +235,7 @@
     } catch (e) { return 'anon'; }
   }
   function cacheKey(method, url, init, input) {
-    if (!cfg.cache || !url || url.indexOf('/rest/v1/') < 0) return null;
+    if (!cfg.cache || !url || url.indexOf('/rest/v1/') < 0 || !acikMi('cevrimdisi_okuma')) return null;
     if (method === 'GET' || method === 'HEAD') return jwtSub(init, input) + '|' + method + '|' + url;
     if (method === 'POST') {
       var m = /\/rest\/v1\/rpc\/([a-z0-9_]+)/i.exec(url);
@@ -194,17 +268,70 @@
     return function (input, init) {
       var method = ((init && init.method) || (input && input.method) || 'GET').toUpperCase();
       var retriable = method === 'GET' || method === 'HEAD';
-      var key = cacheKey(method, urlOf(input), init, input);
+      var url = urlOf(input);
+      var sureli = sureliMi(url);
+      var veri = url.indexOf('/rest/v1/') >= 0;
+      var key = cacheKey(method, url, init, input);
       var attempt = 0;
+      // Tek deneme: süre sınırlı (veri/giriş istekleri). Süre dolunca istek iptal
+      // edilir ve "Sunucu N saniye içinde cevap vermedi" hatası döner.
+      function tekDeneme() {
+        if (!sureli || !acikMi('istek_sure_siniri')) return baseFetch(input, init);
+        // "(istek gönderilmedi)" işareti önemli: finans.html bunu görünce para işlemini
+        // güvenle tekrar denetir. Gönderildikten sonra kopan istek bu metni ALMAZ.
+        if (navigator.onLine === false) return Promise.reject(agHatasi('İnternet bağlantısı yok (istek gönderilmedi).'));
+        var ac = typeof AbortController === 'function' ? new AbortController() : null;
+        var dis = init && init.signal;
+        if (ac && dis) {
+          if (dis.aborted) ac.abort();
+          else if (dis.addEventListener) dis.addEventListener('abort', function () { ac.abort(); });
+        }
+        var init2 = init;
+        if (ac) {
+          init2 = {};
+          if (init) for (var k in init) if (Object.prototype.hasOwnProperty.call(init, k)) init2[k] = init[k];
+          init2.signal = ac.signal;
+        }
+        var sure = cfg.sureMs || SURE_MS;
+        return new Promise(function (resolve, reject) {
+          var bitti = false;
+          var z = setTimeout(function () {
+            if (bitti) return;
+            bitti = true;
+            try { if (ac) ac.abort(); } catch (e) {}
+            var sn = Math.round(sure / 1000);
+            var e = agHatasi('Sunucu ' + sn + ' saniye içinde cevap vermedi. Bağlantını kontrol edip tekrar dene.');
+            e.zkSure = true;
+            // Günlük: hangi istek takıldı (günlük isteğinin kendisi hariç — döngü olmasın).
+            var yol = url.replace(/^https?:\/\/[^/]+/, '').split('?')[0];
+            if (yol.indexOf('/rpc/' + cfg.rpc) < 0 && !(dis && dis.aborted)) report('zaman_asimi', method + ' ' + yol + ' — ' + sn + ' sn içinde cevap yok', null, { sn: sn });
+            reject(e);
+          }, sure);
+          baseFetch(input, init2).then(function (r) {
+            if (bitti) return;
+            bitti = true; clearTimeout(z); resolve(r);
+          }, function (err) {
+            if (bitti) return;
+            bitti = true; clearTimeout(z); reject(err);
+          });
+        });
+      }
+      // Veri isteğinin son ağ hatası: supabase-js tekrar denemesin, mesaj Türkçe olsun.
+      function sonHata(err) {
+        if (!veri || !err || err.zkAg || !acikMi('istek_sure_siniri')) return err;
+        // İstek gönderilmiş olabilir: bağlantı arada kopmuş olsa da "gönderilmedi" denmez.
+        return agHatasi('Sunucuya ulaşılamadı. Bağlantını kontrol edip tekrar dene.', err);
+      }
       function run() {
-        return baseFetch(input, init).then(function (res) {
+        return tekDeneme().then(function (res) {
           ok();
           if (key && res && res.ok) cacheWrite(key, res);
           return res;
         }, function (err) {
           var net = isNetworkError(err);
           var iptal = !!(init && init.signal && init.signal.aborted);
-          if (net && retriable && !iptal && attempt < 2 && navigator.onLine !== false) {
+          // Süre dolduysa yeniden denemeyiz: 3 × 20 sn beklemek "ölü buton"un ta kendisi.
+          if (net && retriable && !iptal && !(err && err.zkSure) && attempt < 2 && navigator.onLine !== false) {
             attempt++;
             return new Promise(function (r) { setTimeout(r, attempt === 1 ? 700 : 2000); }).then(run);
           }
@@ -212,10 +339,10 @@
             return cacheRead(key).then(function (e) {
               if (e) { cachedShow(e, false); return cachedResponse(e); }
               fail(err);
-              throw err;
+              throw sonHata(err);
             });
           }
-          if (net && !iptal) fail(err);
+          if (net && !iptal) { fail(err); throw sonHata(err); }
           throw err;
         });
       }
@@ -246,40 +373,110 @@
   }
   var wrapped = wrapFetch(function (a, b) { return global.fetch(a, b); });
 
+  // ---- Son adımlar ----
+  var ADIM_DEPO = 'zk_son_adimlar', ADIM_MAX = 12;
+  function adimlar() { try { var v = JSON.parse(global.sessionStorage.getItem(ADIM_DEPO) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } }
+  function adim(metin) {
+    try {
+      var d = new Date();
+      var saat = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ':' + ('0' + d.getSeconds()).slice(-2);
+      var l = adimlar();
+      l.push(saat + ' ' + String(metin).slice(0, 80));
+      global.sessionStorage.setItem(ADIM_DEPO, JSON.stringify(l.slice(-ADIM_MAX)));
+    } catch (e) {}
+  }
+  // Düğmenin kişisel veri taşımayan adı: id > onclick fonksiyonu > bağlantının sayfası > etiket.
+  function dugmeAdi(el) {
+    if (el.id) return '#' + el.id;
+    var oc = el.getAttribute && el.getAttribute('onclick');
+    var m = oc && /^\s*([A-Za-z_$][\w$.]*)\s*\(/.exec(oc);
+    if (m) return m[1] + '()';
+    var href = el.getAttribute && el.getAttribute('href');
+    if (href && href.charAt(0) !== '#' && !/^(javascript|mailto|tel):/i.test(href)) return '→ ' + href.split('?')[0].split('#')[0];
+    var ebeveyn = el.parentElement && el.parentElement.id ? ' in #' + el.parentElement.id : '';
+    return (el.tagName || 'öğe').toLowerCase() + ebeveyn;
+  }
+  try {
+    adim('sayfa ' + ((global.location && global.location.pathname ? global.location.pathname.split('/').pop() : '') || ''));
+    global.document.addEventListener('click', function (ev) {
+      try {
+        var el = ev.target && ev.target.closest ? ev.target.closest('button, a, [onclick], [role=button]') : null;
+        if (el) adim('dokun ' + dugmeAdi(el));
+      } catch (e) {}
+    }, true);
+  } catch (e) {}
+
   // ---- Hata günlüğü ----
-  function report(kind, message, stack, extra) {
+  // Ağla ilgili türler bağlantı kötüyken oluşur: cihazda bekletilir, sırayla gönderilir.
+  var AG_TURLERI = { zaman_asimi: 1, kuyruk: 1 };
+  var GUNLUK_DEPO = 'zk_gunluk_bekleyen', GUNLUK_MAX = 40;
+  function bekleyenOku() { try { var v = JSON.parse(global.localStorage.getItem(GUNLUK_DEPO) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } }
+  function bekleyenYaz(l) {
+    try {
+      if (l.length) global.localStorage.setItem(GUNLUK_DEPO, JSON.stringify(l.slice(-GUNLUK_MAX)));
+      else global.localStorage.removeItem(GUNLUK_DEPO);
+    } catch (e) {}
+    state.gunlukBekliyor = l.length > 0;
+  }
+  state.gunlukBekliyor = bekleyenOku().length > 0;
+  var gunlukGonderiliyor = false;
+  function sayfaAdi() { return (global.location && global.location.pathname ? global.location.pathname.split('/').pop() : '') || ''; }
+
+  // tekrarli: aynı mesaj oturumda birden çok kez yazılabilir (ör. her kuyruk gönderimi).
+  function report(kind, message, stack, extra, tekrarli) {
     try {
       if (!message) return;
       message = String(message).slice(0, 500);
       if (/log_client_error|netguard/i.test(message)) return;   // kendi hatamızla döngüye girmeyelim
-      if (isNetworkError({ message: message })) return;          // ağ hataları banda düşer, günlüğe değil
+      // Ağ hataları banda düşer, günlüğe değil — zaman aşımı/kuyruk kayıtları hariç.
+      if (!AG_TURLERI[kind] && isNetworkError({ message: message })) return;
       var key = kind + '|' + message;
-      if (state.sent[key] || state.count >= MAX_PER_SESSION) return;
+      if ((state.sent[key] && !tekrarli) || state.count >= MAX_PER_SESSION) return;
       state.sent[key] = true;
       state.count++;
-      state.queue.push({ kind: kind, message: message, stack: stack ? String(stack).slice(0, 3000) : null, extra: extra || null });
+      var ek = {};
+      if (extra) for (var k in extra) if (Object.prototype.hasOwnProperty.call(extra, k)) ek[k] = extra[k];
+      ek.t = new Date().toISOString();
+      var son = adimlar();
+      if (son.length) ek.adimlar = son;
+      var it = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8), kind: kind, message: message, stack: stack ? String(stack).slice(0, 3000) : null, extra: ek, page: sayfaAdi() };
+      if (AG_TURLERI[kind]) { var l = bekleyenOku(); l.push(it); bekleyenYaz(l); }
+      else state.queue.push(it);
       flush();
     } catch (e) {}
+  }
+  function paramlar(it) {
+    var ctx = safe(cfg.context) || {};
+    var params = {};
+    for (var k in ctx) if (Object.prototype.hasOwnProperty.call(ctx, k)) params[k] = ctx[k];
+    params.p_page = it.page || sayfaAdi();
+    params.p_kind = it.kind;
+    params.p_message = it.message;
+    params.p_stack = it.stack;
+    params.p_app_version = cfg.version || null;
+    params.p_platform = (navigator.userAgent || '').slice(0, 200);
+    params.p_extra = it.extra;
+    return params;
   }
   function flush() {
     var sb = safe(cfg.getClient);
     if (!sb || typeof sb.rpc !== 'function') return;
     while (state.queue.length) {
       var it = state.queue.shift();
-      var ctx = safe(cfg.context) || {};
-      var params = {};
-      for (var k in ctx) if (Object.prototype.hasOwnProperty.call(ctx, k)) params[k] = ctx[k];
-      params.p_page = (global.location && global.location.pathname ? global.location.pathname.split('/').pop() : '') || '';
-      params.p_kind = it.kind;
-      params.p_message = it.message;
-      params.p_stack = it.stack;
-      params.p_app_version = cfg.version || null;
-      params.p_platform = (navigator.userAgent || '').slice(0, 200);
-      params.p_extra = it.extra;
-      try {
-        sb.rpc(cfg.rpc, params).then(function () {}, function () {});
-      } catch (e) {}
+      try { sb.rpc(cfg.rpc, paramlar(it)).then(function () {}, function () {}); } catch (e) {}
     }
+    // Bekletilenler: birer birer; bağlantı yine yoksa listede kalır.
+    if (gunlukGonderiliyor || !state.gunlukBekliyor || navigator.onLine === false) return;
+    var ilk = bekleyenOku()[0];
+    if (!ilk) { bekleyenYaz([]); return; }
+    gunlukGonderiliyor = true;
+    Promise.resolve().then(function () { return sb.rpc(cfg.rpc, paramlar(ilk)); }).then(function (r) {
+      gunlukGonderiliyor = false;
+      if (r && r.error && isNetworkError(r.error)) return;
+      // Gitti (ya da sunucu reddetti — tekrar denemenin anlamı yok): listeden çık, sıradakine geç.
+      bekleyenYaz(bekleyenOku().filter(function (x) { return x.id !== ilk.id; }));
+      flush();
+    }, function () { gunlukGonderiliyor = false; });
   }
 
   global.addEventListener('error', function (ev) {
@@ -302,8 +499,13 @@
   global.NetGuard = {
     configure: function (o) {
       for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) cfg[k] = o[k];
+      if (o && o.getClient) setTimeout(anahtarlariTazele, 0);
       flush();
     },
+    acikMi: acikMi,
+    adim: adim,
+    adimlar: adimlar,
+    anahtarlariTazele: anahtarlariTazele,
     fetch: function (input, init) { return wrapped(input, init); },
     wrapFetch: wrapFetch,
     report: report,

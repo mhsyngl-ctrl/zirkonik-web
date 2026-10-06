@@ -821,7 +821,7 @@
       var teeth = itemEditing ? ZkWorkForm.getTeeth() : [];
       itemEditing = itemEditing && !!worktypeId && teeth.length > 0;
       var deliveryVal = document.getElementById('ej-delivery').value;
-      btn.disabled = true;
+      var bitir = ZKHiz.mesgul(btn, 'Kaydediliyor…');
       var istekler = [ZirkonikData.fixJobInfo(jobId, {
         patient_name: patientName,
         clinic_protocol_no: protocolNo,
@@ -838,7 +838,7 @@
         ));
       }
       Promise.all(istekler).then(function (rs) {
-        btn.disabled = false;
+        bitir();
         var hata = rs.filter(function (r) { return r && r.error; })[0];
         if (hata) {
           errEl.textContent = 'Kaydedilemedi: ' + hata.error.message;
@@ -848,6 +848,10 @@
         zkCloseEditJob();
         zkToast('Bilgiler güncellendi.');
         loadJob();
+      }).catch(function (err) {
+        bitir();
+        errEl.textContent = 'Kaydedilemedi: ' + ((err && err.message) || 'bilinmeyen hata');
+        errEl.classList.remove('hidden');
       });
     }
     function zkOpenCancelJob() {
@@ -865,8 +869,8 @@
       var errEl = document.getElementById('cancel-error');
       var btn = document.getElementById('cancel-job-submit-btn');
       errEl.classList.add('hidden');
-      btn.disabled = true;
-      btn.classList.add('opacity-60');
+      if (btn.disabled) return;
+      var bitir = ZKHiz.mesgul(btn, 'İptal ediliyor…');
       var reason = document.getElementById('cancel-reason').value.trim();
       ZirkonikData.cancelJob(jobId, reason, cancelCategory).then(function (res) {
         if (res.error) throw res.error;
@@ -877,8 +881,7 @@
         errEl.textContent = err.message || 'İptal edilemedi.';
         errEl.classList.remove('hidden');
       }).finally(function () {
-        btn.disabled = false;
-        btn.classList.remove('opacity-60');
+        bitir();
       });
     }
 
@@ -1100,17 +1103,18 @@
       var errEl = document.getElementById('slip-error');
       var btn = document.getElementById('slip-email-btn');
       errEl.classList.add('hidden');
-      btn.disabled = true;
+      if (btn.disabled) return;
+      var bitir = ZKHiz.mesgul(btn, 'Gönderiliyor…');
       var file = buildJobSlipPdf();
       blobToBase64(file.blob).then(function (base64) {
         return ZirkonikData.sendJobSlip(jobId, base64, file.filename);
       }).then(function (res) {
-        btn.disabled = false;
+        bitir();
         if (res.error) throw res.error;
         if (res.data && res.data.error) throw new Error(res.data.error);
         zkToast('Fiş doktora e-posta ile gönderildi.');
       }).catch(function (err) {
-        btn.disabled = false;
+        bitir();
         errEl.textContent = 'Gönderilemedi: ' + err.message;
         errEl.classList.remove('hidden');
       });
@@ -1191,6 +1195,8 @@
       var nextRoom = rooms[currentIdx + 1];
 
       if (isLast || !nextRoom) {
+        // 5 Ekim 2026: beklerken düğme "Tamamlanıyor…" yazar ve kilitlidir.
+        var bitir = ZKHiz.mesgul(this, 'Tamamlanıyor…', document.getElementById('advance-label'));
         // Kalem bitti. Siparis ancak TUM kalemleri bitince tamamlanir —
         // yoksa bir kalem teslime gelince digerleri hala uretimdeyken is
         // kapanir ve kilitlenirdi (tamamlanan is degistirilemiyor).
@@ -1214,10 +1220,12 @@
             });
 
         finishP.then(function (out) {
-          if (out.done) { window.location.href = 'retim.html'; return; }
+          if (out.done) { bitir(false); window.location.href = 'retim.html'; return; }
+          bitir();
           zkToast('Bu kalem tamamlandı. Siparişin diğer kalemleri sürüyor.');
           loadJob();
         }).catch(function (err) {
+          bitir();
           errEl.textContent = 'İşlem başarısız: ' + err.message;
           errEl.classList.remove('hidden');
         });

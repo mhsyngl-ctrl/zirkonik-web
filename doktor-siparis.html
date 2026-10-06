@@ -676,6 +676,9 @@
       loadDocPerformance();
     }
     function dpBuildBuckets(rows, period, rangeStart) {
+      // 5 Ekim 2026 (Ordent hata günlüğü): önbellekten (ZKHiz.cachePut → JSON) gelen
+      // sonuçta tarih metne dönüşüyor; "rangeStart.getFullYear is not a function".
+      rangeStart = new Date(rangeStart);
       var buckets = [];
       var keyFn;
       if (period === 'week') {

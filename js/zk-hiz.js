@@ -10,6 +10,10 @@
  *    5 dk geçerli, bir kez okunur).
  *  - cachePeek/cachePut: önbellekten anında göster, arkadan tazele
  *    (localStorage, kullanıcıya göre ayrılır; kullanıcı değişince temizlenir).
+ *  - mesgul(btn, metin, etiket): (5 Ekim 2026, "ölü buton") istek beklerken
+ *    buton kilitlenir, soluklaşır ve ne yaptığını yazar ("Kaydediliyor…");
+ *    dönen bitir() eski hâline getirir. bitir(false) kilidi açmaz (başarılı
+ *    yolda sayfa yenilenecekse ikinci basışı önlemek için).
  */
 (function (global) {
   'use strict';
@@ -45,6 +49,25 @@
       toast((opts.label || 'Kaydedilemedi') + (msg ? ': ' + msg : ''), 'error');
       return { error: err || { message: msg } };
     });
+  }
+
+  function mesgul(btn, metin, etiket) {
+    if (!btn) return function () {};
+    var hedef = etiket || btn;
+    var eski = hedef.innerHTML;
+    btn.disabled = true;
+    btn.setAttribute('aria-busy', 'true');
+    btn.style.opacity = '0.6';
+    if (metin) hedef.textContent = metin;
+    var bitti = false;
+    return function (ac) {
+      if (bitti) return;
+      bitti = true;
+      hedef.innerHTML = eski;
+      btn.removeAttribute('aria-busy');
+      btn.style.opacity = '';
+      if (ac !== false) btn.disabled = false;
+    };
   }
 
   function handoff(key, record) {
@@ -100,5 +123,5 @@
     } catch (e) {}
   }
 
-  global.ZKHiz = { toast: toast, optimistic: optimistic, handoff: handoff, takeHandoff: takeHandoff, cachePeek: cachePeek, cachePut: cachePut, clearCache: clearAll, setOwner: setOwner };
+  global.ZKHiz = { toast: toast, optimistic: optimistic, mesgul: mesgul, handoff: handoff, takeHandoff: takeHandoff, cachePeek: cachePeek, cachePut: cachePut, clearCache: clearAll, setOwner: setOwner };
 })(window);
