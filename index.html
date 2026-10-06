@@ -9,10 +9,18 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0E1013">
-  <style>body{background:#0E1013;margin:0;}</style>
+  <style>
+    html,body{background:#0E1013;margin:0;height:100%;}
+    /* Açılış ekranı: yazı yok; şeffaf Zirkonik diş logosu kendi ekseninde yavaşça dönüyor.
+       Yönlendirme birkaç yüz ms sürer, boş ekran ya da yazı görünmesin. */
+    .zk-acilis{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0E1013;perspective:800px;}
+    .zk-acilis img{width:56px;height:auto;filter:drop-shadow(0 4px 12px rgba(0,0,0,.55));animation:zk-don 2s cubic-bezier(.45,.05,.55,.95) infinite;}
+    @keyframes zk-don{from{transform:rotateY(0deg);}to{transform:rotateY(360deg);}}
+    @media (prefers-reduced-motion:reduce){.zk-acilis img{animation:none;}}
+  </style>
 </head>
 <body>
-  <p style="font-family:sans-serif;color:#98A0AD;padding:24px;">Yönlendiriliyor…</p>
+  <div class="zk-acilis" role="status" aria-label="Zirkonik açılıyor"><img src="logo-dis.png" alt="Zirkonik"></div>
   <script src="vendor/supabase-js.min.js"></script>
   <script src="supabase-config.js"></script>
   <script src="js/net-guard.js"></script>
