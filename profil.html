@@ -255,6 +255,7 @@
           <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-destructive">Tehlikeli bölge</p>
           <h2 class="mt-1 font-heading text-sm font-bold">Verileri Sıfırla</h2>
           <p class="mt-1 text-xs leading-5 text-muted-foreground">İşler, faturalar, tahsilatlar, kasa teslimleri ve tedarikçi hareketleri kalıcı olarak silinir. Doktorlar, personel, laboratuvar/oda kurulumu ve fiyat listesi KORUNUR. Test verilerini temizleyip sıfırdan başlamak için kullanın.</p>
+          <p class="mt-2 rounded-theme border border-warning/40 bg-warning/10 p-2 text-xs leading-5 text-foreground">Önemli: Üretim ve iş kayıtlarının yasal saklama süresi olabilir (ısmarlama diş protezi gibi tıbbi cihaz kayıtları için birçok ülkede on yıla kadar). Silmeden önce kendi kayıtlarınızı dışa aktarmanızı öneririz. Silinen iş kayıtları, olası bir hata ya da uyuşmazlık için güvenlik amacıyla 5 yıl arşivde tutulur.</p>
           <button onclick="zkResetOrgData()" class="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-theme border border-destructive/40 bg-destructive/10 text-sm font-bold text-destructive">
             <iconify-icon icon="lucide:rotate-ccw" class="text-lg"></iconify-icon>
             Verileri Sıfırla
@@ -686,7 +687,7 @@
       // silinir" demek yanlis ve gereksiz korkutucu.
       var metin = pfDoctorId
         ? 'Hesabınızı silmek üzeresiniz. Uygulama girişiniz kapanır ve kişisel bilgileriniz silinir. Laboratuvarın yasal olarak tutmak zorunda olduğu geçmiş iş ve fatura kayıtları saklanır. Bu işlem GERİ ALINAMAZ. Devam edilsin mi?'
-        : 'Hesabınızı silmek üzeresiniz. Tek yöneticiyseniz laboratuvarınıza ait TÜM veriler (işler, doktorlar, stok, finans kayıtları) kalıcı olarak silinir. Bu işlem GERİ ALINAMAZ. Devam edilsin mi?';
+        : 'Hesabınızı silmek üzeresiniz. Tek yöneticiyseniz laboratuvarınıza ait TÜM veriler (işler, doktorlar, stok, finans kayıtları) kalıcı olarak silinir. Önemli: Üretim ve iş kayıtlarının yasal saklama süresi olabilir (ısmarlama diş protezi gibi tıbbi cihaz kayıtları için birçok ülkede on yıla kadar). Silmeden önce kendi kayıtlarınızı dışa aktarmanızı öneririz. Silinen iş kayıtları, olası bir hata ya da uyuşmazlık için güvenlik amacıyla 5 yıl arşivde tutulur. Bu işlem GERİ ALINAMAZ. Devam edilsin mi?';
       var ok = confirm(metin);
       if (!ok) return;
       var typed = prompt('Onaylamak için "SİL" yazın:');
@@ -701,7 +702,7 @@
     // "SİL" ile karıştırılmasın diye ayrı bir onay kelimesi.
     function zkResetOrgData() {
       if (!pfOrgId) return;
-      var ok = confirm('Tüm iş geçmişi, faturalar, tahsilatlar, kasa teslimleri ve tedarikçi hareketleri kalıcı olarak silinecek. Doktorlar, personel ve kurulum (laboratuvar/oda/fiyat listesi) korunur. Bu işlem GERİ ALINAMAZ. Devam edilsin mi?');
+      var ok = confirm('Tüm iş geçmişi, faturalar, tahsilatlar, kasa teslimleri ve tedarikçi hareketleri kalıcı olarak silinecek. Doktorlar, personel ve kurulum (laboratuvar/oda/fiyat listesi) korunur. Önemli: Üretim ve iş kayıtlarının yasal saklama süresi olabilir (ısmarlama diş protezi gibi tıbbi cihaz kayıtları için birçok ülkede on yıla kadar). Silmeden önce kendi kayıtlarınızı dışa aktarmanızı öneririz. Silinen iş kayıtları, olası bir hata ya da uyuşmazlık için güvenlik amacıyla 5 yıl arşivde tutulur. Bu işlem GERİ ALINAMAZ. Devam edilsin mi?');
       if (!ok) return;
       var typed = prompt('Onaylamak için "SIFIRLA" yazın:');
       if (typed !== 'SIFIRLA') { zkToast('İptal edildi.'); return; }
