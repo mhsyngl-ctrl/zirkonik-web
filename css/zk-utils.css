@@ -436,6 +436,9 @@ body::after {
  * sheet'ler, bildirim şeridi...) artık viewport'a değil body'ye göre
  * konumlanır — bu da iOS'ta iç içe listelerin dokunmatik kaydırmasını
  * tıkadı (2026-09-11). Saf opacity ile aynı "belirme" hissi, yan etkisiz. */
+/* 8 Ekim 2026: belirme sırasında body saydamdan başlar; arkada kabuğun koyu zemini
+ * görünmesin diye zemin html'e (tuvale) de yazılır — body saydam olsa bile beyaz kalır. */
+html { background-color: #FFFFFF; }
 body { animation: zkPageIn .2s ease both; }
 @keyframes zkPageIn {
   from { opacity: 0; }
