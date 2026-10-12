@@ -899,7 +899,7 @@
 
     // ---- Personel ekle ----
     function zkRemoveStaff(userId, name) {
-      if (!confirm(name + ' ekipten çıkarılsın mı? Giriş yapamaz olur. Hiç iş/kasa/hakediş geçmişi yoksa hesap tamamen silinir; geçmişi varsa hesap kapatılır ve geçmiş kayıtlardaki adı korunur. İstediğiniz zaman yeniden etkinleştirebilirsiniz.')) return;
+      if (!confirm(name + ' ekipten çıkarılsın mı? Giriş yapamaz olur. Hiç iş/kasa/hakediş geçmişi yoksa hesap tamamen silinir; geçmişi varsa hesap kapatılır, geçmiş kayıtlardaki adı korunur ve e-postası serbest kalır (başka bir laboratuvarda ya da kendi hesabında kullanabilir). İstediğiniz zaman yeniden etkinleştirebilirsiniz.')) return;
       ZirkonikData.removeStaff(userId).then(function (res) {
         if (res.error) { zkToast('Yapılamadı: ' + res.error.message); return; }
         var mode = res.data && res.data.mode;

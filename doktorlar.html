@@ -824,7 +824,7 @@
       var id = editDoctorId;
       if (!id) return;
       var name = document.getElementById('ed-name').value.trim() || 'Doktor';
-      if (!confirm('Dr. ' + name + ' çıkarılsın mı? Hiç iş/fatura/tahsilat geçmişi yoksa kayıt tamamen silinir; geçmişi varsa kayıt korunur ve portal girişi kapatılır. İstediğiniz zaman geri alabilirsiniz.')) return;
+      if (!confirm('Dr. ' + name + ' çıkarılsın mı? Hiç iş/fatura/tahsilat geçmişi yoksa kayıt tamamen silinir; geçmişi varsa kayıt korunur, portal girişi kapatılır ve e-postası serbest kalır. İstediğiniz zaman geri alabilirsiniz.')) return;
       var errEl = document.getElementById('ed-error');
       errEl.classList.add('hidden');
       ZirkonikData.removeDoctor(id).then(function (res) {
