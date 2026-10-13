@@ -152,6 +152,19 @@
             <p class="text-xs text-muted-foreground">Yükleniyor…</p>
           </div>
 
+          <!-- 13 Ekim 2026, sahibinin isteği: pazarlamacının performansı da diğer personel gibi
+               Ekip Performansı'nda görünsün. Pazarlama temsilcisi olmayan kuruluşta gizli kalır. -->
+          <div id="tp-mkt-wrap" class="hidden">
+            <h3 class="mb-1 mt-4 text-sm font-bold text-foreground">Pazarlama performansı — temsilci bazlı</h3>
+            <p class="mb-2 text-[11px] text-muted-foreground">Aday doktorlara yapılan ziyaret, arama ve WhatsApp temasları. Takip uyumu: dönemde vadesi gelen görevlerden vade günü içinde kapananlar.</p>
+            <svg id="tp-mkt-chart-svg" viewBox="0 0 340 100" class="w-full" role="img" aria-label="Pazarlama temsilcisi bazlı temas sayısı">
+              <g id="tp-mkt-chart-bars"></g>
+            </svg>
+            <div id="tp-mkt-list" class="mt-2 space-y-2">
+              <p class="text-xs text-muted-foreground">Yükleniyor…</p>
+            </div>
+          </div>
+
           <h3 class="mb-1 mt-4 text-sm font-bold text-foreground">İlerleme</h3>
           <p id="tp-progress-title" class="mb-2 text-[11px] text-muted-foreground">Son 6 ay, çalışan bazlı üretim hakedişi.</p>
           <svg id="tp-progress-svg" viewBox="0 0 340 170" class="w-full" role="img" aria-label="Çalışanların dönemsel ilerlemesi">
@@ -474,6 +487,7 @@
         if (me && me.role === 'yonetici') {
           document.getElementById('team-performance-section').classList.remove('hidden');
           loadTeamPerformance();
+          loadMarketingPerformance();
           loadTeamProgress();
           document.getElementById('salary-calc-section').classList.remove('hidden');
           zkLoadPayrollParams(me);
@@ -569,25 +583,28 @@
         if (btn) btn.className = 'rounded-lg px-2.5 py-1.5 text-[10px] font-bold ' + (p === teamPerfPeriod ? 'bg-card' : 'text-muted-foreground');
       });
       loadTeamPerformance();
+      loadMarketingPerformance();
       loadTeamProgress();
     }
     function zkShiftTeamPerfOffset(delta) {
       teamPerfOffset = Math.min(0, teamPerfOffset + delta);
       loadTeamPerformance();
+      loadMarketingPerformance();
     }
-    function tpRange(now) {
+    function tpRange(now) { return tpRangeFor(now, teamPerfOffset); }
+    function tpRangeFor(now, offset) {
       if (teamPerfPeriod === 'week') {
         var day = now.getDay();
         var diffToMonday = day === 0 ? 6 : day - 1;
         var thisMonday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffToMonday);
-        var from = new Date(thisMonday.getFullYear(), thisMonday.getMonth(), thisMonday.getDate() + teamPerfOffset * 7);
+        var from = new Date(thisMonday.getFullYear(), thisMonday.getMonth(), thisMonday.getDate() + offset * 7);
         return { from: from, to: new Date(from.getFullYear(), from.getMonth(), from.getDate() + 7) };
       }
       if (teamPerfPeriod === 'year') {
-        var y = now.getFullYear() + teamPerfOffset;
+        var y = now.getFullYear() + offset;
         return { from: new Date(y, 0, 1), to: new Date(y + 1, 0, 1) };
       }
-      var m = now.getMonth() + teamPerfOffset;
+      var m = now.getMonth() + offset;
       return { from: new Date(now.getFullYear(), m, 1), to: new Date(now.getFullYear(), m + 1, 1) };
     }
     function tpRangeLabel(range) {
@@ -694,6 +711,61 @@
         }
       }).catch(function (err) {
         zkToast('Ekip performansı yüklenemedi: ' + ((err && err.message) || 'bilinmeyen hata'));
+      });
+    }
+
+    // ---- Pazarlama performansı (13 Ekim 2026) ----
+    function tpMktPct(n, d) {
+      if (!d) return '—';
+      return d >= 10 ? Math.round(100 * n / d) + '%' : n + ' / ' + d; // küçük örnekte yüzde yanıltır
+    }
+    function tpMktTone(good, warn) { return good ? '#1baf7a' : (warn ? '#eda100' : '#d64545'); }
+    function loadMarketingPerformance() {
+      var now = new Date();
+      var range = tpRange(now);
+      var prev = tpRangeFor(now, teamPerfOffset - 1);
+      var wrap = document.getElementById('tp-mkt-wrap');
+      ZirkonikData.getMarketingPerformance(range.from.toISOString(), range.to.toISOString(), prev.from.toISOString()).then(function (res) {
+        var reps = (res && res.reps) || [];
+        if (res && res.error) throw res.error;
+        if (!reps.length) { wrap.classList.add('hidden'); return; }
+        wrap.classList.remove('hidden');
+        var sorted = reps.slice().sort(function (a, b) { return b.temas - a.temas; });
+        document.getElementById('tp-mkt-list').innerHTML = sorted.map(function (r) {
+          var color = tpColorFor(reps.indexOf(r));
+          var fark = r.temas - r.oncekiTemas;
+          var farkMetin = fark > 0 ? '▲ ' + fark : (fark < 0 ? '▼ ' + Math.abs(fark) : '=');
+          var farkRenk = fark > 0 ? '#1baf7a' : (fark < 0 ? '#d64545' : 'var(--color-muted-foreground)');
+          var takipOran = r.gorevVadeli >= 10 ? r.gorevZamaninda / r.gorevVadeli : null;
+          var takipRenk = takipOran === null ? 'var(--color-foreground)' : tpMktTone(takipOran >= 0.8, takipOran >= 0.5);
+          var gecRenk = tpMktTone(r.gecikmis === 0, r.gecikmis <= 5);
+          function kutu(baslik, deger, renk, alt) {
+            return '<div class="rounded-theme bg-muted/50 p-2.5">' +
+              '<p class="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">' + baslik + '</p>' +
+              '<p class="mt-1 font-heading text-lg font-extrabold tabular-nums" style="color:' + (renk || 'var(--color-foreground)') + '">' + deger + '</p>' +
+              (alt ? '<p class="text-[10px] text-muted-foreground">' + alt + '</p>' : '') + '</div>';
+          }
+          return '<div class="rounded-theme border border-border bg-card p-4">' +
+            '<div class="flex items-center justify-between">' +
+              '<div class="flex min-w-0 items-center gap-2"><span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background:' + escapeHtml(color) + '"></span>' +
+              '<span class="truncate font-bold">' + escapeHtml(r.name) + '</span></div>' +
+              '<span class="shrink-0 rounded-full bg-muted px-2.5 py-1 text-xs font-bold text-muted-foreground">' + r.temas + ' temas · <span style="color:' + farkRenk + '">' + farkMetin + '</span></span>' +
+            '</div>' +
+            '<div class="mt-3 grid grid-cols-2 gap-2">' +
+              kutu('Ziyaret edilen klinik', r.klinik, null, 'bu dönemde farklı klinik') +
+              kutu('Hekim / yetkiliyle', tpMktPct(r.hekimYetkili, r.kisiToplam), null, r.kisiToplam ? (r.hekimYetkili + ' / ' + r.kisiToplam + ' görüşme') : 'görüşülen kişi girilmemiş') +
+              kutu('Takip uyumu', takipOran === null ? tpMktPct(r.gorevZamaninda, r.gorevVadeli) : tpMktPct(r.gorevZamaninda, r.gorevVadeli), takipRenk, r.gorevVadeli + ' görev vadesi geldi') +
+              kutu('Gecikmiş görev', r.gecikmis, gecRenk, 'şu an açık ve vadesi geçmiş') +
+            '</div>' +
+            '<p class="mt-3 text-[11px] font-semibold text-muted-foreground">Huni: ' + r.atanan + ' atanan → ' + r.ilkTemasVeSonrasi + ' ilk temas ve sonrası → ' + r.deneme + ' deneme → ' + r.aktif + ' aktif' +
+              (r.aktifDonem ? ' · bu dönemde ' + r.aktifDonem + ' yeni aktif' : '') + '</p>' +
+            '</div>';
+        }).join('');
+        tpRenderBarChart('tp-mkt-chart-svg', 'tp-mkt-chart-bars', sorted.map(function (r) {
+          return { label: r.name, value: r.temas, valueLabel: r.temas + ' temas', color: tpColorFor(reps.indexOf(r)) };
+        }));
+      }).catch(function (err) {
+        zkToast('Pazarlama performansı yüklenemedi: ' + ((err && err.message) || 'bilinmeyen hata'));
       });
     }
     function tpExpandChips(btn, chipsGroupId) {

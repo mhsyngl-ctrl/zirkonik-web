@@ -518,6 +518,12 @@
       </div>
       <label class="mt-3 block"><span class="mb-1.5 block text-xs font-bold">Tür</span>
         <select id="tm-kind" onchange="zkKayitKindChanged()" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"></select></label>
+      <!-- 13 Ekim 2026: Pazarlama performansında "hekim/yetkiliyle görüşme" oranı bu seçimden hesaplanır
+           (nota "Görüşülen: Hekim." diye yazılır). -->
+      <label id="tm-kisi-wrap" class="mt-3 hidden block"><span class="mb-1.5 block text-xs font-bold">Kiminle görüşüldü</span>
+        <select id="tm-kisi" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+          <option value="">Seçin</option><option value="Hekim">Hekim</option><option value="Yetkili">Yetkili</option><option value="Asistan">Asistan</option><option value="Resepsiyon">Resepsiyon</option>
+        </select></label>
       <div id="tm-date-wrap" class="mt-3 hidden grid grid-cols-2 gap-2">
         <label class="block"><span class="mb-1.5 block text-xs font-bold">Tarih</span>
           <input id="tm-date" type="date" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"></label>
@@ -1019,6 +1025,7 @@
       if (pre) sel.value = pre;
       document.getElementById('tm-doctor-wrap').classList.toggle('hidden', !!detailDoctor);
       document.getElementById('tm-note').value = '';
+      var kisiSel = document.getElementById('tm-kisi'); if (kisiSel) kisiSel.value = '';
       document.getElementById('tm-date').value = presetDateStr || new Date().toISOString().slice(0, 10);
       document.getElementById('tm-time').value = '09:00';
       document.getElementById('tm-error').classList.add('hidden');
@@ -1042,6 +1049,8 @@
     }
     function zkKayitKindChanged() {
       var kind = document.getElementById('tm-kind').value;
+      var kisiWrap = document.getElementById('tm-kisi-wrap');
+      if (kisiWrap) kisiWrap.classList.toggle('hidden', !(kayitMode === 'simdi' && ['ziyaret', 'arama', 'whatsapp'].indexOf(kind) !== -1));
       var satWrap = document.getElementById('tm-satisfaction-wrap');
       if (kind === 'memnuniyet_aramasi') {
         satWrap.classList.remove('hidden');
@@ -1063,6 +1072,10 @@
       var doctorId = detailDoctor ? detailDoctor.id : document.getElementById('tm-doctor').value;
       var kind = document.getElementById('tm-kind').value;
       var note = document.getElementById('tm-note').value.trim() || null;
+      var kisiEl = document.getElementById('tm-kisi');
+      if (kayitMode === 'simdi' && kisiEl && kisiEl.value && ['ziyaret', 'arama', 'whatsapp'].indexOf(kind) !== -1) {
+        note = 'Görüşülen: ' + kisiEl.value + '.' + (note ? ' ' + note : '');
+      }
       if (!doctorId) { errEl.textContent = 'Doktor seçilmelidir.'; errEl.classList.remove('hidden'); return; }
       var doctor = detailDoctor || currentList.filter(function (d) { return d.id === doctorId; })[0];
       if (!doctor) { errEl.textContent = 'Doktor bulunamadı.'; errEl.classList.remove('hidden'); return; }

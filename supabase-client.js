@@ -1403,6 +1403,99 @@
     // Para birimi karışık olabildiği için (bazı doktor/laboratuvar anlaşmaları
     // USD) her iki taraf da para birimi bazında ayrı toplanır, tek bir sayıda
     // birleştirilmez.
+    // ---- Pazarlama performansı (yönetici) — 13 Ekim 2026, sahibinin isteği ----
+    // "Satış Pazarlama Sorumlusu" pozisyonundaki her temsilci için, dönem içinde:
+    //   temas (ziyaret/arama/WhatsApp/numune/randevu), farklı klinik sayısı,
+    //   hekim/yetkiliyle görüşme ("Görüşülen: Hekim." ile başlayan notlardan),
+    //   zamanında takip (dönemde vadesi gelen görevlerden vade+24 saat içinde
+    //   kapananlar) ve anlık gecikmiş görev sayısı + satış hunisi (atanan →
+    //   ilk temas → deneme → aktif). Önceki dönem temas sayısı kıyas içindir.
+    // PostgREST 1000 satırda kestiği için sayfa sayfa çekilir.
+    getMarketingPerformance: function (fromIso, toIso, prevFromIso) {
+      var c = client();
+      var SAYFA = 1000;
+      function cek(kur) {
+        var hepsi = [];
+        function sayfa(from) {
+          return kur().range(from, from + SAYFA - 1).then(function (r) {
+            if (r.error) return r;
+            var parca = r.data || [];
+            hepsi = hepsi.concat(parca);
+            if (parca.length < SAYFA) return { data: hepsi, error: null };
+            return sayfa(from + SAYFA);
+          });
+        }
+        return sayfa(0);
+      }
+      return c.from('app_users').select('id, full_name').eq('position', 'Satış Pazarlama Sorumlusu')
+        .neq('role', 'doktor').order('created_at').then(function (ur) {
+          if (ur.error) return { error: ur.error, reps: [] };
+          var reps = ur.data || [];
+          if (!reps.length) return { reps: [] };
+          var ids = reps.map(function (u) { return u.id; });
+          return Promise.all([
+            cek(function () {
+              return c.from('doctor_touches').select('doctor_id, created_by, type, note, created_at')
+                .in('created_by', ids).in('type', ['ziyaret', 'arama', 'whatsapp', 'numune', 'randevu'])
+                .gte('created_at', prevFromIso).lt('created_at', toIso).order('created_at', { ascending: true });
+            }),
+            cek(function () {
+              return c.from('doctor_tasks').select('assigned_to, status, due_at, done_at')
+                .in('assigned_to', ids).neq('status', 'taslak').order('due_at', { ascending: true });
+            }),
+            cek(function () {
+              return c.from('doctors').select('assigned_rep_id, pipeline_stage, stage_changed_at')
+                .in('assigned_rep_id', ids).order('created_at', { ascending: true });
+            })
+          ]).then(function (res) {
+            var hata = [res[0], res[1], res[2]].filter(function (x) { return x && x.error; })[0];
+            if (hata) return { error: hata.error, reps: [] };
+            var from = new Date(fromIso).getTime(), to = new Date(toIso).getTime(), now = Date.now();
+            var touches = res[0].data || [], tasks = res[1].data || [], docs = res[2].data || [];
+            var rows = reps.map(function (u) {
+              var r = { userId: u.id, name: u.full_name, temas: 0, oncekiTemas: 0, klinik: 0, kisiToplam: 0, hekimYetkili: 0,
+                gorevVadeli: 0, gorevZamaninda: 0, gecikmis: 0, atanan: 0, ilkTemasVeSonrasi: 0, deneme: 0, aktif: 0, aktifDonem: 0 };
+              var klinikler = {};
+              touches.forEach(function (t) {
+                if (t.created_by !== u.id) return;
+                var at = new Date(t.created_at).getTime();
+                if (at < from) { r.oncekiTemas++; return; }
+                r.temas++;
+                klinikler[t.doctor_id] = true;
+                var m = /^\s*Görüşülen:\s*([^.]*)/i.exec(t.note || '');
+                if (m) {
+                  r.kisiToplam++;
+                  if (/hekim|yetkili/i.test(m[1])) r.hekimYetkili++;
+                }
+              });
+              r.klinik = Object.keys(klinikler).length;
+              tasks.forEach(function (g) {
+                if (g.assigned_to !== u.id) return;
+                var vade = new Date(g.due_at).getTime();
+                if (g.status === 'bekliyor' && vade < now) r.gecikmis++;
+                if (vade >= from && vade < to) {
+                  r.gorevVadeli++;
+                  if (g.status === 'tamamlandi' && g.done_at && new Date(g.done_at).getTime() <= vade + 86400000) r.gorevZamaninda++;
+                }
+              });
+              docs.forEach(function (d) {
+                if (d.assigned_rep_id !== u.id) return;
+                r.atanan++;
+                var st = d.pipeline_stage;
+                if (st !== 'aday_havuzu' && st !== 'kayip') r.ilkTemasVeSonrasi++;
+                if (st === 'deneme_vakasi' || st === 'onay_bekliyor') r.deneme++;
+                if (st === 'aktif') {
+                  r.aktif++;
+                  var sc = new Date(d.stage_changed_at).getTime();
+                  if (sc >= from && sc < to) r.aktifDonem++;
+                }
+              });
+              return r;
+            });
+            return { reps: rows };
+          });
+        });
+    },
     getTeamPerformance: function (fromIso, toIso) {
       var c = client();
       return c.from('job_stage_history').select('confirmed_by, job_id').not('confirmed_by', 'is', null)
