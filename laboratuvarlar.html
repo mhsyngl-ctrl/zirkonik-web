@@ -737,7 +737,9 @@
         '<p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Bu laboratuvarın davet kodu</p>' +
         '<div class="mt-1.5 flex items-center gap-2"><p id="ortak-kod" class="font-heading text-2xl font-bold tabular-nums" style="letter-spacing:.2em">' + K(v.kod || '—') + '</p>' +
         '<button type="button" onclick="zkOrtakKopyala()" class="flex h-9 items-center justify-center gap-1 rounded-theme border border-border bg-card px-2.5 text-[11px] font-bold text-primary">Kopyala</button></div>' +
-        '<p class="mt-1.5 text-[11px] text-muted-foreground">Size altyapı siparişi göndermek isteyen laboratuvar bu kodu kendi ekranına girer; siz kabul edince ortaklık başlar.</p></div>';
+        '<p class="mt-1.5 text-[11px] text-muted-foreground">Size altyapı siparişi göndermek isteyen laboratuvar bu kodu kendi ekranına girer; siz kabul edince ortaklık başlar.</p>' +
+        '<label class="mt-2.5 flex items-center justify-between gap-2 text-xs font-bold"><span>Bu laboratuvar altyapı siparişi kabul ediyor</span>' +
+        '<input type="checkbox" ' + (v.kabul_ediyor === false ? '' : 'checked') + ' onchange="zkOrtakKabulAyarla(this.checked, this)"></label></div>';
       // İstek gönder
       html += '<div class="mt-3 rounded-theme border border-border bg-background p-3">' +
         '<p class="text-xs font-bold">Başka bir laboratuvara altyapı siparişi göndermek için</p>' +
@@ -780,6 +782,16 @@
         }).join('') + '</div>';
       }
       document.getElementById('ortak-body').innerHTML = html;
+    }
+    // Geçici kapatma: yeni istek ve yeni altyapı siparişi gelmez, sürenler devam eder (sunucu da zorlar: accepts_subcontracts).
+    function zkOrtakKabulAyarla(acik, el) {
+      if (el) el.disabled = true;
+      ZirkonikAuth.client().from('laboratories').update({ accepts_subcontracts: !!acik }).eq('id', ortakLab.id).select('id').then(function (r) {
+        if (el) el.disabled = false;
+        if (r.error || !r.data || !r.data.length) { if (el) el.checked = !acik; zkToast('Kaydedilemedi: ' + (r.error ? r.error.message : 'yetki yok')); return; }
+        if (ortakVeri) ortakVeri.kabul_ediyor = !!acik;
+        zkToast(acik ? 'Altyapı siparişi kabulü açıldı.' : 'Altyapı siparişi kabulü kapatıldı.');
+      });
     }
     function zkOrtakKopyala() {
       var kod = (ortakVeri && ortakVeri.kod) || '';

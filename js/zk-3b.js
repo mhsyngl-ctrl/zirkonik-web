@@ -166,7 +166,7 @@
       };
       x.onerror = function () { rej(new Error('Bağlantı: dosya yüklenemedi. İnterneti kontrol edin.')); };
       x.ontimeout = function () { rej(new Error('Yükleme 10 dakikada bitmedi.')); };
-      x.send(veri);
+      x.send(veri instanceof ArrayBuffer ? new Uint8Array(veri) : veri);
     });
   }
 

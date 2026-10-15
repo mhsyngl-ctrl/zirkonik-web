@@ -12,14 +12,15 @@
 
   // Bunlar hiçbir izinle personele açılmaz — organizasyon/kadro ayarı, yönetici işi.
   var ADMIN_PAGES = { ekip: 1, laboratuvarlar: 1, 'rol-ve-yetki-detay': 1 };
-  var DOCTOR_PAGES = { 'doktor-siparis': 1, profil: 1, bildirimler: 1 };
+  // 15 Ekim 2026: 3B görüntüleyici (3b-goster) doktora açık — kendi işinin STL/tasarımını görür (Güneş bulgusu).
+  var DOCTOR_PAGES = { 'doktor-siparis': 1, profil: 1, bildirimler: 1, '3b-goster': 1 };
   // 25 Eylül 2026, sahibinin kuralı: bu iki pozisyon uygulamanın yalnız kendi
   // dar köşesini görür — aşağıdaki her sayfa-bazlı izin (can_manage_orders vb.)
   // hâlâ ayrıca uygulanır, bu yalnız dıştaki sınırı çizer.
   var PROSPECT_ONLY_PAGES = { 'aday-havuzu': 1, profil: 1, bildirimler: 1, izinlerim: 1, kilavuz: 1 };
   // 25 Eylül 2026: Yeni İş Oluştur artık admin-sabit değil — resepsiyonun
   // can_manage_orders yetkisiyle açılabilir (sayfa içinde fiyat kutusu gizlenir).
-  var RECEPTION_PAGES = { retim: 1, isler: 1, detay: 1, siparisler: 1, doktorlar: 1, 'yeni-giri-i': 1, profil: 1, bildirimler: 1, izinlerim: 1, kilavuz: 1 };
+  var RECEPTION_PAGES = { retim: 1, isler: 1, detay: 1, siparisler: 1, doktorlar: 1, 'yeni-giri-i': 1, profil: 1, bildirimler: 1, izinlerim: 1, kilavuz: 1, '3b-goster': 1 };
 
   function page() {
     return (location.pathname.split('/').pop() || 'index.html').toLowerCase().replace('.html', '') || 'index';
@@ -33,7 +34,8 @@
     }
     if (role !== 'personel') return false; // yonetici: serbest
     if (p.position === 'Satış Pazarlama Sorumlusu' && !PROSPECT_ONLY_PAGES[pg]) {
-      location.replace('aday-havuzu.html'); return true;
+      // Aday havuzu yetkisi kapalıysa aday-havuzu ↔ retim arasında sonsuz döngü oluşuyordu (Güneş bulgusu); profil'e düş.
+      location.replace(p.can_manage_prospects ? 'aday-havuzu.html' : 'profil.html'); return true;
     }
     if (p.position === 'Resepsiyon Sorumlusu' && !RECEPTION_PAGES[pg]) {
       location.replace('retim.html'); return true;
@@ -50,7 +52,7 @@
     // "Fiyatları görebilir" (can_view_prices) yetkisi verilen personel açar.
     if (pg === 'fiyat-listesi' && !p.can_view_prices) { location.replace('retim.html'); return true; }
     // Aday Havuzu: doktor kazanım süreci — 24 Eylül 2026.
-    if (pg === 'aday-havuzu' && !p.can_manage_prospects) { location.replace('retim.html'); return true; }
+    if (pg === 'aday-havuzu' && !p.can_manage_prospects) { location.replace(p.position === 'Satış Pazarlama Sorumlusu' ? 'profil.html' : 'retim.html'); return true; }
     return false;
   }
 
