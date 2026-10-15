@@ -1403,6 +1403,15 @@
     // Para birimi karışık olabildiği için (bazı doktor/laboratuvar anlaşmaları
     // USD) her iki taraf da para birimi bazında ayrı toplanır, tek bir sayıda
     // birleştirilmez.
+    // ---- Sözleşme kabulü (15 Ekim 2026): Veri İşleme Sözleşmesi vb. Tablo/fonksiyon henüz kurulu değilse
+    // (migrations/20261015150000_sozlesme_kabulleri.sql) çağıranlar hatayı görür ve sessizce kapalı kalır.
+    getSozlesmeKabul: function (belge, surum, orgId) {
+      return client().from('sozlesme_kabulleri').select('kabul_zamani').eq('belge', belge).eq('surum', surum)
+        .eq('organization_id', orgId).limit(1);
+    },
+    acceptContract: function (belge, surum) {
+      return client().rpc('sozlesme_kabul_et', { p_belge: belge, p_surum: surum });
+    },
     // ---- Pazarlama performansı (yönetici) — 13 Ekim 2026, sahibinin isteği ----
     // "Satış Pazarlama Sorumlusu" pozisyonundaki her temsilci için, dönem içinde:
     //   temas (ziyaret/arama/WhatsApp/numune/randevu), farklı klinik sayısı,

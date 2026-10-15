@@ -92,6 +92,12 @@
           </div>
         </div>
       </header>
+      <!-- 15 Ekim 2026: Veri İşleme Sözleşmesi kabul hatırlatması (yalnız işveren/yönetici, kabul edilene kadar). -->
+      <div id="sozlesme-banner" style="display:none;margin:14px 20px 0;padding:14px 16px;border:1px solid var(--color-accent, #F0A03C);border-radius:12px;background:var(--color-card);">
+        <p style="margin:0;font-size:13px;font-weight:700;color:var(--color-foreground)">Veri İşleme Sözleşmesi onayınızı bekliyor</p>
+        <p style="margin:4px 0 10px;font-size:12px;line-height:1.5;color:var(--color-muted-foreground)">Hasta ve hekim verisi işleyen laboratuvarlar için gerekli. Okuyup tek dokunuşla kabul edebilirsiniz.</p>
+        <button type="button" onclick="location.href='veri-isleme-sozlesmesi.html'" style="height:40px;padding:0 16px;border-radius:10px;border:0;background:var(--color-primary);color:var(--color-primary-foreground);font-weight:700;font-size:13px;cursor:pointer">Oku ve kabul et</button>
+      </div>
 
       <main>
         <section id="today-overview-section" class="px-5 pt-5">
@@ -1533,7 +1539,19 @@
       }
       return Promise.all(tasks);
     };
-  </script>
+  
+    // 15 Ekim 2026: sözleşme kabul hatırlatması. Tablo yoksa ya da hata varsa gösterilmez.
+    (function () {
+      var SURUM = '0.1';
+      ZirkonikAuth.me().then(function (me) {
+        if (!me || me.role !== 'yonetici' || !me.organization_id || !window.ZirkonikData || !ZirkonikData.getSozlesmeKabul) return;
+        ZirkonikData.getSozlesmeKabul('veri_isleme', SURUM, me.organization_id).then(function (r) {
+          if (!r || r.error) return;
+          if (!(r.data && r.data.length)) document.getElementById('sozlesme-banner').style.display = 'block';
+        });
+      });
+    })();
+</script>
 
 </body>
 </html>

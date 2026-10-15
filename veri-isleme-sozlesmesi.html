@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Veri İşleme Sözleşmesi — Zirkonik</title>
+<style>
+  :root{--bg:#0E1013;--card:#15181D;--line:#232830;--fg:#F4F6F8;--muted:#9AA4B2;--blue:#3D7CDC;--amber:#F0A03C}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:1.7;-webkit-text-size-adjust:100%}
+  .wrap{max-width:780px;margin:0 auto;padding:56px 20px 88px}
+  .brand{margin-bottom:36px}
+  .brand img{height:32px;width:auto}
+  h1{font-size:30px;line-height:1.22;margin:0 0 6px;letter-spacing:-.01em}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 28px}
+  h2{font-size:19px;margin:38px 0 10px;letter-spacing:-.01em}
+  h3{font-size:15px;margin:22px 0 6px;color:var(--fg)}
+  p,li{color:var(--muted);font-size:15px}
+  strong{color:var(--fg);font-weight:600}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px;margin-top:16px}
+  ol,ul{padding-left:20px;margin:10px 0}
+  li{margin:6px 0}
+  a{color:var(--blue);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .note{border-left:3px solid var(--amber);padding-left:14px;margin-top:24px}
+  table{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}
+  th,td{text-align:left;padding:11px 8px;border-bottom:1px solid var(--line);color:var(--muted);vertical-align:top}
+  th{color:var(--fg);font-weight:600}
+  footer{margin-top:52px;padding-top:20px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+  @media (max-width:520px){h1{font-size:25px}.wrap{padding:36px 18px 64px}}
+
+ .kutu{background:var(--card);border:1px solid var(--amber);border-radius:14px;padding:16px 18px;margin:18px 0;color:var(--fg);font-size:14px}
+ .btn{display:inline-flex;align-items:center;justify-content:center;height:46px;padding:0 22px;border-radius:12px;border:0;background:var(--blue);color:#fff;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit}
+ .btn[disabled]{opacity:.5;cursor:default}
+ .ok{color:#3ec28f;font-weight:600}
+ td.k{white-space:nowrap}
+ @media (max-width:520px){td.k{white-space:normal}table{font-size:13px}th,td{padding:9px 6px;overflow-wrap:anywhere}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <button type="button" onclick="if (history.length > 1) { history.back(); } else { location.href = 'profil.html'; }"
+    style="display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--blue);font-size:14px;font-weight:600;padding:0;margin-bottom:22px;cursor:pointer;font-family:inherit">&larr; Geri</button>
+  <h1>Veri İşleme Sözleşmesi</h1>
+  <p class="sub">Sürüm <strong id="surum-etiket">0.1</strong> &middot; 15 Ekim 2026 &middot; Laboratuvarlar için (Zirkonik uygulaması)</p>
+
+  <div class="kutu"><strong>Taslak.</strong> Bu metin henüz hukuki incelemeden geçmemiştir; inceleme tamamlanana kadar geçici olarak uygulanır. Değişiklik olduğunda yeni sürüm yayımlanır ve yöneticiden yeniden kabul istenir. Kabul ettiğiniz her sürüm tarih ve kullanıcı bilgisiyle saklanır.</div>
+
+  <h2>1. Taraflar</h2>
+  <p><strong>Veri sorumlusu:</strong> Zirkonik uygulamasına kayıtlı laboratuvar (bu sözleşmeyi uygulama içinden kabul eden laboratuvar sahibi ya da yöneticisi aracılığıyla).</p>
+  <p><strong>Veri işleyen:</strong> Murat HÜSEYİNOĞLU (Pibure markası). Kâğıthane Vergi Dairesi Müd. / 4640940226. Adres: Hamidiye Mah. Cendere Cad. No: 103/3C, Kâğıthane / İstanbul. İletişim: <a href="mailto:info@zirkonik.com">info@zirkonik.com</a>.</p>
+  <p>Bu sözleşme, 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) m.12 ve ilgili mevzuat kapsamında, laboratuvarın Zirkonik yazılım hizmetini kullanırken girdiği kişisel verilerin işlenmesine ilişkindir. Zirkonik, laboratuvarın talimatı doğrultusunda veri işleyen sıfatıyla hareket eder.</p>
+
+  <h2>2. Konu ve kapsam</h2>
+  <p>Zirkonik; iş takibi, üretim aşamaları, ekip ve yetki yönetimi, cari ve finans kayıtları, hekim portalı ve aday doktor takibi işlevlerini bulut üzerinden sunar. Veri işleyen, kişisel verileri yalnızca bu hizmeti sunmak amacıyla ve veri sorumlusunun yazılı talimatları (uygulama ayarları ve bu sözleşme) çerçevesinde işler. Kendi amaçları için kullanmaz, reklam ya da profil çıkarma amacıyla işlemez, üçüncü kişilere satmaz.</p>
+
+  <h2>3. İşlenen veriler ve ilgili kişiler</h2>
+  <table>
+    <tr><th>İlgili kişi</th><th>Veri kategorisi</th></tr>
+    <tr><td class="k">Hastalar</td><td>Ad-soyad, kliniğin verdiği protokol ya da referans numarası, iş ile ilgili klinik notlar</td></tr>
+    <tr><td class="k">Diş hekimleri ve klinikler</td><td>Ad, klinik adı, telefon, e-posta, adres; sipariş, cari ve tahsilat kayıtları</td></tr>
+    <tr><td class="k">Laboratuvar personeli</td><td>Ad, e-posta, telefon, rol ve yetkiler, iş ve üretim aşaması kayıtları; yetkili kullanıcılar için bordro ve izin bilgileri</td></tr>
+    <tr><td class="k">Aday doktorlar</td><td>Ad, klinik adı, telefon, adres ve görüşme notları (pazarlama takibi)</td></tr>
+  </table>
+  <p>Klinik notlar ve iş içeriği sağlık verisi niteliği taşıyabilir. Veri sorumlusu, amaç için gerekli olmayan veriyi (ör. T.C. kimlik numarası, hastalık öyküsü) serbest metin alanlarına yazmamayı taahhüt eder.</p>
+
+  <h2>4. Süre</h2>
+  <p>Sözleşme, laboratuvarın Zirkonik hizmetini kullandığı süre boyunca geçerlidir. Hesabın kapatılması ya da laboratuvar verisinin sıfırlanması ile işleme sona erer; 10. maddedeki saklama kuralları saklıdır.</p>
+
+  <h2>5. Veri işleyenin yükümlülükleri</h2>
+  <ul>
+    <li>Verileri yalnızca veri sorumlusunun talimatı ve hizmetin gereği ölçüsünde işlemek.</li>
+    <li>Verilere erişebilen kişilerin gizlilik yükümlülüğü altında olmasını sağlamak.</li>
+    <li>Ek-1'de yazılı teknik ve idari tedbirleri uygulamak ve sürdürmek.</li>
+    <li>Alt işleyenleri Ek-2'ye uygun kullanmak (madde 7).</li>
+    <li>İlgili kişi başvurularında, veri sorumlusuna makul sürede yardımcı olmak. Doğrudan kendisine gelen başvuruyu yedi gün içinde veri sorumlusuna iletmek.</li>
+    <li>Veri ihlalini madde 9'a göre bildirmek.</li>
+    <li>Yükümlülüklerin yerine getirildiğine ilişkin makul bilgi vermek (madde 11).</li>
+  </ul>
+
+  <h2>6. Veri sorumlusunun yükümlülükleri</h2>
+  <ul>
+    <li>Verilerin hukuka uygun işlenmesi, ilgili kişilerin aydınlatılması ve gerekli hâllerde açık rızanın alınması (hasta ve hekim verileri dahil).</li>
+    <li>Girilen verinin doğru, güncel ve amaçla sınırlı olması.</li>
+    <li>Kendi kullanıcılarının yetkilerini doğru yönetmesi, hesap ve şifre güvenliğini sağlaması, ayrılan personelin erişimini kapatması.</li>
+    <li>VERBİS kaydı, Kurul bildirimleri ve yurt dışına aktarım yükümlülükleri dahil, veri sorumlusu olarak kendisine düşen mevzuat yükümlülükleri.</li>
+  </ul>
+
+  <h2>7. Alt işleyenler</h2>
+  <p>Veri sorumlusu, Ek-2'deki alt işleyenlerin kullanılmasına genel olarak izin verir. Veri işleyen, listede değişiklik yapmadan önce en az 30 gün önceden uygulama içinden ya da e-posta ile bildirir; veri sorumlusu makul gerekçeyle itiraz edebilir. Alt işleyenlerle bu sözleşmeye eşdeğer koruma sağlayan yükümlülükler kurulur.</p>
+
+  <h2>8. Yurt dışı aktarım</h2>
+  <p>Veritabanı Avrupa Birliği'nde (Frankfurt, Almanya) barındırılır. Bazı alt işleyenlerin merkezleri Avrupa Birliği dışındadır (Ek-2). Aktarımlarda KVKK m.9 kapsamındaki uygun güvenceler kullanılır; veri sorumlusunun bu madde kapsamındaki yükümlülüklerini yerine getirebilmesi için veri işleyen ilgili sözleşme metinlerini ve bilgileri talep üzerine sağlar.</p>
+
+  <h2>9. Veri ihlali bildirimi</h2>
+  <p>Veri işleyen, kişisel verilerin hukuka aykırı biçimde ele geçirildiğini ya da ifşa edildiğini öğrenirse, gecikmeksizin ve her hâlde öğrenmesinden itibaren <strong>48 saat içinde</strong> veri sorumlusunun yöneticisine e-posta ile bildirir. Bildirim; ihlalin niteliğini, etkilenen veri ve kişi gruplarını, olası sonuçlarını, alınan ve önerilen önlemleri ve iletişim noktasını içerir. Bilgi tamamlandıkça güncellenir. Kuruma ve ilgili kişilere bildirim yükümlülüğü, mevzuattaki süreler (Kurul kararı uyarınca ihlalin öğrenilmesinden itibaren 72 saat) içinde veri sorumlusuna aittir; veri işleyen bu bildirimlerin hazırlanmasında yardımcı olur.</p>
+
+  <h2>10. Saklama, iade ve imha</h2>
+  <ul>
+    <li>Laboratuvar, kendi verisini uygulama içinden dışa aktarabilir ve hesabı kapatabilir.</li>
+    <li>Laboratuvar verisi sıfırlandığında ya da kuruluş silindiğinde, silinen veriler yasal saklama ve olası uyuşmazlıklar için şifreli arşivde <strong>beş yıl</strong> tutulur ve süre sonunda imha edilir. Arşive normal kullanıcılar erişemez.</li>
+    <li>Yedekler şifreli tutulur ve yedekleme döngüsü içinde yenilenerek eskiler imha edilir.</li>
+    <li>Hizmet sona erdiğinde, veri sorumlusunun talebi üzerine veriler yukarıdaki kurallara göre iade edilir ya da imha edilir.</li>
+  </ul>
+
+  <h2>11. Denetim ve bilgi</h2>
+  <p>Veri sorumlusu, yükümlülüklerin yerine getirildiğini göstermek için makul bildirimle bilgi isteyebilir; veri işleyen güvenlik tedbirlerinin özetini paylaşır. Yerinde denetim, ayrıca yazılı anlaşmaya bağlıdır.</p>
+
+  <h2>12. Sorumluluk</h2>
+  <p>Tarafların sorumluluğu KVKK m.12 ve ilgili mevzuata göre belirlenir. Veri işleyen, bu sözleşmeye ve talimatlara aykırı işlemlerden; veri sorumlusu, verinin hukuka uygun toplanması ve girilmesinden sorumludur.</p>
+
+  <h2>13. Kabul, değişiklik ve uyuşmazlık</h2>
+  <p>Sözleşme, laboratuvar sahibi ya da yöneticisi tarafından uygulama içinden elektronik olarak kabul edilir; kabul eden, laboratuvarı bu konuda temsile yetkili olduğunu beyan eder. Kabul zamanı, kullanıcı, sürüm numarası, IP adresi ve tarayıcı bilgisi delil olarak saklanır. Sözleşme değiştiğinde yeni sürüm yayımlanır ve yeniden kabul istenir. Uyuşmazlıklarda İstanbul (Çağlayan) mahkemeleri ve icra daireleri yetkilidir.</p>
+
+  <h2>Ek-1 &middot; Teknik ve idari tedbirler</h2>
+  <ul>
+    <li><strong>Kuruluş ayrımı:</strong> Her laboratuvarın verisi veritabanında satır düzeyi güvenlik kurallarıyla ayrılır; bir laboratuvarın kullanıcısı başka laboratuvarın kaydını göremez. Bu ayrım düzenli olarak test edilir.</li>
+    <li><strong>Yetki yönetimi:</strong> Rol, pozisyon, oda ve yetki anahtarlarıyla sunucu tarafında yetkilendirme. Fiyat ve finans bilgisi ayrı tablolarda ve yalnız yetkili kullanıcılara açık.</li>
+    <li><strong>İletim ve saklama:</strong> Tüm iletişim şifreli bağlantı (HTTPS/TLS) üzerinden. Şifreler tek yönlü şifrelenerek saklanır.</li>
+    <li><strong>Yedekleme:</strong> Günlük şifreli yedek; yedek hesabının yazma yetkisi yoktur.</li>
+    <li><strong>Arşiv ve kayıt:</strong> Silme ve sıfırlama işlemleri arşive yazılır; önemli işlemler denetim kaydı bırakır.</li>
+    <li><strong>İzleme:</strong> Teknik hata günlüğü yalnızca platform sahibi tarafından görülür.</li>
+    <li><strong>Erişim:</strong> Veriye erişim, hizmetin sunulması için gerekli kişilerle sınırlıdır; hesaplar kişiye özeldir.</li>
+  </ul>
+
+  <h2>Ek-2 &middot; Alt işleyenler</h2>
+  <table>
+    <tr><th>Alt işleyen</th><th>Amaç</th><th>Konum</th></tr>
+    <tr><td class="k">Supabase</td><td>Veritabanı, kimlik doğrulama, sunucu işlevleri</td><td>Frankfurt, Almanya (AB)</td></tr>
+    <tr><td class="k">Vercel</td><td>Web arayüzünün barındırılması ve sunulması</td><td>Küresel dağıtım ağı (ABD merkezli)</td></tr>
+    <tr><td class="k">Resend</td><td>İş fişi ve hekim ekstresi e-postalarının gönderimi</td><td>ABD merkezli</td></tr>
+    <tr><td class="k">Apple (APNs), Google (FCM)</td><td>Mobil bildirim iletimi (bildirim başlığı ve metni)</td><td>ABD merkezli</td></tr>
+    <tr><td class="k">Pibure yedek sunucusu</td><td>Günlük şifreli yedek</td><td>Konum talep üzerine bildirilir</td></tr>
+  </table>
+
+  <div id="kabul-alani" class="card" style="display:none"></div>
+
+  <footer>
+    Zirkonik &middot; <a href="https://zirkonik.com">zirkonik.com</a> &middot;
+    <a href="gizlilik-politikasi.html">Uygulama Gizlilik Politikası</a> &middot;
+    <a href="mailto:info@zirkonik.com">info@zirkonik.com</a>
+  </footer>
+</div>
+
+<script src="vendor/supabase-js.min.js"></script>
+<script src="supabase-config.js"></script>
+<script src="supabase-client.js"></script>
+<script>
+(function () {
+  var BELGE = 'veri_isleme', SURUM = '0.1';
+  var alan = document.getElementById('kabul-alani');
+  window.zkSozlesmeKabulEt = function (b) {
+    b.disabled = true;
+    ZirkonikData.acceptContract(BELGE, SURUM).then(function (res) {
+      if (res && res.error) { b.disabled = false; var h = document.getElementById('kabul-hata'); h.style.display = 'block'; h.textContent = 'Kaydedilemedi: ' + res.error.message; return; }
+      goster('<p class="ok">Teşekkürler. Sözleşme kabul edildi ve kaydedildi.</p>');
+    });
+  };
+  function goster(html) { alan.style.display = 'block'; alan.innerHTML = html; }
+  function tarih(t) { try { return new Date(t).toLocaleString('tr-TR'); } catch (e) { return t; } }
+  if (!window.ZirkonikAuth || !window.ZirkonikData) return;
+  ZirkonikAuth.getSession().then(function (session) {
+    if (!session) { goster('<p>Bu sözleşmeyi kabul etmek için laboratuvar sahibi ya da yöneticisi olarak <a href="giris.html">giriş yapın</a>.</p>'); return; }
+    ZirkonikAuth.me().then(function (me) {
+      if (!me || me.role !== 'yonetici') { goster('<p>Sözleşmeyi yalnızca laboratuvar sahibi ya da yöneticisi kabul edebilir. Bu sayfa bilgilendirme amaçlıdır.</p>'); return; }
+      ZirkonikData.getSozlesmeKabul(BELGE, SURUM, me.organization_id).then(function (r) {
+        if (r && r.error) { goster('<p>Kabul sistemi şu an hazırlanıyor. Lütfen daha sonra tekrar deneyin.</p>'); return; }
+        var kayit = r && r.data && r.data[0];
+        if (kayit) { goster('<p class="ok">Bu sürüm laboratuvarınız adına kabul edildi: ' + tarih(kayit.kabul_zamani) + '</p>'); return; }
+        goster('<p style="color:var(--fg)">Laboratuvarınız adına bu sözleşmeyi kabul etmeye yetkili olduğunuzu beyan edersiniz.</p><button class="btn" id="kabul-btn" type="button" onclick="zkSozlesmeKabulEt(this)">Okudum, kabul ediyorum</button><p id="kabul-hata" style="color:#ff8a8a;display:none;margin-top:10px"></p>');
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>
