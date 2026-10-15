@@ -138,6 +138,8 @@
       // cihazdan silinir; ortak/kaybolan cihazda kalmasın. Gönderilmemiş BEKLEYEN işlemler
       // (ZKKuyruk) silinmez — kullanıcının yaptığı iş kaybolmasın, aynı hesapla girince gider.
       try { if (window.ZKCevrimdisi && window.ZKCevrimdisi.depo && window.ZKCevrimdisi.depo.bosalt) window.ZKCevrimdisi.depo.bosalt(); } catch (e) {}
+      // 15 Ekim 2026: 3B dosya önbelleği (STL/HTML, hasta işine ait) de çıkışta silinir.
+      try { if (window.indexedDB) window.indexedDB.deleteDatabase('zk3b'); } catch (e) {}
       return client().auth.signOut().then(function () {
         window.location.href = 'giris.html';
       });

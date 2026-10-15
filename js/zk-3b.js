@@ -190,16 +190,22 @@
   }
 
   // ---- Cihaz önbelleği (IndexedDB) ----
+  // İki depo: "dosyalar" (anahtar → ArrayBuffer) ve "meta" (anahtar → {n: bayt, t: son kullanım}).
+  // Eskiden boyut/zaman dosyayla aynı kayıtta tutuluyordu; yer açma taraması her açılışta
+  // bütün dosyaları (yüzlerce MB) belleğe okuyordu (Orion bulgusu, 15 Ekim 2026).
   var dbSoz = null;
   function dbAc() {
     if (dbSoz) return dbSoz;
     dbSoz = new Promise(function (res) {
       try {
         if (!global.indexedDB) { res(null); return; }
-        var istek = global.indexedDB.open('zk3b', 1);
+        var istek = global.indexedDB.open('zk3b', 2);
         istek.onupgradeneeded = function () {
           var db = istek.result;
-          if (!db.objectStoreNames.contains('dosyalar')) db.createObjectStore('dosyalar');
+          // 1. sürümdeki dosya kayıtları meta'sız kalırdı; temiz başlangıç daha güvenli.
+          if (db.objectStoreNames.contains('dosyalar')) db.deleteObjectStore('dosyalar');
+          db.createObjectStore('dosyalar');
+          if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta');
         };
         istek.onsuccess = function () { res(istek.result); };
         istek.onerror = function () { res(null); };
@@ -213,13 +219,15 @@
       if (!db) return null;
       return new Promise(function (res) {
         try {
-          var tx = db.transaction('dosyalar', 'readwrite');
-          var st = tx.objectStore('dosyalar');
-          var g = st.get(anahtar);
+          var tx = db.transaction(['dosyalar', 'meta'], 'readwrite');
+          var g = tx.objectStore('dosyalar').get(anahtar);
           g.onsuccess = function () {
-            var v = g.result;
-            if (v && v.buf) { try { v.t = Date.now(); st.put(v, anahtar); } catch (e) {} res(v.buf); }
-            else res(null);
+            var buf = g.result && g.result.buf ? g.result.buf : g.result;
+            if (buf && buf.byteLength) {
+              // Yalnız küçük meta kaydı tazelenir; dosya yeniden yazılmaz.
+              try { tx.objectStore('meta').put({ n: buf.byteLength, t: Date.now() }, anahtar); } catch (e) {}
+              res(buf);
+            } else res(null);
           };
           g.onerror = function () { res(null); };
         } catch (e) { res(null); }
@@ -231,20 +239,21 @@
       if (!db) return;
       return new Promise(function (res) {
         try {
-          var tx = db.transaction('dosyalar', 'readwrite');
-          var st = tx.objectStore('dosyalar');
-          st.put({ buf: buf, t: Date.now(), n: buf.byteLength }, anahtar);
-          // Sınır aşıldıysa en eski kullanılanları at.
+          var tx = db.transaction(['dosyalar', 'meta'], 'readwrite');
+          var dosyalar = tx.objectStore('dosyalar'), meta = tx.objectStore('meta');
+          dosyalar.put(buf, anahtar);
+          meta.put({ n: buf.byteLength, t: Date.now() }, anahtar);
+          // Sınır aşıldıysa en eski kullanılanları at — yalnız küçük meta kayıtları okunur.
           var hepsi = [];
-          var c = st.openCursor();
+          var c = meta.openCursor();
           c.onsuccess = function () {
             var cur = c.result;
-            if (cur) { hepsi.push({ k: cur.key, t: cur.value.t || 0, n: cur.value.n || 0 }); cur.continue(); return; }
+            if (cur) { hepsi.push({ k: cur.key, t: (cur.value && cur.value.t) || 0, n: (cur.value && cur.value.n) || 0 }); cur.continue(); return; }
             var toplam = hepsi.reduce(function (s, x) { return s + x.n; }, 0);
             hepsi.sort(function (a, b) { return a.t - b.t; });
             for (var i = 0; i < hepsi.length && toplam > ONBELLEK_SINIR; i++) {
               if (hepsi[i].k === anahtar) continue;
-              try { st.delete(hepsi[i].k); } catch (e) {}
+              try { dosyalar.delete(hepsi[i].k); meta.delete(hepsi[i].k); } catch (e) {}
               toplam -= hepsi[i].n;
             }
           };
@@ -259,8 +268,8 @@
     return dbAc().then(function (db) {
       if (!db) return;
       try {
-        var st = db.transaction('dosyalar', 'readwrite').objectStore('dosyalar');
-        anahtarlar.forEach(function (k) { try { st.delete(k); } catch (e) {} });
+        var tx = db.transaction(['dosyalar', 'meta'], 'readwrite');
+        anahtarlar.forEach(function (k) { try { tx.objectStore('dosyalar').delete(k); tx.objectStore('meta').delete(k); } catch (e) {} });
       } catch (e) {}
     });
   }
@@ -289,6 +298,8 @@
     if (!o.orgId) return Promise.reject(new Error('Kuruluş kimliği yok.'));
     var durum = o.durum || function () {};
     var id = kimlik();
+    // Yol SUNUCUDA üretilir (15 Ekim 2026 güvenlik düzeltmesi); buradaki değer yalnız
+    // eski sunucu sürümüyle uyum için gönderilir, dönen satırdaki yol esas alınır.
     var klasor = o.orgId + '/' + (o.jobId || o.orderId) + '/';
     var yol = klasor + id + '.' + (o.tur === 'stl' ? 'stl' : 'html');
     var sikYol = o.tur === 'stl' ? klasor + id + '.zkm1' : null;
@@ -298,20 +309,19 @@
 
     return erisimJetonu().then(function (j) {
       jeton = j;
-      return client().auth.getUser ? Promise.resolve() : Promise.resolve();
     }).then(function () {
       durum('Dosya okunuyor…', null);
       return dosyaOku(o.file);
     }).then(function (buf) {
       if (o.tur !== 'stl') return buf;
-      durum('Model küçültülüyor…', null);
-      var kopya = buf.slice(0);
-      return isciCalistir('stl-sikistir', kopya).then(function (m) {
+      durum(isciYok && buf.byteLength > 25 * 1048576 ? 'Büyük model küçültülüyor, birkaç saniye sürebilir…' : 'Model küçültülüyor…', null);
+      // Kopya gerekmez: işçi yolu kendi kopyasını alır, ana sayfa yolu girdiyi değiştirmez.
+      return isciCalistir('stl-sikistir', buf).then(function (m) {
         sik = m.zkm1; meta = { nokta: m.nokta, ucgen: m.ucgen, kutu: m.kutu };
         return buf;
       }, function (e) {
         // Sıkıştırma olmadı: ham STL yine de yüklenir, görüntüleyici hamı okur.
-        sikYol = null; sik = null;
+        sik = null;
         if (global.console) console.warn('STL sıkıştırma başarısız: ' + e.message);
         return buf;
       });
@@ -331,6 +341,10 @@
       }).select().single().then(function (r) {
         if (r.error) throw new Error(r.error.code === '42501' ? 'Bu dosyayı yükleme yetkiniz yok.' : r.error.message);
         satirYazildi = true;
+        // Sunucunun ürettiği yollar esas.
+        if (r.data && r.data.storage_path) yol = r.data.storage_path;
+        sikYol = (r.data && r.data.compressed_path) ? r.data.compressed_path : null;
+        if (!sikYol) sik = null;
         durum('Yükleniyor… 0%', 0);
         var toplam = buf.byteLength + (sik ? sik.byteLength : 0), bitenHam = 0;
         function oran(parca, p) { var y = (bitenHam + parca * p) / toplam; durum('Yükleniyor… ' + Math.round(y * 100) + '%', y); }
@@ -363,13 +377,15 @@
   }
 
   // Dosya içeriğini getirir (önce cihaz önbelleği). STL için küçültülmüş sürüm tercih edilir.
+  // Önce ÇİZ, sonra kaydet: önbelleğe yazma arkada sürer, sayfa beklemez.
   function indir(satir, ilerleme, hamIste) {
     var yol = (!hamIste && satir.compressed_path) ? satir.compressed_path : satir.storage_path;
     var anahtar = satir.id + ':' + yol;
     return onbellekOku(anahtar).then(function (buf) {
       if (buf) return { buf: buf, yol: yol, onbellekten: true };
       return erisimJetonu().then(function (j) { return xhrIndir(yol, j, ilerleme); }).then(function (b) {
-        return onbellekYaz(anahtar, b).then(function () { return { buf: b, yol: yol, onbellekten: false }; });
+        setTimeout(function () { onbellekYaz(anahtar, b).then(function () {}, function () {}); }, 400);
+        return { buf: b, yol: yol, onbellekten: false };
       });
     });
   }

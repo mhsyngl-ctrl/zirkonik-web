@@ -17,16 +17,22 @@
 
   function stlCoz(buf) {
     var bayt = new Uint8Array(buf);
-    // İkili STL: 80 bayt başlık + uint32 üçgen sayısı + 50 bayt/üçgen
+    // İkili STL: 80 bayt başlık + uint32 üçgen sayısı + 50 bayt/üçgen. Bazı tarayıcı
+    // yazılımları dosya sonuna fazladan bayt ekler; "en az" ölçüsü kabul edilir (Orion bulgusu).
     if (buf.byteLength >= 84) {
       var dv = new DataView(buf);
       var n = dv.getUint32(80, true);
-      if (84 + n * 50 === buf.byteLength) return ikiliCoz(dv, n);
+      if (n > 0 && 84 + n * 50 <= buf.byteLength) return ikiliCoz(dv, n);
     }
-    // Metin STL ("solid ..." ile başlar)
-    var bas = '';
-    for (var i = 0; i < Math.min(5, bayt.length); i++) bas += String.fromCharCode(bayt[i]);
-    if (bas === 'solid') return metinCoz(buf);
+    // Metin STL: isteğe bağlı BOM, sonra "solid" ve içinde "facet" geçer.
+    var bas = 0;
+    if (bayt.length >= 3 && bayt[0] === 0xEF && bayt[1] === 0xBB && bayt[2] === 0xBF) bas = 3;
+    var ilk = '';
+    for (var i = bas; i < Math.min(bas + 5, bayt.length); i++) ilk += String.fromCharCode(bayt[i]);
+    if (ilk.toLowerCase() === 'solid') {
+      var on = new TextDecoder('utf-8').decode(bayt.subarray(bas, Math.min(bayt.length, bas + 4096)));
+      if (/facet/i.test(on) || bayt.length <= 4096) return metinCoz(buf);
+    }
     throw new Error('Dosya geçerli bir STL değil');
   }
 
@@ -50,26 +56,41 @@
     return new Float32Array(liste);
   }
 
-  // Tekrarlayan noktaları birleştirir. Anahtar: üç float32'nin ham bit deseni.
+  // Tekrarlayan noktaları birleştirir. Anahtar: üç float32'nin ham bit deseni (-0 → +0).
+  // Sayısal açık adresli karma tablo: metin anahtarlı Map'e göre ~11 kat hızlı ve çok daha
+  // az bellek (Orion ölçümü, 15 Ekim 2026) — iPhone'da işçi olmadığından ana sayfada koşuyor.
   function sikistir(poz) {
     var nv3 = poz.length;          // 9 × üçgen
+    var noktaSayisi = nv3 / 3;
     var u32 = new Uint32Array(poz.buffer, poz.byteOffset, nv3);
-    var harita = new Map();
-    var indeks = new Uint32Array(nv3 / 3);
+    var indeks = new Uint32Array(noktaSayisi);
     var tekil = new Float32Array(nv3); // en kötü durumda hepsi tekil
+    var tekilU = new Uint32Array(tekil.buffer);
+    var kapasite = 1; while (kapasite < noktaSayisi * 2) kapasite <<= 1;
+    var tablo = new Int32Array(kapasite); tablo.fill(-1);
+    var maske = kapasite - 1;
     var nv = 0;
     var minX = Infinity, minY = Infinity, minZ = Infinity, maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
     for (var i = 0, j = 0; i < nv3; i += 3, j++) {
-      var anahtar = u32[i] + ',' + u32[i + 1] + ',' + u32[i + 2];
-      var id = harita.get(anahtar);
-      if (id === undefined) {
-        id = nv++;
-        harita.set(anahtar, id);
-        var x = poz[i], y = poz[i + 1], z = poz[i + 2];
-        tekil[id * 3] = x; tekil[id * 3 + 1] = y; tekil[id * 3 + 2] = z;
-        if (x < minX) minX = x; if (x > maxX) maxX = x;
-        if (y < minY) minY = y; if (y > maxY) maxY = y;
-        if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
+      var a = u32[i], b = u32[i + 1], c = u32[i + 2];
+      if (a === 0x80000000) a = 0; if (b === 0x80000000) b = 0; if (c === 0x80000000) c = 0;
+      var h = (Math.imul(a, 0x9E3779B1) ^ Math.imul(b, 0x85EBCA77) ^ Math.imul(c, 0xC2B2AE3D)) >>> 0;
+      h = (h ^ (h >>> 15)) & maske;
+      var id;
+      for (;;) {
+        id = tablo[h];
+        if (id === -1) {
+          id = nv++;
+          tablo[h] = id;
+          tekilU[id * 3] = a; tekilU[id * 3 + 1] = b; tekilU[id * 3 + 2] = c;
+          var x = tekil[id * 3], y = tekil[id * 3 + 1], z = tekil[id * 3 + 2];
+          if (x < minX) minX = x; if (x > maxX) maxX = x;
+          if (y < minY) minY = y; if (y > maxY) maxY = y;
+          if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
+          break;
+        }
+        if (tekilU[id * 3] === a && tekilU[id * 3 + 1] === b && tekilU[id * 3 + 2] === c) break;
+        h = (h + 1) & maske;
       }
       indeks[j] = id;
     }

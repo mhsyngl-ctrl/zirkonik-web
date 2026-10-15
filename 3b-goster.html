@@ -58,6 +58,8 @@
     </div>
     <p id="bilgi" class="hidden rounded-full bg-card/90 px-2.5 py-1 text-muted-foreground"></p>
     <p id="indir-baglanti" class="hidden"></p>
+    <!-- Yüklenen HTML yabancı koddur: sahte "şifre girin" ekranı çizebilir. Bu şerit onun üstünde durur. -->
+    <p id="yabanci-serit" class="hidden" style="position:absolute;left:0;right:0;top:0;z-index:5;padding:5px 12px;font-size:11px;line-height:1.3;background:rgba(23,36,44,.85);color:#fff;text-align:center;pointer-events:none">Bu alan laboratuvardan yüklenen tasarım dosyasıdır. Zirkonik burada asla şifre ya da bilgi istemez.</p>
   </div>
 
   <div id="stl-araclar" class="hidden border-t border-border bg-card px-4 py-3" style="padding-bottom:calc(env(safe-area-inset-bottom,0px) + 12px)">
@@ -150,6 +152,7 @@
         f.setAttribute('sandbox', 'allow-scripts');
         f.setAttribute('referrerpolicy', 'no-referrer');
         document.getElementById('sahne').insertBefore(f, document.getElementById('durum-kart'));
+        document.getElementById('yabanci-serit').classList.remove('hidden');
         f.addEventListener('load', function () {
           // Ayrı kökende olduğu için içeriye bakılamaz; yüklendiyse kart kapanır.
           setTimeout(function () {
@@ -170,7 +173,8 @@
     // ---------------- STL (Three.js) ----------------
     var THREE_YUKLU = false, renderer = null, scene = null, camera = null, mesh = null, geometry = null, material = null;
     var yaricap = 1, merkez = null, kutu = null;
-    var yorunge = { theta: 0.6, phi: 1.05, zoom: 1, panX: 0, panY: 0 };
+    var yorunge = { theta: 0.6, phi: 1.05, zoom: 1, panX: 0, panY: 0, panZ: 0 };
+    var kameraUzaklik = 1; // kaydırma ölçüsü için son kamera-hedef mesafesi
     var animasyonId = 0, cizimIstendi = false;
 
     function threeYukle() {
@@ -186,7 +190,14 @@
 
     function stlAc(s) {
       var ham = !s.compressed_path;
-      return Promise.all([threeYukle(), ZK3B.indir(s, indirIlerleme)]).then(function (r) {
+      // Küçültülmüş sürüm inmezse (silinmiş/bozuk) ham STL'e düşülür.
+      var indirme = ZK3B.indir(s, indirIlerleme).catch(function (e) {
+        if (ham) throw e;
+        ham = true;
+        durum('Küçültülmüş dosya alınamadı, ham dosya indiriliyor…', '', null);
+        return ZK3B.indir(s, indirIlerleme, true);
+      });
+      return Promise.all([threeYukle(), indirme]).then(function (r) {
         var inen = r[1];
         durum('Model hazırlanıyor…', inen.onbellekten ? 'cihazdan' : ZK3B.boyut(inen.buf.byteLength), null);
         return ZK3B.isciCalistir(ham ? 'stl-coz' : 'zkm1-coz', inen.buf).then(function (m) {
@@ -257,9 +268,10 @@
       var r = yaricap / Math.sin(fov / 2);
       if (camera.aspect < 1) r /= camera.aspect;
       r *= 1.08 * yorunge.zoom;
+      kameraUzaklik = r;
       var sp = Math.sin(yorunge.phi), cp = Math.cos(yorunge.phi), st = Math.sin(yorunge.theta), ct = Math.cos(yorunge.theta);
       // Z yukarı (diş modelleri böyle gelir)
-      var hedef = new THREE.Vector3(yorunge.panX, yorunge.panY, 0);
+      var hedef = new THREE.Vector3(yorunge.panX, yorunge.panY, yorunge.panZ);
       camera.up.set(0, 0, 1);
       camera.position.set(hedef.x + r * sp * ct, hedef.y + r * sp * st, hedef.z + r * cp);
       camera.lookAt(hedef);
@@ -303,13 +315,16 @@
           var orta = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
           if (sonUzaklik > 0) yorunge.zoom = Math.max(0.15, Math.min(6, yorunge.zoom * (sonUzaklik / uz)));
           if (sonOrta) {
-            // Kaydırma: ekran pikselini model ölçeğine çevir (kamera düzleminde)
-            var olcek = (yaricap * 2 * yorunge.zoom) / Math.max(1, el.clientHeight);
+            // Kaydırma: ekran pikseli → model ölçüsü. Hedef düzleminde görünen yükseklik
+            // 2·uzaklık·tan(fov/2); parmak ne kadar giderse model o kadar gider (Orion düzeltmesi).
+            var olcek = (2 * kameraUzaklik * Math.tan(camera.fov * Math.PI / 360)) / Math.max(1, el.clientHeight);
             var dx = (orta.x - sonOrta.x) * olcek, dy = (orta.y - sonOrta.y) * olcek;
             var sag = new THREE.Vector3(), yukari = new THREE.Vector3();
             camera.matrixWorld.extractBasis(sag, yukari, new THREE.Vector3());
+            // Üç eksen: "Önden" görünümde dikey kaydırma Z eksenine düşer.
             yorunge.panX -= sag.x * dx - yukari.x * dy;
             yorunge.panY -= sag.y * dx - yukari.y * dy;
+            yorunge.panZ -= sag.z * dx - yukari.z * dy;
           }
           sonUzaklik = uz; sonOrta = orta;
         }
@@ -331,7 +346,7 @@
 
     function zkGorunum(hangi) {
       if (!camera) return;
-      yorunge.zoom = 1; yorunge.panX = 0; yorunge.panY = 0;
+      yorunge.zoom = 1; yorunge.panX = 0; yorunge.panY = 0; yorunge.panZ = 0;
       if (hangi === 'ust') { yorunge.theta = -Math.PI / 2; yorunge.phi = 0.05; }
       else if (hangi === 'on') { yorunge.theta = -Math.PI / 2; yorunge.phi = Math.PI / 2; }
       else { yorunge.theta = 0.6; yorunge.phi = 1.05; }
@@ -374,6 +389,8 @@
     }
     window.addEventListener('pagehide', temizle);
     window.addEventListener('beforeunload', temizle);
+    // Safari sayfayı geri-ileri önbelleğinden getirirse tuval boşaltılmış olur: yeniden yükle.
+    window.addEventListener('pageshow', function (e) { if (e.persisted) location.reload(); });
   </script>
 </body>
 </html>
