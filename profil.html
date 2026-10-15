@@ -458,7 +458,7 @@
       if (ll && !ll.classList.contains('hidden')) fields.lab_lab_billing = document.getElementById('pf-lablab-billing').value;
       if (!confirm('Bölge ayarı kaydedilsin mi? Mevcut kayıtların para birimi değişmez; yeni kayıtlar ' + fields.default_currency + ' ile açılır.')) return;
       btn.disabled = true;
-      ZirkonikData.updateOrgRegion(pfOrgId, fields).then(function (r) {
+      ZirkonikAuth.updateOrgRegion(pfOrgId, fields).then(function (r) {
         btn.disabled = false;
         if (r.error) { zkToast('Kaydedilemedi: ' + r.error.message); return; }
         zkToast('Bölge ayarı kaydedildi.');
