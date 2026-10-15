@@ -1348,7 +1348,8 @@
         altyapi.satirlar = satirlar;
         kart.classList.remove('hidden');
         document.getElementById('altyapi-liste').innerHTML = satirlar.map(function (s) {
-          return ZKOrtak.altyapiSatirHtml(s, { teslim: true, iptal: altyapi.yetkiVer });
+          // Teslim alma ve geri çekme: yönetici ya da sipariş yönetimi yetkisi (sunucu da aynı kuralı zorlar).
+          return ZKOrtak.altyapiSatirHtml(s, { teslim: altyapi.yetkiVer, iptal: altyapi.yetkiVer });
         }).join('');
         document.getElementById('altyapi-bos').classList.toggle('hidden', satirlar.length > 0);
         var ver = document.getElementById('altyapi-ver-btn');
