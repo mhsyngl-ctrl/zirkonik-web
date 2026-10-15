@@ -1118,6 +1118,17 @@
           zkToast('Gelişme eklendi.');
           if (detailDoctor) loadTouches(doctorId);
           loadMyTasks();
+          // 15 Ekim 2026, sahibinin kararı: ziyaret/arama/WhatsApp/numune/randevu temasında havuzdaki
+          // doktor kendiliğinden "İlk temas" olur (yalnız aday_havuzu -> ilk_temas; ileri aşamalara dokunulmaz).
+          if (['ziyaret', 'arama', 'whatsapp', 'numune', 'randevu'].indexOf(kind) !== -1 && doctor.pipeline_stage === 'aday_havuzu') {
+            ZirkonikData.updateDoctorPipeline(doctorId, { pipeline_stage: 'ilk_temas', stage_changed_at: new Date().toISOString() }).then(function (sr) {
+              if (sr && sr.error) return;
+              doctor.pipeline_stage = 'ilk_temas';
+              if (detailDoctor && detailDoctor.id === doctorId) { detailDoctor.pipeline_stage = 'ilk_temas'; var st = document.getElementById('dt-stage'); if (st) st.value = 'ilk_temas'; }
+              loadList();
+              loadStageCounts();
+            });
+          }
         });
       } else {
         var dateStr = document.getElementById('tm-date').value;
