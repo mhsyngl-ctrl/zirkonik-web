@@ -66,8 +66,13 @@
     });
   }
 
-  // ---- İşçi (Web Worker) ----
+  // ---- İşçi (Web Worker) + yedek yol ----
+  // iOS kabuğu sayfaları file:// ile açıyor; WebKit orada Worker'a izin vermiyor
+  // (15 Ekim 2026 telefon hatası "3B işçisi çalışmadı"). O zaman aynı kod
+  // (ZK3BIsci.calistir) ana sayfada çalışır: ZKM1 çözme anlık, STL küçültme 1-3 sn.
   var isci = null, isciSayac = 0, isciBekleyen = {};
+  var isciYok = (function () { try { return global.location.protocol === 'file:' || typeof global.Worker !== 'function'; } catch (e) { return true; } })();
+
   function isciAl() {
     if (isci) return isci;
     isci = new Worker('js/zk-3b-isci.js');
@@ -78,21 +83,54 @@
       delete isciBekleyen[m.id];
       if (m.ok) b.res(m); else b.rej(new Error(m.hata || 'İşçi hatası'));
     };
-    isci.onerror = function (e) {
-      var hata = new Error('3B işçisi çalışmadı: ' + ((e && e.message) || 'bilinmeyen'));
-      Object.keys(isciBekleyen).forEach(function (k) { isciBekleyen[k].rej(hata); });
-      isciBekleyen = {};
+    isci.onerror = function () {
+      // İşçi yüklenemedi: bekleyen işler ana sayfada tamamlanır, bir daha işçi denenmez.
+      isciYok = true;
+      var bekleyen = isciBekleyen; isciBekleyen = {};
       try { isci.terminate(); } catch (x) {}
       isci = null;
+      Object.keys(bekleyen).forEach(function (k) {
+        var b = bekleyen[k];
+        anaSayfadaCalistir(b.tur, b.buffer).then(b.res, b.rej);
+      });
     };
     return isci;
   }
+
+  var isciBetikSoz = null;
+  function isciBetikYukle() {
+    if (global.ZK3BIsci) return Promise.resolve();
+    if (isciBetikSoz) return isciBetikSoz;
+    isciBetikSoz = new Promise(function (res, rej) {
+      var sc = document.createElement('script');
+      sc.src = 'js/zk-3b-isci.js';
+      sc.onload = function () { global.ZK3BIsci ? res() : rej(new Error('3B işçi kodu yüklenemedi')); };
+      sc.onerror = function () { isciBetikSoz = null; rej(new Error('3B işçi kodu yüklenemedi')); };
+      document.head.appendChild(sc);
+    });
+    return isciBetikSoz;
+  }
+  function anaSayfadaCalistir(tur, buffer) {
+    return isciBetikYukle().then(function () {
+      // Kısa bir nefes: durum yazısı ekrana çizilsin, sonra ağır iş başlasın.
+      return new Promise(function (res, rej) {
+        setTimeout(function () {
+          try { var r = global.ZK3BIsci.calistir(tur, buffer); delete r._aktar; res(r); }
+          catch (e) { rej(e); }
+        }, 30);
+      });
+    });
+  }
+
   function isciCalistir(tur, buffer) {
+    if (isciYok) return anaSayfadaCalistir(tur, buffer);
     return new Promise(function (res, rej) {
       var id = ++isciSayac;
-      isciBekleyen[id] = { res: res, rej: rej };
-      try { isciAl().postMessage({ id: id, tur: tur, buffer: buffer }, [buffer]); }
-      catch (e) { delete isciBekleyen[id]; rej(e); }
+      // Arabellek işçiye KOPYA gider (aktarılmaz): işçi yüklenemezse elimizdeki
+      // nüsha ile ana sayfada devam edebilmek için.
+      isciBekleyen[id] = { res: res, rej: rej, tur: tur, buffer: buffer };
+      try { isciAl().postMessage({ id: id, tur: tur, buffer: buffer }); }
+      catch (e) { delete isciBekleyen[id]; isciYok = true; anaSayfadaCalistir(tur, buffer).then(res, rej); }
     });
   }
   function isciKapat() { if (isci) { try { isci.terminate(); } catch (e) {} isci = null; isciBekleyen = {}; } }

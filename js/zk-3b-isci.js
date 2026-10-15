@@ -101,27 +101,41 @@
     return { poz: poz, idx: idx, nokta: nv, ucgen: ni / 3 };
   }
 
-  self.onmessage = function (e) {
-    var m = e.data || {};
-    try {
-      if (m.tur === 'stl-sikistir') {
-        var poz = stlCoz(m.buffer);
-        var s = sikistir(poz);
-        self.postMessage({ id: m.id, ok: true, zkm1: s.zkm1, nokta: s.nokta, ucgen: s.ucgen, kutu: s.kutu, merkez: s.merkez }, [s.zkm1]);
-      } else if (m.tur === 'zkm1-coz') {
-        var c = zkm1Coz(m.buffer);
-        self.postMessage({ id: m.id, ok: true, poz: c.poz, idx: c.idx, nokta: c.nokta, ucgen: c.ucgen }, [c.poz.buffer, c.idx.buffer]);
-      } else if (m.tur === 'stl-coz') {
-        // Sıkıştırılmamış STL'i doğrudan çizmek için (eski kayıt / sıkıştırma başarısız)
-        var p = stlCoz(m.buffer);
-        var s2 = sikistir(p);
-        var c2 = zkm1Coz(s2.zkm1);
-        self.postMessage({ id: m.id, ok: true, poz: c2.poz, idx: c2.idx, nokta: c2.nokta, ucgen: c2.ucgen }, [c2.poz.buffer, c2.idx.buffer]);
-      } else {
-        throw new Error('Bilinmeyen işçi komutu');
-      }
-    } catch (err) {
-      self.postMessage({ id: m.id, ok: false, hata: (err && err.message) || String(err) });
+  // Tek giriş: hem işçide hem (işçi çalışmazsa) ana sayfada aynı kod kullanılır.
+  function calistir(tur, buffer) {
+    if (tur === 'stl-sikistir') {
+      var s = sikistir(stlCoz(buffer));
+      return { zkm1: s.zkm1, nokta: s.nokta, ucgen: s.ucgen, kutu: s.kutu, merkez: s.merkez, _aktar: [s.zkm1] };
     }
-  };
+    if (tur === 'zkm1-coz') {
+      var c = zkm1Coz(buffer);
+      return { poz: c.poz, idx: c.idx, nokta: c.nokta, ucgen: c.ucgen, _aktar: [c.poz.buffer, c.idx.buffer] };
+    }
+    if (tur === 'stl-coz') {
+      // Sıkıştırılmamış STL'i doğrudan çizmek için (eski kayıt / sıkıştırma başarısız)
+      var c2 = zkm1Coz(sikistir(stlCoz(buffer)).zkm1);
+      return { poz: c2.poz, idx: c2.idx, nokta: c2.nokta, ucgen: c2.ucgen, _aktar: [c2.poz.buffer, c2.idx.buffer] };
+    }
+    throw new Error('Bilinmeyen işçi komutu');
+  }
+
+  var kok = typeof self !== 'undefined' ? self : this;
+  kok.ZK3BIsci = { calistir: calistir, stlCoz: stlCoz, sikistir: sikistir, zkm1Coz: zkm1Coz };
+
+  // Yalnız gerçek Web Worker içinde mesaj dinlenir. iOS kabuğu sayfaları file:// ile
+  // açıyor ve orada Worker yasak; o zaman bu dosya düz <script> olarak yüklenir ve
+  // zk-3b.js ZK3BIsci.calistir'ı ana sayfada çağırır (15 Ekim 2026 telefon hatası).
+  if (typeof importScripts === 'function') {
+    self.onmessage = function (e) {
+      var m = e.data || {};
+      try {
+        var r = calistir(m.tur, m.buffer);
+        var aktar = r._aktar; delete r._aktar;
+        r.id = m.id; r.ok = true;
+        self.postMessage(r, aktar);
+      } catch (err) {
+        self.postMessage({ id: m.id, ok: false, hata: (err && err.message) || String(err) });
+      }
+    };
+  }
 })();
