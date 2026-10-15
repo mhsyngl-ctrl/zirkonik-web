@@ -275,7 +275,9 @@
       opts = opts || {};
       return client().from('rooms').insert({
         laboratory_id: labId, name: name, sort_order: sortOrder,
-        is_quality_control: !!opts.isQualityControl, is_delivery: !!opts.isDelivery
+        is_quality_control: !!opts.isQualityControl, is_delivery: !!opts.isDelivery,
+        // 15 Ekim 2026: 3B dosya odası (STL görüntüler, exocad HTML yükler).
+        has_3d: !!opts.has3d
       }).select().single();
     },
     updateRoom: function (roomId, fields) {

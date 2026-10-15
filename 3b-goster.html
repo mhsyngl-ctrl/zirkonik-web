@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://code.iconify.design; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://cuujupeindodpsdjcivm.supabase.co wss://cuujupeindodpsdjcivm.supabase.co https://api.iconify.design https://api.simplesvg.com https://api.unisvg.com; worker-src 'self'; frame-src 'self' about:; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <title>3B Görüntüleyici — Zirkonik</title>
+  <script src="js/zk-guard-core.js"></script>
+  <script src="js/zk-erken-koruma.js"></script>
+
+  <link rel="stylesheet" href="css/tailwind.css">
+  <link rel="stylesheet" href="css/ipad.css">
+  <link rel="stylesheet" href="css/zk-utils.css">
+  <script src="js/zk-tema.js"></script>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="theme-color" content="#FFFFFF">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <script src="vendor/lucide-icons.js"></script>
+  <script src="vendor/iconify-icon.min.js" defer></script>
+  <link rel="stylesheet" href="css/fonts.css">
+
+  <style>
+    /* Bu sayfa tek ekranlık görüntüleyici: üst bant + tam alan sahne + alt düğmeler.
+       Ana sipariş ekranlarına yük bindirmemek için Three.js yalnız burada yüklenir. */
+    html, body { height: 100%; overflow: hidden; }
+    body { display: flex; flex-direction: column; }
+    #sahne { flex: 1; min-height: 0; position: relative; background: #e9edf1; touch-action: none; }
+    #sahne canvas { display: block; width: 100%; height: 100%; }
+    #cerceve { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #4b3c86; }
+    #durum-kart { position: absolute; left: 16px; right: 16px; top: 16px; }
+    .zk-cubuk { height: 6px; border-radius: 999px; background: var(--color-secondary, #e5e7eb); overflow: hidden; margin-top: 8px; }
+    .zk-cubuk > div { height: 100%; width: 0; border-radius: 999px; background: var(--color-primary, #3D7CDC); transition: width .2s; }
+    #bilgi { position: absolute; left: 12px; bottom: 12px; font-size: 11px; font-variant-numeric: tabular-nums; }
+    @media (prefers-color-scheme: dark) { #sahne { background: #1a1f26; } }
+  </style>
+</head>
+<body class="bg-background text-foreground">
+  <header class="flex items-center gap-3 border-b border-border bg-card px-4 py-3" style="padding-top:calc(env(safe-area-inset-top,0px) + 12px)">
+    <a id="geri-btn" href="retim.html" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-theme border border-border bg-background text-foreground" aria-label="Geri">
+      <iconify-icon icon="lucide:arrow-left" class="text-lg"></iconify-icon>
+    </a>
+    <div class="min-w-0 flex-1">
+      <p id="baslik" class="truncate font-heading text-sm font-bold">3B görüntüleyici</p>
+      <p id="altbaslik" class="truncate text-[11px] text-muted-foreground">Yükleniyor…</p>
+    </div>
+    <button id="indir-btn" type="button" onclick="zkIndir()" class="hidden h-10 shrink-0 items-center justify-center gap-1.5 rounded-theme border border-border bg-background px-3 text-xs font-bold text-primary">
+      <iconify-icon icon="lucide:download" class="text-base"></iconify-icon>İndir
+    </button>
+  </header>
+
+  <div id="sahne">
+    <div id="durum-kart" class="rounded-theme border border-border bg-card p-4 shadow-lg">
+      <p id="durum" class="text-sm font-bold">Hazırlanıyor…</p>
+      <p id="durum-alt" class="mt-1 text-xs text-muted-foreground"></p>
+      <div class="zk-cubuk"><div id="cubuk"></div></div>
+    </div>
+    <p id="bilgi" class="hidden rounded-full bg-card/90 px-2.5 py-1 text-muted-foreground"></p>
+    <p id="indir-baglanti" class="hidden"></p>
+  </div>
+
+  <div id="stl-araclar" class="hidden border-t border-border bg-card px-4 py-3" style="padding-bottom:calc(env(safe-area-inset-bottom,0px) + 12px)">
+    <div class="grid grid-cols-4 gap-2">
+      <button type="button" onclick="zkGorunum('ust')" class="flex h-11 items-center justify-center rounded-theme border border-border bg-background text-xs font-bold text-foreground">Üstten</button>
+      <button type="button" onclick="zkGorunum('on')" class="flex h-11 items-center justify-center rounded-theme border border-border bg-background text-xs font-bold text-foreground">Önden</button>
+      <button type="button" onclick="zkGorunum('sifirla')" class="flex h-11 items-center justify-center rounded-theme border border-border bg-background text-xs font-bold text-foreground">Sıfırla</button>
+      <button id="tel-btn" type="button" onclick="zkTelKafes()" class="flex h-11 items-center justify-center rounded-theme border border-border bg-background text-xs font-bold text-foreground">Tel kafes</button>
+    </div>
+  </div>
+
+  <div id="zk-toast" style="position:fixed;left:50%;bottom:96px;transform:translate(-50%,16px);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;background:#17242C;color:#fff;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;padding:10px 16px;border-radius:12px;z-index:9999;max-width:86%;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.18);"></div>
+
+  <script src="vendor/supabase-js.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="js/net-guard.js"></script>
+  <script src="supabase-client.js"></script>
+  <script src="js/zk-guard.js"></script>
+  <script src="js/zk-hiz.js"></script>
+  <script src="js/zk-cevrimdisi.js"></script>
+  <script src="js/zk-3b.js"></script>
+  <script>
+    function zkToast(msg) {
+      var t = document.getElementById('zk-toast');
+      t.textContent = msg; t.style.opacity = '1'; t.style.transform = 'translate(-50%,0)';
+      clearTimeout(t._z); t._z = setTimeout(function () { t.style.opacity = '0'; t.style.transform = 'translate(-50%,16px)'; }, 2600);
+    }
+    function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+    var params = new URLSearchParams(location.search);
+    var dosyaId = params.get('dosya');
+    var geri = params.get('geri');
+    // Geri bağlantısı yalnız uygulamanın kendi sayfalarına gider (dış adres kabul edilmez).
+    if (geri && /^[a-z0-9-]+\.html(\?[a-z0-9=&_-]*)?$/i.test(geri)) document.getElementById('geri-btn').href = geri;
+
+    var satir = null, t0 = Date.now();
+    var durumEl = document.getElementById('durum'), durumAlt = document.getElementById('durum-alt'), cubuk = document.getElementById('cubuk');
+    function durum(m, alt, oran) {
+      durumEl.textContent = m; durumAlt.textContent = alt || '';
+      if (oran == null) { cubuk.style.width = '100%'; cubuk.style.opacity = '.35'; }
+      else { cubuk.style.opacity = '1'; cubuk.style.width = Math.round(oran * 100) + '%'; }
+    }
+    function hata(m) {
+      durumEl.textContent = 'Açılamadı';
+      durumEl.className = 'text-sm font-bold text-destructive';
+      durumAlt.textContent = m;
+      cubuk.style.width = '0';
+      document.getElementById('durum-kart').classList.remove('hidden');
+    }
+    function kartGizle() { document.getElementById('durum-kart').classList.add('hidden'); }
+
+    if (!dosyaId) {
+      hata('Dosya kimliği yok. İş detayından "3B göster" ile açın.');
+    } else {
+      ZirkonikAuth.requireAuth().then(function (session) {
+        if (!session) return;
+        durum('Dosya bilgisi alınıyor…', '', null);
+        return ZK3B.getir(dosyaId).then(function (s) {
+          if (!s) throw new Error('Dosya bulunamadı ya da görme yetkiniz yok.');
+          satir = s;
+          var j = s.jobs || {};
+          document.getElementById('baslik').textContent = (j.job_number ? j.job_number + ' › ' : '') + (s.kind === 'stl' ? 'STL tarama' : '3B tasarım');
+          document.getElementById('altbaslik').textContent = (j.patient_name || j.clinic_protocol_no || '') + (s.file_name ? ' · ' + s.file_name : '');
+          document.getElementById('indir-btn').classList.remove('hidden');
+          document.getElementById('indir-btn').classList.add('flex');
+          if (!ZK3B.webglVar()) {
+            hata('Bu cihazda 3B çizim (WebGL) kapalı. Dosyayı "İndir" ile alıp bilgisayarda açabilirsiniz.');
+            return;
+          }
+          return s.kind === 'stl' ? stlAc(s) : htmlAc(s);
+        });
+      }).catch(function (e) { hata((e && e.message) || String(e)); });
+    }
+
+    function indirIlerleme(oran, bayt) {
+      if (oran == null) durum('İndiriliyor…', ZK3B.boyut(bayt), null);
+      else durum('İndiriliyor… ' + Math.round(oran * 100) + '%', ZK3B.boyut(bayt), oran);
+    }
+
+    // ---------------- exocad HTML ----------------
+    function htmlAc(s) {
+      return ZK3B.indir(s, indirIlerleme).then(function (r) {
+        durum('Görüntüleyici açılıyor…', r.onbellekten ? 'cihazdan' : ZK3B.boyut(r.buf.byteLength), null);
+        var metin = new TextDecoder('utf-8').decode(r.buf);
+        var f = document.createElement('iframe');
+        f.id = 'cerceve'; f.title = '3B tasarım görüntüleyici';
+        // GÜVENLİK: yüklenen HTML yabancı koddur. sandbox (allow-same-origin YOK) ile ayrı
+        // kökende çalışır: uygulamanın oturumuna, depolamasına ve sayfasına erişemez.
+        // WebGL ve dokunma bu kısıtla çalışır (15 Ekim 2026 telefon denemesi de kısıtlı çerçevedeydi).
+        f.setAttribute('sandbox', 'allow-scripts');
+        f.setAttribute('referrerpolicy', 'no-referrer');
+        document.getElementById('sahne').insertBefore(f, document.getElementById('durum-kart'));
+        f.addEventListener('load', function () {
+          // Ayrı kökende olduğu için içeriye bakılamaz; yüklendiyse kart kapanır.
+          setTimeout(function () {
+            kartGizle();
+            bilgi((r.onbellekten ? 'cihazdan · ' : '') + ((Date.now() - t0) / 1000).toFixed(1).replace('.', ',') + ' sn');
+          }, 800);
+        });
+        // blob: bağlantısı yerine doğrudan yazma — iPhone'da blob çerçevesi açılmıyordu (15 Ekim 2026 denemesi).
+        f.srcdoc = metin;
+      });
+    }
+
+    function bilgi(m) {
+      var b = document.getElementById('bilgi');
+      b.textContent = m; b.classList.remove('hidden');
+    }
+
+    // ---------------- STL (Three.js) ----------------
+    var THREE_YUKLU = false, renderer = null, scene = null, camera = null, mesh = null, geometry = null, material = null;
+    var yaricap = 1, merkez = null, kutu = null;
+    var yorunge = { theta: 0.6, phi: 1.05, zoom: 1, panX: 0, panY: 0 };
+    var animasyonId = 0, cizimIstendi = false;
+
+    function threeYukle() {
+      if (window.THREE) return Promise.resolve();
+      return new Promise(function (res, rej) {
+        var sc = document.createElement('script');
+        sc.src = 'vendor/three.min.js';
+        sc.onload = function () { res(); };
+        sc.onerror = function () { rej(new Error('3B kütüphanesi yüklenemedi.')); };
+        document.head.appendChild(sc);
+      });
+    }
+
+    function stlAc(s) {
+      var ham = !s.compressed_path;
+      return Promise.all([threeYukle(), ZK3B.indir(s, indirIlerleme)]).then(function (r) {
+        var inen = r[1];
+        durum('Model hazırlanıyor…', inen.onbellekten ? 'cihazdan' : ZK3B.boyut(inen.buf.byteLength), null);
+        return ZK3B.isciCalistir(ham ? 'stl-coz' : 'zkm1-coz', inen.buf).then(function (m) {
+          ZK3B.isciKapat();
+          // Araç çubuğu sahne ölçülmeden ÖNCE açılır; yoksa tuval alt düğmelerin üstüne taşıyordu.
+          document.getElementById('stl-araclar').classList.remove('hidden');
+          ciz(m.poz, m.idx);
+          kartGizle();
+          var olcu = kutu ? kutu.map(function (v) { return v.toFixed(1).replace('.', ','); }).join(' × ') + ' mm' : '';
+          bilgi(Number(m.ucgen).toLocaleString('tr-TR') + ' üçgen · ' + olcu + ' · ' + (inen.onbellekten ? 'cihazdan · ' : '') + ((Date.now() - t0) / 1000).toFixed(1).replace('.', ',') + ' sn');
+        });
+      });
+    }
+
+    function ciz(poz, idx) {
+      var sahne = document.getElementById('sahne');
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      // Üçüncü parametre false: tuvalin CSS boyutu sayfadan (%100) gelir, satır içi px yazılmaz.
+      renderer.setSize(sahne.clientWidth, sahne.clientHeight, false);
+      sahne.insertBefore(renderer.domElement, sahne.firstChild);
+
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(40, sahne.clientWidth / Math.max(1, sahne.clientHeight), 0.1, 10000);
+      scene.add(camera);
+
+      geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(poz, 3));
+      geometry.setIndex(new THREE.BufferAttribute(idx, 1));
+      geometry.computeVertexNormals();
+      geometry.computeBoundingBox();
+      var bb = geometry.boundingBox;
+      merkez = bb.getCenter(new THREE.Vector3());
+      var boyutV = bb.getSize(new THREE.Vector3());
+      kutu = [boyutV.x, boyutV.y, boyutV.z];
+      yaricap = Math.max(0.001, boyutV.length() / 2);
+
+      material = new THREE.MeshPhongMaterial({ color: 0xd8dde3, specular: 0x333333, shininess: 30, side: THREE.DoubleSide });
+      mesh = new THREE.Mesh(geometry, material);
+      mesh.position.set(-merkez.x, -merkez.y, -merkez.z);
+      scene.add(mesh);
+
+      scene.add(new THREE.HemisphereLight(0xffffff, 0x667788, 0.9));
+      var isik = new THREE.DirectionalLight(0xffffff, 0.7);
+      isik.position.set(0.5, 0.8, 1);
+      camera.add(isik); // ışık kamerayla döner: model hep aydınlık
+
+      kontrolleriKur(renderer.domElement);
+      window.addEventListener('resize', yenidenBoyutla);
+      window.addEventListener('orientationchange', function () { setTimeout(yenidenBoyutla, 300); });
+      kameraKonumla();
+      cizimIste();
+    }
+
+    function yenidenBoyutla() {
+      if (!renderer) return;
+      var sahne = document.getElementById('sahne');
+      renderer.setSize(sahne.clientWidth, sahne.clientHeight, false);
+      camera.aspect = sahne.clientWidth / Math.max(1, sahne.clientHeight);
+      camera.updateProjectionMatrix();
+      kameraKonumla();
+      cizimIste();
+    }
+
+    // Kamera mesafesi: model küreyi tam kadraja alır; dikey ekranda (aspect<1) ekstra açılır.
+    function kameraKonumla() {
+      var fov = camera.fov * Math.PI / 180;
+      var r = yaricap / Math.sin(fov / 2);
+      if (camera.aspect < 1) r /= camera.aspect;
+      r *= 1.08 * yorunge.zoom;
+      var sp = Math.sin(yorunge.phi), cp = Math.cos(yorunge.phi), st = Math.sin(yorunge.theta), ct = Math.cos(yorunge.theta);
+      // Z yukarı (diş modelleri böyle gelir)
+      var hedef = new THREE.Vector3(yorunge.panX, yorunge.panY, 0);
+      camera.up.set(0, 0, 1);
+      camera.position.set(hedef.x + r * sp * ct, hedef.y + r * sp * st, hedef.z + r * cp);
+      camera.lookAt(hedef);
+    }
+
+    function cizimIste() {
+      if (cizimIstendi || !renderer) return;
+      cizimIstendi = true;
+      animasyonId = requestAnimationFrame(function () {
+        cizimIstendi = false;
+        if (renderer) renderer.render(scene, camera);
+      });
+    }
+
+    // Dokunmatik kontroller: tek parmak döndür, iki parmak yakınlaştır/kaydır, fare tekerleği yakınlaştır.
+    function kontrolleriKur(el) {
+      var isaretler = {};
+      var sonUzaklik = 0, sonOrta = null;
+      el.addEventListener('pointerdown', function (e) {
+        isaretler[e.pointerId] = { x: e.clientX, y: e.clientY };
+        try { el.setPointerCapture(e.pointerId); } catch (x) {}
+        var ids = Object.keys(isaretler);
+        if (ids.length === 2) {
+          var a = isaretler[ids[0]], b = isaretler[ids[1]];
+          sonUzaklik = Math.hypot(a.x - b.x, a.y - b.y);
+          sonOrta = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+        }
+      });
+      el.addEventListener('pointermove', function (e) {
+        var p = isaretler[e.pointerId];
+        if (!p) return;
+        var ids = Object.keys(isaretler);
+        if (ids.length === 1) {
+          yorunge.theta -= (e.clientX - p.x) * 0.008;
+          yorunge.phi = Math.max(0.05, Math.min(Math.PI - 0.05, yorunge.phi - (e.clientY - p.y) * 0.008));
+        }
+        p.x = e.clientX; p.y = e.clientY;
+        if (ids.length === 2) {
+          var a = isaretler[ids[0]], b = isaretler[ids[1]];
+          var uz = Math.hypot(a.x - b.x, a.y - b.y);
+          var orta = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+          if (sonUzaklik > 0) yorunge.zoom = Math.max(0.15, Math.min(6, yorunge.zoom * (sonUzaklik / uz)));
+          if (sonOrta) {
+            // Kaydırma: ekran pikselini model ölçeğine çevir (kamera düzleminde)
+            var olcek = (yaricap * 2 * yorunge.zoom) / Math.max(1, el.clientHeight);
+            var dx = (orta.x - sonOrta.x) * olcek, dy = (orta.y - sonOrta.y) * olcek;
+            var sag = new THREE.Vector3(), yukari = new THREE.Vector3();
+            camera.matrixWorld.extractBasis(sag, yukari, new THREE.Vector3());
+            yorunge.panX -= sag.x * dx - yukari.x * dy;
+            yorunge.panY -= sag.y * dx - yukari.y * dy;
+          }
+          sonUzaklik = uz; sonOrta = orta;
+        }
+        kameraKonumla(); cizimIste();
+      });
+      function birak(e) {
+        delete isaretler[e.pointerId];
+        sonUzaklik = 0; sonOrta = null;
+      }
+      el.addEventListener('pointerup', birak);
+      el.addEventListener('pointercancel', birak);
+      el.addEventListener('pointerleave', birak);
+      el.addEventListener('wheel', function (e) {
+        e.preventDefault();
+        yorunge.zoom = Math.max(0.15, Math.min(6, yorunge.zoom * (e.deltaY > 0 ? 1.1 : 0.9)));
+        kameraKonumla(); cizimIste();
+      }, { passive: false });
+    }
+
+    function zkGorunum(hangi) {
+      if (!camera) return;
+      yorunge.zoom = 1; yorunge.panX = 0; yorunge.panY = 0;
+      if (hangi === 'ust') { yorunge.theta = -Math.PI / 2; yorunge.phi = 0.05; }
+      else if (hangi === 'on') { yorunge.theta = -Math.PI / 2; yorunge.phi = Math.PI / 2; }
+      else { yorunge.theta = 0.6; yorunge.phi = 1.05; }
+      kameraKonumla(); cizimIste();
+    }
+    function zkTelKafes() {
+      if (!material) return;
+      material.wireframe = !material.wireframe;
+      document.getElementById('tel-btn').classList.toggle('text-primary', material.wireframe);
+      cizimIste();
+    }
+
+    // İndir: 5 dakikalık imzalı bağlantı. Yeni sekme açılamazsa bağlantı ekranda gösterilir.
+    function zkIndir() {
+      if (!satir) return;
+      var btn = document.getElementById('indir-btn');
+      var bitir = ZKHiz.mesgul(btn, 'Hazırlanıyor…');
+      ZK3B.indirmeBaglantisi(satir).then(function (u) {
+        bitir();
+        var w = null;
+        try { w = window.open(u, '_blank'); } catch (e) {}
+        if (!w) {
+          var p = document.getElementById('indir-baglanti');
+          p.className = 'rounded-theme border border-border bg-card p-3 text-xs';
+          p.style.cssText = 'position:absolute;left:16px;right:16px;bottom:48px;word-break:break-all';
+          p.innerHTML = 'İndirme bağlantısı (5 dk geçerli): <a class="font-bold text-primary" href="' + escapeHtml(u) + '" target="_blank" rel="noopener">dosyayı aç</a>';
+        }
+      }).catch(function (e) { bitir(); zkToast('Bağlantı alınamadı: ' + e.message); });
+    }
+
+    // Çıkışta belleği boşalt (WKWebView'da büyük modeller sayfa kapanınca da yer kaplıyordu).
+    function temizle() {
+      try { cancelAnimationFrame(animasyonId); } catch (e) {}
+      try { if (geometry) geometry.dispose(); } catch (e) {}
+      try { if (material) material.dispose(); } catch (e) {}
+      try { if (renderer) { renderer.dispose(); renderer.forceContextLoss(); if (renderer.domElement && renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement); } } catch (e) {}
+      try { var f = document.getElementById('cerceve'); if (f) { f.srcdoc = ''; f.remove(); } } catch (e) {}
+      try { ZK3B.isciKapat(); } catch (e) {}
+      renderer = scene = camera = mesh = geometry = material = null;
+    }
+    window.addEventListener('pagehide', temizle);
+    window.addEventListener('beforeunload', temizle);
+  </script>
+</body>
+</html>

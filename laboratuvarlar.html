@@ -196,6 +196,7 @@
         <input id="nr-name" type="text" placeholder="Oda adı * (Örn. Tasarım, Freze)" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         <label class="flex items-center gap-2 text-xs font-semibold"><input id="nr-qc" type="checkbox"> Kalite kontrol aşaması</label>
         <label class="flex items-center gap-2 text-xs font-semibold"><input id="nr-delivery" type="checkbox"> Teslimat aşaması</label>
+        <label class="flex items-center gap-2 text-xs font-semibold"><input id="nr-3d" type="checkbox"> 3B dosya odası <span class="font-normal text-muted-foreground">(STL görür, exocad tasarımı yükler)</span></label>
       </div>
       <p id="nr-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
       <button onclick="zkSubmitAddRoom()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
@@ -210,6 +211,7 @@
         <input id="er-name" type="text" placeholder="Oda adı *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         <label class="flex items-center gap-2 text-xs font-semibold"><input id="er-qc" type="checkbox"> Kalite kontrol aşaması</label>
         <label class="flex items-center gap-2 text-xs font-semibold"><input id="er-delivery" type="checkbox"> Teslimat aşaması</label>
+        <label class="flex items-center gap-2 text-xs font-semibold"><input id="er-3d" type="checkbox"> 3B dosya odası <span class="font-normal text-muted-foreground">(STL görür, exocad tasarımı yükler)</span></label>
       </div>
       <p id="er-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
       <button onclick="zkSubmitEditRoom()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
@@ -365,7 +367,7 @@
     function loadRooms(lab) {
       activeLabForRoom = lab;
       var client = ZirkonikAuth.client();
-      client.from('rooms').select('id, name, sort_order, is_quality_control, is_delivery').eq('laboratory_id', lab.id).order('sort_order').then(function (roomsRes) {
+      client.from('rooms').select('id, name, sort_order, is_quality_control, is_delivery, has_3d').eq('laboratory_id', lab.id).order('sort_order').then(function (roomsRes) {
         var rooms = roomsRes.data || [];
         currentRooms = rooms;
         client.from('jobs').select('current_room_id').eq('status', 'active').eq('laboratory_id', lab.id).then(function (jobsRes) {
@@ -387,7 +389,7 @@
             html += '<div class="mt-3 grid grid-cols-2 gap-2.5">' + rooms.map(function (r) {
               return '<button onclick="zkOpenEditRoom(\'' + r.id + '\')" class="rounded-theme border border-border bg-card p-3 text-left">' +
                 '<p class="font-heading text-sm font-bold">' + escapeHtml(r.name) + '</p>' +
-                '<p class="mt-1 text-[11px] text-muted-foreground">' + (counts[r.id] || 0) + ' aktif iş</p></button>';
+                '<p class="mt-1 text-[11px] text-muted-foreground">' + (counts[r.id] || 0) + ' aktif iş' + (r.has_3d ? ' · 3B' : '') + '</p></button>';
             }).join('') + '</div>';
           }
           document.getElementById('rooms-section').innerHTML = html;
@@ -476,7 +478,8 @@
         var nextOrder = (r.count || 0) + 1;
         return ZirkonikData.createRoom(activeLabForRoom.id, name, nextOrder, {
           isQualityControl: document.getElementById('nr-qc').checked,
-          isDelivery: document.getElementById('nr-delivery').checked
+          isDelivery: document.getElementById('nr-delivery').checked,
+          has3d: document.getElementById('nr-3d').checked
         });
       }).then(function (res) {
         if (res.error) throw res.error;
@@ -484,6 +487,7 @@
         document.getElementById('nr-name').value = '';
         document.getElementById('nr-qc').checked = false;
         document.getElementById('nr-delivery').checked = false;
+        document.getElementById('nr-3d').checked = false;
         zkToast('Oda eklendi.');
         loadLabs();
       }).catch(function (err) {
@@ -502,6 +506,7 @@
       document.getElementById('er-name').value = room.name;
       document.getElementById('er-qc').checked = !!room.is_quality_control;
       document.getElementById('er-delivery').checked = !!room.is_delivery;
+      document.getElementById('er-3d').checked = !!room.has_3d;
       document.getElementById('er-error').classList.add('hidden');
       document.getElementById('edit-room-sheet').classList.remove('hidden');
     }
@@ -536,7 +541,8 @@
       ZirkonikData.updateRoom(editingRoomId, {
         name: name,
         is_quality_control: document.getElementById('er-qc').checked,
-        is_delivery: document.getElementById('er-delivery').checked
+        is_delivery: document.getElementById('er-delivery').checked,
+        has_3d: document.getElementById('er-3d').checked
       }).then(function (res) {
         if (res.error) throw res.error;
         zkCloseEditRoom();

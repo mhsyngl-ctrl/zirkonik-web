@@ -217,6 +217,13 @@
               <span class="mb-1.5 block text-xs font-bold">Tahmini teslim tarihi</span>
               <input id="f-delivery" type="date" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
             </label>
+            <!-- 15 Ekim 2026: STL tarama dosyası. İş kaydedilince yüklenir; kaydetmeden
+                 önce "Kaldır" ile geri alınır. Kaydedildikten sonra yalnız yönetici siler. -->
+            <div class="mt-4">
+              <span class="mb-1.5 block text-xs font-bold">STL tarama dosyası <span class="font-normal text-muted-foreground">(isteğe bağlı)</span></span>
+              <div id="f-stl"></div>
+              <div id="f-stl-ilerleme" class="mt-2 hidden"></div>
+            </div>
           </section>
 
           <section id="f-price-section" class="mt-7 border-t border-border pt-6">
@@ -304,6 +311,7 @@
   <script src="supabase-config.js"></script>
   <script src="js/net-guard.js"></script>
   <script src="supabase-client.js"></script>
+  <script src="js/zk-3b.js"></script>
   <script src="js/zk-guard.js"></script>
   <script src="js/zk-picker.js"></script>
   <script src="js/zk-ptr.js"></script>
@@ -673,6 +681,8 @@
       });
     });
 
+    var fStl = (window.ZK3B && document.getElementById('f-stl')) ? ZK3B.secici(document.getElementById('f-stl'), { tur: 'stl' }) : null;
+
     document.getElementById('submit-btn').addEventListener('click', function () {
       var errEl = document.getElementById('form-error');
       errEl.classList.add('hidden');
@@ -882,6 +892,19 @@
           });
         }
         return job;
+      }).then(function (job) {
+        // 15 Ekim 2026: STL seçildiyse iş kaydından SONRA yüklenir. Yükleme patlarsa iş
+        // yine de açılmıştır; dosya iş detayından (yönetici) tekrar eklenir.
+        var dosya = fStl ? fStl.al() : null;
+        if (!dosya) return job;
+        var durum = ZK3B.ilerlemeCubugu(document.getElementById('f-stl-ilerleme'));
+        if (fStl) fStl.kilitle(true);
+        return ZirkonikAuth.me().then(function (me) {
+          return ZK3B.yukle({ file: dosya, tur: 'stl', jobId: job.id, orgId: job.organization_id, userId: me.id, rol: 'laboratuvar', durum: durum });
+        }).then(function () { return job; }, function (e) {
+          zkToast('İş oluşturuldu ama STL yüklenemedi: ' + e.message);
+          return new Promise(function (r) { setTimeout(function () { r(job); }, 2200); });
+        });
       }).then(function (job) {
         window.location.href = 'detay.html?id=' + job.id;
       }).catch(function (err) {

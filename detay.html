@@ -198,6 +198,33 @@
           <div id="work-form-rows" class="mt-4 grid grid-cols-2 gap-3"></div>
         </section>
 
+        <!-- 15 Ekim 2026: 3B dosyalar. STL'i doktor/lab yükler; exocad HTML'i işin
+             bulunduğu 3B odasının yetkilisi yükler ve "Doktora gönder" der. Kaydedilen
+             dosyayı yalnız yönetici siler. Kart yalnız dosya varsa ya da bu kullanıcı
+             yükleyebiliyorsa görünür. -->
+        <section id="dosya-3b-card" class="hidden rounded-theme border border-border bg-card p-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-accent">3B dosyalar</p>
+              <h2 class="mt-1 font-heading text-base font-bold">Tarama ve tasarım</h2>
+            </div>
+            <iconify-icon icon="lucide:box" class="text-xl text-primary"></iconify-icon>
+          </div>
+          <div id="dosya-3b-liste" class="mt-4 space-y-2"></div>
+          <p id="dosya-3b-bos" class="mt-3 hidden text-xs text-muted-foreground">Henüz dosya yok.</p>
+          <div id="dosya-3b-secim" class="mt-3 hidden"></div>
+          <div id="dosya-3b-yukle" class="mt-3 hidden">
+            <p id="dosya-3b-yukle-baslik" class="mb-1.5 text-xs font-bold"></p>
+            <div id="dosya-3b-secici"></div>
+            <div id="dosya-3b-ilerleme" class="mt-2 hidden"></div>
+            <div id="dosya-3b-dugmeler" class="mt-2 grid grid-cols-2 gap-2">
+              <button type="button" onclick="zk3BVazgec()" class="flex h-11 items-center justify-center rounded-theme border border-border bg-background text-xs font-bold text-muted-foreground">Vazgeç</button>
+              <button id="dosya-3b-kaydet" type="button" onclick="zk3BKaydet()" disabled class="flex h-11 items-center justify-center gap-1.5 rounded-theme bg-primary text-xs font-bold text-primary-foreground opacity-50"><iconify-icon icon="lucide:upload" class="text-base"></iconify-icon>Kaydet ve yükle</button>
+            </div>
+          </div>
+          <p id="dosya-3b-hata" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
+        </section>
+
         <section class="rounded-theme border border-border bg-card p-4">
           <div class="flex items-center justify-between">
             <div>
@@ -389,6 +416,7 @@
   <script src="supabase-config.js"></script>
   <script src="js/net-guard.js"></script>
   <script src="supabase-client.js"></script>
+  <script src="js/zk-3b.js"></script>
   <script src="js/zk-guard.js"></script>
   <script src="js/zk-ptr.js"></script>
   <script src="js/zk-hiz.js"></script>
@@ -581,9 +609,10 @@
         // Secili kalemi koru (yenileme sonrasi kullanici basa donmesin).
         var keep = currentItem && jobItems.filter(function (i) { return i.id === currentItem.id; })[0];
         currentItem = keep || jobItems[0] || null;
-        return ZirkonikAuth.client().from('rooms').select('id, name, sort_order, is_delivery').eq('laboratory_id', currentJob.laboratory_id).order('sort_order');
+        return ZirkonikAuth.client().from('rooms').select('id, name, sort_order, is_delivery, has_3d').eq('laboratory_id', currentJob.laboratory_id).order('sort_order');
       }).then(function (roomsRes) {
         rooms = roomsRes.data || [];
+        tumOdalar = rooms.slice(); // rota daraltmadan önce: 3B oda bayrağı buradan okunur
         // Rota ve bulunulan oda artik KALEMDEN okunuyor. Kalem yoksa (teorik
         // olarak olmamali, geri dolum hepsini olusturdu) ise dusulur.
         var route = (currentItem && currentItem.planned_route) || currentJob.planned_route;
@@ -616,6 +645,7 @@
           currentInvoice = jobInvoices[0] || null;
           renderJob();
           loadHistory();
+          load3B();
         });
       }).catch(function (err) {
         document.querySelector('main').innerHTML = '<p class="text-sm text-destructive">Yüklenemedi: ' + escapeHtml(err.message) + '</p>';
@@ -1125,6 +1155,132 @@
     }
 
     var historyRows = [];
+
+    // ---------------- 3B dosyalar (15 Ekim 2026) ----------------
+    // Yetki (sunucu RLS de aynısını zorlar):
+    //  - HTML yükle / doktora gönder: yönetici, ya da işin bulunduğu oda 3B odasıysa o odanın yetkilisi
+    //  - STL ekle: yönetici (yalnız işte hiç STL yoksa — iş açılırken yüklenmemişse)
+    //  - Sil: yalnız yönetici. Kaydetmeden önce "Kaldır" herkes için (dosya daha sunucuya gitmedi).
+    var tumOdalar = [];
+    var dosya3B = { satirlar: [], secici: null, tur: null, yetki: {}, oda: null, yukleniyor: false };
+
+    function load3B() {
+      if (!window.ZK3B || !currentJob) return;
+      var curRoom = zkCurRoom();
+      var oda = null;
+      for (var i = 0; i < tumOdalar.length; i++) { if (tumOdalar[i].id === curRoom) { oda = tumOdalar[i]; break; } }
+      dosya3B.oda = oda;
+      var admin = myRole === 'yonetici';
+      var odaYetkiliSoz = admin ? Promise.resolve(true)
+        : (oda && oda.has_3d ? ZirkonikAuth.client().rpc('has_room_access', { rm_id: curRoom }).then(function (r) { return !!r.data; }, function () { return false; }) : Promise.resolve(false));
+      Promise.all([ZK3B.listele({ jobId: jobId }), odaYetkiliSoz]).then(function (r) {
+        var satirlar = r[0], odaYetkili = r[1];
+        var stlVar = satirlar.some(function (s) { return s.kind === 'stl'; });
+        dosya3B.satirlar = satirlar;
+        dosya3B.yetki = {
+          htmlYukle: admin || (!!oda && !!oda.has_3d && odaYetkili),
+          stlEkle: admin && !stlVar,
+          gonder: admin || (!!oda && !!oda.has_3d && odaYetkili),
+          sil: admin
+        };
+        ciz3B();
+      }).catch(function (e) {
+        var hataEl = document.getElementById('dosya-3b-hata');
+        hataEl.textContent = '3B dosyalar yüklenemedi: ' + ((e && e.message) || e);
+        hataEl.classList.remove('hidden');
+        document.getElementById('dosya-3b-card').classList.remove('hidden');
+      });
+    }
+
+    function ciz3B() {
+      var y = dosya3B.yetki, s = dosya3B.satirlar;
+      var kart = document.getElementById('dosya-3b-card');
+      var gorunur = s.length > 0 || y.htmlYukle || y.stlEkle || (dosya3B.oda && dosya3B.oda.has_3d);
+      kart.classList.toggle('hidden', !gorunur);
+      if (!gorunur) return;
+      document.getElementById('dosya-3b-liste').innerHTML = ZK3B.listeHtml(s, { gonder: y.gonder, sil: y.sil }, 'detay.html?id=' + jobId);
+      document.getElementById('dosya-3b-bos').classList.toggle('hidden', s.length > 0);
+      var secim = document.getElementById('dosya-3b-secim');
+      var dugmeler = [];
+      if (y.htmlYukle) dugmeler.push('<button type="button" onclick="zk3BSec(\'html\')" class="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-theme border border-border bg-background text-xs font-bold text-primary"><iconify-icon icon="lucide:file-code" class="text-base"></iconify-icon>exocad tasarımı yükle</button>');
+      if (y.stlEkle) dugmeler.push('<button type="button" onclick="zk3BSec(\'stl\')" class="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-theme border border-border bg-background text-xs font-bold text-primary"><iconify-icon icon="lucide:box" class="text-base"></iconify-icon>STL ekle</button>');
+      secim.innerHTML = dugmeler.length ? '<div class="flex gap-2">' + dugmeler.join('') + '</div>' : '';
+      secim.classList.toggle('hidden', !dugmeler.length || !!dosya3B.tur);
+      document.getElementById('dosya-3b-yukle').classList.toggle('hidden', !dosya3B.tur);
+      document.getElementById('dosya-3b-hata').classList.add('hidden');
+    }
+
+    function zk3BSec(tur) {
+      dosya3B.tur = tur;
+      document.getElementById('dosya-3b-yukle-baslik').textContent = tur === 'html' ? 'exocad tasarım dosyası (HTML)' : 'STL tarama dosyası';
+      document.getElementById('dosya-3b-ilerleme').classList.add('hidden');
+      dosya3B.secici = ZK3B.secici(document.getElementById('dosya-3b-secici'), {
+        tur: tur,
+        degisti: function (f) {
+          var b = document.getElementById('dosya-3b-kaydet');
+          b.disabled = !f; b.classList.toggle('opacity-50', !f);
+        }
+      });
+      ciz3B();
+    }
+    function zk3BVazgec() {
+      if (dosya3B.yukleniyor) return;
+      dosya3B.tur = null; dosya3B.secici = null;
+      document.getElementById('dosya-3b-secici').innerHTML = '';
+      ciz3B();
+    }
+
+    function zk3BKaydet() {
+      var f = dosya3B.secici && dosya3B.secici.al();
+      if (!f || dosya3B.yukleniyor) return;
+      var btn = document.getElementById('dosya-3b-kaydet');
+      var bitir = ZKHiz.mesgul(btn, 'Yükleniyor…');
+      var durum = ZK3B.ilerlemeCubugu(document.getElementById('dosya-3b-ilerleme'));
+      var hataEl = document.getElementById('dosya-3b-hata');
+      hataEl.classList.add('hidden');
+      dosya3B.yukleniyor = true;
+      dosya3B.secici.kilitle(true);
+      var tur = dosya3B.tur;
+      ZirkonikAuth.me().then(function (me) {
+        return ZK3B.yukle({ file: f, tur: tur, jobId: jobId, orgId: currentJob.organization_id, userId: me.id, rol: 'laboratuvar', durum: durum });
+      }).then(function (satir) {
+        bitir();
+        dosya3B.yukleniyor = false;
+        zk3BVazgec();
+        zkToast(tur === 'html' ? 'Tasarım dosyası kaydedildi.' : 'STL dosyası kaydedildi.');
+        if (tur === 'html' && satir && dosya3B.yetki.gonder) {
+          // Yükleyen kaydetti; şimdi doktora gitsin mi? Hayır denirse listede "Doktora gönder" düğmesi kalır.
+          if (confirm('Tasarım doktora gönderilsin mi? Doktora bildirim gider ve dosyayı kendi ekranından açar.')) {
+            return ZK3B.doktoraGonder(satir.id).then(function () { zkToast('Doktora gönderildi.'); }, function (e) { zkToast('Gönderilemedi: ' + e.message); });
+          }
+        }
+      }).catch(function (e) {
+        bitir();
+        dosya3B.yukleniyor = false;
+        if (dosya3B.secici) dosya3B.secici.kilitle(false);
+        hataEl.textContent = 'Yüklenemedi: ' + ((e && e.message) || e);
+        hataEl.classList.remove('hidden');
+      }).then(function () { load3B(); });
+    }
+
+    // Liste düğmeleri: Doktora gönder / Sil (geri alınamaz: önce onay, sonra sunucu, sonra ekran).
+    document.getElementById('dosya-3b-liste').addEventListener('click', function (e) {
+      var b = e.target.closest ? e.target.closest('[data-3b-eylem]') : null;
+      if (!b) return;
+      var id = b.getAttribute('data-3b-id');
+      var satir = dosya3B.satirlar.filter(function (s) { return s.id === id; })[0];
+      if (!satir) return;
+      var eylem = b.getAttribute('data-3b-eylem');
+      if (eylem === 'gonder') {
+        if (!confirm('Tasarım doktora gönderilsin mi? Doktora bildirim gider ve dosyayı kendi ekranından açar.')) return;
+        var bitir = ZKHiz.mesgul(b, 'Gönderiliyor…');
+        ZK3B.doktoraGonder(id).then(function () { bitir(false); zkToast('Doktora gönderildi.'); load3B(); }, function (err) { bitir(); zkToast('Gönderilemedi: ' + err.message); });
+      } else if (eylem === 'sil') {
+        if (!confirm('"' + satir.file_name + '" kalıcı olarak silinsin mi? Bu işlem geri alınamaz.')) return;
+        var bitir2 = ZKHiz.mesgul(b, '…');
+        ZK3B.sil(satir).then(function () { bitir2(false); zkToast('Dosya silindi.'); load3B(); }, function (err) { bitir2(); zkToast('Silinemedi: ' + err.message); });
+      }
+    });
 
     function loadHistory() {
       var client = ZirkonikAuth.client();
