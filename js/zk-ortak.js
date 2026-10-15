@@ -70,6 +70,8 @@
     altyapiVer: function (jobId, targetLab, kalemler, not) { return rpc('zk_altyapi_siparisi_ver', { p_job: jobId, p_target_lab: targetLab, p_kalemler: kalemler, p_note: not || null }); },
     durum: function (jobId) { return rpc('zk_altyapi_durum', { p_job: jobId }).then(function (d) { return Array.isArray(d) ? d : []; }); },
     teslimAl: function (id) { return rpc('zk_altyapi_teslim_al', { p_sub: id }); },
+    // Alıcı tarafı: bu iş kimin altyapı siparişi (Aşama 2 SQL'i henüz yoksa null).
+    kaynak: function (jobId) { return rpc('zk_altyapi_kaynak', { p_job: jobId }).catch(function () { return null; }); },
     iptal: function (id) { return rpc('zk_altyapi_iptal', { p_sub: id }); },
 
     // İş detayındaki altyapı kartı için satır HTML'i. yetki: { teslim: bool, iptal: bool }

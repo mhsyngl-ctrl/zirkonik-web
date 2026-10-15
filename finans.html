@@ -1077,7 +1077,7 @@
             return (a.full_name || '').localeCompare(b.full_name || '', 'tr');
           });
           var optionFor = function (d) {
-            var label = 'Dr. ' + d.full_name + (d.clinic_name ? ' — ' + d.clinic_name : '');
+            var label = ZirkonikData.musteriAdi(d) + (d.clinic_name ? ' — ' + d.clinic_name : '');
             return '<option value="' + d.id + '">' + escapeHtml(label) + '</option>';
           };
           var borcluIds = Object.keys(borcluMap);

@@ -590,7 +590,7 @@
       if (isSpecial) {
         var doc = doctors.find(function (d) { return d.id === doctorId; });
         var who = doc
-          ? ('Dr. ' + doc.full_name + (doc.clinic_name ? ' — ' + doc.clinic_name : ''))
+          ? (ZirkonikData.musteriAdi(doc) + (doc.clinic_name ? ' — ' + doc.clinic_name : ''))
           : 'bu kapsam';
         label += ' · ' + who + ' için anlaşmalı fiyat'
           + (listPrice != null ? ' (genel liste: ' + listPrice + ' ' + cur + ')' : ' (genel listede fiyat tanımlı değil)');

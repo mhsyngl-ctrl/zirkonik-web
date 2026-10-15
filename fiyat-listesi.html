@@ -221,7 +221,7 @@
           og.label = 'Doktora özel';
           r.data.forEach(function (d) {
             var o = document.createElement('option');
-            o.value = 'doc:' + d.id; o.textContent = 'Dr. ' + d.full_name;
+            o.value = 'doc:' + d.id; o.textContent = ZirkonikData.musteriAdi(d);
             og.appendChild(o);
           });
           sel.appendChild(og);
