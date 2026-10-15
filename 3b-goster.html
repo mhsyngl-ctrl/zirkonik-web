@@ -38,9 +38,11 @@
 </head>
 <body class="bg-background text-foreground">
   <header class="flex items-center gap-3 border-b border-border bg-card px-4 py-3" style="padding-top:calc(env(safe-area-inset-top,0px) + 12px)">
-    <a id="geri-btn" href="retim.html" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-theme border border-border bg-background text-foreground" aria-label="Geri">
+    <!-- Geri = geçmişte bir adım (gelinen iş detayı). İleri yönlü bağlantı olunca geçmiş
+         şişiyor ve detay↔görüntüleyici arasında döngü oluşuyordu (15 Ekim 2026 telefon bulgusu). -->
+    <button id="geri-btn" type="button" onclick="zkGeri()" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-theme border border-border bg-background text-foreground" aria-label="Geri">
       <iconify-icon icon="lucide:arrow-left" class="text-lg"></iconify-icon>
-    </a>
+    </button>
     <div class="min-w-0 flex-1">
       <p id="baslik" class="truncate font-heading text-sm font-bold">3B görüntüleyici</p>
       <p id="altbaslik" class="truncate text-[11px] text-muted-foreground">Yükleniyor…</p>
@@ -92,8 +94,10 @@
     var params = new URLSearchParams(location.search);
     var dosyaId = params.get('dosya');
     var geri = params.get('geri');
-    // Geri bağlantısı yalnız uygulamanın kendi sayfalarına gider (dış adres kabul edilmez).
-    if (geri && /^[a-z0-9-]+\.html(\?[a-z0-9=&_-]*)?$/i.test(geri)) document.getElementById('geri-btn').href = geri;
+    // Geçmiş yoksa (bildirimden/dış bağlantıdan doğrudan açıldıysa) "geri" parametresi, o da
+    // yoksa üretim panosu. Parametre yalnız uygulamanın kendi sayfası olabilir (dış adres yok).
+    var geriVarsayilan = (geri && /^[a-z0-9-]+\.html(\?[a-z0-9=&_-]*)?$/i.test(geri)) ? geri : 'retim.html';
+    function zkGeri() { if (history.length > 1) history.back(); else location.href = geriVarsayilan; }
 
     var satir = null, t0 = Date.now();
     var durumEl = document.getElementById('durum'), durumAlt = document.getElementById('durum-alt'), cubuk = document.getElementById('cubuk');

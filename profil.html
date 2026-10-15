@@ -365,7 +365,7 @@
           // Doktor retim.html'e giremiyor (zk-guard geri atar); geri dugmesi
           // kendi paneline gitmeli.
           var geri = document.getElementById('pf-back');
-          if (geri) geri.setAttribute('onclick', "location.href='doktor-siparis.html'");
+          if (geri) geri.setAttribute('onclick', "history.length > 1 ? history.back() : location.href='doktor-siparis.html'");
           zkLoadDoctorProfile();
         }
         if (me.role !== 'doktor') {

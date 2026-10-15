@@ -57,7 +57,7 @@
       <header class="border-b border-border bg-card">
         <div class="px-5 pt-12 pb-5" style="padding-top:max(3rem,calc(env(safe-area-inset-top) + 12px));">
           <div class="flex items-center justify-between">
-            <button onclick="location.href='retim.html'" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-card text-card-foreground">
+            <button onclick="history.length > 1 ? history.back() : location.href='retim.html'" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-card text-card-foreground" aria-label="Geri">
               <iconify-icon icon="lucide:arrow-left" class="text-xl"></iconify-icon>
             </button>
             <div class="text-center">
@@ -906,7 +906,8 @@
           return new Promise(function (r) { setTimeout(function () { r(job); }, 2200); });
         });
       }).then(function (job) {
-        window.location.href = 'detay.html?id=' + job.id;
+        // replace: boş form geçmişte kalmasın; iş detayından "geri" üretim panosuna döner.
+        window.location.replace('detay.html?id=' + job.id);
       }).catch(function (err) {
         errEl.textContent = 'İş oluşturulamadı: ' + err.message;
         errEl.classList.remove('hidden');
