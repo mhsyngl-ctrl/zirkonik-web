@@ -225,6 +225,23 @@
           <p id="dosya-3b-hata" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
         </section>
 
+        <!-- 15 Ekim 2026: Altyapı siparişi (laboratuvarlar arası iş). Yalnız paket açıksa görünür.
+             İş A'nın kalır; seçilen kalemler B labda üretilir, burada canlı izlenir, teslim alınınca
+             kalem üstyapıya devam eder. Plan: docs/altyapi-siparisi-plani.md -->
+        <section id="altyapi-card" class="hidden rounded-theme border border-border bg-card p-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-accent">Altyapı</p>
+              <h2 class="mt-1 font-heading text-base font-bold">Başka laboratuvarda yapılan iş</h2>
+            </div>
+            <iconify-icon icon="lucide:arrow-left-right" class="text-xl text-primary"></iconify-icon>
+          </div>
+          <div id="altyapi-liste" class="mt-4 space-y-2"></div>
+          <p id="altyapi-bos" class="mt-3 hidden text-xs text-muted-foreground">Bu iş için altyapı siparişi yok.</p>
+          <button id="altyapi-ver-btn" type="button" onclick="zkAltyapiAc()" class="mt-3 hidden h-11 w-full items-center justify-center gap-2 rounded-theme border border-border bg-background text-xs font-bold text-primary"><iconify-icon icon="lucide:send" class="text-base"></iconify-icon>Altyapı siparişi ver</button>
+          <p id="altyapi-hata" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
+        </section>
+
         <section class="rounded-theme border border-border bg-card p-4">
           <div class="flex items-center justify-between">
             <div>
@@ -384,6 +401,25 @@
     </div>
   </div>
 
+  <!-- 15 Ekim 2026: Altyapı siparişi verme penceresi (laboratuvarlar arası iş) -->
+  <div id="altyapi-sheet" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkAltyapiKapat()"></div>
+    <div class="absolute bottom-0 left-0 w-full overflow-y-auto rounded-t-theme bg-card p-5 pb-8" style="max-height:88vh">
+      <div class="flex items-start justify-between gap-3">
+        <div><p class="font-heading text-lg font-bold">Altyapı siparişi ver</p><p class="mt-0.5 text-xs text-muted-foreground">Seçtiğiniz kalemler karşı laboratuvarda üretilir, iş sizde kalır.</p></div>
+        <button onclick="zkAltyapiKapat()" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Kapat"><iconify-icon icon="lucide:x" class="text-sm"></iconify-icon></button>
+      </div>
+      <label class="mt-4 block"><span class="mb-1.5 block text-xs font-bold">Hangi laboratuvara</span>
+        <select id="as-lab" onchange="zkAltyapiLabDegisti()" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"></select></label>
+      <div id="as-kalemler" class="mt-3 space-y-2"></div>
+      <label class="mt-3 block"><span class="mb-1.5 block text-xs font-bold">Not (isteğe bağlı)</span>
+        <input id="as-not" type="text" maxlength="200" placeholder="Karşı laboratuvara kısa not" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"></label>
+      <p class="mt-2 text-[11px] text-muted-foreground">Hasta adı karşı laboratuvara gönderilmez; yalnız iş numarası, dişler ve çalışma formu gider.</p>
+      <p id="as-hata" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
+      <button id="as-gonder" type="button" onclick="zkAltyapiGonder()" class="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-theme bg-primary text-sm font-bold text-primary-foreground"><iconify-icon icon="lucide:send" class="text-base"></iconify-icon>Gönder</button>
+    </div>
+  </div>
+
   <div id="zk-toast" style="position:fixed;left:50%;bottom:96px;transform:translate(-50%,16px);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;background:#17242C;color:#fff;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;padding:10px 16px;border-radius:12px;z-index:9999;max-width:86%;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.18);"></div>
   <script>
     function zkToast(msg){
@@ -417,6 +453,7 @@
   <script src="js/net-guard.js"></script>
   <script src="supabase-client.js"></script>
   <script src="js/zk-3b.js"></script>
+  <script src="js/zk-ortak.js"></script>
   <script src="js/zk-guard.js"></script>
   <script src="js/zk-ptr.js"></script>
   <script src="js/zk-hiz.js"></script>
@@ -509,11 +546,14 @@
         var col = ZK_ITEM_COLORS[(it.color_index || 0) % ZK_ITEM_COLORS.length];
         var dis = (it.teeth && it.teeth.length) ? ' (' + it.teeth.length + ' diş)' : '';
         var bitti = it.status === 'completed';
+        // 15 Ekim 2026: kalemin altyapısı başka labda sürüyorsa küçük ok rozeti.
+        var altyapida = typeof zkAltyapiAktifKalemler === 'function' && zkAltyapiAktifKalemler()[it.id];
         return '<button type="button" onclick="zkSelectItem(' + idx + ')" class="flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[11px] font-bold ' +
           (sel ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground') + '">' +
           '<span class="h-2 w-2 rounded-full" style="background:' + col + '"></span>' +
           escapeHtml(it.restoration_type || 'Kalem') + dis +
           (bitti ? ' <span class="text-success">✓</span>' : '') +
+          (altyapida ? ' <span class="text-accent" title="Altyapısı başka laboratuvarda">↗</span>' : '') +
           '</button>';
       }).join('');
     }
@@ -578,7 +618,7 @@
       document.getElementById('job-tooth-count').textContent = j.unit_count || '—';
       document.getElementById('job-delivery').textContent = j.requested_delivery_at ? new Date(j.requested_delivery_at).toLocaleDateString('tr-TR') : 'Belirtilmedi';
       var doc = j.doctors || {};
-      document.getElementById('doctor-name').textContent = doc.full_name ? 'Dr. ' + doc.full_name : '—';
+      document.getElementById('doctor-name').textContent = ZirkonikData.musteriAdi(doc);
       document.getElementById('doctor-clinic').textContent = doc.clinic_name || '—';
       document.getElementById('doctor-initial').textContent = doc.full_name ? doc.full_name.charAt(0).toUpperCase() : '?';
     }
@@ -646,6 +686,7 @@
           renderJob();
           loadHistory();
           load3B();
+          loadAltyapi();
         });
       }).catch(function (err) {
         document.querySelector('main').innerHTML = '<p class="text-sm text-destructive">Yüklenemedi: ' + escapeHtml(err.message) + '</p>';
@@ -712,7 +753,7 @@
       if (j.is_priority) document.getElementById('priority-badge').classList.remove('hidden');
 
       var doc = j.doctors || {};
-      document.getElementById('doctor-name').textContent = doc.full_name ? 'Dr. ' + doc.full_name : '—';
+      document.getElementById('doctor-name').textContent = ZirkonikData.musteriAdi(doc);
       document.getElementById('doctor-clinic').textContent = doc.clinic_name || '—';
       document.getElementById('doctor-initial').textContent = doc.full_name ? doc.full_name.charAt(0).toUpperCase() : '?';
 
@@ -1049,7 +1090,7 @@
       doc.setTextColor(120);
       doc.text('İş Fişi — ' + j.job_number, 14, 25);
 
-      var doctorName = j.doctors && j.doctors.full_name ? 'Dr. ' + j.doctors.full_name : '—';
+      var doctorName = ZirkonikData.musteriAdi(j.doctors);
       var rows = [
         ['İş tanımı', desc],
         ['Doktor', doctorName],
@@ -1282,6 +1323,140 @@
       }
     });
 
+    // ---------------- Altyapı siparişi (15 Ekim 2026) ----------------
+    // Sunucu: zk_altyapi_* RPC'leri (migration 20261015230000). Kart yalnız kuruluşta paket açıksa görünür.
+    var altyapi = { acik: false, yetkiVer: false, satirlar: [], ortaklar: [], fiyatlar: [], hedefLab: null };
+    function zkAltyapiAktifKalemler() {
+      var m = {};
+      altyapi.satirlar.forEach(function (s) {
+        if (s.status === 'gonderildi' || s.status === 'uretimde' || s.status === 'tamamlandi') (s.item_ids || []).forEach(function (id) { m[id] = s; });
+      });
+      return m;
+    }
+    function loadAltyapi() {
+      if (!window.ZKOrtak || !currentJob) return;
+      var kart = document.getElementById('altyapi-card');
+      ZirkonikAuth.me().then(function (me) {
+        altyapi.acik = ZKOrtak.acikMi(me);
+        if (!altyapi.acik) { kart.classList.add('hidden'); return null; }
+        var perms = (me && me.user_permissions) || {};
+        perms = (perms && perms[0]) || perms || {};
+        altyapi.yetkiVer = (me && me.role === 'yonetici') || !!perms.can_manage_orders;
+        return ZKOrtak.durum(jobId);
+      }).then(function (satirlar) {
+        if (!satirlar) return;
+        altyapi.satirlar = satirlar;
+        kart.classList.remove('hidden');
+        document.getElementById('altyapi-liste').innerHTML = satirlar.map(function (s) {
+          return ZKOrtak.altyapiSatirHtml(s, { teslim: true, iptal: altyapi.yetkiVer });
+        }).join('');
+        document.getElementById('altyapi-bos').classList.toggle('hidden', satirlar.length > 0);
+        var ver = document.getElementById('altyapi-ver-btn');
+        var verilebilir = altyapi.yetkiVer && currentJob.status === 'active';
+        ver.classList.toggle('hidden', !verilebilir);
+        ver.classList.toggle('flex', verilebilir);
+        document.getElementById('altyapi-hata').classList.add('hidden');
+        renderItemTabs();
+      }).catch(function (e) {
+        var h = document.getElementById('altyapi-hata');
+        h.textContent = 'Altyapı bilgisi alınamadı: ' + ((e && e.message) || e);
+        h.classList.remove('hidden');
+        kart.classList.remove('hidden');
+      });
+    }
+    document.getElementById('altyapi-liste').addEventListener('click', function (e) {
+      var b = e.target.closest ? e.target.closest('[data-ortak-eylem]') : null;
+      if (!b) return;
+      var id = b.getAttribute('data-ortak-id'), eylem = b.getAttribute('data-ortak-eylem');
+      if (eylem === 'teslim') {
+        if (!confirm('Altyapı teslim alındı olarak işaretlensin mi? Kalem üstyapıya devam edebilir.')) return;
+        var bitir = ZKHiz.mesgul(b, 'Kaydediliyor…');
+        ZKOrtak.teslimAl(id).then(function () { bitir(false); zkToast('Altyapı teslim alındı.'); loadAltyapi(); }, function (err) { bitir(); zkToast('Olmadı: ' + err.message); });
+      } else if (eylem === 'iptal') {
+        if (!confirm('Altyapı siparişi geri çekilsin mi? Karşı laboratuvar henüz onaylamadıysa iptal edilir.')) return;
+        var bitir2 = ZKHiz.mesgul(b, '…');
+        ZKOrtak.iptal(id).then(function () { bitir2(false); zkToast('Sipariş geri çekildi.'); loadAltyapi(); }, function (err) { bitir2(); zkToast('Olmadı: ' + err.message); });
+      }
+    });
+    // Sipariş verme penceresi
+    function zkAltyapiAc() {
+      if (!altyapi.yetkiVer || !currentJob) return;
+      var sel = document.getElementById('as-lab');
+      sel.innerHTML = '<option value="">Yükleniyor…</option>';
+      document.getElementById('as-kalemler').innerHTML = '';
+      document.getElementById('as-not').value = '';
+      document.getElementById('as-hata').classList.add('hidden');
+      document.getElementById('altyapi-sheet').classList.remove('hidden');
+      ZKOrtak.liste(currentJob.laboratory_id).then(function (v) {
+        var aktif = ((v && v.giden) || []).filter(function (g) { return g.status === 'kabul'; });
+        altyapi.ortaklar = aktif;
+        if (!aktif.length) {
+          sel.innerHTML = '<option value="">Aktif ortak laboratuvar yok</option>';
+          document.getElementById('as-kalemler').innerHTML = '<p class="text-xs text-muted-foreground">Önce Laboratuvarlar › Ortaklar ekranından bir laboratuvarla ortaklık kurun.</p>';
+          return;
+        }
+        sel.innerHTML = '<option value="">Laboratuvar seçin</option>' + aktif.map(function (g) {
+          return '<option value="' + g.lab_id + '">' + escapeHtml(g.lab_name + (g.ayni_kurulus ? ' (grup içi)' : ' · ' + g.org_name)) + '</option>';
+        }).join('');
+        if (aktif.length === 1) { sel.value = aktif[0].lab_id; zkAltyapiLabDegisti(); }
+      }, function (e) { sel.innerHTML = '<option value="">Yüklenemedi</option>'; zkToast('Ortaklar alınamadı: ' + e.message); });
+    }
+    function zkAltyapiKapat() { document.getElementById('altyapi-sheet').classList.add('hidden'); }
+    function zkAltyapiLabDegisti() {
+      var labId = document.getElementById('as-lab').value;
+      altyapi.hedefLab = labId || null;
+      var kutu = document.getElementById('as-kalemler');
+      if (!labId) { kutu.innerHTML = ''; return; }
+      kutu.innerHTML = '<p class="text-xs text-muted-foreground">Çalışma türleri alınıyor…</p>';
+      ZKOrtak.fiyatlar(currentJob.laboratory_id, labId).then(function (f) {
+        altyapi.fiyatlar = Array.isArray(f) ? f : [];
+        var aktifKalemler = zkAltyapiAktifKalemler();
+        var uygun = jobItems.filter(function (it) { return it.status !== 'completed' && !aktifKalemler[it.id]; });
+        if (!uygun.length) { kutu.innerHTML = '<p class="text-xs text-muted-foreground">Gönderilebilecek kalem yok (hepsi tamamlanmış ya da zaten altyapıda).</p>'; return; }
+        var secenekler = altyapi.fiyatlar.map(function (p) {
+          var fiyat = p.unit_price != null ? ' — ' + ZirkonikMoney.format(Number(p.unit_price), p.currency, 0) : '';
+          return '<option value="' + p.id + '"' + (p.rota_var ? '' : ' disabled') + ' data-ad="' + escapeHtml((p.name || '').toLowerCase()) + '">' + escapeHtml(p.name) + fiyat + (p.rota_var ? '' : ' (rota yok)') + '</option>';
+        }).join('');
+        kutu.innerHTML = uygun.map(function (it) {
+          var ad = (it.restoration_type || '').toLowerCase();
+          var esle = altyapi.fiyatlar.filter(function (p) { return p.rota_var && (p.name || '').toLowerCase() === ad; })[0];
+          var dis = (it.teeth && it.teeth.length) ? it.teeth.join(', ') : (it.unit_count + ' diş');
+          return '<div class="rounded-theme border border-border bg-background px-3 py-2.5" data-as-kalem="' + it.id + '">' +
+            '<label class="flex items-center gap-2 text-sm font-bold"><input type="checkbox" class="as-sec" ' + (esle ? 'checked' : '') + '> ' + escapeHtml(it.restoration_type || 'Kalem') + ' <span class="font-normal text-muted-foreground">· ' + escapeHtml(dis) + '</span></label>' +
+            '<select class="as-tur mt-2 h-11 w-full rounded-theme border border-border bg-input px-3 text-sm"><option value="">Karşı labda hangi çalışma?</option>' + secenekler + '</select></div>';
+        }).join('');
+        kutu.querySelectorAll('[data-as-kalem]').forEach(function (row) {
+          var ad = (row.querySelector('label').textContent || '').split('·')[0].trim().toLowerCase();
+          var sel = row.querySelector('.as-tur');
+          for (var i = 0; i < sel.options.length; i++) { if (sel.options[i].getAttribute('data-ad') === ad && !sel.options[i].disabled) { sel.value = sel.options[i].value; break; } }
+        });
+      }, function (e) { kutu.innerHTML = '<p class="text-xs text-destructive">' + escapeHtml(e.message) + '</p>'; });
+    }
+    function zkAltyapiGonder() {
+      var hata = document.getElementById('as-hata');
+      hata.classList.add('hidden');
+      var labId = document.getElementById('as-lab').value;
+      if (!labId) { hata.textContent = 'Laboratuvar seçin.'; hata.classList.remove('hidden'); return; }
+      var kalemler = [];
+      var eksik = false;
+      document.querySelectorAll('#as-kalemler [data-as-kalem]').forEach(function (row) {
+        if (!row.querySelector('.as-sec').checked) return;
+        var tur = row.querySelector('.as-tur').value;
+        if (!tur) { eksik = true; return; }
+        kalemler.push({ item_id: row.getAttribute('data-as-kalem'), price_item_id: tur });
+      });
+      if (eksik) { hata.textContent = 'Seçili her kalem için karşı labın çalışma türünü seçin.'; hata.classList.remove('hidden'); return; }
+      if (!kalemler.length) { hata.textContent = 'En az bir kalem seçin.'; hata.classList.remove('hidden'); return; }
+      var btn = document.getElementById('as-gonder');
+      var bitir = ZKHiz.mesgul(btn, 'Gönderiliyor…');
+      ZKOrtak.altyapiVer(jobId, labId, kalemler, document.getElementById('as-not').value.trim() || null).then(function (r) {
+        bitir();
+        zkAltyapiKapat();
+        zkToast(r && r.child_job_number ? 'Altyapı siparişi üretime alındı (' + r.child_job_number + ').' : 'Altyapı siparişi gönderildi, karşı laboratuvarın onayı bekleniyor.');
+        loadAltyapi();
+      }, function (e) { bitir(); hata.textContent = e.message; hata.classList.remove('hidden'); });
+    }
+
     function loadHistory() {
       var client = ZirkonikAuth.client();
       // Cok kalemli siparişte geçmiş SEÇİLİ KALEME ait olmalı; hepsi bir
@@ -1348,6 +1523,11 @@
           // iyimser ekranın üstüne yazılmasın; internet gelince kuyruk boşalır ve tazelenir.
         }).then(function (res) { if (!res.error && !res.kuyrukta) loadJob(); });
         return;
+      }
+
+      // 15 Ekim 2026: kalemin altyapısı başka labda sürüyor ve teslim alınmadıysa önce uyar (engel değil).
+      if (currentItem && typeof zkAltyapiAktifKalemler === 'function' && zkAltyapiAktifKalemler()[currentItem.id]) {
+        if (!confirm('Bu kalemin altyapısı başka laboratuvarda sürüyor ve henüz teslim alınmadı. Yine de ilerletilsin mi?')) return;
       }
 
       var currentIdx = rooms.findIndex(function (r) { return r.id === zkCurRoom(); });

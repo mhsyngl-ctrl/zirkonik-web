@@ -236,6 +236,9 @@
             <label class="block"><span class="mb-1 block text-[11px] font-bold">Saat dilimi</span>
               <select id="pf-bolge-timezone" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-sm"><option value="Europe/Istanbul">İstanbul</option><option value="Europe/Berlin">Berlin</option><option value="Europe/London">Londra</option><option value="Europe/Amsterdam">Amsterdam</option><option value="Asia/Dubai">Dubai</option><option value="Asia/Riyadh">Riyad</option><option value="Asia/Baku">Bakü</option><option value="Asia/Nicosia">Lefkoşa</option><option value="America/New_York">New York</option></select></label>
           </div>
+          <!-- 15 Ekim 2026: laboratuvarlar arası iş paketi açıksa grup içi altyapı siparişinde para seçimi (Murat: seçmeli) -->
+          <label id="pf-lablab-wrap" class="mt-2 hidden"><span class="mb-1 block text-[11px] font-bold">Grup içi altyapı siparişi (kendi laboratuvarlarınız arasında)</span>
+            <select id="pf-lablab-billing" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-sm"><option value="faturasiz">Faturasız — yalnız takip (aynı kasa)</option><option value="faturali">Faturalı — laboratuvar carisine fatura kesilir</option></select></label>
           <button onclick="zkSaveBolge()" id="pf-bolge-btn" class="mt-3 flex h-11 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
         </section>
 
@@ -435,6 +438,12 @@
       document.getElementById('pf-bolge-country').value = org.country || 'TR';
       document.getElementById('pf-bolge-locale').value = org.locale || 'tr-TR';
       document.getElementById('pf-bolge-timezone').value = org.timezone || 'Europe/Istanbul';
+      var ll = document.getElementById('pf-lablab-wrap');
+      if (ll) {
+        ll.classList.toggle('hidden', !org.lab_lab_enabled);
+        ll.style.display = org.lab_lab_enabled ? 'block' : '';
+        document.getElementById('pf-lablab-billing').value = org.lab_lab_billing || 'faturasiz';
+      }
     }
     function zkSaveBolge() {
       if (!pfOrgId) return;
@@ -445,6 +454,8 @@
         locale: document.getElementById('pf-bolge-locale').value,
         timezone: document.getElementById('pf-bolge-timezone').value
       };
+      var ll = document.getElementById('pf-lablab-wrap');
+      if (ll && !ll.classList.contains('hidden')) fields.lab_lab_billing = document.getElementById('pf-lablab-billing').value;
       if (!confirm('Bölge ayarı kaydedilsin mi? Mevcut kayıtların para birimi değişmez; yeni kayıtlar ' + fields.default_currency + ' ile açılır.')) return;
       btn.disabled = true;
       ZirkonikData.updateOrgRegion(pfOrgId, fields).then(function (r) {

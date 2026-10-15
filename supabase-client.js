@@ -173,7 +173,7 @@
         if (!uid) return null;
         return client()
           .from('app_users')
-          .select('*, user_permissions(*), organizations(default_currency, locale, timezone, country)')
+          .select('*, user_permissions(*), organizations(*)')
           .eq('id', uid)
           .single()
           .then(function (res) {
@@ -190,7 +190,7 @@
     // Kuruluş bölge ayarını kaydeder (yalnız yönetici; RLS org_update_admin) ve önbelleği tazeler.
     updateOrgRegion: function (organizationId, fields) {
       var payload = {};
-      ['default_currency', 'locale', 'timezone', 'country'].forEach(function (k) { if (fields[k]) payload[k] = fields[k]; });
+      ['default_currency', 'locale', 'timezone', 'country', 'lab_lab_billing'].forEach(function (k) { if (fields[k]) payload[k] = fields[k]; });
       return client().from('organizations').update(payload).eq('id', organizationId).select('id').then(function (r) {
         if (!r.error) _meCache = null;
         return r;
@@ -302,6 +302,12 @@
     // kendi görebildiğine daraltıyor, tek sütun (hafif).
     listDoctorStages: function () {
       return client().from('doctors').select('pipeline_stage');
+    },
+    // 15 Ekim 2026: müşteri adı — gerçek doktor "Dr. Ad", altyapı siparişi veren laboratuvar
+    // (doctors.kind='laborator') "Lab · Ad". Tüm ekranlar bunu kullansın ki laboratuvar "Dr." görünmesin.
+    musteriAdi: function (d) {
+      if (!d || !d.full_name) return '—';
+      return (d.kind === 'laborator' ? 'Lab · ' : 'Dr. ') + d.full_name;
     },
     listDoctors: function (status, opts) {
       // 26 Eylül 2026: hesap:user_id(email) — doktorun UYGULAMAYA GİRİŞ e-postası

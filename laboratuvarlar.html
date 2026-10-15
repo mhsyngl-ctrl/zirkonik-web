@@ -233,6 +233,21 @@
     })();
   </script>
 
+  <!-- 15 Ekim 2026: Ortak laboratuvarlar (altyapı siparişi) — plan: docs/altyapi-siparisi-plani.md -->
+  <div id="ortak-sheet" class="fixed inset-0 z-40 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkOrtakKapat()"></div>
+    <div class="absolute bottom-0 left-0 w-full overflow-y-auto rounded-t-theme bg-card p-5 pb-8" style="max-height:88vh">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <p class="font-heading text-lg font-bold">Ortak laboratuvarlar</p>
+          <p id="ortak-lab-adi" class="mt-0.5 truncate text-xs text-muted-foreground"></p>
+        </div>
+        <button onclick="zkOrtakKapat()" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Kapat"><iconify-icon icon="lucide:x" class="text-sm"></iconify-icon></button>
+      </div>
+      <div id="ortak-body" class="mt-4"><p class="text-xs text-muted-foreground">Yükleniyor…</p></div>
+    </div>
+  </div>
+
   <div id="zk-toast" style="position:fixed;left:50%;bottom:96px;transform:translate(-50%,16px);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;background:#17242C;color:#fff;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;padding:10px 16px;border-radius:12px;z-index:9999;max-width:86%;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.18);"></div>
   <script>
     function zkToast(msg){
@@ -288,6 +303,7 @@
   <script src="js/zk-picker.js"></script>
   <script src="js/zk-ptr.js"></script>
   <script src="js/zk-hiz.js"></script>
+  <script src="js/zk-ortak.js"></script>
   <script src="js/zk-cevrimdisi.js"></script>
   <script src="js/zk-yenile.js"></script>
   <script src="js/zk-surum.js"></script>
@@ -354,6 +370,8 @@
         '<h3 class="font-heading text-base font-bold">' + escapeHtml(l.name) + '</h3>' +
         '<p class="mt-1 text-xs text-muted-foreground">' + escapeHtml(l.city || 'Şehir belirtilmedi') + '</p></div>' +
         '<div class="flex items-center gap-1.5">' +
+        // 15 Ekim 2026: laboratuvarlar arası iş paketi açıksa yönetici ortak laboratuvarları buradan yönetir.
+        (ortakAcik && ortakAdmin ? '<button onclick="zkOrtakAc(\'' + l.id + '\')" class="flex h-9 items-center justify-center gap-1 rounded-theme border border-border bg-input px-2.5 text-[11px] font-bold text-primary" title="Ortak laboratuvarlar"><iconify-icon icon="lucide:handshake" class="text-sm"></iconify-icon>Ortaklar</button>' : '') +
         '<button onclick="zkOpenEditLab(\'' + l.id + '\')" class="flex h-9 w-9 items-center justify-center rounded-theme border border-border bg-input text-muted-foreground" aria-label="Laboratuvarı düzenle" title="Laboratuvarı düzenle"><iconify-icon icon="lucide:pencil" class="text-sm"></iconify-icon></button>' +
         '<span class="rounded-full ' + badgeClass + ' px-2.5 py-1 text-[10px] font-bold">' + (l.is_active ? 'Aktif' : 'Pasif') + '</span></div></div>' +
         '<div class="mt-4 grid grid-cols-2 border-y border-border py-3">' +
@@ -681,6 +699,9 @@
       loadLabs();
       ZirkonikAuth.me().then(function (me) {
         if (me && me.role === 'yonetici') {
+          ortakAdmin = true;
+          ortakAcik = !!(window.ZKOrtak && ZKOrtak.acikMi(me));
+          if (ortakAcik) loadLabs(); // kartlara "Ortaklar" düğmesi gelsin
           document.getElementById('room-throughput-section').classList.remove('hidden');
           loadRoomThroughput();
           document.getElementById('job-progress-log-section').classList.remove('hidden');
@@ -689,6 +710,115 @@
       });
     });
   
+    /* ---------------- Ortak laboratuvarlar (15 Ekim 2026) ----------------
+     * Altyapı siparişi için eşleşme: davet kodu ile istek, karşı tarafın kabulü, grup içi
+     * (aynı işveren) labların açılıp kapatılması. Hepsi RPC; başka kuruluşun verisine doğrudan erişim yok. */
+    var ortakAcik = false, ortakAdmin = false, ortakLab = null, ortakVeri = null;
+    function zkOrtakAc(labId) {
+      var lab = null;
+      for (var i = 0; i < allLabsForRoom.length; i++) { if (allLabsForRoom[i].id === labId) { lab = allLabsForRoom[i]; break; } }
+      ortakLab = lab || { id: labId, name: '' };
+      document.getElementById('ortak-lab-adi').textContent = ortakLab.name || '';
+      document.getElementById('ortak-body').innerHTML = '<p class="text-xs text-muted-foreground">Yükleniyor…</p>';
+      document.getElementById('ortak-sheet').classList.remove('hidden');
+      zkOrtakYukle();
+    }
+    function zkOrtakKapat() { document.getElementById('ortak-sheet').classList.add('hidden'); }
+    function zkOrtakYukle() {
+      if (!ortakLab) return;
+      ZKOrtak.liste(ortakLab.id).then(function (v) { ortakVeri = v || {}; zkOrtakCiz(); }, function (e) {
+        document.getElementById('ortak-body').innerHTML = '<p class="text-xs text-destructive">Yüklenemedi: ' + escapeHtml(e.message) + '</p>';
+      });
+    }
+    function zkOrtakCiz() {
+      var v = ortakVeri || {}, K = ZKOrtak.kacis, html = '';
+      // Kodum
+      html += '<div class="rounded-theme border border-border bg-background p-3">' +
+        '<p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Bu laboratuvarın davet kodu</p>' +
+        '<div class="mt-1.5 flex items-center gap-2"><p id="ortak-kod" class="font-heading text-2xl font-bold tabular-nums" style="letter-spacing:.2em">' + K(v.kod || '—') + '</p>' +
+        '<button type="button" onclick="zkOrtakKopyala()" class="flex h-9 items-center justify-center gap-1 rounded-theme border border-border bg-card px-2.5 text-[11px] font-bold text-primary">Kopyala</button></div>' +
+        '<p class="mt-1.5 text-[11px] text-muted-foreground">Size altyapı siparişi göndermek isteyen laboratuvar bu kodu kendi ekranına girer; siz kabul edince ortaklık başlar.</p></div>';
+      // İstek gönder
+      html += '<div class="mt-3 rounded-theme border border-border bg-background p-3">' +
+        '<p class="text-xs font-bold">Başka bir laboratuvara altyapı siparişi göndermek için</p>' +
+        '<div class="mt-2 flex gap-2"><input id="ortak-kod-giris" type="text" maxlength="8" autocapitalize="characters" placeholder="Karşı labın kodu" class="h-11 min-w-0 flex-1 rounded-theme border border-border bg-input px-3 text-sm uppercase tracking-widest">' +
+        '<button type="button" id="ortak-istek-btn" onclick="zkOrtakIstekGonder()" class="flex h-11 shrink-0 items-center justify-center rounded-theme bg-primary px-4 text-xs font-bold text-primary-foreground">İstek gönder</button></div>' +
+        '<p id="ortak-istek-hata" class="mt-1.5 hidden text-xs font-semibold text-destructive"></p></div>';
+      // Gelen istekler
+      var gelen = v.gelen || [];
+      var bekleyen = gelen.filter(function (g) { return g.status === 'bekliyor'; });
+      if (bekleyen.length) {
+        html += '<p class="mt-4 text-xs font-bold">Gelen istekler</p><div class="mt-2 space-y-2">' + bekleyen.map(function (g) {
+          return '<div class="rounded-theme border border-border bg-background px-3 py-2.5"><p class="text-sm font-bold">' + K(g.lab_name) + ' <span class="font-normal text-muted-foreground">· ' + K(g.org_name) + (g.city ? ' · ' + K(g.city) : '') + '</span></p>' +
+            (g.note ? '<p class="mt-0.5 text-[11px] text-muted-foreground">' + K(g.note) + '</p>' : '') +
+            '<div class="mt-2 flex gap-2"><button type="button" onclick="zkOrtakCevap(\'' + g.id + '\', true)" class="flex h-9 flex-1 items-center justify-center rounded-theme bg-primary text-xs font-bold text-primary-foreground">Kabul et</button>' +
+            '<button type="button" onclick="zkOrtakCevap(\'' + g.id + '\', false)" class="flex h-9 flex-1 items-center justify-center rounded-theme border border-border bg-card text-xs font-bold text-destructive">Reddet</button></div></div>';
+        }).join('') + '</div>';
+      }
+      // Gönderebildiklerim (giden) + bize gönderebilenler (gelen kabul)
+      var giden = (v.giden || []).filter(function (g) { return g.status !== 'red'; });
+      var gelenKabul = gelen.filter(function (g) { return g.status === 'kabul'; });
+      if (giden.length || gelenKabul.length) {
+        html += '<p class="mt-4 text-xs font-bold">Ortaklıklar</p><div class="mt-2 space-y-2">' +
+          giden.map(function (g) {
+            return '<div class="flex items-center gap-2 rounded-theme border border-border bg-background px-3 py-2.5"><div class="min-w-0 flex-1"><p class="truncate text-sm font-bold">→ ' + K(g.lab_name) + '</p>' +
+              '<p class="text-[11px] text-muted-foreground">Biz gönderiyoruz' + (g.ayni_kurulus ? ' · grup içi' : ' · ' + K(g.org_name)) + '</p></div>' + ZKOrtak.rozet(g.status) +
+              (g.status === 'kabul' || g.status === 'bekliyor' ? '<button type="button" onclick="zkOrtakDurdur(\'' + g.id + '\')" class="ml-1 text-[11px] font-bold text-destructive">Durdur</button>' : '') + '</div>';
+          }).join('') +
+          gelenKabul.map(function (g) {
+            return '<div class="flex items-center gap-2 rounded-theme border border-border bg-background px-3 py-2.5"><div class="min-w-0 flex-1"><p class="truncate text-sm font-bold">← ' + K(g.lab_name) + '</p>' +
+              '<p class="text-[11px] text-muted-foreground">Bize gönderiyor' + (g.ayni_kurulus ? ' · grup içi' : ' · ' + K(g.org_name)) + '</p></div>' + ZKOrtak.rozet(g.status) +
+              '<button type="button" onclick="zkOrtakDurdur(\'' + g.id + '\')" class="ml-1 text-[11px] font-bold text-destructive">Durdur</button></div>';
+          }).join('') + '</div>';
+      }
+      // Grup içi (aynı işverenin diğer labları)
+      var grup = v.grup || [];
+      if (grup.length) {
+        html += '<p class="mt-4 text-xs font-bold">Grup içi: bu lab şu laboratuvarlara altyapı gönderebilsin</p><div class="mt-2 space-y-2">' + grup.map(function (g) {
+          return '<label class="flex items-center justify-between gap-2 rounded-theme border border-border bg-background px-3 py-2.5 text-sm font-bold"><span>' + K(g.lab_name) + '</span>' +
+            '<input type="checkbox" ' + (g.acik ? 'checked' : '') + ' onchange="zkOrtakGrup(\'' + g.lab_id + '\', this.checked, this)"></label>';
+        }).join('') + '</div>';
+      }
+      document.getElementById('ortak-body').innerHTML = html;
+    }
+    function zkOrtakKopyala() {
+      var kod = (ortakVeri && ortakVeri.kod) || '';
+      if (!kod) return;
+      var yaz = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(kod) : Promise.reject();
+      yaz.then(function () { zkToast('Kod kopyalandı: ' + kod); }, function () {
+        var el = document.getElementById('ortak-kod'); if (!el) return;
+        var r = document.createRange(); r.selectNodeContents(el); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+        zkToast('Kod seçildi, kopyalayabilirsiniz.');
+      });
+    }
+    function zkOrtakIstekGonder() {
+      var inp = document.getElementById('ortak-kod-giris'), hata = document.getElementById('ortak-istek-hata');
+      var kod = (inp.value || '').trim().toUpperCase();
+      hata.classList.add('hidden');
+      if (kod.length !== 8) { hata.textContent = 'Kod 8 karakter olmalı.'; hata.classList.remove('hidden'); return; }
+      var btn = document.getElementById('ortak-istek-btn');
+      var bitir = ZKHiz.mesgul(btn, 'Gönderiliyor…');
+      ZKOrtak.istek(kod, ortakLab.id).then(function (r) {
+        bitir();
+        zkToast(r && r.status === 'kabul' ? 'Ortaklık kuruldu.' : 'İstek gönderildi, karşı laboratuvarın onayı bekleniyor.');
+        zkOrtakYukle();
+      }, function (e) { bitir(); hata.textContent = e.message; hata.classList.remove('hidden'); });
+    }
+    function zkOrtakCevap(id, kabul) {
+      if (!kabul && !confirm('İstek reddedilsin mi?')) return;
+      ZKOrtak.cevap(id, kabul).then(function () { zkToast(kabul ? 'Ortaklık kabul edildi.' : 'İstek reddedildi.'); zkOrtakYukle(); },
+        function (e) { zkToast('Olmadı: ' + e.message); });
+    }
+    function zkOrtakDurdur(id) {
+      if (!confirm('Ortaklık durdurulsun mu? Süren altyapı siparişleri izlenmeye devam eder, yenisi gönderilemez.')) return;
+      ZKOrtak.durdur(id).then(function () { zkToast('Ortaklık durduruldu.'); zkOrtakYukle(); }, function (e) { zkToast('Olmadı: ' + e.message); });
+    }
+    function zkOrtakGrup(toLab, acik, el) {
+      if (el) el.disabled = true;
+      ZKOrtak.grup(ortakLab.id, toLab, acik).then(function () { zkToast(acik ? 'Grup içi gönderim açıldı.' : 'Grup içi gönderim kapatıldı.'); zkOrtakYukle(); },
+        function (e) { if (el) { el.disabled = false; el.checked = !acik; } zkToast('Olmadı: ' + e.message); });
+    }
+
     /* Yumusak tazeleme: sayfa verisi yalniz acilista cekiliyordu, baskasi
      * bir sey degistirince ekranda hic gorunmuyordu. Asagiya cek (zk-ptr.js)
      * ve sekmeye geri donus (zk-yenile.js) bunu cagirir; sayfa yeniden

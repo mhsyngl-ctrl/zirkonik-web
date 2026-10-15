@@ -575,7 +575,7 @@
       var nameEsc = escapeHtml(d.full_name).replace(/'/g, "\\'");
       return '<div class="flex items-center gap-3 rounded-theme border border-border bg-card p-3 opacity-70">' +
         '<div class="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">' + escapeHtml((d.full_name || '?').charAt(0)) + '</div>' +
-        '<div class="min-w-0 flex-1"><p class="truncate text-sm font-bold">Dr. ' + escapeHtml(d.full_name) + '</p>' +
+        '<div class="min-w-0 flex-1"><p class="truncate text-sm font-bold">' + escapeHtml(ZirkonikData.musteriAdi(d)) + '</p>' +
         '<p class="truncate text-xs text-muted-foreground">' + escapeHtml(d.clinic_name || '—') + '</p></div>' +
         '<button onclick="zkRestoreDoctor(\'' + d.id + '\',\'' + nameEsc + '\')" class="flex items-center gap-1.5 rounded-lg bg-success/10 px-3 py-2 text-xs font-bold text-success">' +
         '<iconify-icon icon="lucide:user-check" class="text-sm"></iconify-icon>Geri al</button></div>';
@@ -585,7 +585,7 @@
       return '<article class="rounded-theme border border-border bg-card p-4">' +
         '<div class="flex items-start justify-between"><div class="flex items-start gap-3">' +
         '<div class="flex h-10 w-10 items-center justify-center rounded-theme bg-secondary text-secondary-foreground"><iconify-icon icon="lucide:user-round" class="text-lg"></iconify-icon></div>' +
-        '<div><div class="flex items-center gap-2"><h3 class="font-heading text-sm font-bold">Dr. ' + escapeHtml(d.full_name) + '</h3>' +
+        '<div><div class="flex items-center gap-2"><h3 class="font-heading text-sm font-bold">' + escapeHtml(ZirkonikData.musteriAdi(d)) + '</h3>' +
         '<span class="rounded-full bg-accent/10 px-2 py-1 text-[10px] font-bold text-accent">Onay bekliyor</span></div>' +
         '<p class="mt-1 text-xs text-muted-foreground">' + escapeHtml(d.clinic_name || 'Klinik belirtilmedi') + (d.phone ? ' · ' + escapeHtml(d.phone) : '') + '</p></div></div></div>' +
         '<div class="mt-3 grid grid-cols-2 gap-2">' +
@@ -599,7 +599,7 @@
         var contact = [d.phone, d.email].filter(Boolean);
         return '<div class="flex items-center gap-3 rounded-theme border border-border bg-card p-3">' +
           '<div class="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground">' + escapeHtml((d.full_name || '?').charAt(0)) + '</div>' +
-          '<div class="min-w-0 flex-1"><p class="truncate text-sm font-bold">Dr. ' + escapeHtml(d.full_name) + '</p>' +
+          '<div class="min-w-0 flex-1"><p class="truncate text-sm font-bold">' + escapeHtml(ZirkonikData.musteriAdi(d)) + '</p>' +
           '<p class="truncate text-xs text-muted-foreground">' + escapeHtml(d.clinic_name || '—') + '</p>' +
           (contact.length ? '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + escapeHtml(contact.join(' · ')) + '</p>' : '') +
           '</div>' +
@@ -619,7 +619,7 @@
       return '<div onclick="zkOpenDoctorCari(\'' + d.id + '\',\'' + nameEsc + '\')" class="rounded-theme border border-border bg-card p-3 active:opacity-70">' +
         '<div class="flex items-center gap-3">' +
         '<div class="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground">' + escapeHtml((d.full_name || '?').charAt(0)) + '</div>' +
-        '<div class="min-w-0 flex-1"><p class="truncate text-sm font-bold">Dr. ' + escapeHtml(d.full_name) + '</p>' +
+        '<div class="min-w-0 flex-1"><p class="truncate text-sm font-bold">' + escapeHtml(ZirkonikData.musteriAdi(d)) + '</p>' +
         '<p class="truncate text-xs text-muted-foreground">' + escapeHtml(d.clinic_name || '—') +
           (d.billing_mode === 'faturasiz' ? ' <span class="font-bold text-accent">· Faturasız</span>' : '') + '</p></div>' +
         '<button onclick="event.stopPropagation();zkOpenEditDoctor(\'' + d.id + '\')" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Bilgileri düzenle" title="Bilgileri düzenle"><iconify-icon icon="lucide:pencil" class="text-sm"></iconify-icon></button>' +

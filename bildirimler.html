@@ -163,6 +163,8 @@
       // Doktor iş detay sayfasını açamaz — kendi paneline döner.
       // 15 Ekim 2026: "Tasarım dosyanız hazır" bildirimi doktorun kendi panelinde o işi açar.
       if (myRole === 'doktor') return (n.job_id && n.type === 'tasarim_3b') ? 'doktor-siparis.html?is=' + n.job_id : 'doktor-siparis.html';
+      // 15 Ekim 2026: ortak laboratuvar istek/kabul/red bildirimleri Laboratuvarlar ekranına gider.
+      if (n.type && n.type.indexOf('ortak_') === 0) return 'laboratuvarlar.html';
       if (n.job_id) return 'detay.html?id=' + n.job_id;
       // 15 Ekim 2026: Veri İşleme Sözleşmesi duyurusu dokununca sözleşme sayfasını açar.
       if (n.type === 'sozlesme_duyuru') return 'veri-isleme-sozlesmesi.html';

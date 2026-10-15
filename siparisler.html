@@ -321,7 +321,7 @@
           return '<article class="rounded-theme border border-border bg-card p-4">' +
             '<div class="flex items-start justify-between gap-2">' +
             '<div class="min-w-0"><p class="text-sm font-bold">' + escapeHtml(o.restoration_type) + '</p>' +
-            '<p class="mt-0.5 text-xs text-muted-foreground">Dr. ' + escapeHtml(doc.full_name || '—') + (doc.clinic_name ? ' · ' + escapeHtml(doc.clinic_name) : '') + '</p>' +
+            '<p class="mt-0.5 text-xs text-muted-foreground">' + escapeHtml(doc.full_name ? ZirkonikData.musteriAdi(doc) : '—') + (doc.clinic_name ? ' · ' + escapeHtml(doc.clinic_name) : '') + '</p>' +
             '<p class="mt-0.5 text-xs text-muted-foreground">' + o.unit_count + ' diş' + (o.teeth_numbers ? ' · ' + escapeHtml(o.teeth_numbers) : '') + (priceInfo ? ' · ' + priceInfo : '') + '</p>' +
             '<p class="mt-0.5 text-[11px] text-muted-foreground">' + d.toLocaleDateString('tr-TR') + ' ' + d.toLocaleTimeString('tr-TR', {hour:'2-digit',minute:'2-digit'}) + '</p></div>' +
             (STATUS_BADGES[o.status] || '') + '</div>' +
