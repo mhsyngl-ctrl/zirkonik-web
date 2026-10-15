@@ -163,6 +163,8 @@
       // Doktor iş detay sayfasını açamaz — kendi paneline döner.
       if (myRole === 'doktor') return 'doktor-siparis.html';
       if (n.job_id) return 'detay.html?id=' + n.job_id;
+      // 15 Ekim 2026: Veri İşleme Sözleşmesi duyurusu dokununca sözleşme sayfasını açar.
+      if (n.type === 'sozlesme_duyuru') return 'veri-isleme-sozlesmesi.html';
       // Hata bildirimleri yalnız platform sahibine gider; dokununca hata günlüğü (Profil) açılır.
       if (n.type === 'hata_bildirimi' || n.type === 'hata_ozeti') return 'profil.html#pf-errors-section';
       if (n.order_id && myRole === 'yonetici') return 'siparisler.html';
