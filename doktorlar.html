@@ -891,6 +891,7 @@
     ZirkonikAuth.requireAuth().then(function (session) {
       if (!session) return;
       return ZirkonikAuth.me().then(function (me) {
+        tekPaket = !!(me && me.organizations && me.organizations.plan === 'tek');
         docReadOnly = !me || me.role !== 'yonetici';
         if (docReadOnly) {
           var addBtn = document.querySelector('[onclick="zkOpenAddDoctor()"]');

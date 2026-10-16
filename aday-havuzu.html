@@ -637,7 +637,7 @@
     // harfte tam liste yeniden kurulmasın.
     var dhSearchQuery = '', dhRegionFilter = null, dhBugunOnly = false;
     // 15 Ekim 2026: Laborator havuzu — aday türü (doktor / laboratuvar) ve tür süzgeci.
-    var ortakAcik = false, dhKindFilter = '', newProspectKind = 'doktor';
+    var ortakAcik = false, dhKindFilter = '', newProspectKind = 'doktor', tekPaketHavuz = false;
     function zkSetKind(k) {
       newProspectKind = k === 'laborator' ? 'laborator' : 'doktor';
       var lab = newProspectKind === 'laborator';
@@ -1514,9 +1514,8 @@
       var disariBolgede = !!ilce && !zkIsMyRegion(ilce);
       Promise.all([ZirkonikAuth.me(), zkResolveRegionId('np')]).then(function (res) {
         var me = res[0], regionId = res[1];
-        return ZirkonikData.createProspect({
+        var yeniAday = {
           organization_id: me.organization_id,
-          kind: newProspectKind,
           full_name: name,
           clinic_name: document.getElementById('np-clinic').value.trim() || null,
           address: document.getElementById('np-address').value.trim() || null,
@@ -1527,7 +1526,11 @@
           priority: newProspectPrio,
           assigned_rep_id: (me.role === 'personel') ? me.id : null,
           region_locked: disariBolgede
-        });
+        };
+        // 'kind' sütunu laboratuvarlar arası iş SQL paketiyle gelir; paket kapalı kuruluşta
+        // gönderilmez (sütun yokken kayıt 400 ile patlıyordu — Güneş, 16 Ekim 2026).
+        if (ortakAcik) yeniAday.kind = newProspectKind;
+        return ZirkonikData.createProspect(yeniAday);
       }).then(function (res) {
         if (res.error) throw res.error;
         zkCloseAddProspect();
@@ -1535,6 +1538,7 @@
         zkFillIlSelect('np');
         zkIlChanged('np');
         zkSetPrio('orta');
+        if (!tekPaketHavuz) zkSetKind('doktor');
         zkUpdateAddProspectSubmitLabel();
         zkToast(disariBolgede ? 'Ön onay için gönderildi — işveren/yönetici onaylayana kadar kart kilitli.' : 'Aday eklendi.');
         zkSetStage('aday_havuzu');
@@ -1638,7 +1642,7 @@
         });
       }).then(function (res) {
         if (res.error) { zkToast('Olmadı: ' + res.error.message); return; }
-        zkToast('Dr. ' + detailDoctor.full_name + ' laboratuvar sahibinin onayına gönderildi.');
+        zkToast(ZirkonikData.musteriAdi(detailDoctor) + ' laboratuvar sahibinin onayına gönderildi.');
         zkCloseDetail();
         loadList();
         loadStageCounts();
@@ -1651,7 +1655,7 @@
         pipeline_stage: 'aktif', stage_changed_at: new Date().toISOString()
       }).then(function (res) {
         if (res.error) { zkToast('Olmadı: ' + res.error.message); return; }
-        zkToast('Dr. ' + detailDoctor.full_name + ' onaylandı, aktif doktor oldu.');
+        zkToast(ZirkonikData.musteriAdi(detailDoctor) + (detailDoctor.kind === 'laborator' ? ' onaylandı, aktif müşteri oldu.' : ' onaylandı, aktif doktor oldu.'));
         zkCloseDetail();
         loadList();
         loadStageCounts();
@@ -1784,7 +1788,7 @@
     // hatasıyla engeller — kullanıcıya anlaşılır bir mesaja çevrilir.
     function zkDeleteDoctor() {
       if (!detailDoctor) return;
-      if (!confirm('Dr. ' + detailDoctor.full_name + ' kaydı tamamen silinsin mi? Bu işlem geri alınamaz.')) return;
+      if (!confirm(ZirkonikData.musteriAdi(detailDoctor) + ' kaydı tamamen silinsin mi? Bu işlem geri alınamaz.')) return;
       var errEl = document.getElementById('dt-error');
       errEl.classList.add('hidden');
       ZirkonikData.deleteDoctor(detailDoctor.id).then(function (res) {
@@ -1917,7 +1921,8 @@
         ortakAcik = !!(window.ZKOrtak && ZKOrtak.acikMi(me));
         var kw = document.getElementById('np-kind-wrap');
         if (kw && ortakAcik) { kw.classList.remove('hidden'); kw.classList.add('grid'); }
-        if (ortakAcik && me.organizations && me.organizations.plan === 'tek') zkSetKind('laborator'); // Zirkonik Tek: müşteriler laboratuvar
+        tekPaketHavuz = !!(ortakAcik && me.organizations && me.organizations.plan === 'tek');
+        if (tekPaketHavuz) zkSetKind('laborator'); // Zirkonik Tek: müşteriler laboratuvar
         myPosition = me.position || null;
         loadMyTasks();
         renderFilterChips();
