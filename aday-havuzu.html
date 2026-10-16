@@ -1681,8 +1681,8 @@
           'Zirkonik uygulamasında Laboratuvarlar › Ortaklar bölümüne davet kodumuzu girmeniz yeterli: ' + k.kod + '. ' +
           'Henüz Zirkonik kullanmıyorsanız app.zirkonik.com adresinden ücretsiz başlayabilirsiniz.';
         var kaydet = function (kanal) {
-          // Not: paylaşım penceresi açıldığında yazılır; kullanıcının gerçekten gönderip göndermediği bilinmez.
-          ZirkonikData.addDoctorTouch(d.id, { type: kanal, note: 'Davet kodu paylaşım penceresi açıldı (kod ' + k.kod + ')' }).then(function () { loadTouches(d.id); });
+          // Not: paylaşım penceresi açıldığında yazılır; kullanıcının gerçekten gönderip göndermediği bilinmez. Kod nota yazılmaz (yenilenince eski kod kayıtlarda kalmasın).
+          ZirkonikData.addDoctorTouch(d.id, { type: kanal, note: 'Davet kodu paylaşım penceresi açıldı' }).then(function () { loadTouches(d.id); });
         };
         var kopru = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.nativeShare;
         if (kopru) { kopru.postMessage({ text: metin }); kaydet('not'); return; }
