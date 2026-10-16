@@ -371,8 +371,11 @@
     // Aday/doktor listesi — aşama filtresiyle (aday-havuzu.html Kanban sekmeleri).
     // 26 Eylül 2026, sahibinin isteği: doktor havuzu başlığında toplam sayı.
     // Aşama filtresi olmadan, RLS neyi görebiliyorsa onu sayar.
-    countAllDoctors: function () {
-      return client().from('doctors').select('id', { count: 'exact', head: true });
+    // kind verilirse yalnız o tür sayılır ('laborator' = laboratuvar müşterisi); 16 Ekim 2026.
+    countAllDoctors: function (kind) {
+      var q = client().from('doctors').select('id', { count: 'exact', head: true });
+      if (kind) q = q.eq('kind', kind);
+      return q;
     },
     listPipelineDoctors: function (stage) {
       var q = client().from('doctors')
@@ -544,7 +547,7 @@
     listDoctorTasks: function (opts) {
       opts = opts || {};
       var q = client().from('doctor_tasks')
-        .select('*, doctor:doctor_id(id, full_name, clinic_name), assignee:assigned_to(full_name)')
+        .select('*, doctor:doctor_id(id, full_name, clinic_name, kind), assignee:assigned_to(full_name)')
         .order('due_at', { ascending: opts.status !== 'tamamlandi' });
       if (opts.status) q = q.eq('status', opts.status);
       if (opts.onlyMine && opts.myId) q = q.eq('assigned_to', opts.myId);
@@ -575,7 +578,7 @@
     // aynı): kendine atanmamış olsa da tüm kuruluşun tarihi gelmiş takiplerini görür.
     myTodayTasks: function (userId, onlyMine) {
       var q = client().from('doctors')
-        .select('id, full_name, clinic_name, pipeline_stage, next_action_at, next_action_note, priority, assigned_rep_id, temsilci:assigned_rep_id(full_name)')
+        .select('id, full_name, clinic_name, kind, pipeline_stage, next_action_at, next_action_note, priority, assigned_rep_id, temsilci:assigned_rep_id(full_name)')
         .lte('next_action_at', new Date().toISOString())
         .order('next_action_at', { ascending: true });
       if (onlyMine !== false) q = q.eq('assigned_rep_id', userId);

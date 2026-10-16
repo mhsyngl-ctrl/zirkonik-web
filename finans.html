@@ -115,6 +115,9 @@
           <div id="lab-revenue" class="mt-3 space-y-2.5">
             <p class="text-xs text-muted-foreground">Yükleniyor…</p>
           </div>
+          <!-- 16 Ekim 2026: müşteri türüne göre ciro (doktor işleri / laboratuvarlar için üretim)
+               ve dışarıya verilen altyapı gideri. Sunucu zk_finans_ozet'te musteri_turu yoksa gizli kalır. -->
+          <div id="musteri-turu" class="mt-3 hidden"></div>
         </section>
 
         <!-- 2026-09-12: blok açık haldeyken uzundu ve verisi sonradan geldiği
@@ -1002,6 +1005,28 @@
         document.getElementById('stat-outstanding').textContent = ZirkonikMoney.formatTotals(o.bekleyen || {}, 0);
         document.getElementById('stat-overdue').textContent = ZirkonikMoney.formatTotals(o.gecikmis || {}, 0);
         renderLabRevenue(o.lab_ciro || []);
+        renderMusteriTuru(o);
+      }
+      // Laboratuvarlar arası iş: hangi ciro doktorlardan, hangisi ortak laboratuvarlara
+      // yapılan üretimden (iç üretim); altyapı için dışarıya ödenen tutar ayrı satır.
+      function renderMusteriTuru(o) {
+        var el = document.getElementById('musteri-turu');
+        if (!el) return;
+        var mt = o && o.musteri_turu, gider = (o && o.altyapi_gider) || {};
+        var lab = (mt && mt.laborator) || {}, dok = (mt && mt.doktor) || {};
+        var var_ = function (x) { return Object.keys(x || {}).length > 0; };
+        if (!mt || (!var_(lab) && !var_(gider))) { el.classList.add('hidden'); el.innerHTML = ''; return; }
+        var satir = function (ad, aciklama, tutar, sinif) {
+          return '<div class="flex items-center justify-between gap-3 px-3.5 py-2.5' + (sinif || '') + '"><div class="min-w-0"><p class="text-sm font-bold">' + ad + '</p>' +
+            '<p class="text-[11px] text-muted-foreground">' + aciklama + '</p></div>' +
+            '<p class="shrink-0 text-sm font-bold tabular-nums">' + ZirkonikMoney.formatTotals(tutar || {}, 0) + '</p></div>';
+        };
+        el.innerHTML = '<div class="divide-y divide-border rounded-theme border border-border bg-card">' +
+          satir('Doktor işleri', 'Doktorlardan gelen işler', dok) +
+          satir('Laboratuvarlar için üretim', 'Ortak laboratuvarların altyapı siparişleri (iç üretim)', lab) +
+          (var_(gider) ? satir('Dışarıya verilen altyapı', 'Ortak laboratuvarlara ödenecek altyapı faturaları', gider, ' text-destructive') : '') +
+          '</div>';
+        el.classList.remove('hidden');
       }
       // Hız hissi (24 Eylül 2026): son özet önbellekten anında görünür, sunucu arkadan tazeler.
       if (window.ZKHiz) {

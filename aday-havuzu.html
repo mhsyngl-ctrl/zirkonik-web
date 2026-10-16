@@ -326,6 +326,7 @@
         <div class="min-w-0">
           <p id="dt-clinic" class="text-xs text-muted-foreground"></p>
           <h2 id="dt-name" class="mt-0.5 truncate font-heading text-lg font-bold">—</h2>
+          <p id="dt-ortak-durum" class="mt-1 hidden text-[11px] font-bold text-primary"></p>
           <p id="dt-activator" class="mt-0.5 hidden text-[11px] font-bold text-success"></p>
         </div>
         <button onclick="zkCloseDetail()" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-theme bg-muted text-muted-foreground" aria-label="Kapat">✕</button>
@@ -400,6 +401,10 @@
            kart laboratuvar sahibine onaya gider, o onaylayınca aktif olur ve o andan
            sonra Yeni İş Girişi'nde görünür. (Eski "3 vaka'da otomatik aktif" kuralı
            bu yüzden kapatıldı — kaldı ki artık onay_bekliyor'dan önce iş de girilemez.) -->
+      <button id="dt-davet-btn" onclick="zkDavetGonder()" class="mt-2.5 hidden h-12 w-full items-center justify-center gap-2 rounded-theme border border-primary/40 bg-primary/10 text-sm font-bold text-primary">
+        <iconify-icon icon="lucide:handshake" class="text-lg"></iconify-icon>
+        Davet kodunu gönder
+      </button>
       <button id="dt-make-active-btn" onclick="zkMakeActive()" class="mt-2.5 flex h-12 w-full items-center justify-center gap-2 rounded-theme border border-success/40 bg-success/10 text-sm font-bold text-success">
         <iconify-icon icon="lucide:send" class="text-lg"></iconify-icon>
         Onaya Gönder
@@ -793,7 +798,7 @@
           '<button onclick="zkTaskSnooze(\'' + x.id + '\')" aria-label="Ertele" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground"><iconify-icon icon="lucide:alarm-clock" class="text-sm"></iconify-icon></button>';
       return '<div class="flex items-center gap-2.5 rounded-lg border ' + (overdue ? 'border-destructive/30' : 'border-border') + ' bg-card px-3 py-2.5' + (done ? ' opacity-70' : '') + '">' +
         '<span class="shrink-0 text-xs font-bold tabular-nums ' + (overdue ? 'text-destructive' : 'text-muted-foreground') + '">' + saat + '</span>' +
-        '<div class="min-w-0 flex-1"><p class="truncate text-xs font-bold">Dr. ' + escapeHtml(doctorName) + '</p>' +
+        '<div class="min-w-0 flex-1"><p class="truncate text-xs font-bold">' + escapeHtml(x.doctor ? ZirkonikData.musteriAdi(x.doctor) : doctorName) + '</p>' +
           '<p class="truncate text-[11px] text-muted-foreground">' + escapeHtml(TASK_KIND_LABELS[x.kind] || x.kind) + who + '</p></div>' +
         aksiyon +
       '</div>';
@@ -1041,7 +1046,7 @@
     // yazmaya gerek kalmıyor.
     function zkOpenTaskModal(preselectDoctorId, presetDateStr) {
       var sel = document.getElementById('tm-doctor');
-      sel.innerHTML = '<option value="">Seçin</option>' + currentList.map(function (d) { return '<option value="' + d.id + '">Dr. ' + escapeHtml(d.full_name) + '</option>'; }).join('');
+      sel.innerHTML = '<option value="">Seçin</option>' + currentList.map(function (d) { return '<option value="' + d.id + '">' + escapeHtml(ZirkonikData.musteriAdi(d)) + '</option>'; }).join('');
       var pre = preselectDoctorId || (detailDoctor ? detailDoctor.id : '');
       if (pre) sel.value = pre;
       document.getElementById('tm-doctor-wrap').classList.toggle('hidden', !!detailDoctor);
@@ -1557,6 +1562,17 @@
       detailDoctor = d;
       document.getElementById('dt-name').textContent = ZirkonikData.musteriAdi(d);
       document.getElementById('dt-clinic').textContent = d.clinic_name || '—';
+      // 16 Ekim 2026: laboratuvar adayında eşleşme durumu ve davet kodu gönderme (yalnız paket açıkken).
+      var ortakEl = document.getElementById('dt-ortak-durum');
+      var labAdayi = !!(ortakAcik && d.kind === 'laborator');
+      if (ortakEl) {
+        ortakEl.classList.toggle('hidden', !labAdayi);
+        ortakEl.textContent = d.partner_laboratory_id
+          ? 'Ortak laboratuvar: bağlı. Bu laboratuvar size altyapı siparişi gönderebilir.'
+          : 'Henüz eşleşmedi. Davet kodunuzu gönderin; karşı laboratuvar kodu girince bu kayıt kendiliğinden bağlanır.';
+      }
+      var davetBtn = document.getElementById('dt-davet-btn');
+      if (davetBtn) davetBtn.classList.toggle('hidden', !(labAdayi && !d.partner_laboratory_id));
       document.getElementById('dt-fullname').value = d.full_name || '';
       document.getElementById('dt-clinicname').value = d.clinic_name || '';
       var activatorEl = document.getElementById('dt-activator');
@@ -1613,6 +1629,64 @@
       document.getElementById('detail-sheet').classList.remove('hidden');
       loadTouches(id);
       loadDoctorJobs(id);
+    }
+    // 16 Ekim 2026: "Toplam N doktor" sayacı laboratuvar müşterilerini de sayıyordu.
+    // Paket açıkken iki tür ayrı sayılır; Zirkonik Tek'te yalnız laboratuvar.
+    function zkToplamSayac() {
+      var el = document.getElementById('dh-total-count');
+      if (!el) return;
+      if (!ortakAcik) {
+        ZirkonikData.countAllDoctors().then(function (r) { if (typeof r.count === 'number') el.textContent = 'Toplam ' + r.count + ' doktor'; });
+        return;
+      }
+      Promise.all([ZirkonikData.countAllDoctors(), ZirkonikData.countAllDoctors('laborator')]).then(function (r) {
+        if (typeof r[0].count !== 'number' || typeof r[1].count !== 'number') return;
+        var lab = r[1].count, dok = r[0].count - lab;
+        el.textContent = tekPaketHavuz ? 'Toplam ' + lab + ' laboratuvar' : 'Toplam ' + dok + ' doktor · ' + lab + ' laboratuvar';
+      });
+    }
+
+    // 16 Ekim 2026: laboratuvar adayına davet kodu gönderme. Kod, bu kuruluşun
+    // laboratuvarının davet kodudur (laboratories.partner_code); karşı laboratuvar
+    // Laboratuvarlar › Ortaklar'a girince istek gelir, kabulde aday kaydı kendiliğinden
+    // müşteriye döner (ad/telefon eşleşmesi, zk_ortak_kayitlari_olustur).
+    // Telefon varsa: uygulamada SMS (sistem Mesajlar), web'de WhatsApp; yoksa paylaş/kopyala.
+    var davetKodu = null;
+    function zkDavetKodunuBul() {
+      if (davetKodu) return Promise.resolve(davetKodu);
+      return ZirkonikData.listLabs().then(function (r) {
+        var labs = ((r && r.data) || []).filter(function (l) { return l.partner_code && l.is_active !== false; });
+        if (!labs.length) return null;
+        davetKodu = { kod: labs[0].partner_code, lab: labs[0].name };
+        return davetKodu;
+      }).catch(function () { return null; });
+    }
+    function zkDavetGonder() {
+      if (!detailDoctor) return;
+      var d = detailDoctor;
+      zkDavetKodunuBul().then(function (k) {
+        if (!k) { zkToast('Davet kodu okunamadı. Kodu Laboratuvarlar › Ortaklar penceresinden bir yönetici verebilir.'); return; }
+        var metin = 'Merhaba, ' + k.lab + ' olarak Zirkonik üzerinden altyapı siparişlerinizi alabiliyoruz. ' +
+          'Zirkonik uygulamasında Laboratuvarlar › Ortaklar bölümüne davet kodumuzu girmeniz yeterli: ' + k.kod + '. ' +
+          'Henüz Zirkonik kullanmıyorsanız app.zirkonik.com adresinden ücretsiz başlayabilirsiniz.';
+        var kaydet = function (kanal) {
+          ZirkonikData.addDoctorTouch(d.id, { type: kanal, note: 'Davet kodu gönderildi: ' + k.kod }).then(function () { loadTouches(d.id); });
+        };
+        var tel = (d.phone || '').replace(/\D/g, '');
+        if (tel.length === 10) tel = '90' + tel; else if (tel.length === 11 && tel.charAt(0) === '0') tel = '9' + tel;
+        if (tel) {
+          var uygulamada = location.protocol === 'file:';
+          var href = uygulamada ? 'sms:+' + tel + '&body=' + encodeURIComponent(metin) : 'https://wa.me/' + tel + '?text=' + encodeURIComponent(metin);
+          var a = document.createElement('a'); a.href = href; if (!uygulamada) { a.target = '_blank'; a.rel = 'noopener'; }
+          document.body.appendChild(a); a.click(); a.remove();
+          kaydet(uygulamada ? 'not' : 'whatsapp');
+          return;
+        }
+        if (navigator.share) { navigator.share({ text: metin }).then(function () { kaydet('not'); }).catch(function () {}); return; }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(metin).then(function () { zkToast('Davet mesajı kopyalandı; mesaj olarak gönderebilirsiniz.'); kaydet('not'); }, function () { zkToast('Kopyalanamadı.'); });
+        } else { zkToast(metin); }
+      });
     }
     var JOB_STATUS_LABELS = { active: 'Aktif', completed: 'Tamamlandı', cancelled: 'İptal' };
     function loadDoctorJobs(doctorId) {
@@ -1863,7 +1937,7 @@
           '<p class="mt-0.5 font-bold">' + escapeHtml(ZirkonikData.musteriAdi(d)) + '</p>' +
           '<p class="mt-0.5 text-xs text-muted-foreground">' + escapeHtml(d.clinic_name || '—') + (d.region ? ' · ' + escapeHtml(d.region.name) : '') + '</p>' +
           (d.temsilci ? '<p class="mt-1 text-[11px] text-muted-foreground">Gönderen: ' + escapeHtml(d.temsilci.full_name) + '</p>' : '') +
-          '<button onclick="zkApproveActiveFromList(\'' + d.id + '\',\'' + escapeHtml(d.full_name).replace(/'/g, "\\'") + '\')" class="mt-3 flex h-10 w-full items-center justify-center gap-1.5 rounded-theme bg-success text-xs font-extrabold text-success-foreground"><iconify-icon icon="lucide:badge-check" class="text-base"></iconify-icon> Onayla, Aktif Et</button>' +
+          '<button onclick="zkApproveActiveFromList(\'' + d.id + '\',\'' + escapeHtml(ZirkonikData.musteriAdi(d)).replace(/'/g, "\\'") + '\',\'' + (d.kind || 'doktor') + '\')" class="mt-3 flex h-10 w-full items-center justify-center gap-1.5 rounded-theme bg-success text-xs font-extrabold text-success-foreground"><iconify-icon icon="lucide:badge-check" class="text-base"></iconify-icon> Onayla, Aktif Et</button>' +
         '</article>';
       }).join('');
       el.innerHTML = bolgeKartlari + aktifKartlari;
@@ -1878,12 +1952,12 @@
         loadStageCounts();
       });
     }
-    function zkApproveActiveFromList(doctorId, name) {
+    function zkApproveActiveFromList(doctorId, name, kind) {
       ZirkonikData.updateDoctorPipeline(doctorId, {
         pipeline_stage: 'aktif', stage_changed_at: new Date().toISOString()
       }).then(function (res) {
         if (res.error) { zkToast('Onaylanamadı: ' + res.error.message); return; }
-        zkToast('Dr. ' + name + ' onaylandı, aktif doktor oldu.');
+        zkToast(name + (kind === 'laborator' ? ' onaylandı, aktif müşteri oldu.' : ' onaylandı, aktif doktor oldu.'));
         loadPendingApprovals();
         loadList();
         loadStageCounts();
@@ -1910,10 +1984,6 @@
     ZirkonikAuth.requireAuth().then(function (session) {
       if (!session) return;
       loadRegionsAndReps().then(function () { loadList(); renderFilterChips(); });
-      ZirkonikData.countAllDoctors().then(function (r) {
-        var el = document.getElementById('dh-total-count');
-        if (el && typeof r.count === 'number') el.textContent = 'Toplam ' + r.count + ' doktor';
-      });
       ZirkonikAuth.me().then(function (me) {
         if (!me) return;
         myId = me.id;
@@ -1923,6 +1993,7 @@
         if (kw && ortakAcik) { kw.classList.remove('hidden'); kw.classList.add('grid'); }
         tekPaketHavuz = !!(ortakAcik && me.organizations && me.organizations.plan === 'tek');
         if (tekPaketHavuz) zkSetKind('laborator'); // Zirkonik Tek: müşteriler laboratuvar
+        zkToplamSayac();
         myPosition = me.position || null;
         loadMyTasks();
         renderFilterChips();

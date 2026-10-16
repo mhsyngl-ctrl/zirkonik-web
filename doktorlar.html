@@ -573,7 +573,7 @@
 
     var tekPaket = false; // Zirkonik Tek paketi (plan='tek'): doktor portalı yok
     function renderRemovedRow(d) {
-      var nameEsc = escapeHtml(d.full_name).replace(/'/g, "\\'");
+      var nameEsc = escapeHtml(ZirkonikData.musteriAdi(d)).replace(/'/g, "\\'");
       return '<div class="flex items-center gap-3 rounded-theme border border-border bg-card p-3 opacity-70">' +
         '<div class="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">' + escapeHtml((d.full_name || '?').charAt(0)) + '</div>' +
         '<div class="min-w-0 flex-1"><p class="truncate text-sm font-bold">' + escapeHtml(ZirkonikData.musteriAdi(d)) + '</p>' +
@@ -612,7 +612,7 @@
         : '<button onclick="event.stopPropagation();zkOpenDoctorAccount(\'' + d.id + '\',\'' + escapeHtml(d.full_name).replace(/'/g, "\\'") + '\',\'' + escapeHtml(d.email || '') + '\')" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-accent" aria-label="Uygulama hesabı aç"><iconify-icon icon="lucide:key-round" class="text-sm"></iconify-icon></button>';
       // 16 Ekim 2026: laboratuvar müşterisinin portal hesabı olmaz; Zirkonik Tek pakette doktor portalı yok.
       if (d.kind === 'laborator' || tekPaket) accountBtn = '';
-      var nameEsc = escapeHtml(d.full_name).replace(/'/g, "\\'");
+      var nameEsc = escapeHtml(ZirkonikData.musteriAdi(d)).replace(/'/g, "\\'");
       var perf = docJobStats[d.id];
       var perfHtml = perf
         ? '<div class="mt-2 flex items-center gap-3 border-t border-border pt-2 text-[11px] font-bold text-muted-foreground">' +
@@ -732,7 +732,7 @@
     }
 
     // ---- Doktor bilgilerini düzenle ----
-    var editDoctorId = null;
+    var editDoctorId = null, editDoctorKind = 'doktor';
 
     // Bölge listesi, aday-havuzu.html'deki gibi Avrupa/Asya gruplu (24 Eylül 2026).
     var edRegions = [];
@@ -759,6 +759,7 @@
       allDoctorsCache.forEach(function (x) { if (x.id === id) d = x; });
       if (!d) return;
       editDoctorId = id;
+      editDoctorKind = d.kind || 'doktor';
       document.getElementById('ed-name').value = d.full_name || '';
       document.getElementById('ed-clinic').value = d.clinic_name || '';
       document.getElementById('ed-phone').value = d.phone || '';
@@ -826,14 +827,14 @@
     function zkRemoveDoctor() {
       var id = editDoctorId;
       if (!id) return;
-      var name = document.getElementById('ed-name').value.trim() || 'Doktor';
-      if (!confirm('Dr. ' + name + ' çıkarılsın mı? Hiç iş/fatura/tahsilat geçmişi yoksa kayıt tamamen silinir; geçmişi varsa kayıt korunur, portal girişi kapatılır ve e-postası serbest kalır. İstediğiniz zaman geri alabilirsiniz.')) return;
+      var name = ZirkonikData.musteriAdi({ kind: editDoctorKind, full_name: document.getElementById('ed-name').value.trim() || (editDoctorKind === 'laborator' ? 'Laboratuvar' : 'Doktor') });
+      if (!confirm(name + ' çıkarılsın mı? Hiç iş/fatura/tahsilat geçmişi yoksa kayıt tamamen silinir; geçmişi varsa kayıt korunur, portal girişi kapatılır ve e-postası serbest kalır. İstediğiniz zaman geri alabilirsiniz.')) return;
       var errEl = document.getElementById('ed-error');
       errEl.classList.add('hidden');
       ZirkonikData.removeDoctor(id).then(function (res) {
         if (res.error) { errEl.textContent = 'Yapılamadı: ' + res.error.message; errEl.classList.remove('hidden'); return; }
         zkCloseEditDoctor();
-        zkToast('Dr. ' + name + (res.data && res.data.mode === 'deleted' ? ' tamamen silindi.' : ' çıkarıldı.'));
+        zkToast(name + (res.data && res.data.mode === 'deleted' ? ' tamamen silindi.' : ' çıkarıldı.'));
         loadDoctors();
       });
     }
@@ -841,7 +842,7 @@
     function zkRestoreDoctor(id, name) {
       ZirkonikData.restoreDoctor(id).then(function (res) {
         if (res.error) { zkToast('Yapılamadı: ' + res.error.message); return; }
-        zkToast('Dr. ' + name + ' yeniden etkinleştirildi.');
+        zkToast(name + ' yeniden etkinleştirildi.');
         loadDoctors();
       });
     }
@@ -946,7 +947,7 @@
       cariData = null;
       cariPeriod = 'month';
       cariTab = 'moves';
-      document.getElementById('cari-doc-title').textContent = 'Dr. ' + doctorName + ' — Cari geçmişi';
+      document.getElementById('cari-doc-title').textContent = doctorName + ' — Cari geçmişi';
       document.getElementById('cari-moves-list').innerHTML = '<p class="text-sm text-muted-foreground">Yükleniyor…</p>';
       document.getElementById('cari-moves-list').classList.remove('hidden');
       document.getElementById('cari-jobs-list').innerHTML = '';
@@ -1248,7 +1249,7 @@
     function zkOpenStatement(doctorId, doctorName) {
       statementDoctorId = doctorId;
       statementDoctorName = doctorName;
-      document.getElementById('statement-title').textContent = 'Dr. ' + doctorName + ' — Ekstre Gönder';
+      document.getElementById('statement-title').textContent = doctorName + ' — Ekstre Gönder';
       document.getElementById('statement-error').classList.add('hidden');
       document.getElementById('statement-sheet').classList.remove('hidden');
     }
@@ -1280,7 +1281,7 @@
       // Türkçe karakterler (ı, ş, ğ, İ) için Unicode yazı tipi; yüklenemezse varsayılan kalır.
       var PF = (window.ZkPdfFont && ZkPdfFont.uygula(doc)) ? 'Roboto' : undefined;
       doc.setFontSize(14);
-      doc.text('Dr. ' + name + ' — Cari Hesap Ekstresi', 14, 16);
+      doc.text(name + ' — Cari Hesap Ekstresi', 14, 16);
       doc.setFontSize(9);
       doc.setTextColor(120);
       doc.text('Oluşturulma tarihi: ' + new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }), 14, 22);

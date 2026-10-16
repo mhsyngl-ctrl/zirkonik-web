@@ -705,7 +705,7 @@
         el.innerHTML = rows.map(function (d) {
           var overdue = new Date(d.next_action_at) < new Date(new Date().setHours(0, 0, 0, 0));
           return '<a href="aday-havuzu.html" class="flex items-center justify-between gap-2 rounded-theme border border-border bg-card p-3.5">' +
-            '<div class="min-w-0"><p class="truncate text-sm font-bold">Dr. ' + escapeHtml(d.full_name) + '</p>' +
+            '<div class="min-w-0"><p class="truncate text-sm font-bold">' + escapeHtml(ZirkonikData.musteriAdi(d)) + '</p>' +
             '<p class="mt-0.5 truncate text-xs text-muted-foreground">' + escapeHtml(d.next_action_note || d.clinic_name || '') + '</p></div>' +
             '<span class="shrink-0 rounded-full ' + (overdue ? 'bg-destructive/10 text-destructive' : 'bg-accent/10 text-accent') + ' px-2 py-1 text-[10px] font-bold">' + (overdue ? 'Gecikti' : 'Bugün') + '</span></a>';
         }).join('');
@@ -762,7 +762,7 @@
           takipEl.innerHTML = takipler.map(function (d, i) {
             var gecikti = new Date(d.next_action_at) < gunBasi;
             return '<a href="aday-havuzu.html" class="flex items-center gap-3 px-4 py-3' + (i < takipler.length - 1 ? ' border-b border-border' : '') + '">' +
-              '<span class="min-w-0 flex-1"><span class="block truncate text-sm font-bold">Dr. ' + escapeHtml(d.full_name) + '</span>' +
+              '<span class="min-w-0 flex-1"><span class="block truncate text-sm font-bold">' + escapeHtml(ZirkonikData.musteriAdi(d)) + '</span>' +
               '<span class="mt-0.5 block truncate text-xs text-muted-foreground">' + escapeHtml(d.temsilci ? d.temsilci.full_name : 'Atanmamış') +
               (d.next_action_note || d.clinic_name ? ' · ' + escapeHtml(d.next_action_note || d.clinic_name) : '') + '</span></span>' +
               '<span class="shrink-0 rounded-full ' + (gecikti ? 'bg-destructive/10 text-destructive' : 'bg-accent/10 text-accent') + ' px-2 py-1 text-[10px] font-bold">' + (gecikti ? 'Gecikti' : 'Bugün') + '</span></a>';
@@ -780,7 +780,7 @@
           var tamamlandi = t.status === 'tamamlandi';
           return '<div class="flex items-center gap-3 px-4 py-3' + (i < bugunkuGorevler.length - 1 ? ' border-b border-border' : '') + (tamamlandi ? ' opacity-70' : '') + '">' +
             '<span class="text-xs font-bold tabular-nums text-muted-foreground">' + saat + '</span>' +
-            '<span class="min-w-0 flex-1"><span class="block truncate text-sm font-bold">Dr. ' + escapeHtml(t.doctor ? t.doctor.full_name : '') + '</span>' +
+            '<span class="min-w-0 flex-1"><span class="block truncate text-sm font-bold">' + escapeHtml(t.doctor ? ZirkonikData.musteriAdi(t.doctor) : '') + '</span>' +
             '<span class="mt-0.5 block text-xs text-muted-foreground">' + escapeHtml(t.assignee ? t.assignee.full_name : '') + ' · ' + escapeHtml(t.title) + '</span></span>' +
             (tamamlandi ? '<iconify-icon icon="lucide:lock" class="shrink-0 text-sm text-success" aria-label="Tamamlandı"></iconify-icon>' : '') + '</div>';
         }).join('');
@@ -891,7 +891,7 @@
             var tamamlandi = t.status === 'tamamlandi';
             return '<div class="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5' + (tamamlandi ? ' opacity-70' : '') + '">' +
               '<span class="text-xs font-bold tabular-nums text-muted-foreground">' + saat + '</span>' +
-              '<span class="min-w-0 flex-1"><span class="block truncate text-xs font-bold">Dr. ' + escapeHtml(t.doctor ? t.doctor.full_name : '') + '</span>' +
+              '<span class="min-w-0 flex-1"><span class="block truncate text-xs font-bold">' + escapeHtml(t.doctor ? ZirkonikData.musteriAdi(t.doctor) : '') + '</span>' +
               '<span class="mt-0.5 block text-[11px] text-muted-foreground">' + escapeHtml(t.assignee ? t.assignee.full_name : '') + ' · ' + escapeHtml(t.title) + '</span></span>' +
               (tamamlandi ? '<iconify-icon icon="lucide:lock" class="shrink-0 text-sm text-success" aria-label="Tamamlandı"></iconify-icon>' : '') + '</div>';
           }).join('')

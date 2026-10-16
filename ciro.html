@@ -103,6 +103,7 @@
           <div id="cd-labs" class="mt-3 space-y-2.5">
             <p class="text-xs text-muted-foreground">Yükleniyor…</p>
           </div>
+          <div id="cd-musteri-turu" class="mt-3 hidden"></div>
         </section>
 
         <section class="mt-6">
@@ -238,7 +239,7 @@
       var drList = ozet.doktor_fatura || [];
       drEl.innerHTML = drList.length ? drList.map(function (d) {
         return '<div class="flex items-center justify-between gap-3 rounded-theme border border-border bg-card p-3.5">' +
-          '<p class="min-w-0 flex-1 truncate text-sm font-bold">' + escapeHtml(doctorAdi[d.doctor_id] || 'Doktor') + '</p>' +
+          '<p class="min-w-0 flex-1 truncate text-sm font-bold">' + escapeHtml(doctorAdi[d.doctor_id] || 'Müşteri') + '</p>' +
           '<p class="shrink-0 text-sm font-bold tabular-nums">' + ZirkonikMoney.formatTotals(d.toplam || {}, 0) + '</p></div>';
       }).join('') : '<p class="text-xs text-muted-foreground">Fatura yok.</p>';
     }
@@ -246,12 +247,30 @@
     function labCiro() {
       var labs = ozet.lab_ciro || [];
       var el = document.getElementById('cd-labs');
+      musteriTuru();
       if (!labs.length) { el.innerHTML = '<p class="text-xs text-muted-foreground">Laboratuvar yok.</p>'; return; }
       el.innerHTML = labs.map(function (row) {
         return '<div class="flex items-center justify-between gap-3 rounded-theme border border-border bg-card p-3.5">' +
           '<p class="min-w-0 flex-1 truncate text-sm font-bold">' + escapeHtml(row.name) + '</p>' +
           '<p class="shrink-0 font-heading text-base font-bold tabular-nums">' + ZirkonikMoney.formatTotals(row.toplam || {}, 0) + '</p></div>';
       }).join('');
+    }
+    // 16 Ekim 2026: doktor işleri / laboratuvarlar için üretim (iç üretim) / dışarıya verilen altyapı.
+    // Sunucu özeti musteri_turu alanını vermiyorsa (SQL henüz yok) gizli kalır.
+    function musteriTuru() {
+      var el = document.getElementById('cd-musteri-turu');
+      if (!el) return;
+      var mt = ozet.musteri_turu, gider = ozet.altyapi_gider || {};
+      var dolu = function (x) { return Object.keys(x || {}).length > 0; };
+      if (!mt || (!dolu(mt.laborator) && !dolu(gider))) { el.classList.add('hidden'); el.innerHTML = ''; return; }
+      var satir = function (ad, tutar, sinif) {
+        return '<div class="flex items-center justify-between gap-3 px-3.5 py-2.5' + (sinif || '') + '"><p class="min-w-0 flex-1 truncate text-sm font-bold">' + ad + '</p>' +
+          '<p class="shrink-0 text-sm font-bold tabular-nums">' + ZirkonikMoney.formatTotals(tutar || {}, 0) + '</p></div>';
+      };
+      el.innerHTML = '<div class="divide-y divide-border rounded-theme border border-border bg-card">' +
+        satir('Doktor işleri', mt.doktor) + satir('Laboratuvarlar için üretim (iç üretim)', mt.laborator) +
+        (dolu(gider) ? satir('Dışarıya verilen altyapı', gider, ' text-destructive') : '') + '</div>';
+      el.classList.remove('hidden');
     }
 
     // Hız hissi (24 Eylül 2026): önce önbellekten anında çizilir, sunucu
@@ -264,12 +283,12 @@
       }
       return Promise.all([
         client.rpc('zk_finans_ozet'),
-        client.from('doctors').select('id, full_name')
+        client.from('doctors').select('id, full_name, kind')
       ]).then(function (res) {
         if (res[0].error) { if (window.zkToast) zkToast('Ciro alınamadı: ' + res[0].error.message); return; }
         ozet = res[0].data || {};
         doctorAdi = {};
-        (res[1].data || []).forEach(function (d) { doctorAdi[d.id] = d.full_name; });
+        (res[1].data || []).forEach(function (d) { doctorAdi[d.id] = ZirkonikData.musteriAdi(d); });
         ciz();
         labCiro();
         if (window.ZKHiz) ZKHiz.cachePut('ciro_ozet', { ozet: ozet, doctorAdi: doctorAdi });
