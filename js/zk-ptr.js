@@ -29,19 +29,32 @@
   /* Sayfanın kaydırılan kabı. Zirkonik sayfaları içeriği .overflow-y-auto
      bir kapta tutuyor — AMA alt panel (sheet/modal) açıkken kendi İÇİNDE
      de ayrı bir .overflow-y-auto listesi olabiliyor (ör. bir doktorun cari
-     geçmişi paneli). Öncesinde her zaman belgedeki İLK .overflow-y-auto
-     alınıyordu — panel açıkken bu hep ana sayfanın kendisiydi (o da zaten
-     tepede durduğu için her aşağı çekiş yanlışlıkla "yenile" sayılıp TÜM
-     sayfa yenileniyordu, panel içindeki liste hiç kaydırılamıyordu).
-     Artık dokunulan elemente EN YAKIN .overflow-y-auto aranıyor; yoksa
-     eski davranışa (belgedeki ilki) düşülüyor. */
-  function kaydiriciBul(hedef) {
-    var yakin = hedef && hedef.closest ? hedef.closest('.overflow-y-auto') : null;
-    return yakin || document.querySelector('.overflow-y-auto') || document.scrollingElement || document.body;
+     geçmişi paneli). 16 Ekim 2026 (Güneş bulgusu, Murat'ın "kaydırma sorunu"):
+     yalnız EN YAKIN kutuya bakmak da yetmiyordu — pano aşağı kaydırılmışken
+     parmak tepedeki bir iç listeye (istasyon iş listesi, max-h + overflow-y-auto)
+     konunca iç kutu "tepede" sayılıp sayfa kilitleniyor ve yanlışlıkla yenileme
+     tetikleniyordu. Artık dokunulan yerden belgeye kadar KAYDIRILABİLEN TÜM
+     kaplar toplanır; "aşağı çek, yenile" yalnız hepsi tepedeyken başlar. */
+  function kaydirilabilirMi(el) {
+    if (!el || el === document.documentElement || el === document.body) return false;
+    var st = getComputedStyle(el).overflowY;
+    return (st === 'auto' || st === 'scroll') && el.scrollHeight > el.clientHeight + 1;
+  }
+  function kaydiricilariBul(hedef) {
+    var liste = [], el = hedef;
+    while (el && el.nodeType === 1) {
+      if (kaydirilabilirMi(el)) liste.push(el);
+      el = el.parentElement;
+    }
+    // Hiç kap bulunamadıysa eski davranış: belgedeki ilk .overflow-y-auto ya da belge.
+    if (!liste.length) liste.push(document.querySelector('.overflow-y-auto') || document.scrollingElement || document.body);
+    if (document.scrollingElement && liste.indexOf(document.scrollingElement) < 0) liste.push(document.scrollingElement);
+    return liste;
   }
   function tepedeMi() {
-    var k = kaydirici || kaydiriciBul();
-    return (k.scrollTop || 0) <= 0;
+    var k = kaydirici || kaydiricilariBul();
+    for (var i = 0; i < k.length; i++) { if ((k[i].scrollTop || 0) > 0) return false; }
+    return true;
   }
 
   function gostergeKur() {
@@ -112,7 +125,7 @@
     // Alt-sayfa (seçici) açıkken çekme devre dışı — orası kendi listesini kaydırıyor.
     if (document.querySelector('.zk-picker-overlay')) return;
     if (altSayfaAcikMi(e.target)) return;
-    kaydirici = kaydiriciBul(e.target);
+    kaydirici = kaydiricilariBul(e.target);
     if (!tepedeMi()) { kaydirici = null; return; }
     baslangicY = e.touches[0].clientY;
     cekiliyor = true;
