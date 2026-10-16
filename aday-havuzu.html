@@ -1650,7 +1650,8 @@
     // laboratuvarının davet kodudur (laboratories.partner_code); karşı laboratuvar
     // Laboratuvarlar › Ortaklar'a girince istek gelir, kabulde aday kaydı kendiliğinden
     // müşteriye döner (ad/telefon eşleşmesi, zk_ortak_kayitlari_olustur).
-    // Telefon varsa: uygulamada SMS (sistem Mesajlar), web'de WhatsApp; yoksa paylaş/kopyala.
+    // Telefon varsa WhatsApp açılır (uygulamada iOS kabuğu target=_blank bağlantıyı dışarı,
+    // Safari → WhatsApp'a verir; bkz. ContentView.swift decidePolicyFor); yoksa paylaş/kopyala.
     var davetKodu = null;
     function zkDavetKodunuBul() {
       if (davetKodu) return Promise.resolve(davetKodu);
@@ -1675,11 +1676,9 @@
         var tel = (d.phone || '').replace(/\D/g, '');
         if (tel.length === 10) tel = '90' + tel; else if (tel.length === 11 && tel.charAt(0) === '0') tel = '9' + tel;
         if (tel) {
-          var uygulamada = location.protocol === 'file:';
-          var href = uygulamada ? 'sms:+' + tel + '&body=' + encodeURIComponent(metin) : 'https://wa.me/' + tel + '?text=' + encodeURIComponent(metin);
-          var a = document.createElement('a'); a.href = href; if (!uygulamada) { a.target = '_blank'; a.rel = 'noopener'; }
+          var a = document.createElement('a'); a.href = 'https://wa.me/' + tel + '?text=' + encodeURIComponent(metin); a.target = '_blank'; a.rel = 'noopener';
           document.body.appendChild(a); a.click(); a.remove();
-          kaydet(uygulamada ? 'not' : 'whatsapp');
+          kaydet('whatsapp');
           return;
         }
         if (navigator.share) { navigator.share({ text: metin }).then(function () { kaydet('not'); }).catch(function () {}); return; }
