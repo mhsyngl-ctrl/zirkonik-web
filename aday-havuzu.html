@@ -691,9 +691,12 @@
       // çiplerden farklı olarak sunucuya gidip geliyordu (zkSetStage tam aşama
       // değişimi yapıyor) — anlık değil, "takılıyor" gibi hissettiriyordu. Üstteki
       // aşama sekmelerinde zaten "Kayıp" var, çip gereksizdi — kaldırıldı.
-      var html = chip('Bugün görülecekler', dhBugunOnly, 'zkToggleBugunFilter()');
-      html += myRegions.map(function (r) { return chip(r.name, dhRegionFilter === r.id, "zkToggleRegionFilter('" + r.id + "')"); }).join('');
+      // 16 Ekim 2026 (Murat: "laboratuvar havuzunu göremiyorum"): Doktorlar/Laboratuvarlar çipleri
+      // bölge çiplerinin ARKASINDA kalıyordu; çok bölgeli labda ekran dışına taşıyordu. Artık en başta.
+      var html = '';
       if (ortakAcik && !tekPaketHavuz) html += chip('Doktorlar', dhKindFilter === 'doktor', "zkToggleKindFilter('doktor')") + chip('Laboratuvarlar', dhKindFilter === 'laborator', "zkToggleKindFilter('laborator')");
+      html += chip('Bugün görülecekler', dhBugunOnly, 'zkToggleBugunFilter()');
+      html += myRegions.map(function (r) { return chip(r.name, dhRegionFilter === r.id, "zkToggleRegionFilter('" + r.id + "')"); }).join('');
       wrap.innerHTML = html;
     }
 
