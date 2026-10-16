@@ -1672,7 +1672,8 @@
           'Zirkonik uygulamasında Laboratuvarlar › Ortaklar bölümüne davet kodumuzu girmeniz yeterli: ' + k.kod + '. ' +
           'Henüz Zirkonik kullanmıyorsanız app.zirkonik.com adresinden ücretsiz başlayabilirsiniz.';
         var kaydet = function (kanal) {
-          ZirkonikData.addDoctorTouch(d.id, { type: kanal, note: 'Davet kodu gönderildi: ' + k.kod }).then(function () { loadTouches(d.id); });
+          // Not: paylaşım penceresi açıldığında yazılır; kullanıcının gerçekten gönderip göndermediği bilinmez.
+          ZirkonikData.addDoctorTouch(d.id, { type: kanal, note: 'Davet kodu paylaşım penceresi açıldı (kod ' + k.kod + ')' }).then(function () { loadTouches(d.id); });
         };
         var kopru = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.nativeShare;
         if (kopru) { kopru.postMessage({ text: metin }); kaydet('not'); return; }
@@ -1939,7 +1940,7 @@
           '<p class="mt-0.5 font-bold">' + escapeHtml(ZirkonikData.musteriAdi(d)) + '</p>' +
           '<p class="mt-0.5 text-xs text-muted-foreground">' + escapeHtml(d.clinic_name || '—') + (d.region ? ' · ' + escapeHtml(d.region.name) : '') + '</p>' +
           (d.temsilci ? '<p class="mt-1 text-[11px] text-muted-foreground">Gönderen: ' + escapeHtml(d.temsilci.full_name) + '</p>' : '') +
-          '<button onclick="zkApproveActiveFromList(\'' + d.id + '\',\'' + escapeHtml(ZirkonikData.musteriAdi(d)).replace(/'/g, "\\'") + '\',\'' + (d.kind || 'doktor') + '\')" class="mt-3 flex h-10 w-full items-center justify-center gap-1.5 rounded-theme bg-success text-xs font-extrabold text-success-foreground"><iconify-icon icon="lucide:badge-check" class="text-base"></iconify-icon> Onayla, Aktif Et</button>' +
+          '<button onclick="zkApproveActiveFromList(\'' + d.id + '\',\'' + escapeHtml(ZirkonikData.musteriAdi(d)).replace(/'/g, "\\'") + '\',\'' + escapeHtml(d.kind || 'doktor') + '\')" class="mt-3 flex h-10 w-full items-center justify-center gap-1.5 rounded-theme bg-success text-xs font-extrabold text-success-foreground"><iconify-icon icon="lucide:badge-check" class="text-base"></iconify-icon> Onayla, Aktif Et</button>' +
         '</article>';
       }).join('');
       el.innerHTML = bolgeKartlari + aktifKartlari;
