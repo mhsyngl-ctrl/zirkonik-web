@@ -63,6 +63,7 @@
     bilgi: function (kod) { return rpc('zk_ortak_lab_bilgi', { p_code: kod }).then(function (d) { return Array.isArray(d) ? d[0] || null : d; }); },
     istek: function (kod, labId, not) { return rpc('zk_ortak_istek', { p_code: kod, p_my_lab: labId, p_note: not || null }); },
     cevap: function (id, kabul) { return rpc('zk_ortak_cevap', { p_id: id, p_kabul: !!kabul }); },
+    kodYenile: function (labId) { return rpc('zk_ortak_kod_yenile', { p_lab: labId }); },   // 16 Ekim 2026: davet kodunu yenile (yönetici)
     durdur: function (id) { return rpc('zk_ortak_durdur', { p_id: id }); },
     grup: function (fromLab, toLab, acik) { return rpc('zk_grup_ortaklik', { p_from_lab: fromLab, p_to_lab: toLab, p_acik: !!acik }); },
     // Altyapı siparişi

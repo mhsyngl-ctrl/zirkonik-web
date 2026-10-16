@@ -738,6 +738,7 @@
         '<div class="mt-1.5 flex items-center gap-2"><p id="ortak-kod" class="font-heading text-2xl font-bold tabular-nums" style="letter-spacing:.2em">' + K(v.kod || '—') + '</p>' +
         '<button type="button" onclick="zkOrtakKopyala()" class="flex h-9 items-center justify-center gap-1 rounded-theme border border-border bg-card px-2.5 text-[11px] font-bold text-primary">Kopyala</button></div>' +
         '<p class="mt-1.5 text-[11px] text-muted-foreground">Size altyapı siparişi göndermek isteyen laboratuvar bu kodu kendi ekranına girer; siz kabul edince ortaklık başlar.</p>' +
+        '<button type="button" onclick="zkOrtakKodYenile(this)" class="mt-2 flex h-9 items-center justify-center gap-1 rounded-theme border border-border bg-card px-2.5 text-[11px] font-bold text-muted-foreground">Kodu yenile</button>' +
         '<label class="mt-2.5 flex items-center justify-between gap-2 text-xs font-bold"><span>Bu laboratuvar altyapı siparişi kabul ediyor</span>' +
         '<input type="checkbox" ' + (v.kabul_ediyor === false ? '' : 'checked') + ' onchange="zkOrtakKabulAyarla(this.checked, this)"></label></div>';
       // İstek gönder
@@ -792,6 +793,18 @@
         if (ortakVeri) ortakVeri.kabul_ediyor = !!acik;
         zkToast(acik ? 'Altyapı siparişi kabulü açıldı.' : 'Altyapı siparişi kabulü kapatıldı.');
       });
+    }
+    // 16 Ekim 2026: kod yanlış kişiye gittiyse yenilenir; eski kod artık çalışmaz, mevcut ortaklıklar etkilenmez.
+    function zkOrtakKodYenile(btn) {
+      if (!ortakLab) return;
+      if (!confirm('Davet kodu yenilensin mi? Eski kod artık çalışmaz; kurulu ortaklıklar etkilenmez.')) return;
+      var bitir = (window.ZKHiz && ZKHiz.mesgul) ? ZKHiz.mesgul(btn, 'Yenileniyor…') : function () {};
+      ZKOrtak.kodYenile(ortakLab.id).then(function (kod) {
+        bitir();
+        ortakVeri = ortakVeri || {}; ortakVeri.kod = kod;
+        var el = document.getElementById('ortak-kod'); if (el) el.textContent = kod || '—';
+        zkToast('Yeni davet kodu: ' + kod);
+      }, function (e) { bitir(); zkToast('Yenilenemedi: ' + (e && e.message ? e.message : 'bilinmeyen hata')); });
     }
     function zkOrtakKopyala() {
       var kod = (ortakVeri && ortakVeri.kod) || '';
