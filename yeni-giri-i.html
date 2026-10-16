@@ -89,7 +89,7 @@
 
             <div class="space-y-3">
               <label class="block">
-                <span class="mb-1.5 block text-xs font-bold text-card-foreground">Doktor *</span>
+                <span class="mb-1.5 block text-xs font-bold text-card-foreground" data-zk-tek-metin="Müşteri laboratuvar *">Doktor *</span>
                 <select id="f-doctor" required class="flex h-12 w-full items-center gap-3 rounded-theme border border-border bg-input px-3.5 text-sm">
                   <option value="">Doktor seçin</option>
                 </select>
@@ -665,8 +665,10 @@
       // burada görünmez — laboratuvar sahibi onaylayıp aktif yapmadan iş girilemez.
       // 4 Ekim 2026, sahibinin kararı: uyuyan doktor da listelenir; ona iş açılınca
       // trg_doktor_pipeline_ilk_vaka (jobs INSERT) doktoru otomatik tekrar aktif yapar.
+      // 16 Ekim 2026: Zirkonik Tek paketinde doktor yok — seçimde yalnız laboratuvar müşterileri.
+      var zkTek = (function () { try { var s = JSON.parse(localStorage.getItem('zk-guard') || 'null'); return !!(s && s.plan === 'tek'); } catch (e) { return false; } })();
       client.from('doctors').select('*').eq('status', 'approved').in('pipeline_stage', ['aktif', 'uyuyan']).order('full_name').then(function (r) {
-        doctors = r.data || [];
+        doctors = (r.data || []).filter(function (d) { return !zkTek || d.kind === 'laborator'; });
         var sel = document.getElementById('f-doctor');
         doctors.forEach(function (d) {
           var opt = document.createElement('option');

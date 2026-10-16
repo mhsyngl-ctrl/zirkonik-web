@@ -245,6 +245,8 @@
         <section id="pf-abonelik-section" class="mt-5 hidden rounded-theme border border-border bg-card p-4">
           <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Abonelik</p>
           <p id="pf-abonelik-plan" class="mt-1 font-heading text-sm font-bold">—</p>
+          <!-- 16 Ekim 2026: hangi pakete sahip olduğu ve paketin ne içerdiği açıkça yazılır (Murat'ın isteği). -->
+          <p id="pf-abonelik-paket" class="mt-1 text-xs leading-5 text-foreground"></p>
           <p id="pf-abonelik-sure" class="mt-1 text-xs leading-5 text-muted-foreground">—</p>
         </section>
 
@@ -468,7 +470,14 @@
 
     /* Abonelik kartı (yönetici): plan ve erişim süresi. trial_ends_at NULL ise
      * süresiz/elle yönetilen erişim (bkz. organizations.trial_ends_at yorumu). */
-    var PLAN_ETIKET = { standart: 'Standart paket', kurumsal: 'Kurumsal paket', plus: 'Zirkonik Plus (laboratuvarlar arası iş dahil)', tek: 'Zirkonik Tek (laboratuvarlar arası iş)' };
+    var PLAN_ETIKET = { standart: 'Zirkonik', kurumsal: 'Kurumsal paket', plus: 'Zirkonik Plus', tek: 'Zirkonik Tek' };
+    // Paket açıklamaları — Pibure paneli ve kılavuzla aynı metin (16 Ekim 2026).
+    var PAKET_ACIKLAMA = {
+      standart: 'Laboratuvar ↔ doktor. Doktorlarınız sipariş verir, laboratuvar üretir, teslim eder.',
+      kurumsal: 'Kurumsal paket. Laboratuvarlar arası iş yok.',
+      plus: 'Her şey bir arada: laboratuvar ↔ doktor artı laboratuvarlar arası altyapı siparişi (ortak laboratuvarlara iş gönderir ve alırsınız).',
+      tek: 'Doktor yok. Müşterileriniz yalnız laboratuvarlar: başka laboratuvarlardan altyapı siparişi alır ve gönderirsiniz. Doktor ekranları kapalıdır.'
+    };
     function zkLoadAbonelik() {
       var sec = document.getElementById('pf-abonelik-section');
       if (!sec || !pfOrgId) return;
@@ -478,6 +487,8 @@
           if (!o) return;
           sec.classList.remove('hidden');
           document.getElementById('pf-abonelik-plan').textContent = PLAN_ETIKET[o.plan] || (o.plan || 'Paket');
+          var paketEl = document.getElementById('pf-abonelik-paket');
+          if (paketEl) paketEl.textContent = 'Bu pakete sahipsiniz: ' + (PLAN_ETIKET[o.plan] || o.plan || '—') + '. ' + (PAKET_ACIKLAMA[o.plan] || '');
           var sure;
           if (o.subscription_status === 'canceled') {
             sure = 'Erişim kapalı. Devam etmek için bizimle iletişime geçin.';

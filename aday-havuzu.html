@@ -92,7 +92,7 @@
             </button>
             <div>
               <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Doktor kazanımı</p>
-              <h1 class="mt-1 font-heading text-2xl font-bold tracking-tight">Doktor Havuzu</h1>
+              <h1 class="mt-1 font-heading text-2xl font-bold tracking-tight" data-zk-tek-metin="Laboratuvar Havuzu">Doktor Havuzu</h1>
               <p id="dh-total-count" class="mt-0.5 text-xs text-muted-foreground"></p>
             </div>
           </div>
@@ -184,7 +184,7 @@
       <p class="mt-1 text-xs text-muted-foreground">Klinik adı, adres ve telefon bu aşamada yeterli.</p>
       <!-- 15 Ekim 2026: Laborator havuzu — laboratuvarlar arası iş paketi açıksa aday bir laboratuvar da olabilir. -->
       <div id="np-kind-wrap" class="mt-3 hidden grid-cols-2 gap-2">
-        <button type="button" id="np-kind-doktor" onclick="zkSetKind('doktor')" class="h-11 rounded-theme border border-primary bg-primary/10 text-xs font-bold text-foreground">Doktor adayı</button>
+        <button type="button" id="np-kind-doktor" data-zk-doktor onclick="zkSetKind('doktor')" class="h-11 rounded-theme border border-primary bg-primary/10 text-xs font-bold text-foreground">Doktor adayı</button>
         <button type="button" id="np-kind-laborator" onclick="zkSetKind('laborator')" class="h-11 rounded-theme border border-border text-xs font-bold text-muted-foreground">Laboratuvar adayı</button>
       </div>
       <div class="mt-4 space-y-3">
@@ -688,7 +688,7 @@
       // aşama sekmelerinde zaten "Kayıp" var, çip gereksizdi — kaldırıldı.
       var html = chip('Bugün görülecekler', dhBugunOnly, 'zkToggleBugunFilter()');
       html += myRegions.map(function (r) { return chip(r.name, dhRegionFilter === r.id, "zkToggleRegionFilter('" + r.id + "')"); }).join('');
-      if (ortakAcik) html += chip('Doktorlar', dhKindFilter === 'doktor', "zkToggleKindFilter('doktor')") + chip('Laboratuvarlar', dhKindFilter === 'laborator', "zkToggleKindFilter('laborator')");
+      if (ortakAcik && !tekPaketHavuz) html += chip('Doktorlar', dhKindFilter === 'doktor', "zkToggleKindFilter('doktor')") + chip('Laboratuvarlar', dhKindFilter === 'laborator', "zkToggleKindFilter('laborator')");
       wrap.innerHTML = html;
     }
 

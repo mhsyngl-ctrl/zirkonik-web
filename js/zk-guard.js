@@ -162,11 +162,18 @@
       can_view_prices: !!p.can_view_prices, // 30 Eylül 2026: fiyat listesi sayfası bu izinle açılır
       can_view_doctors: !!p.can_view_doctors,
       can_manage_orders: !!p.can_manage_orders,
-      can_manage_prospects: !!p.can_manage_prospects
+      can_manage_prospects: !!p.can_manage_prospects,
+      // 16 Ekim 2026: kuruluş paketi (standart/kurumsal/plus/tek). 'tek' = doktor yok, müşteriler laboratuvar.
+      plan: (function () { var o = me.organizations; if (Object.prototype.toString.call(o) === '[object Array]') o = o[0]; return (o && o.plan) || null; })()
     };
     try { localStorage.setItem('zk-guard', JSON.stringify(snap)); } catch (e) {}
     if (enforce(snap.role, snap)) return;
     if (snap.role === 'personel') applyStaff(snap);
+    // Paket görünümü (tüm roller): Zirkonik Tek'te doktor ögeleri gizlenir, etiketler değişir.
+    if (ZkGuardCore.paketUi) {
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { ZkGuardCore.paketUi(snap); });
+      else ZkGuardCore.paketUi(snap);
+    }
   }).catch(function () {});
 })();
 

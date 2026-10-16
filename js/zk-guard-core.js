@@ -117,5 +117,20 @@
     for (var k = 0; k < links.length; k++) links[k].style.display = 'none';
   }
 
-  window.ZkGuardCore = { PUBLIC: PUBLIC, page: page, enforce: enforce, hideUi: hideUi };
+  // 16 Ekim 2026 — Paket görünümü. Zirkonik Tek (plan='tek'): doktor yok, müşteriler yalnız laboratuvar.
+  //  * [data-zk-doktor] ögeleri gizlenir (doktor ekle, doktor adayı, portal hesabı...)
+  //  * [data-zk-tek-metin="…"] ögelerinin yazısı o metinle değişir ("Doktorlar" → "Müşteri laboratuvarlar")
+  //  * Alt sekme "Doktorlar" → "Müşteriler"
+  function paketUi(p) {
+    if (!p || p.plan !== 'tek') return;
+    var gizle = document.querySelectorAll('[data-zk-doktor]');
+    for (var i = 0; i < gizle.length; i++) gizle[i].style.display = 'none';
+    var metin = document.querySelectorAll('[data-zk-tek-metin]');
+    for (var j = 0; j < metin.length; j++) metin[j].textContent = metin[j].getAttribute('data-zk-tek-metin');
+    var tabs = document.querySelectorAll('[data-fv-tab="Doktorlar"] span');
+    for (var k = 0; k < tabs.length; k++) tabs[k].textContent = 'Müşteriler';
+    document.documentElement.setAttribute('data-zk-paket', 'tek');
+  }
+
+  window.ZkGuardCore = { PUBLIC: PUBLIC, page: page, enforce: enforce, hideUi: hideUi, paketUi: paketUi };
 })();
