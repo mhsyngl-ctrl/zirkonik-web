@@ -470,11 +470,12 @@
 
     /* Abonelik kartı (yönetici): plan ve erişim süresi. trial_ends_at NULL ise
      * süresiz/elle yönetilen erişim (bkz. organizations.trial_ends_at yorumu). */
-    var PLAN_ETIKET = { standart: 'Zirkonik', kurumsal: 'Kurumsal paket', plus: 'Zirkonik Plus', tek: 'Zirkonik Tek' };
+    // Paket adları (16 Ekim 2026): Zirkonik Kurumsal (veritabanında 'standart'; eski 'kurumsal' değeri de aynı paket), Zirkonik Plus, Zirkonik Tek.
+    var PLAN_ETIKET = { standart: 'Zirkonik Kurumsal', kurumsal: 'Zirkonik Kurumsal', plus: 'Zirkonik Plus', tek: 'Zirkonik Tek' };
     // Paket açıklamaları — Pibure paneli ve kılavuzla aynı metin (16 Ekim 2026).
     var PAKET_ACIKLAMA = {
-      standart: 'Laboratuvar ↔ doktor. Doktorlarınız sipariş verir, laboratuvar üretir, teslim eder.',
-      kurumsal: 'Kurumsal paket. Laboratuvarlar arası iş yok.',
+      standart: 'Laboratuvar ↔ doktor. Doktorlarınız sipariş verir, laboratuvar üretir, teslim eder. Laboratuvarlar arası iş yoktur.',
+      kurumsal: 'Laboratuvar ↔ doktor. Doktorlarınız sipariş verir, laboratuvar üretir, teslim eder. Laboratuvarlar arası iş yoktur.',
       plus: 'Her şey bir arada: laboratuvar ↔ doktor artı laboratuvarlar arası altyapı siparişi (ortak laboratuvarlara iş gönderir ve alırsınız).',
       tek: 'Doktor yok. Müşterileriniz yalnız laboratuvarlar: başka laboratuvarlardan altyapı siparişi alır ve gönderirsiniz. Doktor ekranları kapalıdır.'
     };
