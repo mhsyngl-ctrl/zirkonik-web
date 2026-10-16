@@ -1650,8 +1650,9 @@
     // laboratuvarının davet kodudur (laboratories.partner_code); karşı laboratuvar
     // Laboratuvarlar › Ortaklar'a girince istek gelir, kabulde aday kaydı kendiliğinden
     // müşteriye döner (ad/telefon eşleşmesi, zk_ortak_kayitlari_olustur).
-    // Telefon varsa WhatsApp açılır (uygulamada iOS kabuğu target=_blank bağlantıyı dışarı,
-    // Safari → WhatsApp'a verir; bkz. ContentView.swift decidePolicyFor); yoksa paylaş/kopyala.
+    // Uygulamada iOS paylaşım sayfası açılır (kabuk köprüsü nativeShare {text}, WhatsApp orada
+    // kendiliğinden çıkar — Murat'ın tercihi, 16 Ekim 2026). Web'de telefon varsa WhatsApp
+    // bağlantısı, yoksa tarayıcı paylaşımı ya da panoya kopyalama.
     var davetKodu = null;
     function zkDavetKodunuBul() {
       if (davetKodu) return Promise.resolve(davetKodu);
@@ -1673,6 +1674,8 @@
         var kaydet = function (kanal) {
           ZirkonikData.addDoctorTouch(d.id, { type: kanal, note: 'Davet kodu gönderildi: ' + k.kod }).then(function () { loadTouches(d.id); });
         };
+        var kopru = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.nativeShare;
+        if (kopru) { kopru.postMessage({ text: metin }); kaydet('not'); return; }
         var tel = (d.phone || '').replace(/\D/g, '');
         if (tel.length === 10) tel = '90' + tel; else if (tel.length === 11 && tel.charAt(0) === '0') tel = '9' + tel;
         if (tel) {
