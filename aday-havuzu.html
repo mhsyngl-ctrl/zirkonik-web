@@ -1917,6 +1917,7 @@
         ortakAcik = !!(window.ZKOrtak && ZKOrtak.acikMi(me));
         var kw = document.getElementById('np-kind-wrap');
         if (kw && ortakAcik) { kw.classList.remove('hidden'); kw.classList.add('grid'); }
+        if (ortakAcik && me.organizations && me.organizations.plan === 'tek') zkSetKind('laborator'); // Zirkonik Tek: müşteriler laboratuvar
         myPosition = me.position || null;
         loadMyTasks();
         renderFilterChips();

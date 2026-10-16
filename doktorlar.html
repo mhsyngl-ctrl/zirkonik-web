@@ -571,6 +571,7 @@
         }
     }
 
+    var tekPaket = false; // Zirkonik Tek paketi (plan='tek'): doktor portalı yok
     function renderRemovedRow(d) {
       var nameEsc = escapeHtml(d.full_name).replace(/'/g, "\\'");
       return '<div class="flex items-center gap-3 rounded-theme border border-border bg-card p-3 opacity-70">' +
@@ -609,6 +610,8 @@
       var accountBtn = d.user_id
         ? '<button onclick="event.stopPropagation();zkOpenDoctorPass(\'' + d.user_id + '\',\'' + escapeHtml(d.full_name).replace(/'/g, "\\'") + '\',\'' + escapeHtml((d.hesap && d.hesap.email) || '').replace(/'/g, "\\'") + '\')" class="flex h-8 w-8 items-center justify-center rounded-lg bg-success/10 text-success" aria-label="Giriş bilgilerini güncelle" title="Uygulama hesabı var — giriş bilgilerini güncelle"><iconify-icon icon="lucide:key-round" class="text-sm"></iconify-icon></button>'
         : '<button onclick="event.stopPropagation();zkOpenDoctorAccount(\'' + d.id + '\',\'' + escapeHtml(d.full_name).replace(/'/g, "\\'") + '\',\'' + escapeHtml(d.email || '') + '\')" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-accent" aria-label="Uygulama hesabı aç"><iconify-icon icon="lucide:key-round" class="text-sm"></iconify-icon></button>';
+      // 16 Ekim 2026: laboratuvar müşterisinin portal hesabı olmaz; Zirkonik Tek pakette doktor portalı yok.
+      if (d.kind === 'laborator' || tekPaket) accountBtn = '';
       var nameEsc = escapeHtml(d.full_name).replace(/'/g, "\\'");
       var perf = docJobStats[d.id];
       var perfHtml = perf
@@ -856,6 +859,7 @@
         return;
       }
       ZirkonikAuth.me().then(function (me) {
+        tekPaket = !!(me && me.organizations && me.organizations.plan === 'tek');
         return ZirkonikData.createDoctor({
           organization_id: me.organization_id,
           full_name: name,
