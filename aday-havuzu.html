@@ -432,7 +432,7 @@
            salt-okunur gösteriliyordu, düzeltme yolu yoktu. Bu bölüm artık katlı:
            bir kere girilir, günlük işe karışmaz. -->
       <details class="mt-5 rounded-theme border border-border p-3" ontoggle="zkNudgeScroll(this)">
-        <summary class="cursor-pointer text-xs font-bold text-primary">Doktor bilgilerini düzenle</summary>
+        <summary class="cursor-pointer text-xs font-bold text-primary">Bilgileri düzenle</summary>
         <div class="mt-3 space-y-2.5">
           <div class="grid grid-cols-2 gap-2.5">
             <label class="block"><span class="mb-1 block text-[11px] font-bold">Doktor adı</span>
@@ -807,7 +807,7 @@
       var done = !isDraft && x.status === 'tamamlandi';
       var overdue = !isDraft && !done && new Date(x.due_at) < new Date(new Date().setHours(0, 0, 0, 0));
       var doctorName = x.doctor ? x.doctor.full_name : '';
-      var doctorLink = x.doctor_id ? '<button type="button" onclick="zkOpenDetail(\'' + x.doctor_id + '\')" class="mt-1.5 inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-[11px] font-bold"><iconify-icon icon="lucide:user-round" class="text-xs"></iconify-icon>Dr. ' + escapeHtml(doctorName) + '</button>' : '';
+      var doctorLink = x.doctor_id ? '<button type="button" onclick="zkOpenDetail(\'' + x.doctor_id + '\')" class="mt-1.5 inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-[11px] font-bold"><iconify-icon icon="lucide:user-round" class="text-xs"></iconify-icon>' + escapeHtml(x.doctor ? ZirkonikData.musteriAdi(x.doctor) : doctorName) + '</button>' : '';
       var who = (myIsAdmin && x.assignee) ? '<span class="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-extrabold text-secondary-foreground">' + escapeHtml(x.assignee.full_name) + '</span>' : '';
       var ai = x.source === 'yapay_zeka' ? '<iconify-icon icon="lucide:sparkles" class="text-sm text-primary" title="Otomatik atama"></iconify-icon> ' : '';
       // 27 Eylül 2026, sahibinin kararı: tamamlanan görev listeden kaybolmasın
@@ -1663,9 +1663,14 @@
         return davetKodu;
       }).catch(function () { return null; });
     }
+    var davetMesgul = false;
     function zkDavetGonder() {
-      if (!detailDoctor) return;
+      if (!detailDoctor || davetMesgul) return;
       var d = detailDoctor;
+      davetMesgul = true;
+      var btn = document.getElementById('dt-davet-btn');
+      var bitir = (window.ZKHiz && ZKHiz.mesgul && btn) ? ZKHiz.mesgul(btn, 'Hazırlanıyor…') : function () {};
+      setTimeout(function () { davetMesgul = false; bitir(); }, 1500); // çift dokunma koruması; pencere açıldıktan sonra serbest
       zkDavetKodunuBul().then(function (k) {
         if (!k) { zkToast('Davet kodu okunamadı. Kodu Laboratuvarlar › Ortaklar penceresinden bir yönetici verebilir.'); return; }
         var metin = 'Merhaba, ' + k.lab + ' olarak Zirkonik üzerinden altyapı siparişlerinizi alabiliyoruz. ' +
@@ -1996,6 +2001,11 @@
         if (kw && ortakAcik) { kw.classList.remove('hidden'); kw.classList.add('grid'); }
         tekPaketHavuz = !!(ortakAcik && me.organizations && me.organizations.plan === 'tek');
         if (tekPaketHavuz) zkSetKind('laborator'); // Zirkonik Tek: müşteriler laboratuvar
+        if (tekPaketHavuz) {
+          STAGE_LABELS.aday_havuzu = 'Laboratuvar havuzu'; STAGE_LABELS.aktif = 'Aktif müşteri'; STAGE_LABELS.uyuyan = 'Uyuyan müşteri';
+          STAGES.forEach(function (s) { if (s.key === 'aday_havuzu') s.label = 'Laboratuvar havuzu'; });
+          var opt = document.querySelector('#dt-stage option[value="aday_havuzu"]'); if (opt) opt.textContent = 'Laboratuvar havuzu';
+        }
         zkToplamSayac();
         myPosition = me.position || null;
         loadMyTasks();
