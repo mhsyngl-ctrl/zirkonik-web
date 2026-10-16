@@ -1647,7 +1647,7 @@
     }
 
     // 16 Ekim 2026: laboratuvar adayına davet kodu gönderme. Kod, bu kuruluşun
-    // laboratuvarının davet kodudur (laboratories.partner_code); karşı laboratuvar
+    // laboratuvarının davet kodudur (laboratory_partner_codes, yalnız yönetici/lab erişimi okur; RPC zk_ortak_listesi.kod); karşı laboratuvar
     // Laboratuvarlar › Ortaklar'a girince istek gelir, kabulde aday kaydı kendiliğinden
     // müşteriye döner (ad/telefon eşleşmesi, zk_ortak_kayitlari_olustur).
     // Uygulamada iOS paylaşım sayfası açılır (kabuk köprüsü nativeShare {text}, WhatsApp orada
@@ -1657,10 +1657,14 @@
     function zkDavetKodunuBul() {
       if (davetKodu) return Promise.resolve(davetKodu);
       return ZirkonikData.listLabs().then(function (r) {
-        var labs = ((r && r.data) || []).filter(function (l) { return l.partner_code && l.is_active !== false; });
+        var labs = ((r && r.data) || []).filter(function (l) { return l.is_active !== false; });
         if (!labs.length) return null;
-        davetKodu = { kod: labs[0].partner_code, lab: labs[0].name };
-        return davetKodu;
+        // Kod laboratories satırında değil; yalnız yetkiliye açık RPC'den gelir (doktor portalı göremez).
+        return ZKOrtak.liste(labs[0].id).then(function (v) {
+          if (!v || !v.kod) return null;
+          davetKodu = { kod: v.kod, lab: labs[0].name };
+          return davetKodu;
+        });
       }).catch(function () { return null; });
     }
     var davetMesgul = false;
