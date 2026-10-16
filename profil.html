@@ -468,7 +468,7 @@
 
     /* Abonelik kartı (yönetici): plan ve erişim süresi. trial_ends_at NULL ise
      * süresiz/elle yönetilen erişim (bkz. organizations.trial_ends_at yorumu). */
-    var PLAN_ETIKET = { standart: 'Standart paket', kurumsal: 'Kurumsal paket' };
+    var PLAN_ETIKET = { standart: 'Standart paket', kurumsal: 'Kurumsal paket', plus: 'Zirkonik Plus (laboratuvarlar arası iş dahil)', tek: 'Zirkonik Tek (laboratuvarlar arası iş)' };
     function zkLoadAbonelik() {
       var sec = document.getElementById('pf-abonelik-section');
       if (!sec || !pfOrgId) return;
