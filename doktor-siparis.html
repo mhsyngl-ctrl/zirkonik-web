@@ -197,6 +197,7 @@
               <div><p class="text-[11px] text-muted-foreground">Toplam fatura</p><p id="cari-inv-total" class="mt-1 text-sm font-bold tabular-nums">—</p></div>
               <div><p class="text-[11px] text-muted-foreground">Toplam ödeme</p><p id="cari-pay-total" class="mt-1 text-sm font-bold tabular-nums text-success">—</p></div>
             </div>
+            <p id="cari-kdv" class="mt-2 hidden text-[11px] text-muted-foreground"></p>
           </div>
 
           <div class="mt-5 rounded-theme border border-border bg-card p-4">
@@ -651,12 +652,17 @@
           (yon === 1 ? 'text-accent' : (yon === -1 ? 'text-success' : ''));
         document.getElementById('cari-inv-total').textContent = ZirkonikMoney.formatTotals(invG, 0);
         document.getElementById('cari-pay-total').textContent = ZirkonikMoney.formatTotals(payG, 0);
+        // KDV'li (faturalı) faturalar: toplam KDV ayrı satırda; her faturanın KDV hariç/KDV dökümü kendi satırında.
+        var kdvG = ZirkonikData.kdvToplam(invs), kdvEl = document.getElementById('cari-kdv');
+        var kdvVar = Object.keys(kdvG).some(function (c) { return Number(kdvG[c]) > 0; });
+        kdvEl.classList.toggle('hidden', !kdvVar);
+        if (kdvVar) kdvEl.textContent = 'Toplam fatura KDV dahildir; bunun KDV\'si: ' + ZirkonikMoney.formatTotals(kdvG, 2);
 
         var moves = invs.map(function (x) {
           return { at: x.issued_at, html: '<div class="flex items-center justify-between gap-3 rounded-theme border border-border bg-card p-3">' +
             '<div class="flex items-center gap-2.5"><span class="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-accent"><iconify-icon icon="lucide:file-text" class="text-sm"></iconify-icon></span>' +
             '<div><p class="text-xs font-bold">Fatura' + (x.jobs ? ' · ' + escapeHtml(x.jobs.job_number) : '') + '</p>' +
-            '<p class="mt-0.5 text-[11px] text-muted-foreground">' + new Date(x.issued_at).toLocaleDateString('tr-TR') + (x.jobs && x.jobs.restoration_type ? ' · ' + escapeHtml(x.jobs.restoration_type) : '') + '</p></div></div>' +
+            '<p class="mt-0.5 text-[11px] text-muted-foreground">' + new Date(x.issued_at).toLocaleDateString('tr-TR') + (x.jobs && x.jobs.restoration_type ? ' · ' + escapeHtml(x.jobs.restoration_type) : '') + '</p>' + (ZirkonikData.kdvSatiri(x) ? '<p class="mt-0.5 text-[10px] text-muted-foreground">' + escapeHtml(ZirkonikData.kdvSatiri(x)) + '</p>' : '') + '</div></div>' +
             '<p class="shrink-0 text-sm font-bold tabular-nums">' + ZirkonikMoney.format(Number(x.amount || 0), x.currency, 0) + '</p></div>' };
         }).concat(pays.map(function (x) {
           cariPaymentsById[x.id] = x;
@@ -682,7 +688,7 @@
       // 24 Eylül 2026: bakiye/toplamlar sunucudan (zk_doktor_cari), listeler son 300 kayıt.
       Promise.all([
         // 2026-09-12: doktorun kendi cari ekraninda iptal fatura gorunmez.
-        client.from('invoices').select('id, amount, currency, status, issued_at, due_date, jobs(job_number, restoration_type)').eq('doctor_id', doctor.id).neq('status', 'cancelled').order('issued_at', { ascending: false }).limit(300),
+        client.from('invoices').select('id, amount, currency, status, issued_at, due_date, net_amount, vat_rate, vat_amount, jobs(job_number, restoration_type)').eq('doctor_id', doctor.id).neq('status', 'cancelled').order('issued_at', { ascending: false }).limit(300),
         client.from('payments').select('id, amount, currency, method, received_at, note, app_users:received_by(full_name)').eq('doctor_id', doctor.id).order('received_at', { ascending: false }).limit(300),
         client.rpc('zk_doktor_cari', { p_doctor_id: doctor.id })
       ]).then(function (res) {

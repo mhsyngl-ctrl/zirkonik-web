@@ -465,6 +465,15 @@
     // price_list_item_prices — RLS: yalnız yönetici ve ilgili doktor okur; personelde
     // embed boş döner). Ekranlar eski alan adlarını (price/currency/unit_price)
     // kullanmaya devam etsin diye embed düzleştirilir.
+    // KDV'li fatura satırı yazısı: "KDV hariç ₺1.000 · KDV %10 ₺100". KDV'siz faturada null. (KDV yalnız finans/cari/ekstrede gösterilir.)
+    kdvSatiri: function (inv) {
+      if (!inv || inv.vat_amount == null) return null;
+      return 'KDV hariç ' + ZirkonikMoney.format(Number(inv.net_amount || 0), inv.currency, 2) + ' · KDV %' + Number(inv.vat_rate || 0) + ' ' + ZirkonikMoney.format(Number(inv.vat_amount || 0), inv.currency, 2);
+    },
+    // Fatura listesinden KDV toplamı (para birimine göre)
+    kdvToplam: function (invs) {
+      return ZirkonikMoney.groupTotals((invs || []).filter(function (x) { return x.vat_amount != null; }), 'vat_amount', 'currency');
+    },
     fiyatDuzle: function (row, embedKey, alanlar) {
       if (!row) return row;
       var e = row[embedKey];

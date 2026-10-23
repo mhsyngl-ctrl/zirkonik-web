@@ -153,6 +153,7 @@
       <div class="mt-2 rounded-theme border border-border bg-background px-3.5 py-2.5">
         <p id="cari-balance" class="font-heading text-2xl font-bold tabular-nums">—</p>
         <p class="mt-0.5 text-xs text-muted-foreground">Fatura <span id="cari-inv-total" class="font-bold text-foreground tabular-nums">—</span> · Ödeme <span id="cari-pay-total" class="font-bold text-success tabular-nums">—</span></p>
+        <p id="cari-kdv" class="mt-0.5 hidden text-[11px] text-muted-foreground"></p>
       </div>
 
       <!-- Dönem seçimi: istatistikler VE alttaki liste bu döneme göre süzülür -->
@@ -966,7 +967,7 @@
         // 2026-09-12: iptal edilen fatura ne bakiyeye ne hareket listesine
         // girer — cancel_job faturayi 'cancelled' isaretliyor, doktordan
         // tahsil edilmeyecek.
-        client.from('invoices').select('id, amount, currency, status, issued_at, billing_mode, jobs(job_number, restoration_type, unit_count, price_list_items(pricing_unit))').eq('doctor_id', doctorId).neq('status', 'cancelled').order('issued_at', { ascending: false }).limit(300),
+        client.from('invoices').select('id, amount, currency, status, issued_at, billing_mode, net_amount, vat_rate, vat_amount, jobs(job_number, restoration_type, unit_count, price_list_items(pricing_unit))').eq('doctor_id', doctorId).neq('status', 'cancelled').order('issued_at', { ascending: false }).limit(300),
         client.from('payments').select('id, amount, currency, method, received_at, note, app_users:received_by(full_name)').eq('doctor_id', doctorId).order('received_at', { ascending: false }).limit(300),
         client.rpc('zk_doktor_cari', { p_doctor_id: doctorId })
       ]).then(function (res) {
@@ -998,6 +999,11 @@
         balEl.className = 'font-heading text-2xl font-bold tabular-nums ' +
           (Object.keys(borc).length ? 'text-accent' : 'text-success');
         document.getElementById('cari-inv-total').textContent = ZirkonikMoney.formatTotals(invG, 2);
+        // KDV'li (faturalı) faturaların toplam KDV'si ayrı satırda; her faturanın dökümü kendi satırında.
+        var kdvG = ZirkonikData.kdvToplam(invoices), kdvEl = document.getElementById('cari-kdv');
+        var kdvVar = Object.keys(kdvG).some(function (c) { return Number(kdvG[c]) > 0; });
+        kdvEl.classList.toggle('hidden', !kdvVar);
+        if (kdvVar) kdvEl.textContent = 'Fatura toplamı KDV dahildir; bunun KDV\'si: ' + ZirkonikMoney.formatTotals(kdvG, 2);
         document.getElementById('cari-pay-total').textContent = ZirkonikMoney.formatTotals(payG, 2);
 
         cariData = { jobs: jobs, invoices: invoices, payments: payments };
@@ -1095,7 +1101,7 @@
         var kayitAdi = x.billing_mode === 'faturasiz' ? 'Borç kaydı' : 'Fatura';
         return { at: x.issued_at, html: '<div class="flex items-center justify-between rounded-theme border border-border bg-background p-3">' +
           '<div class="min-w-0"><p class="text-sm font-bold">' + kayitAdi + (x.jobs ? ' · ' + escapeHtml(x.jobs.job_number) + (zkIsBirim(x.jobs) ? ' · ' + escapeHtml(zkIsBirim(x.jobs)) : '') : '') + '</p>' +
-          '<p class="mt-0.5 text-xs text-muted-foreground">' + new Date(x.issued_at).toLocaleDateString('tr-TR') + '</p></div>' +
+          '<p class="mt-0.5 text-xs text-muted-foreground">' + new Date(x.issued_at).toLocaleDateString('tr-TR') + '</p>' + (ZirkonikData.kdvSatiri(x) ? '<p class="mt-0.5 text-[11px] text-muted-foreground">' + escapeHtml(ZirkonikData.kdvSatiri(x)) + '</p>' : '') + '</div>' +
           '<p class="shrink-0 text-sm font-bold tabular-nums text-accent">' + ZirkonikMoney.format(Number(x.amount || 0), x.currency, 0) + '</p></div>' };
       }).concat(pPay.map(function (p) {
         cariPaymentsById[p.id] = p;
@@ -1275,7 +1281,7 @@
     function buildStatementCsv(name, invoices, payments) {
       var header = 'Tür,Tarih,Açıklama,Tutar\n';
       var invRows = invoices.map(function (inv) {
-        var title = inv.jobs ? (inv.jobs.job_number + ' - ' + (inv.jobs.restoration_type || '') + (zkIsBirim(inv.jobs) ? ' (' + zkIsBirim(inv.jobs) + ')' : '')) : 'İş kaydı';
+        var title = inv.jobs ? (inv.jobs.job_number + ' - ' + (inv.jobs.restoration_type || '') + (zkIsBirim(inv.jobs) ? ' (' + zkIsBirim(inv.jobs) + ')' : '') + (inv.vat_amount != null ? ' (KDV %' + Number(inv.vat_rate || 0) + ' dahil)' : '')) : 'İş kaydı';
         return ['Fatura', (inv.issued_at || '').slice(0, 10), csvSafe(title), inv.amount].join(',');
       }).join('\n');
       var payRows = payments.map(function (p) {
@@ -1299,7 +1305,7 @@
       doc.text('Oluşturulma tarihi: ' + new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }), 14, 22);
 
       var rows = invoices.map(function (inv) {
-        var title = inv.jobs ? (inv.jobs.job_number + ' — ' + (inv.jobs.restoration_type || '') + (zkIsBirim(inv.jobs) ? ' (' + zkIsBirim(inv.jobs) + ')' : '')) : 'İş kaydı';
+        var title = inv.jobs ? (inv.jobs.job_number + ' — ' + (inv.jobs.restoration_type || '') + (zkIsBirim(inv.jobs) ? ' (' + zkIsBirim(inv.jobs) + ')' : '') + (inv.vat_amount != null ? ' (KDV %' + Number(inv.vat_rate || 0) + ' dahil)' : '')) : 'İş kaydı';
         return [(inv.issued_at || '').slice(0, 10), 'Fatura', title, '-' + ZirkonikMoney.format(inv.amount, inv.currency, 0)];
       }).concat(payments.map(function (p) {
         return [(p.received_at || '').slice(0, 10), 'Tahsilat', p.method || '', '+' + ZirkonikMoney.format(p.amount, p.currency, 0)];
@@ -1341,7 +1347,7 @@
 
       Promise.all([
         // 2026-09-12: iptal edilen fatura ekstreye girmez.
-        client.from('invoices').select('amount, issued_at, jobs(job_number, restoration_type, unit_count, price_list_items(pricing_unit))').eq('doctor_id', statementDoctorId).neq('status', 'cancelled').order('issued_at'),
+        client.from('invoices').select('amount, currency, issued_at, vat_rate, vat_amount, jobs(job_number, restoration_type, unit_count, price_list_items(pricing_unit))').eq('doctor_id', statementDoctorId).neq('status', 'cancelled').order('issued_at'),
         client.from('payments').select('amount, method, received_at').eq('doctor_id', statementDoctorId).order('received_at'),
         client.from('doctors').select('email').eq('id', statementDoctorId).single()
       ]).then(function (results) {
