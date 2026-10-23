@@ -800,6 +800,7 @@
         ZirkonikAuth.me().then(function (me) {
           isAdminViewer = me.role === 'yonetici';
           document.getElementById('reopen-job-icon-btn').classList.toggle('hidden', !isAdminViewer);
+          zkTeslimOnayiKart(me);
         });
         return;
       }
@@ -808,6 +809,41 @@
       ZirkonikAuth.me().then(function (me) {
         isAdminViewer = me.role === 'yonetici';
         iconBtn.classList.toggle('hidden', !isAdminViewer);
+      });
+    }
+    // 23 Ekim 2026: doktorun "Teslim aldım" onayı. Doktor basmadıysa yalnız lab yetkilisi (yönetici / sipariş yönetimi) işaretleyebilir.
+    // Tablo (SQL) henüz yoksa sorgu hata döner ve kart hiç çıkmaz.
+    function zkTeslimOnayiKart(me) {
+      var kart = document.getElementById('teslim-onay-kart');
+      if (!kart) {
+        kart = document.createElement('div');
+        kart.id = 'teslim-onay-kart';
+        kart.className = 'mx-5 mt-4 rounded-theme border border-border bg-card p-4';
+        document.getElementById('cancelled-banner').insertAdjacentElement('afterend', kart);
+      }
+      var jid = jobId;
+      ZirkonikAuth.client().from('job_teslim_onaylari').select('received_at, kaynak').eq('job_id', jid).maybeSingle().then(function (r) {
+        if (r.error) { kart.classList.add('hidden'); return; }
+        kart.classList.remove('hidden');
+        if (r.data) {
+          kart.innerHTML = '<p class="text-xs font-bold text-success">Doktor teslim aldı</p><p class="mt-0.5 text-[11px] text-muted-foreground">' +
+            new Date(r.data.received_at).toLocaleDateString('tr-TR') + (r.data.kaynak === 'lab' ? ' · laboratuvar işaretledi' : ' · doktor onayladı') + '</p>';
+          return;
+        }
+        var perms = (me && me.user_permissions) || {};
+        perms = (perms && perms[0]) || perms || {};
+        var yetkili = (me && me.role === 'yonetici') || !!perms.can_manage_orders;
+        kart.innerHTML = '<p class="text-xs font-bold">Doktor henüz "Teslim aldım" demedi</p>' +
+          (yetkili ? '<button type="button" id="teslim-isaretle" class="mt-2 flex h-10 w-full items-center justify-center rounded-theme border border-border bg-background text-xs font-bold">Teslim edildi olarak işaretle</button>' : '');
+        var b = document.getElementById('teslim-isaretle');
+        if (b) b.addEventListener('click', function () {
+          if (!confirm('Doktor adına "teslim edildi" olarak işaretlensin mi?')) return;
+          var bitir = ZKHiz.mesgul(b, 'Kaydediliyor…');
+          ZirkonikAuth.client().rpc('zk_is_teslim_alindi', { p_job: jid }).then(function (x) {
+            if (x.error) { bitir(); zkToast('Olmadı: ' + x.error.message); return; }
+            bitir(false); zkToast('Teslim edildi olarak işaretlendi.'); zkTeslimOnayiKart(me);
+          });
+        });
       });
     }
     function zkReopenJob() {

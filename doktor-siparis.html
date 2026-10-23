@@ -1251,7 +1251,9 @@
         client.from('job_stage_history').select('room_id, entered_at, exited_at, confirmed_at, rooms(name)').eq('job_id', jobId).order('entered_at'),
         client.from('rooms').select('id, name'),
         // Kalemler: cene semasini kendi renkleriyle boyamak icin.
-        client.from('job_items').select('teeth, color_index, restoration_type, job_item_prices(price, currency)').eq('job_id', jobId).order('sort_order')
+        client.from('job_items').select('teeth, color_index, restoration_type, job_item_prices(price, currency)').eq('job_id', jobId).order('sort_order'),
+        // 23 Ekim 2026: "Teslim aldım" onayı. SQL gelmeden tablo yoksa hata döner → düğme gizli kalır.
+        client.from('job_teslim_onaylari').select('received_at, kaynak').eq('job_id', jobId).maybeSingle()
       ]).then(function (res) {
         if (res[0].error) {
           body.innerHTML = '<p class="text-xs text-destructive">Açılamadı: ' + escapeHtml(res[0].error.message) + '</p>';
@@ -1291,6 +1293,17 @@
         if (fiyatli.length) row('Tutar', ZirkonikMoney.totalText(fiyatli, 'price', 'currency', 0));
         else if (j.price != null) row('Tutar', ZirkonikMoney.format(Number(j.price), j.currency, 0));
         if (info.length) html += '<div class="grid grid-cols-2 gap-2">' + info.join('') + '</div>';
+
+        // --- Teslim onayı (iş laboratuvarca teslim edildiyse) ---
+        var onay = res[4] && !res[4].error ? res[4].data : undefined;
+        if (j.status === 'completed' && res[4] && !res[4].error) {
+          if (onay) {
+            html += '<div class="mt-3 rounded-theme border border-border bg-background px-3 py-2.5 text-xs font-bold text-success">Teslim alındı · ' +
+              new Date(onay.received_at).toLocaleDateString('tr-TR') + (onay.kaynak === 'lab' ? ' (laboratuvar işaretledi)' : '') + '</div>';
+          } else {
+            html += '<button type="button" id="jd-teslim-aldim" class="mt-3 flex h-11 w-full items-center justify-center rounded-theme bg-primary text-xs font-bold text-primary-foreground">Teslim aldım</button>';
+          }
+        }
 
         // --- Üretim akışı ---
         // Rota planned_route'tan çiziliyor; geçmiş kayıtları hangi aşamanın
@@ -1387,6 +1400,14 @@
           ZkWorkForm.renderChartOnly(chartEl, colorMap, chartLabels);
         }
         zkDoc3B(jobId);
+        var teslimBtn = document.getElementById('jd-teslim-aldim');
+        if (teslimBtn) teslimBtn.addEventListener('click', function () {
+          var bitir = ZKHiz.mesgul(teslimBtn, 'Kaydediliyor…');
+          client.rpc('zk_is_teslim_alindi', { p_job: jobId }).then(function (r) {
+            if (r.error) { bitir(); zkToast('Olmadı: ' + r.error.message); return; }
+            bitir(false); zkToast('Teslim alındı olarak kaydedildi.'); zkDocOpenJob(jobId);
+          });
+        });
       });
     }
 
