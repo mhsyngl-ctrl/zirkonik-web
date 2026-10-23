@@ -310,7 +310,7 @@
     // eski sunucu sürümüyle uyum için gönderilir, dönen satırdaki yol esas alınır.
     var klasor = o.orgId + '/' + (o.jobId || o.orderId) + '/';
     var yol = klasor + id + '.' + (o.tur === 'stl' ? 'stl' : 'html');
-    var sikYol = o.tur === 'stl' ? klasor + id + '.zkm1' : null;
+    var sikYol = null;
     var satirYazildi = false, yuklenen = [];
     var sik = null, meta = {};
     var jeton;
@@ -321,18 +321,8 @@
       durum('Dosya okunuyor…', null);
       return dosyaOku(o.file);
     }).then(function (buf) {
-      if (o.tur !== 'stl') return buf;
-      durum(isciYok && buf.byteLength > 25 * 1048576 ? 'Büyük model küçültülüyor, birkaç saniye sürebilir…' : 'Model küçültülüyor…', null);
-      // Kopya gerekmez: işçi yolu kendi kopyasını alır, ana sayfa yolu girdiyi değiştirmez.
-      return isciCalistir('stl-sikistir', buf).then(function (m) {
-        sik = m.zkm1; meta = { nokta: m.nokta, ucgen: m.ucgen, kutu: m.kutu };
-        return buf;
-      }, function (e) {
-        // Sıkıştırma olmadı: ham STL yine de yüklenir, görüntüleyici hamı okur.
-        sik = null;
-        if (global.console) console.warn('STL sıkıştırma başarısız: ' + e.message);
-        return buf;
-      });
+      // Sıkıştırma kapalı (23 Ekim): dosya olduğu gibi gider, görüntüleyici hamı okur.
+      return buf;
     }).then(function (buf) {
       return client().from('job_files').insert({
         id: id,
