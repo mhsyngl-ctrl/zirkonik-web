@@ -354,13 +354,12 @@
         sikYol = (r.data && r.data.compressed_path) ? r.data.compressed_path : null;
         if (!sikYol) sik = null;
         durum('Yükleniyor… 0%', 0);
-        var toplam = buf.byteLength + (sik ? sik.byteLength : 0), bitenHam = 0;
-        function oran(parca, p) { var y = (bitenHam + parca * p) / toplam; durum('Yükleniyor… ' + Math.round(y * 100) + '%', y); }
-        return xhrYukle(yol, buf, jeton, function (p) { oran(buf.byteLength, p); }).then(function () {
-          yuklenen.push(yol); bitenHam = buf.byteLength;
-          if (!sik) return;
-          return xhrYukle(sikYol, sik, jeton, function (p) { oran(sik.byteLength, p); }).then(function () { yuklenen.push(sikYol); });
-        });
+        // Orijinal ve küçültülmüş kopya AYNI ANDA gider (eskiden art arda: süre iki katıydı).
+        var toplam = buf.byteLength + (sik ? sik.byteLength : 0), hamP = 0, sikP = 0;
+        function oran() { var y = (hamP * buf.byteLength + sikP * (sik ? sik.byteLength : 0)) / toplam; durum('Yükleniyor… ' + Math.round(y * 100) + '%', y); }
+        var isler = [xhrYukle(yol, buf, jeton, function (p) { hamP = p; oran(); }).then(function () { yuklenen.push(yol); })];
+        if (sik) isler.push(xhrYukle(sikYol, sik, jeton, function (p) { sikP = p; oran(); }).then(function () { yuklenen.push(sikYol); }));
+        return Promise.all(isler);
       });
     }).then(function () {
       durum('Kaydediliyor…', 1);
