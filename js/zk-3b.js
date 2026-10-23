@@ -276,10 +276,18 @@
 
   // ---- Veri ----
   function listele(filtre) {
-    var q = client().from('job_files').select('*').not('uploaded_at', 'is', null).order('created_at');
-    if (filtre.jobId) q = q.eq('job_id', filtre.jobId);
-    else if (filtre.orderId) q = q.eq('order_id', filtre.orderId);
-    return q.then(function (r) { return r.error ? Promise.reject(r.error) : (r.data || []); });
+    // yukleyen: yükleyenin adı (app_users.full_name). Doktor portalında personel adı RLS ile gelmez; o zaman rol yazısı gösterilir.
+    // Ad sorgusu herhangi bir nedenle hata verirse liste adsız olarak yine gelir (3B kartı bozulmasın).
+    function sorgu(sec) {
+      var q = client().from('job_files').select(sec).not('uploaded_at', 'is', null).order('created_at');
+      if (filtre.jobId) q = q.eq('job_id', filtre.jobId);
+      else if (filtre.orderId) q = q.eq('order_id', filtre.orderId);
+      return q;
+    }
+    return sorgu('*, yukleyen:uploaded_by(full_name)').then(function (r) {
+      if (!r.error) return r.data || [];
+      return sorgu('*').then(function (r2) { return r2.error ? Promise.reject(r2.error) : (r2.data || []); });
+    });
   }
 
   function getir(id) {
@@ -376,6 +384,25 @@
     });
   }
 
+  /*
+   * Birden fazla STL'i SIRAYLA yükler (sunucu aynı anda en çok 3 yarım yükleme kabul eder).
+   * yuklePaket(dosyalar, ortak) → Promise<{ basarili: n, hatalar: ["ad: neden"] }>; biri patlarsa diğerleri yine denenir.
+   * ortak: yukle'ye giden alanlar (tur, jobId|orderId, orgId, userId, rol); durum(metin, oran) dosya sırasını ekler.
+   */
+  function yuklePaket(dosyalar, ortak) {
+    var sonuc = { basarili: 0, hatalar: [] }, ilk = Promise.resolve();
+    dosyalar.forEach(function (f, i) {
+      ilk = ilk.then(function () {
+        var o = {}; Object.keys(ortak).forEach(function (k) { o[k] = ortak[k]; });
+        o.file = f;
+        var d = ortak.durum || function () {};
+        o.durum = function (m, oran) { d((dosyalar.length > 1 ? '(' + (i + 1) + '/' + dosyalar.length + ') ' : '') + m, oran); };
+        return yukle(o).then(function () { sonuc.basarili++; }, function (e) { sonuc.hatalar.push(f.name + ': ' + ((e && e.message) || e)); });
+      });
+    });
+    return ilk.then(function () { return sonuc; });
+  }
+
   // Dosya içeriğini getirir (önce cihaz önbelleği). STL için küçültülmüş sürüm tercih edilir.
   // Önce ÇİZ, sonra kaydet: önbelleğe yazma arkada sürer, sayfa beklemez.
   function indir(satir, ilerleme, hamIste) {
@@ -432,11 +459,75 @@
   // ---- Arayüz parçaları ----
 
   /*
+   * Çoklu dosya seçici (STL): birden fazla dosya eklenir, her biri tek tek kaldırılır.
+   * secici(el, { tur:'stl', coklu:true, mevcut: n, degisti(dosyalar) }) → { al(), alHepsi(), temizle(), kilitle(bool), mevcutAyarla(n) }
+   * Sunucu sınırı: işte/siparişte toplam en çok 10 dosya (`mevcut` zaten yüklenmiş olanlardır).
+   */
+  var DOSYA_SAYISI = 10;
+  function seciciCoklu(el, o) {
+    var tur = o.tur, dosyalar = [], mevcut = o.mevcut || 0, kilitli = false;
+    var inpId = 'zk3b-inp-' + kimlik().slice(0, 8);
+    el.innerHTML =
+      '<input id="' + inpId + '" type="file" accept=".stl" multiple class="hidden">' +
+      '<div data-rol="liste" class="space-y-2"></div>' +
+      '<label data-rol="ekle" for="' + inpId + '" class="mt-2 flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-theme border border-border bg-background text-xs font-bold text-primary">' +
+        '<iconify-icon icon="lucide:box" class="text-base"></iconify-icon><span data-rol="ekle-yazi"></span></label>' +
+      '<p data-rol="not" class="mt-1.5 text-[11px] text-muted-foreground"></p>' +
+      '<p data-rol="hata" class="mt-1.5 hidden whitespace-pre-line text-xs font-semibold text-destructive"></p>';
+    var inp = el.querySelector('#' + inpId), liste = el.querySelector('[data-rol="liste"]');
+    var ekle = el.querySelector('[data-rol="ekle"]'), hataEl = el.querySelector('[data-rol="hata"]');
+    function ciz() {
+      liste.innerHTML = dosyalar.map(function (f, i) {
+        return '<div class="flex items-center gap-2.5 rounded-theme border border-border bg-background px-3 py-2.5">' +
+          '<iconify-icon icon="lucide:box" class="shrink-0 text-lg text-primary"></iconify-icon>' +
+          '<div class="min-w-0 flex-1"><p class="truncate text-sm font-bold">' + kacis(f.name) + '</p>' +
+          '<p class="text-[11px] text-muted-foreground">' + boyut(f.size) + ' · orijinal dosya olduğu gibi yüklenir</p></div>' +
+          '<button type="button" data-kaldir="' + i + '" class="shrink-0 text-xs font-bold text-destructive"' + (kilitli ? ' disabled' : '') + '>Kaldır</button></div>';
+      }).join('');
+      var dolu = mevcut + dosyalar.length >= DOSYA_SAYISI;
+      ekle.classList.toggle('hidden', dolu);
+      ekle.style.opacity = kilitli ? '.5' : ''; ekle.style.pointerEvents = kilitli ? 'none' : '';
+      el.querySelector('[data-rol="ekle-yazi"]').textContent = dosyalar.length ? 'Başka STL dosyası ekle' : (o.etiket || 'STL dosyası seç');
+      el.querySelector('[data-rol="not"]').textContent = 'Tarama / model dosyaları (.stl), her biri en fazla 50 MB; en çok ' + DOSYA_SAYISI + ' dosya. Birden fazla seçebilirsiniz.';
+      if (o.degisti) o.degisti(dosyalar.slice());
+    }
+    inp.addEventListener('change', function () {
+      var secilen = Array.prototype.slice.call(inp.files || []), hatalar = [];
+      secilen.forEach(function (f) {
+        if (mevcut + dosyalar.length >= DOSYA_SAYISI) { if (hatalar.indexOf('En çok ' + DOSYA_SAYISI + ' dosya eklenebilir.') === -1) hatalar.push('En çok ' + DOSYA_SAYISI + ' dosya eklenebilir.'); return; }
+        var h = dogrula(f, tur);
+        if (h) { hatalar.push(f.name + ': ' + h); return; }
+        var ayni = dosyalar.some(function (d) { return d.name === f.name && d.size === f.size && d.lastModified === f.lastModified; });
+        if (!ayni) dosyalar.push(f);
+      });
+      inp.value = '';
+      hataEl.classList.toggle('hidden', !hatalar.length);
+      hataEl.textContent = hatalar.join('\n');
+      ciz();
+    });
+    liste.addEventListener('click', function (e) {
+      var b = e.target.closest ? e.target.closest('[data-kaldir]') : null;
+      if (!b || kilitli) return;
+      dosyalar.splice(Number(b.getAttribute('data-kaldir')), 1);
+      hataEl.classList.add('hidden'); ciz();
+    });
+    ciz();
+    return {
+      al: function () { return dosyalar[0] || null; },
+      alHepsi: function () { return dosyalar.slice(); },
+      temizle: function () { dosyalar = []; inp.value = ''; hataEl.classList.add('hidden'); ciz(); },
+      kilitle: function (k) { kilitli = !!k; inp.disabled = !!k; ciz(); },
+      mevcutAyarla: function (n) { mevcut = n || 0; ciz(); }
+    };
+  }
+
+  /*
    * Dosya seçici: seçmeden önce "Seç", seçince ad + boyut + "Kaldır" (kaydetmeden önce
-   * geri alma). Kaydetme düğmesi sayfanın kendisinde.
+   * geri alma). Kaydetme düğmesi sayfanın kendisinde. `coklu:true` ise seciciCoklu kullanılır.
    * secici(el, { tur, etiket, degisti(file) }) → { al(), temizle(), kilitle(bool) }
    */
   function secici(el, o) {
+    if (o.coklu && o.tur === 'stl') return seciciCoklu(el, o);
     var tur = o.tur, file = null;
     var kabul = tur === 'stl' ? '.stl' : '.html,.htm';
     var inpId = 'zk3b-inp-' + kimlik().slice(0, 8);
@@ -508,7 +599,9 @@
     return satirlar.map(function (s) {
       var stl = s.kind === 'stl';
       var alt = boyut(s.size_bytes) + (stl && s.triangle_count ? ' · ' + Number(s.triangle_count).toLocaleString('tr-TR') + ' üçgen' : '') +
-        ' · ' + (s.uploaded_role === 'doktor' ? 'doktor yükledi' : 'laboratuvar yükledi') +
+        ' · ' + (s.yukleyen && s.yukleyen.full_name
+          ? s.yukleyen.full_name + ' (' + (s.uploaded_role === 'doktor' ? 'doktor' : 'laboratuvar') + ') yükledi'
+          : (s.uploaded_role === 'doktor' ? 'doktor yükledi' : 'laboratuvar yükledi')) +
         (s.uploaded_at ? ' · ' + new Date(s.uploaded_at).toLocaleDateString('tr-TR') : '');
       var rozet = !stl ? (s.sent_to_doctor_at
         ? '<span class="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-secondary-foreground">Doktora gönderildi</span>'
@@ -530,7 +623,7 @@
   global.ZK3B = {
     KOVA: KOVA, SINIR: SINIR,
     boyut: boyut, dogrula: dogrula, webglVar: webglVar,
-    yukle: yukle, indir: indir, sil: sil, doktoraGonder: doktoraGonder, indirmeBaglantisi: indirmeBaglantisi,
+    yukle: yukle, yuklePaket: yuklePaket, DOSYA_SAYISI: DOSYA_SAYISI, indir: indir, sil: sil, doktoraGonder: doktoraGonder, indirmeBaglantisi: indirmeBaglantisi,
     listele: listele, getir: getir, gosterUrl: gosterUrl,
     isciCalistir: isciCalistir, isciKapat: isciKapat,
     secici: secici, ilerlemeCubugu: ilerlemeCubugu, listeHtml: listeHtml

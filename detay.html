@@ -1228,7 +1228,7 @@
         dosya3B.satirlar = satirlar;
         dosya3B.yetki = {
           htmlYukle: admin || (!!oda && !!oda.has_3d && odaYetkili),
-          stlEkle: admin && !stlVar,
+          stlEkle: admin,        // 23 Ekim 2026: hasta başına birden fazla STL (sunucu sınırı: işte en çok 10 dosya)
           gonder: admin || (!!oda && !!oda.has_3d && odaYetkili),
           sil: admin
         };
@@ -1265,9 +1265,12 @@
       document.getElementById('dosya-3b-ilerleme').classList.add('hidden');
       dosya3B.secici = ZK3B.secici(document.getElementById('dosya-3b-secici'), {
         tur: tur,
+        coklu: tur === 'stl',
+        mevcut: (dosya3B.satirlar || []).length,
         degisti: function (f) {
+          var var_ = Array.isArray(f) ? f.length > 0 : !!f;
           var b = document.getElementById('dosya-3b-kaydet');
-          b.disabled = !f; b.classList.toggle('opacity-50', !f);
+          b.disabled = !var_; b.classList.toggle('opacity-50', !var_);
         }
       });
       ciz3B();
@@ -1280,8 +1283,9 @@
     }
 
     function zk3BKaydet() {
-      var f = dosya3B.secici && dosya3B.secici.al();
-      if (!f || dosya3B.yukleniyor) return;
+      var tur = dosya3B.tur;
+      var dosyalar = !dosya3B.secici ? [] : (tur === 'stl' ? dosya3B.secici.alHepsi() : [dosya3B.secici.al()].filter(Boolean));
+      if (!dosyalar.length || dosya3B.yukleniyor) return;
       var btn = document.getElementById('dosya-3b-kaydet');
       var bitir = ZKHiz.mesgul(btn, 'Yükleniyor…');
       var durum = ZK3B.ilerlemeCubugu(document.getElementById('dosya-3b-ilerleme'));
@@ -1289,19 +1293,32 @@
       hataEl.classList.add('hidden');
       dosya3B.yukleniyor = true;
       dosya3B.secici.kilitle(true);
-      var tur = dosya3B.tur;
+      var sonSatir = null;
       ZirkonikAuth.me().then(function (me) {
-        return ZK3B.yukle({ file: f, tur: tur, jobId: jobId, orgId: currentJob.organization_id, userId: me.id, rol: 'laboratuvar', durum: durum });
-      }).then(function (satir) {
+        // Dosyalar SIRAYLA yüklenir (sunucu aynı anda en çok 3 yarım yükleme kabul eder); biri patlarsa ötekiler denenir.
+        return ZK3B.yuklePaket(dosyalar, { tur: tur, jobId: jobId, orgId: currentJob.organization_id, userId: me.id, rol: 'laboratuvar', durum: durum });
+      }).then(function (sonuc) {
         bitir();
         dosya3B.yukleniyor = false;
-        zk3BVazgec();
-        zkToast(tur === 'html' ? 'Tasarım dosyası kaydedildi.' : 'STL dosyası kaydedildi.');
-        if (tur === 'html' && satir && dosya3B.yetki.gonder) {
-          // Yükleyen kaydetti; şimdi doktora gitsin mi? Hayır denirse listede "Doktora gönder" düğmesi kalır.
-          if (confirm('Tasarım doktora gönderilsin mi? Doktora bildirim gider ve dosyayı kendi ekranından açar.')) {
-            return ZK3B.doktoraGonder(satir.id).then(function () { zkToast('Doktora gönderildi.'); }, function (e) { zkToast('Gönderilemedi: ' + e.message); });
-          }
+        if (sonuc.hatalar.length) {
+          hataEl.textContent = 'Yüklenemeyen: ' + sonuc.hatalar.join('; ');
+          hataEl.classList.remove('hidden');
+          if (dosya3B.secici) dosya3B.secici.kilitle(false);
+        }
+        if (sonuc.basarili) {
+          if (!sonuc.hatalar.length) zk3BVazgec();
+          zkToast(tur === 'html' ? 'Tasarım dosyası kaydedildi.' : (sonuc.basarili > 1 ? sonuc.basarili + ' STL dosyası kaydedildi.' : 'STL dosyası kaydedildi.'));
+        }
+        return sonuc;
+      }).then(function (sonuc) {
+        // exocad tasarımı tek dosyadır: kaydedince doktora gitsin mi diye sorulur (yalnız tek dosya, yalnız yetkili).
+        if (tur === 'html' && sonuc && sonuc.basarili === 1 && dosya3B.yetki.gonder) {
+          return ZK3B.listele({ jobId: jobId }).then(function (satirlar) {
+            var son = satirlar.filter(function (x) { return x.kind === 'html' && !x.sent_to_doctor_at; }).pop();
+            if (son && confirm('Tasarım doktora gönderilsin mi? Doktora bildirim gider ve dosyayı kendi ekranından açar.')) {
+              return ZK3B.doktoraGonder(son.id).then(function () { zkToast('Doktora gönderildi.'); }, function (e) { zkToast('Gönderilemedi: ' + e.message); });
+            }
+          });
         }
       }).catch(function (e) {
         bitir();

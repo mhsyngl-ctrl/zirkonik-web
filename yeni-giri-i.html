@@ -165,8 +165,9 @@
 
             <div class="mt-3 grid grid-cols-2 gap-3">
               <label class="block">
-                <span class="mb-1.5 block text-xs font-bold">Diş sayısı *</span>
+                <span id="f-count-label" class="mb-1.5 block text-xs font-bold">Diş sayısı *</span>
                 <input id="f-tooth-count" type="number" min="1" step="1" value="1" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+                <span id="f-count-not" class="mt-1 hidden text-[11px] text-muted-foreground">Takım / tek parça iş: dişler yalnızca yerini gösterir, fiyat adetle hesaplanır.</span>
               </label>
               <label class="block">
                 <span class="mb-1.5 block text-xs font-bold">Diş numaraları</span>
@@ -381,8 +382,8 @@
           return '<div class="flex items-center gap-2.5 rounded-theme border border-border bg-card px-3 py-2">' +
             '<span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background:' + c + '"></span>' +
             '<div class="min-w-0 flex-1"><p class="truncate text-xs font-bold">' + escapeHtml(it.name) + '</p>' +
-            '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + it.teeth.length + ' diş' +
-            (it.teeth.length ? ' · ' + it.teeth.join(', ') : '') +
+            '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + (Number(it.unit_count) !== it.teeth.length ? it.unit_count + ' adet' : it.teeth.length + ' diş') +
+            (it.teeth.length ? ' · ' + escapeHtml(ZkWorkForm.disEtiketi(it.teeth)) : '') +
             (it.work_form && it.work_form.renk ? ' · <span class="font-bold text-accent">' + escapeHtml(it.work_form.renk) + '</span>' : '') +
             (it.price != null ? ' · ' + ZirkonikMoney.format(it.price, it.currency, 2) : '') + '</p></div>' +
             '<button type="button" onclick="zkRemoveDraftItem(' + i + ')" class="shrink-0 text-destructive" aria-label="Kaldır">' +
@@ -422,7 +423,7 @@
         return '<span class="flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-semibold">' +
           '<span class="h-2 w-2 shrink-0 rounded-full" style="background:' + c + '"></span>' +
           escapeHtml(it.name) +
-          (it.teeth.length ? ' <span class="font-normal text-muted-foreground">' + it.teeth.join(', ') + '</span>' : '') +
+          (it.teeth.length ? ' <span class="font-normal text-muted-foreground">' + escapeHtml(ZkWorkForm.disEtiketi(it.teeth)) + '</span>' : '') +
           '</span>';
       });
       var simdi = (window.ZkWorkForm && ZkWorkForm.getTeeth) ? ZkWorkForm.getTeeth() : [];
@@ -446,6 +447,20 @@
 
     // Toplu diş seçimi. Zaten başka kalemde kullanılan dişler seçime dahil
     // edilmez, yoksa "Tümü" dedikçe çakışma uyarısı alınırdı.
+    // Seçili çalışma türü "adet / takım" mı (gece plağı, tam protez)? Öyleyse fiyat adetle çarpılır, diş sayısıyla DEĞİL.
+    function zkAdetli() {
+      var it = priceItems.find(function (p) { return p.id === document.getElementById('f-type').value; });
+      return !!it && it.pricing_unit === 'piece';
+    }
+    function zkTurDegisti() {
+      var adetli = zkAdetli();
+      document.getElementById('f-count-label').textContent = adetli ? 'Adet *' : 'Diş sayısı *';
+      document.getElementById('f-count-not').classList.toggle('hidden', !adetli);
+      var teeth = ZkWorkForm.getTeeth();
+      if (adetli) document.getElementById('f-tooth-count').value = 1;
+      else if (teeth.length) document.getElementById('f-tooth-count').value = teeth.length;
+    }
+
     function zkPickTeeth(which) {
       var U = ZkWorkForm.UPPER || [], L = ZkWorkForm.LOWER || [];
       var used = zkUsedTeethMap();
@@ -457,6 +472,14 @@
       else if (which === 'right') pick = U.concat(L).filter(function (n) { return String(n)[0] === '1' || String(n)[0] === '4'; });
       else if (which === 'left') pick = U.concat(L).filter(function (n) { return String(n)[0] === '2' || String(n)[0] === '3'; });
       else pick = [];
+      // Adet/takım işinde çene yarım işaretlenmesin: o çenede başka kalem varsa uyar, seçimi değiştirme.
+      if (zkAdetli() && pick.some(function (n) { return used[n]; })) {
+        var uy = document.getElementById('f-item-error');
+        uy.textContent = 'Bu çenede başka bir kalem var. Önce onu kaldırın ya da dişleri tek tek seçin.';
+        uy.classList.remove('hidden');
+        return;
+      }
+      document.getElementById('f-item-error').classList.add('hidden');
       ZkWorkForm.setTeeth(pick.filter(function (n) { return !used[n]; }));
     }
 
@@ -508,6 +531,7 @@
       sel.value = '';
       document.getElementById('f-price').value = '';
       document.getElementById('f-tooth-count').value = 1;
+      zkTurDegisti();
       // Tür ve tutar kutuları boşaldı ama altlarındaki fiyat/anlaşma satırı ve
       // para birimi uyarısı BİR ÖNCEKİ kalemden kalıyordu: boş kutunun altında
       // "999 ₺ · Dr. X için anlaşmalı fiyat" yazıyor, ekran hangi kalemden
@@ -532,10 +556,10 @@
     };
     zkRenderColorRow();
     zkRenderDraftItems();
-    document.getElementById('f-type').addEventListener('change', function () { zkRenderColorRow(); zkRenderLegend(); });
+    document.getElementById('f-type').addEventListener('change', function () { zkTurDegisti(); zkRenderColorRow(); zkRenderLegend(); });
     ZkWorkForm.onTeethChange = function (teeth) {
       document.getElementById('f-teeth').value = teeth.join(', ');
-      if (teeth.length) document.getElementById('f-tooth-count').value = teeth.length;
+      if (teeth.length && !zkAdetli()) document.getElementById('f-tooth-count').value = teeth.length;
       zkRecalcPrice();
       zkRenderLegend();
     };
@@ -586,7 +610,7 @@
       // fiyat listesindekinden farklı bir rakam çıkabiliyordu ve sebebi
       // görünmüyordu (2026-09-05 hata bildirimi). Artık hem anlaşmalı fiyat
       // hem de genel liste fiyatı birlikte yazılıyor.
-      var label = unit + ' ' + cur + ' × ' + count + ' diş = ' + total + ' ' + cur;
+      var label = unit + ' ' + cur + ' × ' + count + (item.pricing_unit === 'piece' ? ' adet = ' : ' diş = ') + total + ' ' + cur;
       if (isSpecial) {
         var doc = doctors.find(function (d) { return d.id === doctorId; });
         var who = doc
@@ -683,7 +707,7 @@
       });
     });
 
-    var fStl = (window.ZK3B && document.getElementById('f-stl')) ? ZK3B.secici(document.getElementById('f-stl'), { tur: 'stl' }) : null;
+    var fStl = (window.ZK3B && document.getElementById('f-stl')) ? ZK3B.secici(document.getElementById('f-stl'), { tur: 'stl', coklu: true }) : null;
 
     document.getElementById('submit-btn').addEventListener('click', function () {
       var errEl = document.getElementById('form-error');
@@ -897,13 +921,18 @@
       }).then(function (job) {
         // 15 Ekim 2026: STL seçildiyse iş kaydından SONRA yüklenir. Yükleme patlarsa iş
         // yine de açılmıştır; dosya iş detayından (yönetici) tekrar eklenir.
-        var dosya = fStl ? fStl.al() : null;
-        if (!dosya) return job;
+        var dosyalar = fStl ? fStl.alHepsi() : [];
+        if (!dosyalar.length) return job;
         var durum = ZK3B.ilerlemeCubugu(document.getElementById('f-stl-ilerleme'));
         if (fStl) fStl.kilitle(true);
+        // Dosyalar SIRAYLA yüklenir; biri patlarsa iş yine açılmıştır, ötekiler denenir.
         return ZirkonikAuth.me().then(function (me) {
-          return ZK3B.yukle({ file: dosya, tur: 'stl', jobId: job.id, orgId: job.organization_id, userId: me.id, rol: 'laboratuvar', durum: durum });
-        }).then(function () { return job; }, function (e) {
+          return ZK3B.yuklePaket(dosyalar, { tur: 'stl', jobId: job.id, orgId: job.organization_id, userId: me.id, rol: 'laboratuvar', durum: durum });
+        }).then(function (sonuc) {
+          if (!sonuc.hatalar.length) return job;
+          zkToast('İş oluşturuldu ama şu STL yüklenemedi: ' + sonuc.hatalar.join('; '));
+          return new Promise(function (r) { setTimeout(function () { r(job); }, 2600); });
+        }, function (e) {
           zkToast('İş oluşturuldu ama STL yüklenemedi: ' + e.message);
           return new Promise(function (r) { setTimeout(function () { r(job); }, 2200); });
         });

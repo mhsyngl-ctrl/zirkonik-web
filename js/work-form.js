@@ -119,7 +119,26 @@
     }).join('') + '</div>';
   }
 
+  /* Diş seçiminin okunur özeti: tam çene ise tek tek numara yerine "Üst çene (16 diş)", "Alt çene", "Tam ağız".
+     Akıl dişleri (18, 28, 38, 48) şart değil: 14 dişli çene de tam çene sayılır. Numaralar karakter ya da sayı olabilir. */
+  function disEtiketi(teeth) {
+    var liste = (teeth || []).map(function (t) { return String(t); });
+    var s = {}; liste.forEach(function (t) { s[t] = true; });
+    var n = Object.keys(s).length;
+    if (!n) return '';
+    var U = UPPER.map(String), L = LOWER.map(String);
+    var ustTemel = U.filter(function (t) { return t !== '18' && t !== '28'; });
+    var altTemel = L.filter(function (t) { return t !== '38' && t !== '48'; });
+    function icinde(a) { return Object.keys(s).every(function (t) { return a.indexOf(t) !== -1; }); }
+    function hepsi(a) { return a.every(function (t) { return s[t]; }); }
+    if (icinde(U.concat(L)) && hepsi(ustTemel) && hepsi(altTemel)) return 'Tam ağız (' + n + ' diş)';
+    if (icinde(U) && hepsi(ustTemel)) return 'Üst çene (' + n + ' diş)';
+    if (icinde(L) && hepsi(altTemel)) return 'Alt çene (' + n + ' diş)';
+    return Object.keys(s).sort(function (a, b) { return Number(a) - Number(b); }).join(', ');
+  }
+
   var ZkWorkForm = {
+    disEtiketi: disEtiketi,
     onTeethChange: null,
     /* VITA rengi degisince cagrilir. Renk KALEM BAZINDA kaydedildigi icin
        (job_items.work_form) kalem kutusunda canli gosterilmesi gerekiyor:

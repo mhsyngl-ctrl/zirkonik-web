@@ -145,8 +145,9 @@
           </div>
 
           <label class="mt-3 block">
-            <span class="mb-1.5 block text-xs font-bold">Diş sayısı *</span>
+            <span id="o-count-label" class="mb-1.5 block text-xs font-bold">Diş sayısı *</span>
             <input id="o-count" type="number" min="1" step="1" value="1" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+            <span id="o-count-not" class="mt-1 hidden text-[11px] text-muted-foreground">Takım / tek parça iş: dişler yalnızca yerini gösterir, fiyat adetle hesaplanır.</span>
           </label>
 
           <!-- Çoklu çalışma türü. İş talebi NEREDEN gelirse gelsin aynı
@@ -474,8 +475,8 @@
           return '<div class="flex items-center gap-2.5 rounded-theme border border-border bg-card px-3 py-2">' +
             '<span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background:' + c + '"></span>' +
             '<div class="min-w-0 flex-1"><p class="truncate text-xs font-bold">' + escapeHtml(it.restoration_type) + '</p>' +
-            '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + it.teeth.length + ' diş' +
-            (it.teeth.length ? ' · ' + it.teeth.join(', ') : '') + '</p></div>' +
+            '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + (Number(it.unit_count) !== it.teeth.length ? it.unit_count + ' adet' : it.teeth.length + ' diş') +
+            (it.teeth.length ? ' · ' + escapeHtml(ZkWorkForm.disEtiketi(it.teeth)) : '') + '</p></div>' +
             '<button type="button" onclick="zkDocRemoveItem(' + i + ')" class="shrink-0 text-destructive" aria-label="Kaldır">' +
             '<iconify-icon icon="lucide:x" class="text-base"></iconify-icon></button></div>';
         }).join('');
@@ -515,7 +516,7 @@
         return '<span class="flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-semibold">' +
           '<span class="h-2 w-2 shrink-0 rounded-full" style="background:' + c + '"></span>' +
           escapeHtml(it.restoration_type) +
-          (it.teeth.length ? ' <span class="font-normal text-muted-foreground">' + it.teeth.join(', ') + '</span>' : '') +
+          (it.teeth.length ? ' <span class="font-normal text-muted-foreground">' + escapeHtml(ZkWorkForm.disEtiketi(it.teeth)) + '</span>' : '') +
           '</span>';
       });
 
@@ -528,7 +529,7 @@
         parts.push('<span class="flex items-center gap-1.5 rounded-full border border-dashed border-primary bg-primary/5 px-2.5 py-1 text-[11px] font-semibold">' +
           '<span class="h-2 w-2 shrink-0 rounded-full" style="background:' + cc + '"></span>' +
           (tur ? escapeHtml(tur.name) : 'Tür seçilmedi') +
-          ' <span class="font-normal text-muted-foreground">' + simdi.join(', ') + '</span>' +
+          ' <span class="font-normal text-muted-foreground">' + escapeHtml(ZkWorkForm.disEtiketi(simdi)) + '</span>' +
           ' <span class="text-primary">· ekleniyor</span></span>');
       }
 
@@ -536,6 +537,21 @@
     }
 
     function zkDocRemoveItem(i) { docItems.splice(i, 1); zkDocRenderItems(); }
+
+    // Seçili çalışma türü "adet / takım" mı (gece plağı, tam protez)? Öyleyse fiyat adetle çarpılır, diş sayısıyla DEĞİL.
+    function zkDocAdetli() {
+      var sel = document.getElementById('o-type');
+      var it = priceItems.find(function (p) { return p.id === (sel && sel.value); });
+      return !!it && it.pricing_unit === 'piece';
+    }
+    function zkDocTurDegisti() {
+      var adetli = zkDocAdetli();
+      document.getElementById('o-count-label').textContent = adetli ? 'Adet *' : 'Diş sayısı *';
+      document.getElementById('o-count-not').classList.toggle('hidden', !adetli);
+      var teeth = ZkWorkForm.getTeeth();
+      if (adetli) document.getElementById('o-count').value = 1;
+      else if (teeth.length) document.getElementById('o-count').value = teeth.length;
+    }
 
     function zkDocPickTeeth(which) {
       var U = ZkWorkForm.UPPER || [], L = ZkWorkForm.LOWER || [];
@@ -547,6 +563,14 @@
       else if (which === 'right') pick = U.concat(L).filter(function (n) { return String(n)[0] === '1' || String(n)[0] === '4'; });
       else if (which === 'left') pick = U.concat(L).filter(function (n) { return String(n)[0] === '2' || String(n)[0] === '3'; });
       else pick = [];
+      // Adet/takım işinde çene yarım işaretlenmesin: o çenede başka kalem varsa uyar, seçimi değiştirme.
+      if (zkDocAdetli() && pick.some(function (n) { return used[n]; })) {
+        var uy = document.getElementById('o-item-error');
+        uy.textContent = 'Bu çenede başka bir kalem var. Önce onu kaldırın ya da dişleri tek tek seçin.';
+        uy.classList.remove('hidden');
+        return;
+      }
+      document.getElementById('o-item-error').classList.add('hidden');
       ZkWorkForm.setTeeth(pick.filter(function (n) { return !used[n]; }));
     }
 
@@ -580,6 +604,7 @@
       ZkWorkForm.clearShade();   // sonraki kalem onceki rengi sessizce devralmasin
       sel.value = '';
       document.getElementById('o-count').value = 1;
+      zkDocTurDegisti();
       docColorIdx = docItems.length % ZK_DOC_COLORS.length;
       zkDocRenderColors();
       zkDocRenderItems();
@@ -589,9 +614,9 @@
     // burasi guvenli; yukariya alinirsa undefined.map hatasi verir.
     zkDocRenderColors();
     zkDocRenderItems();
-    document.getElementById('o-type').addEventListener('change', function () { zkDocRenderColors(); zkDocRenderLegend(); });
+    document.getElementById('o-type').addEventListener('change', function () { zkDocTurDegisti(); zkDocRenderColors(); zkDocRenderLegend(); });
     ZkWorkForm.onTeethChange = function (teeth) {
-      if (teeth.length) document.getElementById('o-count').value = teeth.length;
+      if (teeth.length && !zkDocAdetli()) document.getElementById('o-count').value = teeth.length;
       zkDocRenderLegend();
     };
 
@@ -853,7 +878,7 @@
       });
     });
 
-    var oStl = (window.ZK3B && document.getElementById('o-stl')) ? ZK3B.secici(document.getElementById('o-stl'), { tur: 'stl' }) : null;
+    var oStl = (window.ZK3B && document.getElementById('o-stl')) ? ZK3B.secici(document.getElementById('o-stl'), { tur: 'stl', coklu: true }) : null;
 
     document.getElementById('o-submit').addEventListener('click', function () {
       var errEl = document.getElementById('o-error');
@@ -950,15 +975,17 @@
         }
         // 15 Ekim 2026: STL seçildiyse sipariş kaydından SONRA yüklenir. Otomatik onay
         // siparişi anında işe çevirmiş olabilir; sunucu dosyayı işe kendisi bağlar.
-        var dosya = oStl ? oStl.al() : null;
+        var dosyalar = oStl ? oStl.alHepsi() : [];
         var yuk;
-        if (dosya && res.data) {
+        if (dosyalar.length && res.data) {
           var durum = ZK3B.ilerlemeCubugu(document.getElementById('o-stl-ilerleme'));
           oStl.kilitle(true);
+          // Dosyalar SIRAYLA yüklenir; biri patlarsa sipariş yine gitmiştir, ötekiler denenir.
           yuk = ZirkonikAuth.me().then(function (me) {
-            return ZK3B.yukle({ file: dosya, tur: 'stl', orderId: res.data.id, orgId: doctor.organization_id, userId: me.id, rol: 'doktor', durum: durum });
-          }).then(function () {
-            zkToast('Siparişiniz ve STL dosyanız laboratuvara iletildi.');
+            return ZK3B.yuklePaket(dosyalar, { tur: 'stl', orderId: res.data.id, orgId: doctor.organization_id, userId: me.id, rol: 'doktor', durum: durum });
+          }).then(function (sonuc) {
+            if (!sonuc.hatalar.length) zkToast(dosyalar.length > 1 ? 'Siparişiniz ve ' + sonuc.basarili + ' STL dosyanız laboratuvara iletildi.' : 'Siparişiniz ve STL dosyanız laboratuvara iletildi.');
+            else zkToast('Sipariş iletildi, ' + sonuc.basarili + '/' + dosyalar.length + ' STL yüklendi. Yüklenemeyen: ' + sonuc.hatalar.join('; '));
           }, function (e) {
             zkToast('Sipariş iletildi ama STL yüklenemedi: ' + e.message);
           });
@@ -1005,7 +1032,7 @@
           return '<div class="flex items-center justify-between gap-2 border-b border-border py-2.5 last:border-b-0">' +
             '<p class="min-w-0 flex-1 text-sm font-semibold">' + escapeHtml(p.name) + '</p>' +
             '<span class="text-sm font-bold tabular-nums ' + (special ? 'text-primary' : '') + '">' +
-              (unit != null ? unit + ' ' + cur : 'Fiyat sorunuz') +
+              (unit != null ? unit + ' ' + cur + ' <span class="text-[10px] font-semibold text-muted-foreground">/ ' + (p.pricing_unit === 'piece' ? 'adet' : 'diş') + '</span>' : 'Fiyat sorunuz') +
             (special ? ' <span class="text-[10px] font-bold text-primary">· anlaşmalı</span>' : '') + '</span></div>';
         }).join('');
         return '<section class="mb-5 rounded-theme border border-border bg-card p-4">' +
@@ -1249,7 +1276,7 @@
         row('Hasta protokol no', j.clinic_protocol_no);
         row('Çalışma türü', j.restoration_type);
         row('Diş sayısı', j.unit_count);
-        row('Diş numaraları', j.teeth_numbers);
+        row('Diş numaraları', j.teeth_numbers ? ZkWorkForm.disEtiketi(String(j.teeth_numbers).split(/\D+/).filter(Boolean)) : j.teeth_numbers);
         row('Teslim tarihi', j.requested_delivery_at ? new Date(j.requested_delivery_at).toLocaleDateString('tr-TR') : null);
         row('Laboratuvar', j.laboratories ? j.laboratories.name : null);
         // Kalemler farkli para birimlerinde olabilir (kalem bazinda ayri
@@ -1357,14 +1384,38 @@
       });
     }
 
-    // Doktor dosyaları yalnız görüntüler: silme ve gönderme düğmesi çizilmez (sunucu da izin vermez).
+    // Doktor dosyaları görüntüler ve KENDİ işine STL ekleyebilir (sunucu RLS: doktor STL yükler; HTML/gönderme/silme yok).
     function zkDoc3B(jobId) {
       var el = document.getElementById('jd-3b');
       if (!el || !window.ZK3B) return;
       ZK3B.listele({ jobId: jobId }).then(function (satirlar) {
-        if (!satirlar.length || !document.getElementById('jd-3b')) return;
+        if (!document.getElementById('jd-3b')) return;
         el.innerHTML = '<p class="mt-4 text-xs font-bold">3B dosyalar</p>' +
-          '<div class="mt-2 space-y-2">' + ZK3B.listeHtml(satirlar, { gonder: false, sil: false }, 'doktor-siparis.html?is=' + jobId) + '</div>';
+          (satirlar.length ? '<div class="mt-2 space-y-2">' + ZK3B.listeHtml(satirlar, { gonder: false, sil: false }, 'doktor-siparis.html?is=' + jobId) + '</div>' : '<p class="mt-1 text-[11px] text-muted-foreground">Henüz 3B dosya yok.</p>') +
+          '<div class="mt-3"><div id="jd-3b-secici"></div><div id="jd-3b-ilerleme" class="mt-2 hidden"></div>' +
+          '<button type="button" id="jd-3b-yukle" disabled class="mt-2 flex h-11 w-full items-center justify-center rounded-theme bg-primary text-xs font-bold text-primary-foreground opacity-50">STL dosyalarını yükle</button>' +
+          '<p id="jd-3b-hata" class="mt-1.5 hidden text-xs font-semibold text-destructive"></p></div>';
+        var btn = document.getElementById('jd-3b-yukle'), hataEl = document.getElementById('jd-3b-hata');
+        var secici = ZK3B.secici(document.getElementById('jd-3b-secici'), {
+          tur: 'stl', coklu: true, mevcut: satirlar.length,
+          degisti: function (f) { btn.disabled = !f.length; btn.classList.toggle('opacity-50', !f.length); }
+        });
+        btn.addEventListener('click', function () {
+          var dosyalar = secici.alHepsi();
+          if (!dosyalar.length) return;
+          var bitir = ZKHiz.mesgul(btn, 'Yükleniyor…');
+          var durum = ZK3B.ilerlemeCubugu(document.getElementById('jd-3b-ilerleme'));
+          hataEl.classList.add('hidden'); secici.kilitle(true);
+          ZirkonikAuth.me().then(function (me) {
+            return ZK3B.yuklePaket(dosyalar, { tur: 'stl', jobId: jobId, orgId: doctor.organization_id, userId: me.id, rol: 'doktor', durum: durum });
+          }).then(function (sonuc) {
+            bitir(false);
+            if (sonuc.hatalar.length) { hataEl.textContent = 'Yüklenemeyen: ' + sonuc.hatalar.join('; '); hataEl.classList.remove('hidden'); }
+            if (sonuc.basarili) zkToast(sonuc.basarili > 1 ? sonuc.basarili + ' STL dosyası kaydedildi.' : 'STL dosyası kaydedildi.');
+            if (!sonuc.hatalar.length || sonuc.basarili) zkDoc3B(jobId);
+            else secici.kilitle(false);
+          }, function (e) { bitir(); secici.kilitle(false); hataEl.textContent = 'Yüklenemedi: ' + ((e && e.message) || e); hataEl.classList.remove('hidden'); });
+        });
       }, function () { /* dosya listesi gelmezse iş detayı yine açılır */ });
     }
 
