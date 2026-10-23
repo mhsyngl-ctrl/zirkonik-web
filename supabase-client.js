@@ -484,7 +484,7 @@
       var SAYFA = 1000;
       var hepsi = [];
       function sayfa(from) {
-        return client().from('jobs').select('id, doctor_id, unit_count, job_prices(price, currency)')
+        return client().from('jobs').select('id, doctor_id, unit_count, job_prices(price, currency), price_list_items(pricing_unit)')
           .neq('status', 'cancelled').order('id', { ascending: true }).range(from, from + SAYFA - 1)
           .then(function (r) {
             if (r.error) return r;

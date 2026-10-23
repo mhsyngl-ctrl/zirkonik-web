@@ -425,7 +425,7 @@
           return '<div class="flex items-center justify-between rounded-theme border border-border bg-background px-3 py-2.5">' +
             '<div class="min-w-0"><p class="truncate text-xs font-bold">' + (is.job_number || 'İş') + '</p>' +
             '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + (is.restoration_type || '') +
-            ' · ' + e.tooth_count + ' diş × ' + ZirkonikMoney.format(e.unit_rate, e.currency, 2) + ' · ' + (DURUM_ETIKET[e.status] || e.status) + '</p></div>' +
+            ' · ' + e.tooth_count + ' diş/adet × ' + ZirkonikMoney.format(e.unit_rate, e.currency, 2) + ' · ' + (DURUM_ETIKET[e.status] || e.status) + '</p></div>' +
             '<p class="shrink-0 text-sm font-bold tabular-nums">' + ZirkonikMoney.format(e.amount, e.currency, 2) + '</p></div>';
         }).join('');
       }).catch(function () {});
