@@ -967,7 +967,7 @@
         // 2026-09-12: iptal edilen fatura ne bakiyeye ne hareket listesine
         // girer — cancel_job faturayi 'cancelled' isaretliyor, doktordan
         // tahsil edilmeyecek.
-        client.from('invoices').select('id, amount, currency, status, issued_at, billing_mode, net_amount, vat_rate, vat_amount, jobs(job_number, restoration_type, unit_count, price_list_items(pricing_unit))').eq('doctor_id', doctorId).neq('status', 'cancelled').order('issued_at', { ascending: false }).limit(300),
+        client.from('invoices').select('id, amount, currency, status, issued_at, billing_mode, net_amount, vat_rate, vat_amount, jobs!invoices_job_id_fkey(job_number, restoration_type, unit_count, price_list_items(pricing_unit))').eq('doctor_id', doctorId).neq('status', 'cancelled').order('issued_at', { ascending: false }).limit(300),
         client.from('payments').select('id, amount, currency, method, received_at, note, app_users:received_by(full_name)').eq('doctor_id', doctorId).order('received_at', { ascending: false }).limit(300),
         client.rpc('zk_doktor_cari', { p_doctor_id: doctorId })
       ]).then(function (res) {
@@ -1347,7 +1347,7 @@
 
       Promise.all([
         // 2026-09-12: iptal edilen fatura ekstreye girmez.
-        client.from('invoices').select('amount, currency, issued_at, vat_rate, vat_amount, jobs(job_number, restoration_type, unit_count, price_list_items(pricing_unit))').eq('doctor_id', statementDoctorId).neq('status', 'cancelled').order('issued_at'),
+        client.from('invoices').select('amount, currency, issued_at, vat_rate, vat_amount, jobs!invoices_job_id_fkey(job_number, restoration_type, unit_count, price_list_items(pricing_unit))').eq('doctor_id', statementDoctorId).neq('status', 'cancelled').order('issued_at'),
         client.from('payments').select('amount, method, received_at').eq('doctor_id', statementDoctorId).order('received_at'),
         client.from('doctors').select('email').eq('id', statementDoctorId).single()
       ]).then(function (results) {

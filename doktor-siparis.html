@@ -688,7 +688,7 @@
       // 24 Eylül 2026: bakiye/toplamlar sunucudan (zk_doktor_cari), listeler son 300 kayıt.
       Promise.all([
         // 2026-09-12: doktorun kendi cari ekraninda iptal fatura gorunmez.
-        client.from('invoices').select('id, amount, currency, status, issued_at, due_date, net_amount, vat_rate, vat_amount, jobs(job_number, restoration_type)').eq('doctor_id', doctor.id).neq('status', 'cancelled').order('issued_at', { ascending: false }).limit(300),
+        client.from('invoices').select('id, amount, currency, status, issued_at, due_date, net_amount, vat_rate, vat_amount, jobs!invoices_job_id_fkey(job_number, restoration_type)').eq('doctor_id', doctor.id).neq('status', 'cancelled').order('issued_at', { ascending: false }).limit(300),
         client.from('payments').select('id, amount, currency, method, received_at, note, app_users:received_by(full_name)').eq('doctor_id', doctor.id).order('received_at', { ascending: false }).limit(300),
         client.rpc('zk_doktor_cari', { p_doctor_id: doctor.id })
       ]).then(function (res) {
