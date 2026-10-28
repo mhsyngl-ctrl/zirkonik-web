@@ -1101,6 +1101,11 @@
         .eq('received_by', userId).is('handover_id', null)
         .order('received_at', { ascending: false });
     },
+    /** Personelin elinde bekleyen (henüz kasa teslimine dahil edilmemiş) tahsilatlar. Yalnız yönetici/işveren görür (payments RLS). */
+    listStaffHeldPayments: function () {
+      return client().from('payments').select('id, amount, currency, method, received_at, doctors(full_name), app_users:received_by(full_name)')
+        .is('handover_id', null).order('received_at', { ascending: false });
+    },
     /** Bir teslim fisi tek para birimindedir; cagiran taraf secimi para
      *  birimine gore ayirip her biri icin ayri cagirir. */
     // id: sayfanın ürettiği tek seferlik kimlik (bkz. tekSeferlikEkle) — verilmezse sunucu üretir.

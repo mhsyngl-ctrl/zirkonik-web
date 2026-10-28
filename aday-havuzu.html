@@ -1988,7 +1988,10 @@
         el.innerHTML = rows.length ? rows.map(function (t) {
           return '<div class="rounded-theme border ' + (t.type === 'randevu' ? 'border-primary/30' : 'border-border') + ' bg-background p-3">' +
             '<div class="flex items-center justify-between"><span class="text-xs font-bold' + (t.type === 'randevu' ? ' text-primary' : '') + '">' + (TOUCH_LABELS[t.type] || t.type) + '</span>' +
-            '<span class="text-[10px] text-muted-foreground">' + new Date(t.created_at).toLocaleDateString('tr-TR') + '</span></div>' +
+            // 28 Ekim 2026: temasın saati yalnız işveren/yönetici görür; temsilci eskisi gibi yalnız tarihi görür.
+            '<span class="text-[10px] text-muted-foreground">' + (myIsAdmin
+              ? new Date(t.created_at).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+              : new Date(t.created_at).toLocaleDateString('tr-TR')) + '</span></div>' +
             (t.note ? '<p class="mt-1 text-xs text-muted-foreground">' + escapeHtml(t.note) + '</p>' : '') +
             (t.satisfaction_score ? '<p class="mt-1 text-xs font-bold text-primary">Memnuniyet: ' + t.satisfaction_score + '/5</p>' : '') +
             (t.yazan ? '<p class="mt-1 text-[10px] text-muted-foreground">' + escapeHtml(t.yazan.full_name) + '</p>' : '') +

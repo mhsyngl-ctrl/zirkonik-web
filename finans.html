@@ -148,6 +148,13 @@
           </div>
         </section>
 
+        <!-- 28 Ekim 2026: personelin aldığı ama henüz kasa teslimine eklemediği tahsilat işverene/yöneticiye görünür. -->
+        <section id="staff-held-section" class="hidden px-5 pt-6">
+          <h2 class="font-heading text-lg font-bold">Personelde bekleyen tahsilat</h2>
+          <p class="mt-1 text-xs text-muted-foreground">Personelin tahsil ettiği, henüz kasa teslimi yapmadığı tutarlar</p>
+          <div id="staff-held-list" class="mt-3 rounded-theme border border-border bg-card"></div>
+        </section>
+
         <section class="px-5 pt-6">
           <div class="flex items-center justify-between">
             <div>
@@ -1360,7 +1367,40 @@
     // ---- Kasa teslimi ----
     var handoverCashRows = [];
 
+    // Personel -> tutar/para birimi toplamı + en eski tahsilat; satıra basınca tahsilatlar açılır.
+    function loadStaffHeld() {
+      ZirkonikData.listStaffHeldPayments().then(function (r) {
+        var sec = document.getElementById('staff-held-section');
+        var rows = r.error ? [] : (r.data || []);
+        if (!rows.length) { sec.classList.add('hidden'); return; }
+        var by = {};
+        rows.forEach(function (p) {
+          var ad = p.app_users ? p.app_users.full_name : '—';
+          (by[ad] = by[ad] || []).push(p);
+        });
+        var LBL = { nakit: 'Nakit', kart: 'Kart', havale: 'EFT' };
+        document.getElementById('staff-held-list').innerHTML = Object.keys(by).map(function (ad, i, arr) {
+          var list = by[ad], tot = {};
+          list.forEach(function (p) { var c = p.currency || ''; tot[c] = (tot[c] || 0) + Number(p.amount || 0); });
+          var toplam = Object.keys(tot).map(function (c) { return ZirkonikMoney.format(tot[c], c, 0); }).join(' + ');
+          var eski = list[list.length - 1].received_at;
+          return '<details class="px-4 py-3' + (i < arr.length - 1 ? ' border-b border-border' : '') + '">' +
+            '<summary class="flex cursor-pointer items-center justify-between gap-2"><div class="min-w-0"><p class="text-sm font-bold">' + escapeHtml(ad) + '</p>' +
+            '<p class="mt-0.5 text-[11px] text-muted-foreground">' + list.length + ' tahsilat · en eski ' + new Date(eski).toLocaleDateString('tr-TR') + '</p></div>' +
+            '<p class="shrink-0 text-sm font-bold tabular-nums">' + toplam + '</p></summary>' +
+            '<div class="mt-2 space-y-1">' + list.map(function (p) {
+              return '<div class="flex items-center justify-between gap-2 text-[11px] text-muted-foreground"><span class="min-w-0 truncate">' +
+                escapeHtml(p.doctors ? p.doctors.full_name : '') + ' · ' + escapeHtml(LBL[p.method] || p.method || '') + ' · ' +
+                new Date(p.received_at).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + '</span>' +
+                '<span class="shrink-0 font-bold tabular-nums">' + ZirkonikMoney.format(p.amount, p.currency, 0) + '</span></div>';
+            }).join('') + '</div></details>';
+        }).join('');
+        sec.classList.remove('hidden');
+      });
+    }
+
     function loadHandovers() {
+      loadStaffHeld();
       ZirkonikAuth.me().then(function (me) {
         var perms = me.user_permissions;
         perms = (perms && perms[0]) || perms || {};
