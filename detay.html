@@ -661,7 +661,7 @@
         // Secili kalemi koru (yenileme sonrasi kullanici basa donmesin).
         var keep = currentItem && jobItems.filter(function (i) { return i.id === currentItem.id; })[0];
         currentItem = keep || jobItems[0] || null;
-        return ZirkonikAuth.client().from('rooms').select('id, name, sort_order, is_delivery, has_3d').eq('laboratory_id', currentJob.laboratory_id).order('sort_order');
+        return ZirkonikAuth.client().from('rooms').select('id, name, sort_order, is_delivery, has_3d, has_prova').eq('laboratory_id', currentJob.laboratory_id).order('sort_order');
       }).then(function (roomsRes) {
         rooms = roomsRes.data || [];
         tumOdalar = rooms.slice(); // rota daraltmadan önce: 3B oda bayrağı buradan okunur
@@ -698,7 +698,7 @@
           renderJob();
           loadHistory();
           load3B();
-          if (window.ZKProva) ZKProva.ciz(document.getElementById('prova-karti'), { jobId: jobId, rol: 'lab', aktif: currentJob.status === 'active' });
+          zkProvaCiz();
           loadAltyapi(); // modül açıksa alıcı tarafı kartını da (loadAltyapiKaynak) çağırır
         });
       }).catch(function (err) {
@@ -1253,6 +1253,20 @@
     //  - Sil: yalnız yönetici. Kaydetmeden önce "Kaldır" herkes için (dosya daha sunucuya gitmedi).
     var tumOdalar = [];
     var dosya3B = { satirlar: [], secici: null, tur: null, yetki: {}, oda: null, yukleniyor: false };
+
+    // Prova gönderme yetkisi 3B gibi oda tabanlı: yönetici her işte; personel yalnız işin şu anki odası "prova odası" ise ve o odaya erişimi varsa (sunucu da zorlar).
+    function zkProvaCiz() {
+      var el = document.getElementById('prova-karti');
+      if (!window.ZKProva || !el || !currentJob) return;
+      var aktif = currentJob.status === 'active';
+      var curRoom = zkCurRoom();
+      var oda = null;
+      for (var i = 0; i < tumOdalar.length; i++) { if (tumOdalar[i].id === curRoom) { oda = tumOdalar[i]; break; } }
+      var yetkili = myRole === 'yonetici' ? Promise.resolve(true)
+        : (oda && oda.has_prova ? ZirkonikAuth.client().rpc('has_room_access', { rm_id: curRoom }).then(function (r) { return !!r.data; }, function () { return false; }) : Promise.resolve(false));
+      var istek = (jobItems || []).some(function (i) { return i.work_form && i.work_form.prova_final === 'Prova'; });
+      yetkili.then(function (y) { ZKProva.ciz(el, { jobId: jobId, rol: 'lab', aktif: aktif && y, istek: istek }); });
+    }
 
     function load3B() {
       if (!window.ZK3B || !currentJob) return;

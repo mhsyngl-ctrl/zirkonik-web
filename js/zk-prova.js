@@ -3,7 +3,8 @@
  * Veri: job_prova_turlari (yalnız okuma) + zk_prova_gonder / zk_prova_yanitla işlemleri (supabase/migrations/20261029140000_prova_turlari.sql).
  * Tablo canlıda henüz yoksa (SQL çalışmadan yayınlanan ekran kuralı) kart hiç görünmez, sayfa etkilenmez.
  *
- * ZKProva.ciz(el, { jobId, rol: 'lab' | 'doktor', aktif: bool }) → Promise
+ * ZKProva.ciz(el, { jobId, rol: 'lab' | 'doktor', aktif: bool, istek: bool }) → Promise
+ * istek: işte "Prova" istendi (formdaki Prova/Final işareti) — henüz tur yoksa laboratuvara hatırlatma gösterilir.
  */
 (function (global) {
   'use strict';
@@ -44,6 +45,7 @@
           '<h2 class="mt-1 font-heading text-base font-bold">' + (turlar.length ? turlar.length + ' tur' : 'Henüz prova yok') + '</h2></div>' +
           '<iconify-icon icon="lucide:repeat-2" class="text-xl text-primary"></iconify-icon></div>' +
           '<div class="mt-3 space-y-2">' + turlar.slice().reverse().map(turHtml).join('') + '</div>';
+        if (!doktor && o.aktif && o.istek && !turlar.length) h += '<p class="mt-3 rounded-theme border border-border bg-background px-3 py-2 text-xs font-semibold text-accent">Bu iş için prova istendi. Hazır olunca "Provayı doktora gönder" deyin.</p>';
         if (!doktor && o.aktif && !bekleyen) {
           h += '<div class="mt-3"><textarea id="prova-not" rows="2" maxlength="500" placeholder="Doktora not (isteğe bağlı)" class="w-full rounded-theme border border-border bg-background px-3 py-2 text-sm"></textarea>' +
             '<button type="button" id="prova-gonder" class="mt-2 flex h-11 w-full items-center justify-center gap-1.5 rounded-theme bg-primary text-xs font-bold text-primary-foreground"><iconify-icon icon="lucide:send" class="text-sm"></iconify-icon>Provayı doktora gönder</button></div>';

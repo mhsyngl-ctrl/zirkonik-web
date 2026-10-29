@@ -212,7 +212,7 @@
             '<input id="zk-wf-renk" type="text" class="mt-1.5 h-11 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="Diğer renk (özel)"></div>' +
           '<div><span class="mb-1.5 block text-xs font-bold">Gingiva</span>' + radioRow('gingiva', ['Var', 'Yok']) + '</div>' +
           '<div><span class="mb-1.5 block text-xs font-bold">DVO (Oklüzal yükseklik)</span>' + radioRow('dvo', ['+0,5 mm', '-0,5 mm', '+1,0 mm', 'Korunsun']) + '</div>' +
-          '<div><span class="mb-1.5 block text-xs font-bold">Prova / Final</span>' + radioRow('prova_final', ['Prova', 'Final']) + '</div>' +
+          '<div><span class="mb-1.5 block text-xs font-bold">Prova isteniyor mu? <span class="font-normal text-muted-foreground">(Prova / Final)</span></span>' + radioRow('prova_final', ['Prova', 'Final']) + '</div>' +
           '<div><span class="mb-1.5 block text-xs font-bold">Diş boyu</span>' + radioRow('dis_boyu', ['Uzun (daha uzun)', 'Kısa (daha kısa)', 'Aynı kalsın']) + '</div>' +
           '<div><span class="mb-1.5 block text-xs font-bold">Gönderilen materyaller</span>' + checkRow('materyaller', ['Alçı Model', 'Dijital Model (STL)', 'Fotoğraf']) +
             '<input id="zk-wf-materyal-diger" type="text" class="mt-1.5 h-11 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="Diğer materyal"></div>' +
