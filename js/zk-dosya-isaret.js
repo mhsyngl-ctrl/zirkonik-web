@@ -1,17 +1,20 @@
 /*
- * Zirkonik — iş kartında "3B dosya var" simgesi (29 Ekim 2026).
+ * Zirkonik — iş kartında "3B dosya var" logosu ve "N. prova" rozeti (29 Ekim 2026).
  * Kartlar <span data-zk-is="<iş kimliği>"></span> yer tutucusu koyar; bu dosya sayfayı izler,
- * yeni yer tutucuları toplu sorar (tek sorgu) ve dosyası olan işlere Zirkonik amblemini yazar.
- * Hata olursa simge çıkmaz, sayfa etkilenmez.
+ * yeni yer tutucuları toplu sorar (iş başına değil, 50'şerli sorgu) ve simgeleri yazar.
+ * Hata olursa (tablo yok, çevrimdışı) simge çıkmaz, sayfa etkilenmez.
  */
 (function () {
   'use strict';
-  var bilinen = {}; // iş kimliği → true (dosya var) | false (yok)
+  var bilinen = {}; // iş kimliği → { logo: bool, prova: { n, bek } | null }
   var bekle = null;
 
-  function isaretle(el, var_) {
+  function isaretle(el, b) {
     el.setAttribute('data-zk-is-tamam', '1');
-    if (var_) el.innerHTML = '<img src="logo-dis.png" alt="3B dosya var" title="Bu işte 3B dosya var" class="inline-block h-4 w-auto align-middle" style="height:16px;width:auto">';
+    var h = '';
+    if (b && b.logo) h += '<img src="logo-dis.png" alt="3B dosya var" title="Bu işte 3B dosya var" class="inline-block h-4 w-auto align-middle" style="height:16px;width:auto">';
+    if (b && b.prova) h += ' <span class="ml-1 rounded-full bg-secondary px-1.5 py-0.5 align-middle text-[10px] font-bold ' + (b.prova.bek ? 'text-accent' : 'text-muted-foreground') + '" title="Prova turları">' + b.prova.n + '. prova' + (b.prova.bek ? ' · doktorda' : '') + '</span>';
+    el.innerHTML = h;
   }
 
   function tara() {
@@ -24,15 +27,24 @@
       else if (sorulacak.indexOf(id) < 0) sorulacak.push(id);
     }
     if (!sorulacak.length || !window.ZirkonikAuth || !ZirkonikAuth.client) return;
-    var parcalar = [];
-    for (var p = 0; p < sorulacak.length; p += 50) parcalar.push(sorulacak.slice(p, p + 50));
-    parcalar.forEach(function (ids) {
-      ZirkonikAuth.client().from('job_files').select('job_id').in('job_id', ids).not('uploaded_at', 'is', null).then(function (r) {
-        if (r.error) return;
-        ids.forEach(function (id) { bilinen[id] = false; });
-        (r.data || []).forEach(function (x) { bilinen[x.job_id] = true; });
-        zamanla();
-      }, function () {});
+    for (var p = 0; p < sorulacak.length; p += 50) sor(sorulacak.slice(p, p + 50));
+  }
+
+  function sor(ids) {
+    var c = ZirkonikAuth.client();
+    var dosya = c.from('job_files').select('job_id').in('job_id', ids).not('uploaded_at', 'is', null).then(function (r) { return r.error ? null : (r.data || []); }, function () { return null; });
+    var prova = c.from('job_prova_turlari').select('job_id, tur_no, sonuc').in('job_id', ids).then(function (r) { return r.error ? null : (r.data || []); }, function () { return null; });
+    Promise.all([dosya, prova]).then(function (s) {
+      if (s[0] === null && s[1] === null) return; // ikisi de başarısız: bir sonraki taramada yeniden denenir
+      ids.forEach(function (id) { bilinen[id] = { logo: false, prova: null }; });
+      (s[0] || []).forEach(function (x) { bilinen[x.job_id].logo = true; });
+      (s[1] || []).forEach(function (x) {
+        var b = bilinen[x.job_id]; if (!b) return;
+        if (!b.prova) b.prova = { n: 0, bek: false };
+        if (x.tur_no > b.prova.n) b.prova.n = x.tur_no;
+        if (x.sonuc === 'bekliyor') b.prova.bek = true;
+      });
+      zamanla();
     });
   }
 

@@ -343,6 +343,7 @@
   <script src="js/net-guard.js"></script>
   <script src="supabase-client.js"></script>
   <script src="js/zk-3b.js"></script>
+  <script src="js/zk-prova.js"></script>
   <script src="js/zk-guard.js"></script>
   <script src="js/zk-picker.js"></script>
   <script src="js/zk-ptr.js"></script>
@@ -1391,7 +1392,7 @@
 
         // 15 Ekim 2026: 3B dosyalar (STL her zaman; exocad tasarımı laboratuvar
         // "doktora gönder" yaptıysa — sunucu RLS zaten göndermeyeni döndürmez).
-        html += '<div id="jd-3b"></div>';
+        html += '<div id="jd-prova" class="mt-4"></div><div id="jd-3b"></div>';
 
         body.innerHTML = html || '<p class="text-xs text-muted-foreground">Gösterilecek ayrıntı yok.</p>';
         // innerHTML yazildiktan SONRA cizilmeli, once kapsayici DOM'da olmali.
@@ -1400,6 +1401,7 @@
           ZkWorkForm.renderChartOnly(chartEl, colorMap, chartLabels);
         }
         zkDoc3B(jobId);
+        if (window.ZKProva) ZKProva.ciz(document.getElementById('jd-prova'), { jobId: jobId, rol: 'doktor' });
         var teslimBtn = document.getElementById('jd-teslim-aldim');
         if (teslimBtn) teslimBtn.addEventListener('click', function () {
           var bitir = ZKHiz.mesgul(teslimBtn, 'Kaydediliyor…');
