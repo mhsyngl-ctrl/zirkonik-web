@@ -156,6 +156,7 @@
   <script src="js/zk-picker.js"></script>
   <script src="js/zk-ptr.js"></script>
   <script src="js/zk-hiz.js"></script>
+  <script src="js/zk-dosya-isaret.js"></script>
   <script src="js/zk-cevrimdisi.js"></script>
   <script src="js/zk-yenile.js"></script>
   <script src="js/zk-surum.js"></script>
@@ -348,7 +349,7 @@
           ? (j.completed_at ? new Date(j.completed_at).toLocaleDateString('tr-TR') : '—')
           : (j.requested_delivery_at ? new Date(j.requested_delivery_at).toLocaleDateString('tr-TR') : 'Teslim tarihi yok');
         return '<button onclick="zkHandoffJob(\'' + j.id + '\'); location.href=\'detay.html?id=' + j.id + '\'" class="flex w-full items-center justify-between gap-3 rounded-theme border border-border bg-card px-3.5 py-3 text-left">' +
-          '<div class="min-w-0"><p class="text-sm font-bold">' + escapeHtml(j.job_number) + '</p>' +
+          '<div class="min-w-0"><p class="text-sm font-bold">' + escapeHtml(j.job_number) + ' <span data-zk-is="' + j.id + '"></span></p>' +
           '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + escapeHtml(j.doctors ? j.doctors.full_name : '') + ' · ' + escapeHtml(j.restoration_type || '') + (j.unit_count ? ' · ' + j.unit_count + ' diş' : '') + '</p></div>' +
           '<span class="shrink-0 text-[10px] font-semibold text-muted-foreground">' + escapeHtml(dateLabel) + '</span>' +
           '</button>';
