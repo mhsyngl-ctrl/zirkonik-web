@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://code.iconify.design; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://cuujupeindodpsdjcivm.supabase.co wss://cuujupeindodpsdjcivm.supabase.co https://api.iconify.design https://api.simplesvg.com https://api.unisvg.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <title>Prova İstatistikleri — Zirkonik</title>
+  <script src="js/zk-guard-core.js"></script>
+  <script src="js/zk-erken-koruma.js"></script>
+
+  <link rel="stylesheet" href="css/tailwind.css">
+  <link rel="stylesheet" href="css/ipad.css">
+  <link rel="stylesheet" href="css/zk-utils.css">
+  <script src="js/zk-tema.js"></script>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#FFFFFF">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <script src="vendor/lucide-icons.js"></script>
+  <script src="vendor/iconify-icon.min.js" defer></script>
+  <link rel="stylesheet" href="css/fonts.css">
+
+  <style>
+  :root {
+    --color-background: #0E1013;
+    --color-foreground: #F2F4F7;
+    --color-primary: #3D7CDC;
+    --color-primary-foreground: #FFFFFF;
+    --color-secondary: #232732;
+    --color-secondary-foreground: #C6CBD6;
+    --color-accent: #F0A03C;
+    --color-accent-foreground: #FFFFFF;
+    --color-muted: #1B1E24;
+    --color-muted-foreground: #98A0AD;
+    --color-card: #15171C;
+    --color-card-foreground: #F2F4F7;
+    --color-border: #262A32;
+    --color-input: #1B1E24;
+    --color-destructive: #EF5350;
+    --color-destructive-foreground: #FFFFFF;
+    --color-success: #10B981;
+    --color-success-foreground: #FFFFFF;
+    --font-heading: 'Plus Jakarta Sans', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --radius: 12px;
+  }
+  html { overflow-x: hidden; }
+  body { font-family: var(--font-body); -webkit-font-smoothing: antialiased; margin: 0; padding: 0; overflow-x: hidden; overscroll-behavior-x: none; }
+  </style>
+
+</head>
+<body data-page="prova-istatistik" class="bg-background text-foreground m-0 p-0">
+  <div class="h-screen w-screen overflow-y-auto">
+    <div class="min-h-screen w-full bg-background text-foreground font-body pb-32">
+      <header class="border-b border-border bg-card px-5 pb-5" style="padding-top:max(3rem,calc(env(safe-area-inset-top) + 12px));">
+        <div class="flex items-center justify-between">
+          <button onclick="history.length > 1 ? history.back() : location.href='retim.html'" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-card text-card-foreground" aria-label="Geri">
+            <iconify-icon icon="lucide:arrow-left" class="text-xl"></iconify-icon>
+          </button>
+          <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Yönetici</p>
+          <div class="h-10 w-10"></div>
+        </div>
+        <h1 class="mt-6 font-heading text-2xl font-bold tracking-tight">Prova istatistikleri</h1>
+        <p class="mt-1 text-sm text-muted-foreground">Doktor ve çalışan bazında prova turları, onay oranı ve yanıt süresi.</p>
+        <div class="mt-5 grid grid-cols-4 gap-2 rounded-theme border border-border bg-background p-1" id="pi-donem">
+          <button data-g="30" class="h-10 rounded-lg text-xs font-bold">30 gün</button>
+          <button data-g="90" class="h-10 rounded-lg text-xs font-bold">90 gün</button>
+          <button data-g="365" class="h-10 rounded-lg text-xs font-bold">1 yıl</button>
+          <button data-g="0" class="h-10 rounded-lg text-xs font-bold">Tümü</button>
+        </div>
+      </header>
+      <main class="px-5 pt-5">
+        <section id="pi-ozet" class="grid grid-cols-2 gap-3"></section>
+        <section class="mt-6">
+          <h2 class="font-heading text-lg font-bold">Doktorlar</h2>
+          <p class="mt-1 text-xs text-muted-foreground">İlk turda onay oranı yüksekse doktor ilk provada memnun kalıyor demektir.</p>
+          <div id="pi-doktor" class="mt-3 space-y-2.5"><p class="text-xs text-muted-foreground">Yükleniyor…</p></div>
+        </section>
+        <section class="mt-6">
+          <h2 class="font-heading text-lg font-bold">Çalışanlar</h2>
+          <p class="mt-1 text-xs text-muted-foreground">Provayı doktora gönderen kişiye göre; ilk turda onay alan iş oranı kalitenin göstergesidir.</p>
+          <div id="pi-calisan" class="mt-3 space-y-2.5"></div>
+        </section>
+      </main>
+    </div>
+  </div>
+  <script src="vendor/supabase-js.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="js/net-guard.js"></script>
+  <script src="supabase-client.js"></script>
+  <script src="js/zk-guard.js"></script>
+  <script src="js/zk-picker.js"></script>
+  <script src="js/zk-ptr.js"></script>
+  <script src="js/zk-hiz.js"></script>
+  <script src="js/zk-cevrimdisi.js"></script>
+  <script src="js/zk-yenile.js"></script>
+  <script src="js/zk-surum.js"></script>
+  <script>
+    function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+    function yuzde(v){return v==null?'—':'%'+v;}
+    function saat(v){return v==null?'—':(v<1?Math.round(v*60)+' dk':v+' sa');}
+    function tarih(g){if(!g)return null;var d=new Date(Date.now()-g*864e5);return d.toISOString().slice(0,10);}
+    function kutu(b,d){return '<article class="rounded-theme border border-border bg-card p-4"><p class="font-heading text-lg font-bold tabular-nums">'+d+'</p><p class="mt-1 text-xs text-muted-foreground">'+b+'</p></article>';}
+    function satir(ad,alt,sol){return '<article class="rounded-theme border border-border bg-card p-4"><p class="text-sm font-bold">'+esc(ad)+'</p>'+(alt?'<p class="text-xs text-muted-foreground">'+esc(alt)+'</p>':'')+'<div class="mt-3 grid grid-cols-3 gap-2 text-center">'+sol.map(function(x){return '<div><p class="text-sm font-bold tabular-nums">'+x[1]+'</p><p class="text-[10px] text-muted-foreground">'+x[0]+'</p></div>';}).join('')+'</div></article>';}
+    function yukle(g){
+      document.querySelectorAll('#pi-donem button').forEach(function(b){var a=b.getAttribute('data-g')===String(g);b.className='h-10 rounded-lg text-xs font-bold '+(a?'bg-primary text-primary-foreground':'text-muted-foreground');});
+      ZirkonikAuth.client().rpc('zk_prova_istatistik',{p_bas:tarih(g),p_bit:null}).then(function(r){
+        if(r.error){document.getElementById('pi-doktor').innerHTML='<p class="text-xs text-destructive">'+esc(r.error.message)+'</p>';return;}
+        var d=r.data||{},o=d.ozet||{};
+        document.getElementById('pi-ozet').innerHTML=kutu('Toplam prova turu',o.tur||0)+kutu('Doktorda bekleyen',o.bekleyen||0)+kutu('İlk turda onay',yuzde(o.ilk_turda_onay_orani))+kutu('Ort. doktor yanıt süresi',saat(o.ort_yanit_saat));
+        var dk=d.doktorlar||[];
+        document.getElementById('pi-doktor').innerHTML=dk.length?dk.map(function(x){return satir(x.doktor,x.klinik,[['Tur',x.tur],['İlk turda onay',yuzde(x.ilk_turda_onay_orani)],['Yanıt süresi',saat(x.ort_yanit_saat)],['İş',x.is_sayisi],['Tur/iş',x.ort_tur_is==null?'—':x.ort_tur_is],['Bekleyen',x.bekleyen]]);}).join(''):'<p class="text-xs text-muted-foreground">Bu dönemde prova yok.</p>';
+        var ca=d.calisanlar||[];
+        document.getElementById('pi-calisan').innerHTML=ca.length?ca.map(function(x){return satir(x.calisan,null,[['Gönderilen tur',x.tur],['İlk turda onay',yuzde(x.ilk_turda_onay_orani)],['Değişiklik istenen',x.degisiklik],['İş',x.is_sayisi],['Onay',x.onay],['Bekleyen',x.bekleyen]]);}).join(''):'<p class="text-xs text-muted-foreground">Bu dönemde prova yok.</p>';
+      });
+    }
+    ZirkonikAuth.me().then(function(me){
+      if(!me||me.role!=='yonetici'){location.replace('retim.html');return;}
+      document.querySelectorAll('#pi-donem button').forEach(function(b){b.onclick=function(){yukle(+b.getAttribute('data-g'));};});
+      yukle(90);
+    });
+  </script>
+</body>
+</html>
