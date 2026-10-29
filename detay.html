@@ -1094,9 +1094,13 @@
       // Doktorda bekleyen prova varsa iş ilerlemez (sunucu da reddeder). Tablo okunamazsa engelleme yok.
       var provaBekliyor = Promise.resolve(ZirkonikAuth.client().from('job_prova_turlari').select('id').eq('job_id', jobId).eq('sonuc', 'bekliyor').limit(1))
         .then(function (r) { return !!(r && r.data && r.data.length); }, function () { return false; });
-      provaBekliyor.then(function (bekliyor) {
-        if (bekliyor && !needsAccept) {
-          errEl.textContent = 'Doktorun prova yanıtı bekleniyor; yanıt gelmeden sonraki odaya geçilemez.';
+      // Son odada işi yalnız yönetici/işveren kapatabilir; teknisyen doktor onayını bekler (sunucu da böyle zorlar).
+      Promise.all([provaBekliyor, ZirkonikAuth.me()]).then(function (v) {
+        var bekliyor = v[0];
+        if (bekliyor && !needsAccept && !(isLast && v[1].role === 'yonetici')) {
+          errEl.textContent = isLast
+            ? 'Doktorun prova yanıtı bekleniyor; işi yalnız yönetici kapatabilir.'
+            : 'Doktorun prova yanıtı bekleniyor; yanıt gelmeden sonraki odaya geçilemez.';
           errEl.classList.remove('hidden');
           return;
         }
