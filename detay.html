@@ -1288,7 +1288,7 @@
       var secim = document.getElementById('dosya-3b-secim');
       var dugmeler = [];
       if (y.htmlYukle) dugmeler.push('<button type="button" onclick="zk3BSec(\'html\')" class="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-theme border border-border bg-background text-xs font-bold text-primary"><iconify-icon icon="lucide:file-code" class="text-base"></iconify-icon>exocad tasarımı yükle</button>');
-      if (y.stlEkle) dugmeler.push('<button type="button" onclick="zk3BSec(\'stl\')" class="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-theme border border-border bg-background text-xs font-bold text-primary"><iconify-icon icon="lucide:box" class="text-base"></iconify-icon>STL ekle</button>');
+      if (y.stlEkle) dugmeler.push('<button type="button" onclick="zk3BSec(\'stl\')" class="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-theme border border-border bg-background text-xs font-bold text-primary"><iconify-icon icon="lucide:box" class="text-base"></iconify-icon>STL / PLY ekle</button>');
       secim.innerHTML = dugmeler.length ? '<div class="flex gap-2">' + dugmeler.join('') + '</div>' : '';
       secim.classList.toggle('hidden', !dugmeler.length || !!dosya3B.tur);
       document.getElementById('dosya-3b-yukle').classList.toggle('hidden', !dosya3B.tur);
@@ -1297,7 +1297,7 @@
 
     function zk3BSec(tur) {
       dosya3B.tur = tur;
-      document.getElementById('dosya-3b-yukle-baslik').textContent = tur === 'html' ? 'exocad tasarım dosyası (HTML)' : 'STL tarama dosyası';
+      document.getElementById('dosya-3b-yukle-baslik').textContent = tur === 'html' ? 'exocad tasarım dosyası (HTML)' : 'STL / PLY tarama dosyası';
       document.getElementById('dosya-3b-ilerleme').classList.add('hidden');
       dosya3B.secici = ZK3B.secici(document.getElementById('dosya-3b-secici'), {
         tur: tur,

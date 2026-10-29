@@ -476,7 +476,7 @@
       var dolu = mevcut + dosyalar.length >= DOSYA_SAYISI;
       ekle.classList.toggle('hidden', dolu);
       ekle.style.opacity = kilitli ? '.5' : ''; ekle.style.pointerEvents = kilitli ? 'none' : '';
-      el.querySelector('[data-rol="ekle-yazi"]').textContent = dosyalar.length ? 'Başka STL dosyası ekle' : (o.etiket || 'STL dosyası seç');
+      el.querySelector('[data-rol="ekle-yazi"]').textContent = dosyalar.length ? 'Başka STL / PLY dosyası ekle' : (o.etiket || 'STL / PLY dosyası seç');
       el.querySelector('[data-rol="not"]').textContent = 'Tarama / model dosyaları (.stl, .ply), her biri en fazla 50 MB; en çok ' + DOSYA_SAYISI + ' dosya. Birden fazla seçebilirsiniz.';
       if (o.degisti) o.degisti(dosyalar.slice());
     }
@@ -524,7 +524,7 @@
       '<input id="' + inpId + '" type="file" accept="' + kabul + '" class="hidden">' +
       '<div data-rol="bos">' +
         '<label for="' + inpId + '" class="flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-theme border border-border bg-background text-xs font-bold text-primary">' +
-          '<iconify-icon icon="' + (tur === 'stl' ? 'lucide:box' : 'lucide:file-code') + '" class="text-base"></iconify-icon>' + kacis(o.etiket || (tur === 'stl' ? 'STL dosyası seç' : 'exocad HTML dosyası seç')) +
+          '<iconify-icon icon="' + (tur === 'stl' ? 'lucide:box' : 'lucide:file-code') + '" class="text-base"></iconify-icon>' + kacis(o.etiket || (tur === 'stl' ? 'STL / PLY dosyası seç' : 'exocad HTML dosyası seç')) +
         '</label>' +
         '<p class="mt-1.5 text-[11px] text-muted-foreground">' + (tur === 'stl' ? 'Tarama / model dosyası (.stl, .ply), en fazla 50 MB.' : 'exocad webview çıktısı (.html), en fazla 50 MB.') + '</p>' +
       '</div>' +
