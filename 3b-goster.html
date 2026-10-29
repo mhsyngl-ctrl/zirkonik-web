@@ -125,7 +125,7 @@
           if (!s) throw new Error('Dosya bulunamadı ya da görme yetkiniz yok.');
           satir = s;
           var j = s.jobs || {};
-          document.getElementById('baslik').textContent = (j.job_number ? j.job_number + ' › ' : '') + (s.kind === 'stl' ? 'STL tarama' : '3B tasarım');
+          document.getElementById('baslik').textContent = (j.job_number ? j.job_number + ' › ' : '') + (s.kind === 'stl' ? (/\.ply$/i.test(s.file_name || '') ? 'PLY tarama' : 'STL tarama') : '3B tasarım');
           document.getElementById('altbaslik').textContent = (j.patient_name || j.clinic_protocol_no || '') + (s.file_name ? ' · ' + s.file_name : '');
           document.getElementById('indir-btn').classList.remove('hidden');
           document.getElementById('indir-btn').classList.add('flex');

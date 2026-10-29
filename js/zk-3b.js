@@ -602,7 +602,7 @@
       return '<div class="rounded-theme border border-border bg-background px-3 py-2.5">' +
         '<div class="flex items-center gap-2.5">' +
           '<iconify-icon icon="' + (stl ? 'lucide:box' : 'lucide:file-code') + '" class="shrink-0 text-lg text-primary"></iconify-icon>' +
-          '<div class="min-w-0 flex-1"><p class="truncate text-sm font-bold">' + kacis(stl ? 'STL tarama' : 'exocad tasarım') + ' <span class="font-normal text-muted-foreground">· ' + kacis(s.file_name) + '</span></p>' +
+          '<div class="min-w-0 flex-1"><p class="truncate text-sm font-bold">' + kacis(stl ? (uzanti(s.file_name) === 'ply' ? 'PLY tarama' : 'STL tarama') : 'exocad tasarım') + ' <span class="font-normal text-muted-foreground">· ' + kacis(s.file_name) + '</span></p>' +
           '<p class="mt-0.5 text-[11px] text-muted-foreground">' + kacis(alt) + '</p></div>' + rozet +
         '</div>' +
         '<div class="mt-2.5 flex gap-2">' + dugmeler + '</div>' +
