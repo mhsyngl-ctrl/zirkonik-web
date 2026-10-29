@@ -36,6 +36,7 @@
         else g.ozellik.push({ tur: t[1], ad: t[2] });
       }
     });
+    ogeler.forEach(function (e) { if (!(e.n >= 0 && e.n <= buf.byteLength)) throw new Error('PLY dosyası bozuk'); }); // devasa sayı bellek patlatmasın
     var kucuk = bicim === 'binary_little_endian', ikili = kucuk || bicim === 'binary_big_endian';
     if (!ikili && bicim !== 'ascii') throw new Error('PLY biçimi desteklenmiyor');
     var nok = null, yuzler = [];
