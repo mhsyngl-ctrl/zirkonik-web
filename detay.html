@@ -1091,7 +1091,16 @@
       btn.disabled = true;
       btn.classList.add('opacity-50');
 
-      ZirkonikAuth.me().then(function (me) {
+      // Doktorda bekleyen prova varsa iş ilerlemez (sunucu da reddeder). Tablo okunamazsa engelleme yok.
+      var provaBekliyor = Promise.resolve(ZirkonikAuth.client().from('job_prova_turlari').select('id').eq('job_id', jobId).eq('sonuc', 'bekliyor').limit(1))
+        .then(function (r) { return !!(r && r.data && r.data.length); }, function () { return false; });
+      provaBekliyor.then(function (bekliyor) {
+        if (bekliyor && !needsAccept) {
+          errEl.textContent = 'Doktorun prova yanıtı bekleniyor; yanıt gelmeden sonraki odaya geçilemez.';
+          errEl.classList.remove('hidden');
+          return;
+        }
+        return ZirkonikAuth.me().then(function (me) {
         if (me.role === 'yonetici') {
           btn.disabled = false;
           btn.classList.remove('opacity-50');
@@ -1119,6 +1128,7 @@
             errEl.textContent = 'Bu odada işlem yapma yetkiniz yok.';
             errEl.classList.remove('hidden');
           }
+        });
         });
       });
     }
