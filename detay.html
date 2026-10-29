@@ -1283,7 +1283,7 @@
       var gorunur = s.length > 0 || y.htmlYukle || y.stlEkle || (dosya3B.oda && dosya3B.oda.has_3d);
       kart.classList.toggle('hidden', !gorunur);
       if (!gorunur) return;
-      document.getElementById('dosya-3b-liste').innerHTML = ZK3B.listeHtml(s, { gonder: y.gonder, sil: y.sil }, 'detay.html?id=' + jobId);
+      document.getElementById('dosya-3b-liste').innerHTML = ZK3B.listeHtml(s, { gonder: y.gonder, sil: y.sil, indir: true }, 'detay.html?id=' + jobId);
       document.getElementById('dosya-3b-bos').classList.toggle('hidden', s.length > 0);
       var secim = document.getElementById('dosya-3b-secim');
       var dugmeler = [];
@@ -1373,7 +1373,15 @@
       var satir = dosya3B.satirlar.filter(function (s) { return s.id === id; })[0];
       if (!satir) return;
       var eylem = b.getAttribute('data-3b-eylem');
-      if (eylem === 'gonder') {
+      if (eylem === 'indir') {
+        var bitir3 = ZKHiz.mesgul(b, 'Hazırlanıyor…');
+        ZK3B.indirmeBaglantisi(satir).then(function (u) {
+          bitir3();
+          var w = null;
+          try { w = window.open(u, '_blank'); } catch (er) {}
+          if (!w) location.href = u;
+        }, function (err) { bitir3(); zkToast('İndirilemedi: ' + err.message); });
+      } else if (eylem === 'gonder') {
         if (!confirm('Tasarım doktora gönderilsin mi? Doktora bildirim gider ve dosyayı kendi ekranından açar.')) return;
         var bitir = ZKHiz.mesgul(b, 'Gönderiliyor…');
         ZK3B.doktoraGonder(id).then(function () { bitir(false); zkToast('Doktora gönderildi.'); load3B(); }, function (err) { bitir(); zkToast('Gönderilemedi: ' + err.message); });

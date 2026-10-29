@@ -15,8 +15,91 @@
 (function () {
   'use strict';
 
+  // PLY (ağız içi tarayıcıların yaygın çıktısı): ikili (küçük/büyük uçlu) ya da metin. Nokta + yüz listesi
+  // üçgen çorbasına açılır (çokgen yüzler yelpaze üçgenlenir), sonrası STL ile aynı yoldan geçer. Renk atılır.
+  var PLY_BOY = { char: 1, int8: 1, uchar: 1, uint8: 1, short: 2, int16: 2, ushort: 2, uint16: 2, int: 4, int32: 4, uint: 4, uint32: 4, float: 4, float32: 4, double: 8, float64: 8 };
+  function plyCoz(buf) {
+    var bayt = new Uint8Array(buf);
+    var son = Math.min(bayt.length, 4096), bas = -1;
+    var ust = new TextDecoder('latin1').decode(bayt.subarray(0, son));
+    var m = /end_header\r?\n/.exec(ust);
+    if (!m) throw new Error('PLY başlığı okunamadı');
+    bas = m.index + m[0].length;
+    var satirlar = ust.slice(0, m.index).split(/\r?\n/);
+    var bicim = '', ogeler = [], g = null;
+    satirlar.forEach(function (l) {
+      var t = l.trim().split(/\s+/);
+      if (t[0] === 'format') bicim = t[1];
+      else if (t[0] === 'element') { g = { ad: t[1], n: +t[2], ozellik: [] }; ogeler.push(g); }
+      else if (t[0] === 'property' && g) {
+        if (t[1] === 'list') g.ozellik.push({ liste: true, say: t[2], tur: t[3], ad: t[4] });
+        else g.ozellik.push({ tur: t[1], ad: t[2] });
+      }
+    });
+    var kucuk = bicim === 'binary_little_endian', ikili = kucuk || bicim === 'binary_big_endian';
+    if (!ikili && bicim !== 'ascii') throw new Error('PLY biçimi desteklenmiyor');
+    var nok = null, yuzler = [];
+    var dv = new DataView(buf), o = bas;
+    var metin = null, jt = null, ji = 0;
+    if (!ikili) { metin = new TextDecoder('utf-8').decode(bayt.subarray(bas)).split(/\s+/).filter(Boolean); }
+    function oku(tur) {
+      if (!ikili) return +metin[ji++];
+      var v;
+      switch (tur) {
+        case 'char': case 'int8': v = dv.getInt8(o); o += 1; break;
+        case 'uchar': case 'uint8': v = dv.getUint8(o); o += 1; break;
+        case 'short': case 'int16': v = dv.getInt16(o, kucuk); o += 2; break;
+        case 'ushort': case 'uint16': v = dv.getUint16(o, kucuk); o += 2; break;
+        case 'int': case 'int32': v = dv.getInt32(o, kucuk); o += 4; break;
+        case 'uint': case 'uint32': v = dv.getUint32(o, kucuk); o += 4; break;
+        case 'float': case 'float32': v = dv.getFloat32(o, kucuk); o += 4; break;
+        case 'double': case 'float64': v = dv.getFloat64(o, kucuk); o += 8; break;
+        default: throw new Error('PLY alan türü tanınmıyor');
+      }
+      if (o > buf.byteLength) throw new Error('PLY dosyası eksik');
+      return v;
+    }
+    ogeler.forEach(function (e) {
+      if (e.ad === 'vertex') {
+        nok = new Float32Array(e.n * 3);
+        for (var i = 0; i < e.n; i++) {
+          for (var k = 0; k < e.ozellik.length; k++) {
+            var p = e.ozellik[k];
+            if (p.liste) { var c = oku(p.say); for (var q = 0; q < c; q++) oku(p.tur); continue; }
+            var v = oku(p.tur);
+            if (p.ad === 'x') nok[i * 3] = v; else if (p.ad === 'y') nok[i * 3 + 1] = v; else if (p.ad === 'z') nok[i * 3 + 2] = v;
+          }
+        }
+      } else if (e.ad === 'face') {
+        for (var f = 0; f < e.n; f++) {
+          for (var k2 = 0; k2 < e.ozellik.length; k2++) {
+            var p2 = e.ozellik[k2];
+            if (p2.liste) {
+              var say = oku(p2.say), ind = [];
+              for (var q2 = 0; q2 < say; q2++) ind.push(oku(p2.tur));
+              if (p2.ad === 'vertex_indices' || p2.ad === 'vertex_index') for (var t = 1; t + 1 < ind.length; t++) yuzler.push(ind[0], ind[t], ind[t + 1]);
+            } else oku(p2.tur);
+          }
+        }
+      } else {
+        // bilinmeyen öğe (kenar vb.) atlanır: sabit boyutlu ikili ise ilerle
+        if (!ikili) { for (var a = 0; a < e.n; a++) e.ozellik.forEach(function (p3) { if (p3.liste) { var c3 = oku(p3.say); for (var z = 0; z < c3; z++) oku(p3.tur); } else oku(p3.tur); }); }
+        else for (var b = 0; b < e.n; b++) e.ozellik.forEach(function (p4) { if (p4.liste) { var c4 = oku(p4.say); for (var y = 0; y < c4; y++) oku(p4.tur); } else oku(p4.tur); });
+      }
+    });
+    if (!nok || !yuzler.length) throw new Error('PLY dosyasında yüzey bulunamadı');
+    var nv = nok.length / 3, poz = new Float32Array(yuzler.length * 3);
+    for (var j = 0; j < yuzler.length; j++) {
+      var ix = yuzler[j];
+      if (ix < 0 || ix >= nv) throw new Error('PLY yüz listesi bozuk');
+      poz[j * 3] = nok[ix * 3]; poz[j * 3 + 1] = nok[ix * 3 + 1]; poz[j * 3 + 2] = nok[ix * 3 + 2];
+    }
+    return poz;
+  }
+
   function stlCoz(buf) {
     var bayt = new Uint8Array(buf);
+    if (bayt.length > 4 && bayt[0] === 0x70 && bayt[1] === 0x6C && bayt[2] === 0x79 && (bayt[3] === 0x0A || bayt[3] === 0x0D)) return plyCoz(buf); // "ply"
     // İkili STL: 80 bayt başlık + uint32 üçgen sayısı + 50 bayt/üçgen. Bazı tarayıcı
     // yazılımları dosya sonuna fazladan bayt ekler; "en az" ölçüsü kabul edilir (Orion bulgusu).
     if (buf.byteLength >= 84) {
@@ -141,7 +224,7 @@
   }
 
   var kok = typeof self !== 'undefined' ? self : this;
-  kok.ZK3BIsci = { calistir: calistir, stlCoz: stlCoz, sikistir: sikistir, zkm1Coz: zkm1Coz };
+  kok.ZK3BIsci = { calistir: calistir, stlCoz: stlCoz, plyCoz: plyCoz, sikistir: sikistir, zkm1Coz: zkm1Coz };
 
   // Yalnız gerçek Web Worker içinde mesaj dinlenir. iOS kabuğu sayfaları file:// ile
   // açıyor ve orada Worker yasak; o zaman bu dosya düz <script> olarak yüklenir ve

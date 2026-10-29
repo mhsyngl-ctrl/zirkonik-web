@@ -53,7 +53,7 @@
     if (file.size > SINIR) return 'Dosya 50 MB sınırını aşıyor (' + boyut(file.size) + ').';
     if (file.size === 0) return 'Dosya boş.';
     var u = uzanti(file.name);
-    if (tur === 'stl' && u !== 'stl') return 'STL dosyası seçin (.stl).';
+    if (tur === 'stl' && u !== 'stl' && u !== 'ply') return 'STL ya da PLY dosyası seçin (.stl, .ply).';
     if (tur === 'html' && u !== 'html' && u !== 'htm') return 'exocad HTML dosyası seçin (.html).';
     return null;
   }
@@ -457,7 +457,7 @@
     var tur = o.tur, dosyalar = [], mevcut = o.mevcut || 0, kilitli = false;
     var inpId = 'zk3b-inp-' + kimlik().slice(0, 8);
     el.innerHTML =
-      '<input id="' + inpId + '" type="file" accept=".stl" multiple class="hidden">' +
+      '<input id="' + inpId + '" type="file" accept=".stl,.ply" multiple class="hidden">' +
       '<div data-rol="liste" class="space-y-2"></div>' +
       '<label data-rol="ekle" for="' + inpId + '" class="mt-2 flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-theme border border-border bg-background text-xs font-bold text-primary">' +
         '<iconify-icon icon="lucide:box" class="text-base"></iconify-icon><span data-rol="ekle-yazi"></span></label>' +
@@ -477,7 +477,7 @@
       ekle.classList.toggle('hidden', dolu);
       ekle.style.opacity = kilitli ? '.5' : ''; ekle.style.pointerEvents = kilitli ? 'none' : '';
       el.querySelector('[data-rol="ekle-yazi"]').textContent = dosyalar.length ? 'Başka STL dosyası ekle' : (o.etiket || 'STL dosyası seç');
-      el.querySelector('[data-rol="not"]').textContent = 'Tarama / model dosyaları (.stl), her biri en fazla 50 MB; en çok ' + DOSYA_SAYISI + ' dosya. Birden fazla seçebilirsiniz.';
+      el.querySelector('[data-rol="not"]').textContent = 'Tarama / model dosyaları (.stl, .ply), her biri en fazla 50 MB; en çok ' + DOSYA_SAYISI + ' dosya. Birden fazla seçebilirsiniz.';
       if (o.degisti) o.degisti(dosyalar.slice());
     }
     inp.addEventListener('change', function () {
@@ -518,7 +518,7 @@
   function secici(el, o) {
     if (o.coklu && o.tur === 'stl') return seciciCoklu(el, o);
     var tur = o.tur, file = null;
-    var kabul = tur === 'stl' ? '.stl' : '.html,.htm';
+    var kabul = tur === 'stl' ? '.stl,.ply' : '.html,.htm';
     var inpId = 'zk3b-inp-' + kimlik().slice(0, 8);
     el.innerHTML =
       '<input id="' + inpId + '" type="file" accept="' + kabul + '" class="hidden">' +
@@ -526,7 +526,7 @@
         '<label for="' + inpId + '" class="flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-theme border border-border bg-background text-xs font-bold text-primary">' +
           '<iconify-icon icon="' + (tur === 'stl' ? 'lucide:box' : 'lucide:file-code') + '" class="text-base"></iconify-icon>' + kacis(o.etiket || (tur === 'stl' ? 'STL dosyası seç' : 'exocad HTML dosyası seç')) +
         '</label>' +
-        '<p class="mt-1.5 text-[11px] text-muted-foreground">' + (tur === 'stl' ? 'Tarama / model dosyası (.stl), en fazla 50 MB.' : 'exocad webview çıktısı (.html), en fazla 50 MB.') + '</p>' +
+        '<p class="mt-1.5 text-[11px] text-muted-foreground">' + (tur === 'stl' ? 'Tarama / model dosyası (.stl, .ply), en fazla 50 MB.' : 'exocad webview çıktısı (.html), en fazla 50 MB.') + '</p>' +
       '</div>' +
       '<div data-rol="dolu" class="hidden flex items-center gap-2.5 rounded-theme border border-border bg-background px-3 py-2.5">' +
         '<iconify-icon icon="' + (tur === 'stl' ? 'lucide:box' : 'lucide:file-code') + '" class="shrink-0 text-lg text-primary"></iconify-icon>' +
@@ -596,6 +596,7 @@
         ? '<span class="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-secondary-foreground">Doktora gönderildi</span>'
         : '<span class="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-accent">Doktora gönderilmedi</span>') : '';
       var dugmeler = '<a href="' + gosterUrl(s, geri) + '" class="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-theme bg-primary text-xs font-bold text-primary-foreground"><iconify-icon icon="lucide:rotate-3d" class="text-sm"></iconify-icon>3B göster</a>';
+      if (yetki.indir) dugmeler += '<button type="button" data-3b-eylem="indir" data-3b-id="' + s.id + '" class="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-theme border border-border bg-background text-xs font-bold text-primary"><iconify-icon icon="lucide:download" class="text-sm"></iconify-icon>İndir</button>';
       if (!stl && !s.sent_to_doctor_at && yetki.gonder) dugmeler += '<button type="button" data-3b-eylem="gonder" data-3b-id="' + s.id + '" class="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-theme border border-border bg-background text-xs font-bold text-primary"><iconify-icon icon="lucide:send" class="text-sm"></iconify-icon>Doktora gönder</button>';
       if (yetki.sil) dugmeler += '<button type="button" data-3b-eylem="sil" data-3b-id="' + s.id + '" aria-label="Sil" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-theme border border-border bg-background text-destructive"><iconify-icon icon="lucide:trash-2" class="text-sm"></iconify-icon></button>';
       return '<div class="rounded-theme border border-border bg-background px-3 py-2.5">' +
