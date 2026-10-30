@@ -1247,7 +1247,7 @@
       var horizonEndStr = horizonEndDate.getFullYear() + '-' + String(horizonEndDate.getMonth() + 1).padStart(2, '0') + '-' + String(horizonEndDate.getDate()).padStart(2, '0');
       var todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
 
-      var staffQ = c.from('app_users').select('monthly_salary, salary_currency, compensation_type').eq('status', 'approved').eq('compensation_type', 'maas');
+      var staffQ = c.from('user_compensation').select('monthly_salary, salary_currency, compensation_type, app_users!inner(status)').eq('compensation_type', 'maas').eq('app_users.status', 'approved'); // maaşlar ayrı tabloda (yalnız yönetici okur)
       // status='paid' olan fatura zaten ödenmiş — gelecek gider tahminine
       // dahil edilmemeli (teknik inceleme bulgusu, 22 Eylül 2026).
       var supInvQ = c.from('supplier_invoices').select('amount, currency, due_date, status').not('due_date', 'is', null).lte('due_date', horizonEndStr).neq('status', 'paid');

@@ -407,17 +407,23 @@
     function zkShowMyPayModel(me) {
       var el = document.getElementById('pf-pay-model');
       var bolum = document.getElementById('pf-earnings-section');
-      if (!me || !me.pay_type) return;
-      var parcalar = [];
-      if (me.pay_type === 'maas' || me.pay_type === 'maas_dis') {
-        parcalar.push('Aylık maaş: ' + ZirkonikMoney.format(me.monthly_salary || me.salary || 0, me.salary_currency, 2));
-      }
-      if (me.pay_type === 'dis' || me.pay_type === 'maas_dis') {
-        parcalar.push('Diş başına: ' + ZirkonikMoney.format(me.per_tooth_rate || me.piece_rate || 0, me.per_tooth_currency, 2));
-      }
-      el.textContent = parcalar.join(' · ');
-      // Sadece maaşlıysa hakediş kaydı olmasa da bölüm görünsün.
-      if (me.pay_type === 'maas') bolum.classList.remove('hidden');
+      if (!me) return;
+      // Ücret bilgisi ayrı tabloda (30 Ekim 2026): kişi yalnız KENDİ satırını okur.
+      Promise.resolve(ZirkonikAuth.client().from('user_compensation').select('*').eq('user_id', me.id).maybeSingle()).then(function (r) {
+        var c = r && r.data;
+        var tip = c && (c.pay_type || ({ maas: 'maas', dis_basi: 'dis', maas_dis: 'maas_dis' })[c.compensation_type]);
+        if (!tip) return;
+        var parcalar = [];
+        if (tip === 'maas' || tip === 'maas_dis') {
+          parcalar.push('Aylık maaş: ' + ZirkonikMoney.format(c.monthly_salary || c.salary || 0, c.salary_currency, 2));
+        }
+        if (tip === 'dis' || tip === 'maas_dis') {
+          parcalar.push('Diş başına: ' + ZirkonikMoney.format(c.per_tooth_rate || c.piece_rate || 0, c.per_tooth_currency, 2));
+        }
+        el.textContent = parcalar.join(' · ');
+        // Sadece maaşlıysa hakediş kaydı olmasa da bölüm görünsün.
+        if (tip === 'maas') bolum.classList.remove('hidden');
+      }).catch(function () {});
     }
 
     function zkLoadMyEarnings() {

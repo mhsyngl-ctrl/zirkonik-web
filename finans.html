@@ -1183,10 +1183,11 @@
         ZirkonikData.listStaffEarnings(),
         // 2026-09-12: "maas_dis" (maaş + diş başı) modeli eklendi; maaş toplamına
         // o modeldeki personel de girmeli, yoksa maaşı hiç sayılmıyordu.
-        client.from('app_users').select('id, full_name, monthly_salary, salary_currency').in('compensation_type', ['maas', 'maas_dis']).eq('status', 'approved')
+        // Maaşlar ayrı tabloda (30 Ekim 2026): yalnız yönetici/işveren okur; finans yetkili personel maaş satırlarını görmez.
+        client.from('user_compensation').select('user_id, monthly_salary, salary_currency, app_users!inner(full_name, status)').in('compensation_type', ['maas', 'maas_dis']).eq('app_users.status', 'approved')
       ]).then(function (res) {
         var rows = res[0].data || [];
-        var salaried = res[1].data || [];
+        var salaried = (res[1].data || []).map(function (s) { return { id: s.user_id, full_name: (s.app_users || {}).full_name || '', monthly_salary: s.monthly_salary, salary_currency: s.salary_currency }; });
         // Personellerin bir kismi TL, bir kismi USD aliyor; bazilarinin maasi
         // ile dis basi primi bile farkli para biriminde olabiliyor. Bu yuzden
         // maas ve hakedis ayri gruplanip tek toplam metninde birlestiriliyor.

@@ -428,12 +428,17 @@
           document.getElementById('pi-hire').value = u.hire_date || '';
           document.getElementById('pi-birth').value = u.birth_date || '';
           document.getElementById('pi-email').value = u.email || '';
-          document.getElementById('pi-comp-type').value = u.compensation_type || '';
-          document.getElementById('pi-comp-rate').value = u.per_tooth_rate || '';
-          document.getElementById('pi-comp-salary').value = u.monthly_salary || '';
-          zkDoldurParaBirimi('pi-comp-rate-cur', u.per_tooth_currency);
-          zkDoldurParaBirimi('pi-comp-salary-cur', u.salary_currency);
-          zkCompTypeChanged();
+          // Ücret bilgisi ayrı tabloda (30 Ekim 2026): yalnız yönetici/işveren okur ve yazar.
+          window.zkKullaniciKurulusId = u.organization_id;
+          Promise.resolve(ZirkonikAuth.client().from('user_compensation').select('*').eq('user_id', userId).maybeSingle()).then(function (cr) {
+            var c = (cr && cr.data) || {};
+            document.getElementById('pi-comp-type').value = c.compensation_type || '';
+            document.getElementById('pi-comp-rate').value = c.per_tooth_rate || '';
+            document.getElementById('pi-comp-salary').value = c.monthly_salary || '';
+            zkDoldurParaBirimi('pi-comp-rate-cur', c.per_tooth_currency);
+            zkDoldurParaBirimi('pi-comp-salary-cur', c.salary_currency);
+            zkCompTypeChanged();
+          }).catch(function () { zkDoldurParaBirimi('pi-comp-rate-cur', null); zkDoldurParaBirimi('pi-comp-salary-cur', null); zkCompTypeChanged(); });
 
           // job_stage_history RLS'i laboratuvar erişimine göre çalışır, tek
           // tek "handled_by" satırına göre değil — yani bu iş/diş özetini
@@ -649,14 +654,21 @@
             position: pos,
             // İşveren/Yönetici tam yetkili roldür; diğer pozisyonlar personel.
             role: (pos === 'Yönetici' || pos === 'İşveren') ? 'yonetici' : 'personel',
+          }).eq('id', userId);
+        }).then(function (res) {
+          if (res.error) throw res.error;
+          // Ücret bilgisi ayrı tabloya yazılır (yalnız yönetici/işveren; sunucu da böyle zorlar).
+          var compType = document.getElementById('pi-comp-type').value || null;
+          return ZirkonikAuth.client().from('user_compensation').upsert({
+            user_id: userId,
+            organization_id: window.zkKullaniciKurulusId,
             compensation_type: compType,
             per_tooth_rate: (compType === 'dis_basi' || compType === 'maas_dis') ? (Number(document.getElementById('pi-comp-rate').value) || null) : null,
             monthly_salary: (compType === 'maas' || compType === 'maas_dis') ? (Number(document.getElementById('pi-comp-salary').value) || null) : null,
-            // Para birimleri ücret sıfırlansa da korunuyor: model tekrar
-            // açıldığında kişinin anlaşması kaybolmasın.
+            // Para birimleri ücret sıfırlansa da korunuyor: model tekrar açıldığında kişinin anlaşması kaybolmasın.
             per_tooth_currency: ZirkonikMoney.normalize(document.getElementById('pi-comp-rate-cur').value),
             salary_currency: ZirkonikMoney.normalize(document.getElementById('pi-comp-salary-cur').value)
-          }).eq('id', userId);
+          }, { onConflict: 'user_id' });
         }).then(function (res) { if (res.error) throw res.error; });
       }
 
