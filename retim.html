@@ -129,7 +129,7 @@
 
             <!-- Doktor kazanım süreci — 24 Eylül 2026, Medicamine'deki "Adaylar" kartıyla aynı mantık:
                  ana ekranda tek dokunuşla girilen, sayaçlı bir giriş. Yalnız yetkili görür (zk-guard.js). -->
-            <button onclick="location.href='aday-havuzu.html'" id="stat-leads-btn" class="zk-stat zk-stat-teal"><span class="zk-stat-icon"><iconify-icon icon="lucide:user-round-plus"></iconify-icon></span><p id="stat-leads" class="zk-stat-value">—</p><p class="zk-stat-label">Doktor Havuzu</p><iconify-icon class="zk-stat-ghost" icon="lucide:user-round-plus"></iconify-icon></button>
+            <button data-zk-crm onclick="location.href='aday-havuzu.html'" id="stat-leads-btn" class="zk-stat zk-stat-teal"><span class="zk-stat-icon"><iconify-icon icon="lucide:user-round-plus"></iconify-icon></span><p id="stat-leads" class="zk-stat-value">—</p><p class="zk-stat-label">Doktor Havuzu</p><iconify-icon class="zk-stat-ghost" icon="lucide:user-round-plus"></iconify-icon></button>
           </div></div>
         </section>
 
@@ -232,7 +232,7 @@
         <!-- 26 Eylül 2026, sahibinin isteği: Medicamine'deki müşteri randevu ekranı
              gibi — işveren/yönetici tüm pazarlamacıların bugünkü keşif görevlerini
              ve gerçekleşen (plansız dahil) temaslarını tek yerden görsün. -->
-        <section id="pazarlama-ozeti-section" class="hidden px-5 pt-7">
+        <section id="pazarlama-ozeti-section" data-zk-crm class="hidden px-5 pt-7">
           <div class="flex items-start justify-between gap-3">
             <div>
               <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Sadece yönetici görür</p>
@@ -326,7 +326,7 @@
 
         <!-- Temsilci (Satış Pazarlama Sorumlusu) için: bugün tarihi gelmiş adaylar.
              24 Eylül 2026, doktor kazanım süreci. Yalnız yetkiliye gösterilir. -->
-        <section id="my-tasks-section" class="hidden px-5 pt-7">
+        <section id="my-tasks-section" data-zk-crm class="hidden px-5 pt-7">
           <div class="flex items-end justify-between">
             <div>
               <h2 class="font-heading text-lg font-extrabold">Bugünkü Görevlerim</h2>

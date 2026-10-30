@@ -22,6 +22,17 @@
   // can_manage_orders yetkisiyle açılabilir (sayfa içinde fiyat kutusu gizlenir).
   var RECEPTION_PAGES = { retim: 1, isler: 1, detay: 1, siparisler: 1, doktorlar: 1, 'yeni-giri-i': 1, profil: 1, bildirimler: 1, izinlerim: 1, kilavuz: 1, '3b-goster': 1 };
 
+  // 30 Ekim 2026 — Doktor CRM ve aday havuzu yalnız Plus (ve lab↔lab çalışan Tek) pakette. Kurumsal ('standart'/'kurumsal') kapalı.
+  // Plan bilinmiyorsa (eski anlık görüntü) ekran açık kalır; asıl kapı sunucudadır (zk_crm_acik).
+  function crmKapali(p) { return !!(p && p.plan && p.plan !== 'plus' && p.plan !== 'tek'); }
+  function crmKapaliMi() { try { return crmKapali(JSON.parse(localStorage.getItem('zk-guard') || 'null')); } catch (e) { return false; } }
+  function crmUi(p) {
+    if (!crmKapali(p)) return;
+    var el = document.querySelectorAll('[data-zk-crm],a[href*="aday-havuzu"],[onclick*="aday-havuzu"]');
+    for (var i = 0; i < el.length; i++) { if (el[i].tagName === 'OPTION') el[i].remove(); else el[i].style.display = 'none'; }
+    document.documentElement.setAttribute('data-zk-crm', 'kapali');
+  }
+
   function page() {
     return (location.pathname.split('/').pop() || 'index.html').toLowerCase().replace('.html', '') || 'index';
   }
@@ -32,8 +43,9 @@
       if (!DOCTOR_PAGES[pg]) { location.replace('doktor-siparis.html'); return true; }
       return false;
     }
+    if (pg === 'aday-havuzu' && crmKapali(p)) { location.replace('retim.html'); return true; }
     if (role !== 'personel') return false; // yonetici: serbest
-    if (p.position === 'Satış Pazarlama Sorumlusu' && !PROSPECT_ONLY_PAGES[pg]) {
+    if (p.position === 'Satış Pazarlama Sorumlusu' && !crmKapali(p) && !PROSPECT_ONLY_PAGES[pg]) {
       // Aday havuzu yetkisi kapalıysa aday-havuzu ↔ retim arasında sonsuz döngü oluşuyordu (Güneş bulgusu); profil'e düş.
       location.replace(p.can_manage_prospects ? 'aday-havuzu.html' : 'profil.html'); return true;
     }
@@ -122,6 +134,7 @@
   //  * [data-zk-tek-metin="…"] ögelerinin yazısı o metinle değişir ("Doktorlar" → "Müşteri laboratuvarlar")
   //  * Alt sekme "Doktorlar" → "Müşteriler"
   function paketUi(p) {
+    crmUi(p);
     if (!p || p.plan !== 'tek') return;
     var gizle = document.querySelectorAll('[data-zk-doktor]');
     for (var i = 0; i < gizle.length; i++) gizle[i].style.display = 'none';
@@ -132,5 +145,5 @@
     document.documentElement.setAttribute('data-zk-paket', 'tek');
   }
 
-  window.ZkGuardCore = { PUBLIC: PUBLIC, page: page, enforce: enforce, hideUi: hideUi, paketUi: paketUi };
+  window.ZkGuardCore = { PUBLIC: PUBLIC, page: page, enforce: enforce, hideUi: hideUi, paketUi: paketUi, crmKapali: crmKapali, crmKapaliMi: crmKapaliMi };
 })();

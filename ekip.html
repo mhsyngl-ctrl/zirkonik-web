@@ -154,7 +154,7 @@
 
           <!-- 13 Ekim 2026, sahibinin isteği: pazarlamacının performansı da diğer personel gibi
                Ekip Performansı'nda görünsün. Pazarlama temsilcisi olmayan kuruluşta gizli kalır. -->
-          <div id="tp-mkt-wrap" class="hidden">
+          <div id="tp-mkt-wrap" data-zk-crm class="hidden">
             <h3 class="mb-1 mt-4 text-sm font-bold text-foreground">Pazarlama performansı — temsilci bazlı</h3>
             <p class="mb-2 text-[11px] text-muted-foreground">Aday doktorlara yapılan ziyaret, arama ve WhatsApp temasları. Takip uyumu: dönemde vadesi gelen görevlerden vade günü içinde kapananlar.</p>
             <svg id="tp-mkt-chart-svg" viewBox="0 0 340 100" class="w-full" style="max-width:560px;display:block" role="img" aria-label="Pazarlama temsilcisi bazlı temas sayısı">
@@ -289,7 +289,7 @@
           <option value="Teknisyen">Teknisyen</option>
           <option value="Tasarımcı Teknisyen">Tasarımcı Teknisyen</option>
           <option value="Resepsiyon Sorumlusu">Resepsiyon Sorumlusu</option>
-          <option value="Satış Pazarlama Sorumlusu">Satış Pazarlama Sorumlusu</option>
+          <option value="Satış Pazarlama Sorumlusu" data-zk-crm>Satış Pazarlama Sorumlusu</option>
           <option value="Yönetici">Yönetici (tam yetki)</option>
           <option value="İşveren">İşveren (tam yetki)</option>
           <option value="__yeni">＋ Yeni pozisyon ekle…</option>
@@ -1157,7 +1157,7 @@
       zkYeniPozisyonGoster();
       zkLoadStaffLabOptions();
     }
-    var ZK_POZ_ACIKLAMA = {"Teknisyen": "Yetkili olduğu odalardaki işleri görür ve durumunu ilerletir. Fiyat ve finans görmez (yönetici yetki vermedikçe).", "Tasarımcı Teknisyen": "Teknisyen gibi çalışır; yalnız kendisi tasarımcı seçilmiş işleri ve siparişleri, ve yalnız kendisine yetki verilen odalarda görür.", "Resepsiyon Sorumlusu": "Siparişleri ve doktor işlerini yönetir (sipariş onayı, doktor kayıtları). Finans ve Doktor Havuzu ekranlarına giremez.", "Satış Pazarlama Sorumlusu": "Yalnız Doktor Havuzu'nu (aday doktorlar) kullanır; işleri ve finansı görmez.", "Yönetici": "Her şeyi görür ve yönetir (tam yetki).", "İşveren": "Her şeyi görür ve yönetir (tam yetki)."};
+    var ZK_POZ_ACIKLAMA = {"Teknisyen": "Yetkili olduğu odalardaki işleri görür ve durumunu ilerletir. Fiyat ve finans görmez (yönetici yetki vermedikçe).", "Tasarımcı Teknisyen": "Teknisyen gibi çalışır; yalnız kendisi tasarımcı seçilmiş işleri ve siparişleri, ve yalnız kendisine yetki verilen odalarda görür.", "Resepsiyon Sorumlusu": "Siparişleri ve doktor işlerini yönetir (sipariş onayı, doktor kayıtları). Finans ve Doktor Havuzu ekranlarına giremez.", "Satış Pazarlama Sorumlusu": "Yalnız Doktor Havuzu'nu (aday doktorlar) kullanır; işleri ve finansı görmez. Yalnız Plus ve Tek paketinde bulunur.", "Yönetici": "Her şeyi görür ve yönetir (tam yetki).", "İşveren": "Her şeyi görür ve yönetir (tam yetki)."};
     function zkYeniPozisyonGoster() {
       var v = document.getElementById('ns-position').value;
       document.getElementById('ns-position-yeni').classList.toggle('hidden', v !== '__yeni');

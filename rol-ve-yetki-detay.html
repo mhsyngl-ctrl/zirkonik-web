@@ -130,7 +130,7 @@
                 <option value="Teknisyen">Teknisyen</option>
                 <option value="Tasarımcı Teknisyen">Tasarımcı Teknisyen</option>
                 <option value="Resepsiyon Sorumlusu">Resepsiyon Sorumlusu</option>
-                <option value="Satış Pazarlama Sorumlusu">Satış Pazarlama Sorumlusu</option>
+                <option value="Satış Pazarlama Sorumlusu" data-zk-crm>Satış Pazarlama Sorumlusu</option>
                 <option value="Yönetici">Yönetici (tam yetki)</option>
                 <option value="İşveren">İşveren (tam yetki)</option>
               </select>
@@ -348,6 +348,8 @@
       // hiçbir personel göremez/değiştiremez, yalnız yönetici/işveren.
       { key: 'can_manage_prospects', grup: 'Satış', icon: 'lucide:map-pinned', title: 'Aday/doktor kazanım süreci', desc: 'Doktor Havuzu ve Bölgeler: aday ekleme, aşama ilerletme, temas kaydı' }
     ];
+    // Doktor CRM / aday havuzu yalnız Plus ve Tek pakette (30 Ekim 2026): Kurumsal'da 'Aday/doktor kazanım' anahtarı gösterilmez.
+    if (window.ZkGuardCore && ZkGuardCore.crmKapaliMi && ZkGuardCore.crmKapaliMi()) PERMS = PERMS.filter(function (x) { return x.key !== 'can_manage_prospects'; });
 
     // Pozisyon şablonları: "varsayilan" şablon uygulanınca açılır; "izinli" bu
     // pozisyonda anlamlı anahtarlar (js/zk-guard-core.js sayfa kapılarıyla tutarlı:
@@ -367,7 +369,7 @@
       return !kural || kural.izinli.indexOf(key) >= 0;
     }
     // Pozisyon değişince etkisiz anahtarlar kapanır ve liste yeniden çizilir.
-    var ZK_POZ_ACIKLAMA = {"Teknisyen": "Yetkili olduğu odalardaki işleri görür ve durumunu ilerletir. Fiyat ve finans görmez (yönetici yetki vermedikçe).", "Tasarımcı Teknisyen": "Teknisyen gibi çalışır; yalnız kendisi tasarımcı seçilmiş işleri ve siparişleri, ve yalnız kendisine yetki verilen odalarda görür.", "Resepsiyon Sorumlusu": "Siparişleri ve doktor işlerini yönetir (sipariş onayı, doktor kayıtları). Finans ve Doktor Havuzu ekranlarına giremez.", "Satış Pazarlama Sorumlusu": "Yalnız Doktor Havuzu'nu (aday doktorlar) kullanır; işleri ve finansı görmez.", "Yönetici": "Her şeyi görür ve yönetir (tam yetki).", "İşveren": "Her şeyi görür ve yönetir (tam yetki)."};
+    var ZK_POZ_ACIKLAMA = {"Teknisyen": "Yetkili olduğu odalardaki işleri görür ve durumunu ilerletir. Fiyat ve finans görmez (yönetici yetki vermedikçe).", "Tasarımcı Teknisyen": "Teknisyen gibi çalışır; yalnız kendisi tasarımcı seçilmiş işleri ve siparişleri, ve yalnız kendisine yetki verilen odalarda görür.", "Resepsiyon Sorumlusu": "Siparişleri ve doktor işlerini yönetir (sipariş onayı, doktor kayıtları). Finans ve Doktor Havuzu ekranlarına giremez.", "Satış Pazarlama Sorumlusu": "Yalnız Doktor Havuzu'nu (aday doktorlar) kullanır; işleri ve finansı görmez. Yalnız Plus ve Tek paketinde bulunur.", "Yönetici": "Her şeyi görür ve yönetir (tam yetki).", "İşveren": "Her şeyi görür ve yönetir (tam yetki)."};
     function zkPozisyonNotu() {
       var v = zkSeciliPozisyon();
       document.getElementById('pi-position-note').textContent = ZK_POZ_ACIKLAMA[v] || 'Kendi yazdığınız pozisyon Teknisyen gibi başlar; ne göreceğini kişinin yetki ekranından siz seçersiniz.';
