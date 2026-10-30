@@ -937,11 +937,12 @@
         var item = jobItems[0];
         document.getElementById('ej-unit-count').value = item.unit_count || (item.teeth || []).length || 1;
         (workTypes ? Promise.resolve({ data: workTypes }) : ZirkonikData.listWorkTypes()).then(function (r) {
-          workTypes = r.data || [];
+          if (r.error) { workTypes = null; zkToast('Çalışma türleri yüklenemedi: ' + r.error.message); }
+          else workTypes = r.data || [];
           var sel = document.getElementById('ej-worktype');
           var groups = {};
           sel.innerHTML = '<option value="">Seçin</option>';
-          workTypes.forEach(function (w) {
+          (workTypes || []).forEach(function (w) {
             var opt = document.createElement('option');
             opt.value = w.id;
             opt.textContent = w.name;
@@ -1720,7 +1721,7 @@
             });
 
         finishP.then(function (out) {
-          if (out.done) { bitir(false); window.location.href = 'retim.html'; return; }
+          if (out.done) { bitir(false); window.location.replace('retim.html'); return; }
           bitir();
           zkToast('Bu kalem tamamlandı. Siparişin diğer kalemleri sürüyor.');
           loadJob();

@@ -210,10 +210,10 @@
             can_manage_prospects: !!p.can_manage_prospects
           }));
         } catch (e) {}
-        window.location.href = (me && me.role === 'doktor') ? 'doktor-siparis.html'
+        window.location.replace((me && me.role === 'doktor') ? 'doktor-siparis.html'
           : (me && me.position === 'Satış Pazarlama Sorumlusu') ? 'aday-havuzu.html'
-          : 'retim.html';
-      }).catch(function () { window.location.href = 'retim.html'; });
+          : 'retim.html');
+      }).catch(function () { window.location.replace('retim.html'); });
     }
 
     // Sunucu tarafında Supabase, sızıntı listelerindeki şifreleri reddediyor

@@ -75,6 +75,15 @@
 
   <div id="zk-toast" style="position:fixed;left:50%;bottom:96px;transform:translate(-50%,16px);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;background:#17242C;color:#fff;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;padding:10px 16px;border-radius:12px;z-index:9999;max-width:86%;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.18);"></div>
 
+  <!-- 30 Ekim 2026 (Güneş): js/zk-erken-koruma.js personelde gövdeyi gizliyor; diğer sayfalardaki gibi burada açılmalı (yoksa beyaz ekran). -->
+  <script>
+    (function () {
+      if (!window.__zkErkenGizliP) return;
+      if (window.ZkGuardCore) ZkGuardCore.hideUi(window.__zkErkenGizliP);
+      document.documentElement.style.visibility = '';
+    })();
+  </script>
+
   <script src="vendor/supabase-js.min.js"></script>
   <script src="supabase-config.js"></script>
   <script src="js/net-guard.js"></script>
