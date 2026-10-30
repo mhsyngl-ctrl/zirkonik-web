@@ -176,10 +176,10 @@
         var fiyatPerms = (me && me.user_permissions) || {};
         fiyatPerms = (fiyatPerms && fiyatPerms[0]) || fiyatPerms || {};
         canSeePrices = myRole === 'yonetici' || !!fiyatPerms.can_view_prices;
-        if (myRole !== 'yonetici') { loadOrders(); return; }
+        if (!canSeePrices) { loadOrders(); return; }
         // Anlasmali fiyatlar ve fiyat kalemleri gelmeden liste ciziliyordu; tek
         // sefer, hata olsa bile liste yine yuklensin diye ayri yakalaniyor.
-        // Yalniz yonetici cekiyor — personel tutari hic gormeyecek.
+        // Yalniz yonetici ve 'fiyatlari gorebilir' yetkisi verilen personel cekiyor — baskasi tutari hic gormeyecek.
         Promise.all([
           ZirkonikData.listPriceOverrides().then(function (r) { return r.data || []; }, function () { return []; }),
           ZirkonikData.listPriceItems().then(function (r) { return r.data || []; }, function () { return []; })

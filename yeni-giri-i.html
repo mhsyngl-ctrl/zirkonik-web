@@ -634,7 +634,8 @@
 
       ZirkonikAuth.me().then(function (me) {
         var perms = (me.user_permissions && me.user_permissions[0]) || me.user_permissions || {};
-        canOverridePrice = me.role === 'yonetici' || !!perms.can_view_finance;
+        // Fiyat yazma izni sunucuda 'siparis yonetimi' VE 'fiyatlari gorebilir' ister (job_prices_write); finans yetkisi tek basina yetmez.
+        canOverridePrice = me.role === 'yonetici' || (!!perms.can_view_prices && !!perms.can_manage_orders);
         // 25 Eylül 2026, sahibinin kuralı: Yeni İş Oluştur artık sipariş yönetimi
         // yetkisi olan personele de (Resepsiyon) açık — ama fiyat görmesin, salt
         // salt-okunur değil, TAMAMEN gizli.
