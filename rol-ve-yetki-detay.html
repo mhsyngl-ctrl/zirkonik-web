@@ -431,6 +431,7 @@
           // Ücret bilgisi ayrı tabloda (30 Ekim 2026): yalnız yönetici/işveren okur ve yazar.
           window.zkKullaniciKurulusId = u.organization_id;
           Promise.resolve(ZirkonikAuth.client().from('user_compensation').select('*').eq('user_id', userId).maybeSingle()).then(function (cr) {
+            if (cr && cr.error) window.zkUcretOkunamadi = true; // okunamadıysa boş form kayıtlı ücreti silmesin (kaydetmede atlanır)
             var c = (cr && cr.data) || {};
             document.getElementById('pi-comp-type').value = c.compensation_type || '';
             document.getElementById('pi-comp-rate').value = c.per_tooth_rate || '';
@@ -657,6 +658,7 @@
           }).eq('id', userId);
         }).then(function (res) {
           if (res.error) throw res.error;
+          if (window.zkUcretOkunamadi) return { error: null };
           // Ücret bilgisi ayrı tabloya yazılır (yalnız yönetici/işveren; sunucu da böyle zorlar).
           var compType = document.getElementById('pi-comp-type').value || null;
           return ZirkonikAuth.client().from('user_compensation').upsert({

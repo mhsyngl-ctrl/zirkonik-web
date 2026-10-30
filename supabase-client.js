@@ -672,7 +672,8 @@
       var price = f.price, currency = f.currency;
       delete f.price; delete f.currency;
       return client().from('jobs').insert(f).select().single().then(function (jr) {
-        if (jr.error || !jr.data || (price == null && !currency)) return jr;
+        // Fiyat boşsa job_prices'a yazma: fiyat yetkisi olmayan personelde RLS reddeder (iş açılmış olur, ekran hata gösterir). Boş satırı tetikleyici kurar.
+        if (jr.error || !jr.data || price == null) return jr;
         return Data.setJobPrice(jr.data, price, currency).then(function (pr) {
           if (pr.error) return { data: null, error: pr.error };
           jr.data.price = price == null ? null : price;
@@ -1081,7 +1082,7 @@
       // 2026-09-12: tahsilat acilir menusunde yalniz doktor adi vardi; ayni
       // doktorun birden fazla bekleyen faturasi varsa hangisi oldugu
       // anlasilmiyordu. Is numarasi da getiriliyor.
-      var q = client().from('invoices').select('*, doctors(full_name, clinic_name), jobs(job_number)').order('issued_at', { ascending: false });
+      var q = client().from('invoices').select('*, doctors(full_name, clinic_name), jobs!invoices_job_id_fkey(job_number)').order('issued_at', { ascending: false });
       if (filters.status) q = q.eq('status', filters.status);
       return q;
     },
@@ -1652,7 +1653,7 @@
     },
 
     listStaffEarnings: function (period) {
-      var q = client().from('staff_earnings').select('*, app_users(full_name)').order('period', { ascending: false });
+      var q = client().from('staff_earnings').select('*, app_users!staff_earnings_user_id_fkey(full_name)').order('period', { ascending: false });
       if (period) q = q.eq('period', period);
       return q;
     },
