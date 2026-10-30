@@ -672,7 +672,8 @@
       var price = f.price, currency = f.currency;
       delete f.price; delete f.currency;
       return client().from('jobs').insert(f).select().single().then(function (jr) {
-        // Fiyat boşsa job_prices'a yazma: fiyat yetkisi olmayan personelde RLS reddeder (iş açılmış olur, ekran hata gösterir). Boş satırı tetikleyici kurar.
+        // Fiyat boşsa job_prices'a yazma: fiyat yetkisi olmayan personelde RLS reddeder. Boş fiyat satırını tetikleyici kurar.
+        // Not: yönetici dışı personelin iş açabilmesi için sunucuda 20261030260000 gerekir (yaratıcı yeni işi 15 dk görür; yoksa INSERT..RETURNING reddedilir ve iş hiç açılmaz).
         if (jr.error || !jr.data || price == null) return jr;
         return Data.setJobPrice(jr.data, price, currency).then(function (pr) {
           if (pr.error) return { data: null, error: pr.error };
