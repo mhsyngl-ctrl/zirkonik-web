@@ -53,7 +53,7 @@
   var YAVAS_MS = 6000;
   var SURE_MS = 20000;
   // Yan etkisi olmayan RPC'ler: cevapları önbelleğe alınabilir.
-  var OKUNUR_RPC = ['zk_finans_ozet', 'zk_doktor_cari', 'has_room_access', 'zk_gelen_is_numaralari', 'zk_calisma_turleri_listele', 'my_org_status', 'calc_annual_leave_days'];
+  var OKUNUR_RPC = ['zk_finans_ozet', 'zk_doktor_cari', 'has_room_access', 'zk_gelen_is_numaralari', 'zk_tasarimcilar', 'zk_calisma_turleri_listele', 'my_org_status', 'calc_annual_leave_days'];
 
   function t(s) { try { return cfg.t(s) || s; } catch (e) { return s; } }
 

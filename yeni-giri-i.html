@@ -117,6 +117,11 @@
             <span class="mt-1 block text-[11px] leading-4 text-muted-foreground">Gizlilik için tam ad yerine baş harfleri yazabilirsiniz; protokol no işi eşleştirir.</span>
               </label>
 
+              <label id="f-designer-wrap" class="hidden block">
+                <span class="mb-1.5 block text-xs font-bold">Tasarımcı</span>
+                <select id="f-designer" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"><option value="">Seçilmedi (isteğe bağlı)</option></select>
+              </label>
+
               <label class="block">
                 <span class="mb-1.5 block text-xs font-bold">Klinik protokol no *</span>
                 <input id="f-protocol" type="text" required class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="Kliniğin hasta protokol numarası">
@@ -849,6 +854,7 @@
           patient_name: patientName,
           clinic_protocol_no: protocolNo,
           patient_reference: document.getElementById('f-reference').value.trim() || null,
+          designer_id: document.getElementById('f-designer').value || null,
           teeth_numbers: tumDisler.length ? tumDisler.join(', ') : (document.getElementById('f-teeth').value.trim() || null),
           unit_count: Math.max(1, toplamDis),
           is_priority: document.getElementById('f-priority').value === '1',
@@ -947,5 +953,18 @@
     });
   </script>
 
+<script>
+  // İsteğe bağlı tasarımcı listesi (sunucu yalnız kendi kuruluşunun aktif tasarımcılarını döner); liste boşsa alan hiç görünmez.
+  window.addEventListener('load', function () {
+    if (!window.ZirkonikData || !ZirkonikData.listDesigners) return;
+    ZirkonikData.listDesigners().then(function (r) {
+      var liste = (r && r.data) || [];
+      if (!liste.length) return;
+      var sel = document.getElementById('f-designer');
+      liste.forEach(function (t) { var o = document.createElement('option'); o.value = t.id; o.textContent = t.full_name; sel.appendChild(o); });
+      document.getElementById('f-designer-wrap').classList.remove('hidden');
+    }).catch(function () {});
+  });
+</script>
 </body>
 </html>

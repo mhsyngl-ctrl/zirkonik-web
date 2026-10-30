@@ -642,7 +642,7 @@
     // 25 Eylül 2026, sahibinin kuralı: fiyat yalnız yönetici/işveren.
     // includePrice:false geçilince jobs.price/currency sorgudan HİÇ
     // istenmez — ekranda gizlemek yetmiyordu, ağ cevabında da olmamalı.
-    JOB_COLS_NO_PRICE: 'id, organization_id, laboratory_id, job_number, doctor_id, patient_reference, restoration_type, material, shade, teeth_numbers, unit_count, is_priority, requested_delivery_at, current_room_id, assigned_user_id, status, clinical_notes, payment_status, invoice_due_date, created_by, created_at, completed_at, price_item_id, work_form, planned_route, patient_name, clinic_protocol_no, cancelled_at, cancelled_by, cancel_reason, cancel_category',
+    JOB_COLS_NO_PRICE: 'id, designer_id, organization_id, laboratory_id, job_number, doctor_id, patient_reference, restoration_type, material, shade, teeth_numbers, unit_count, is_priority, requested_delivery_at, current_room_id, assigned_user_id, status, clinical_notes, payment_status, invoice_due_date, created_by, created_at, completed_at, price_item_id, work_form, planned_route, patient_name, clinic_protocol_no, cancelled_at, cancelled_by, cancel_reason, cancel_category',
     listJobs: function (filters) {
       filters = filters || {};
       var cols = filters.includePrice === false ? Data.JOB_COLS_NO_PRICE : '*';
@@ -943,6 +943,10 @@
         if (!uid) return { data: null };
         return client().from('doctors').select('*').eq('user_id', uid).limit(1).maybeSingle();
       });
+    },
+    // Tasarımcı seçim listesi: pozisyonu "Tasarımcı Teknisyen" olan aktif personel (sunucu kendi kuruluşuyla sınırlar).
+    listDesigners: function () {
+      return client().rpc('zk_tasarimcilar');
     },
     createOrder: function (fields) {
       return client().from('orders').insert(fields).select().single();

@@ -110,6 +110,10 @@
             <input id="o-ref" type="text" required class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="Kendi dosya / protokol numaranız">
           </label>
 
+          <label id="o-designer-wrap" class="hidden mt-3 block">
+            <span class="mb-1.5 block text-xs font-bold">Tasarımcı</span>
+            <select id="o-designer" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"><option value="">Seçilmedi (isteğe bağlı)</option></select>
+          </label>
           <label class="mt-3 block">
             <span class="mb-1.5 block text-xs font-bold">Not</span>
             <input id="o-note" type="text" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="Laboratuvara iletmek istediğiniz açıklama">
@@ -972,6 +976,7 @@
         // giriş formu da aynı iki alanı zaten böyle dolduruyor.
         patient_name: hastaAdi,
         clinic_protocol_no: protokolNo,
+        designer_id: document.getElementById('o-designer').value || null,
         note: document.getElementById('o-note').value.trim() || null
       }).then(function (res) {
         if (res.error) {
@@ -1491,5 +1496,18 @@
     };
   </script>
 
+<script>
+  // İsteğe bağlı tasarımcı listesi (sunucu yalnız kendi kuruluşunun aktif tasarımcılarını döner); liste boşsa alan hiç görünmez.
+  window.addEventListener('load', function () {
+    if (!window.ZirkonikData || !ZirkonikData.listDesigners) return;
+    ZirkonikData.listDesigners().then(function (r) {
+      var liste = (r && r.data) || [];
+      if (!liste.length) return;
+      var sel = document.getElementById('o-designer');
+      liste.forEach(function (t) { var o = document.createElement('option'); o.value = t.id; o.textContent = t.full_name; sel.appendChild(o); });
+      document.getElementById('o-designer-wrap').classList.remove('hidden');
+    }).catch(function () {});
+  });
+</script>
 </body>
 </html>

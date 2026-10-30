@@ -87,6 +87,7 @@
                  ekran okumuyordu; teknisyen elindeki işin hangi hastaya ait
                  olduğunu göremiyordu. Boşsa satır tamamen gizlenir. -->
             <p id="job-patient" class="mt-1 hidden truncate text-[13px] font-semibold text-muted-foreground"></p>
+            <p id="job-designer" class="mt-0.5 hidden truncate text-xs text-muted-foreground"></p>
           </div>
           <span id="priority-badge" class="hidden items-center gap-1.5 rounded-full bg-accent px-3 py-1.5 text-[11px] font-bold text-accent-foreground">
             <span class="h-1.5 w-1.5 rounded-full bg-primary"></span>
@@ -348,6 +349,10 @@
       <label class="mt-3 block">
         <span class="mb-1.5 block text-xs font-bold">Klinik protokol no</span>
         <input id="ej-protocol" type="text" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+      </label>
+      <label id="ej-designer-wrap" class="hidden mt-3 block">
+        <span class="mb-1.5 block text-xs font-bold">Tasarımcı <span class="font-normal text-muted-foreground">(yalnız yönetici/işveren değiştirir)</span></span>
+        <select id="ej-designer" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm"><option value="">Seçilmedi</option></select>
       </label>
       <label class="mt-3 block">
         <span class="mb-1.5 block text-xs font-bold">İç referans / not</span>
@@ -726,6 +731,16 @@
       } else {
         patientEl.classList.add('hidden');
       }
+      var tasEl = document.getElementById('job-designer');
+      if (j.designer_id) {
+        zkTasarimciAdlari().then(function (liste) {
+          var t = liste.filter(function (x) { return x.id === j.designer_id; })[0];
+          tasEl.textContent = 'Tasarımcı: ' + (t ? t.full_name : 'artık listede yok');
+          tasEl.classList.remove('hidden');
+        });
+      } else {
+        tasEl.classList.add('hidden');
+      }
       document.getElementById('job-reference').textContent = j.patient_reference || '—';
       var dnBox = document.getElementById('job-doctor-note');
       if (dnBox) {
@@ -876,10 +891,31 @@
     // düzeltmesi — yönetici + Resepsiyon (can_manage_orders). 26 Eylül 2026:
     // tek kalemli işlerde çalışma türü/diş/adet de eklendi (fiyat hariç).
     var workTypes = null;
+    var tasarimciListe = null;
+    function zkTasarimciAdlari() {
+      return tasarimciListe ? Promise.resolve(tasarimciListe) : ZirkonikData.listDesigners().then(function (r) { tasarimciListe = (r && r.data) || []; return tasarimciListe; }).catch(function () { return []; });
+    }
+    // Düzenleme penceresi: seçim yalnız yönetici/işverene görünür (sunucu da başkasının değiştirmesini reddeder).
+    function zkDolduTasarimci() {
+      var wrap = document.getElementById('ej-designer-wrap');
+      if (myRole !== 'yonetici') { wrap.classList.add('hidden'); return; }
+      zkTasarimciAdlari().then(function (liste) {
+        var sel = document.getElementById('ej-designer');
+        while (sel.options.length > 1) sel.remove(1);
+        liste.forEach(function (t) { var o = document.createElement('option'); o.value = t.id; o.textContent = t.full_name; sel.appendChild(o); });
+        var mevcut = currentJob && currentJob.designer_id;
+        if (mevcut && !liste.some(function (t) { return t.id === mevcut; })) {
+          var o = document.createElement('option'); o.value = mevcut; o.textContent = 'Eski tasarımcı (artık listede yok)'; sel.appendChild(o);
+        }
+        sel.value = mevcut || '';
+        wrap.classList.toggle('hidden', !liste.length && !mevcut);
+      });
+    }
     function zkOpenEditJob() {
       if (!canFixJob || !currentJob) return;
       document.getElementById('ej-patient').value = currentJob.patient_name || '';
       document.getElementById('ej-protocol').value = currentJob.clinic_protocol_no || '';
+      zkDolduTasarimci();
       document.getElementById('ej-reference').value = currentJob.patient_reference || '';
       document.getElementById('ej-doctor-note').value = currentJob.clinical_notes || '';
       // Notları yalnız işveren/yönetici değiştirir; diğerleri görür (sunucu da zorlar).
@@ -953,6 +989,10 @@
         clinical_notes: document.getElementById('ej-doctor-note').value.trim() || null,
         notu_guncelle: myRole === 'yonetici'
       })];
+      var yeniTasarimci = document.getElementById('ej-designer').value || null;
+      if (myRole === 'yonetici' && !document.getElementById('ej-designer-wrap').classList.contains('hidden') && yeniTasarimci !== (currentJob.designer_id || null)) {
+        istekler.push(ZirkonikAuth.client().from('jobs').update({ designer_id: yeniTasarimci }).eq('id', jobId));
+      }
       if (itemEditing) {
         istekler.push(ZirkonikData.fixJobItem(
           jobId, teeth, worktypeId,
