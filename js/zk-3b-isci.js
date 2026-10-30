@@ -18,6 +18,7 @@
   // PLY (ağız içi tarayıcıların yaygın çıktısı): ikili (küçük/büyük uçlu) ya da metin. Nokta + yüz listesi
   // üçgen çorbasına açılır (çokgen yüzler yelpaze üçgenlenir), sonrası STL ile aynı yoldan geçer. Renk atılır.
   var PLY_BOY = { char: 1, int8: 1, uchar: 1, uint8: 1, short: 2, int16: 2, ushort: 2, uint16: 2, int: 4, int32: 4, uint: 4, uint32: 4, float: 4, float32: 4, double: 8, float64: 8 };
+  var PLY_EN_COK_UCGEN = 5000000; // ~60 MB çıktı; bozuk/kötü niyetli dosya belleği patlatmasın (Orion/Antares, 30 Ekim 2026)
   function plyCoz(buf) {
     var bayt = new Uint8Array(buf);
     var son = Math.min(bayt.length, 4096), bas = -1;
@@ -43,8 +44,9 @@
     var dv = new DataView(buf), o = bas;
     var metin = null, jt = null, ji = 0;
     if (!ikili) { metin = new TextDecoder('utf-8').decode(bayt.subarray(bas)).split(/\s+/).filter(Boolean); }
+    function listeSay(tur) { var c = oku(tur); if (!(c >= 0 && c <= 64)) throw new Error('PLY dosyası bozuk'); return c; }
     function oku(tur) {
-      if (!ikili) return +metin[ji++];
+      if (!ikili) { if (ji >= metin.length) throw new Error('PLY dosyası eksik'); return +metin[ji++]; }
       var v;
       switch (tur) {
         case 'char': case 'int8': v = dv.getInt8(o); o += 1; break;
@@ -66,7 +68,7 @@
         for (var i = 0; i < e.n; i++) {
           for (var k = 0; k < e.ozellik.length; k++) {
             var p = e.ozellik[k];
-            if (p.liste) { var c = oku(p.say); for (var q = 0; q < c; q++) oku(p.tur); continue; }
+            if (p.liste) { var c = listeSay(p.say); for (var q = 0; q < c; q++) oku(p.tur); continue; }
             var v = oku(p.tur);
             if (p.ad === 'x') nok[i * 3] = v; else if (p.ad === 'y') nok[i * 3 + 1] = v; else if (p.ad === 'z') nok[i * 3 + 2] = v;
           }
@@ -76,23 +78,24 @@
           for (var k2 = 0; k2 < e.ozellik.length; k2++) {
             var p2 = e.ozellik[k2];
             if (p2.liste) {
-              var say = oku(p2.say), ind = [];
+              var say = listeSay(p2.say), ind = [];
               for (var q2 = 0; q2 < say; q2++) ind.push(oku(p2.tur));
               if (p2.ad === 'vertex_indices' || p2.ad === 'vertex_index') for (var t = 1; t + 1 < ind.length; t++) yuzler.push(ind[0], ind[t], ind[t + 1]);
+              if (yuzler.length > PLY_EN_COK_UCGEN * 3) throw new Error('PLY modeli çok büyük');
             } else oku(p2.tur);
           }
         }
       } else {
         // bilinmeyen öğe (kenar vb.) atlanır: sabit boyutlu ikili ise ilerle
-        if (!ikili) { for (var a = 0; a < e.n; a++) e.ozellik.forEach(function (p3) { if (p3.liste) { var c3 = oku(p3.say); for (var z = 0; z < c3; z++) oku(p3.tur); } else oku(p3.tur); }); }
-        else for (var b = 0; b < e.n; b++) e.ozellik.forEach(function (p4) { if (p4.liste) { var c4 = oku(p4.say); for (var y = 0; y < c4; y++) oku(p4.tur); } else oku(p4.tur); });
+        if (!ikili) { for (var a = 0; a < e.n; a++) e.ozellik.forEach(function (p3) { if (p3.liste) { var c3 = listeSay(p3.say); for (var z = 0; z < c3; z++) oku(p3.tur); } else oku(p3.tur); }); }
+        else for (var b = 0; b < e.n; b++) e.ozellik.forEach(function (p4) { if (p4.liste) { var c4 = listeSay(p4.say); for (var y = 0; y < c4; y++) oku(p4.tur); } else oku(p4.tur); });
       }
     });
     if (!nok || !yuzler.length) throw new Error('PLY dosyasında yüzey bulunamadı');
     var nv = nok.length / 3, poz = new Float32Array(yuzler.length * 3);
     for (var j = 0; j < yuzler.length; j++) {
       var ix = yuzler[j];
-      if (ix < 0 || ix >= nv) throw new Error('PLY yüz listesi bozuk');
+      if (!(ix >= 0 && ix < nv)) throw new Error('PLY yüz listesi bozuk');
       poz[j * 3] = nok[ix * 3]; poz[j * 3 + 1] = nok[ix * 3 + 1]; poz[j * 3 + 2] = nok[ix * 3 + 2];
     }
     return poz;
@@ -146,7 +149,10 @@
   function sikistir(poz) {
     var nv3 = poz.length;          // 9 × üçgen
     var noktaSayisi = nv3 / 3;
+    for (var fi = 0; fi < nv3; fi++) if (!isFinite(poz[fi])) throw new Error('Dosyada geçersiz koordinat var');
     var u32 = new Uint32Array(poz.buffer, poz.byteOffset, nv3);
+    // Rastgele tek çarpanlar: hazırlanmış dosya karma çarpıştırıp sayfayı kilitleyemesin (Orion bulgusu).
+    var m1 = (Math.random() * 0xFFFFFFFF >>> 0) | 1, m2 = (Math.random() * 0xFFFFFFFF >>> 0) | 1, m3 = (Math.random() * 0xFFFFFFFF >>> 0) | 1;
     var indeks = new Uint32Array(noktaSayisi);
     var tekil = new Float32Array(nv3); // en kötü durumda hepsi tekil
     var tekilU = new Uint32Array(tekil.buffer);
@@ -158,7 +164,7 @@
     for (var i = 0, j = 0; i < nv3; i += 3, j++) {
       var a = u32[i], b = u32[i + 1], c = u32[i + 2];
       if (a === 0x80000000) a = 0; if (b === 0x80000000) b = 0; if (c === 0x80000000) c = 0;
-      var h = (Math.imul(a, 0x9E3779B1) ^ Math.imul(b, 0x85EBCA77) ^ Math.imul(c, 0xC2B2AE3D)) >>> 0;
+      var h = (Math.imul(a, m1) ^ Math.imul(b, m2) ^ Math.imul(c, m3)) >>> 0;
       h = (h ^ (h >>> 15)) & maske;
       var id;
       for (;;) {
@@ -203,6 +209,7 @@
     // Kopyalanır ki ana sayfaya aktarırken hizalama sorunu çıkmasın.
     var poz = new Float32Array(buf.slice(12, 12 + nv * 12));
     var idx = new Uint32Array(buf.slice(12 + nv * 12));
+    for (var ii = 0; ii < idx.length; ii++) if (idx[ii] >= nv) throw new Error('ZKM1 indeksi geçersiz');
     return { poz: poz, idx: idx, nokta: nv, ucgen: ni / 3 };
   }
 
