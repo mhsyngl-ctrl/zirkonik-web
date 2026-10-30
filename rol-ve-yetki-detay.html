@@ -128,6 +128,7 @@
               <span class="mb-1.5 block text-xs font-bold text-card-foreground">Pozisyon</span>
               <select id="pi-position" onchange="zkPozisyonDegisti()" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
                 <option value="Teknisyen">Teknisyen</option>
+                <option value="Tasarımcı Teknisyen">Tasarımcı Teknisyen</option>
                 <option value="Resepsiyon Sorumlusu">Resepsiyon Sorumlusu</option>
                 <option value="Satış Pazarlama Sorumlusu">Satış Pazarlama Sorumlusu</option>
                 <option value="Yönetici">Yönetici (tam yetki)</option>
@@ -352,6 +353,7 @@
     // Resepsiyon Finans/Doktor Havuzu'na, Satış-Pazarlama Doktor Havuzu dışına giremez).
     var POS_KURAL = {
       'Teknisyen': { varsayilan: ['can_change_job_status'], izinli: ['can_change_job_status', 'can_edit_room_orders', 'can_manage_orders', 'can_view_doctors', 'can_view_prices', 'can_view_finance', 'can_manage_prospects'] },
+      'Tasarımcı Teknisyen': { varsayilan: ['can_change_job_status'], izinli: ['can_change_job_status', 'can_edit_room_orders', 'can_manage_orders', 'can_view_doctors', 'can_view_prices', 'can_view_finance', 'can_manage_prospects'] },
       'Resepsiyon Sorumlusu': { varsayilan: ['can_manage_orders', 'can_view_doctors'], izinli: ['can_change_job_status', 'can_edit_room_orders', 'can_manage_orders', 'can_view_doctors', 'can_view_prices'] },
       'Satış Pazarlama Sorumlusu': { varsayilan: ['can_manage_prospects'], izinli: ['can_manage_prospects'] }
     };
@@ -406,7 +408,12 @@
         if (u.role !== 'doktor') {
           document.getElementById('personal-info-section').classList.remove('hidden');
           document.getElementById('pi-name').value = u.full_name || '';
-          document.getElementById('pi-position').value = u.position || (u.role === 'yonetici' ? 'Yönetici' : 'Teknisyen');
+          var piPos = document.getElementById('pi-position');
+          // Yönetici/işverenin kendi yazdığı pozisyon listede yoksa seçenek olarak eklenir.
+          if (u.position && !piPos.querySelector('option[value="' + u.position.replace(/"/g, '&quot;') + '"]')) {
+            var op = document.createElement('option'); op.value = u.position; op.textContent = u.position; piPos.appendChild(op);
+          }
+          piPos.value = u.position || (u.role === 'yonetici' ? 'Yönetici' : 'Teknisyen');
           document.getElementById('pi-phone').value = u.phone || '';
           document.getElementById('pi-hire').value = u.hire_date || '';
           document.getElementById('pi-birth').value = u.birth_date || '';

@@ -285,13 +285,16 @@
       <p class="mt-1 text-xs text-muted-foreground">Giriş bilgilerini siz belirlersiniz, personele iletirsiniz.</p>
       <div class="mt-4 space-y-3">
         <input id="ns-name" type="text" placeholder="Ad Soyad *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
-        <select id="ns-position" aria-label="Pozisyon" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+        <select id="ns-position" aria-label="Pozisyon" onchange="zkYeniPozisyonGoster()" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
           <option value="Teknisyen">Teknisyen</option>
+          <option value="Tasarımcı Teknisyen">Tasarımcı Teknisyen</option>
           <option value="Resepsiyon Sorumlusu">Resepsiyon Sorumlusu</option>
           <option value="Satış Pazarlama Sorumlusu">Satış Pazarlama Sorumlusu</option>
           <option value="Yönetici">Yönetici (tam yetki)</option>
           <option value="İşveren">İşveren (tam yetki)</option>
+          <option value="__yeni">＋ Yeni pozisyon ekle…</option>
         </select>
+        <input id="ns-position-yeni" type="text" maxlength="40" placeholder="Yeni pozisyonun adı" class="hidden h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         <input id="ns-email" type="email" placeholder="E-posta *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         <div class="flex gap-2">
           <input id="ns-password" type="text" placeholder="Şifre * (en az 6 karakter)" class="h-12 flex-1 rounded-theme border border-border bg-input px-3.5 text-sm">
@@ -405,7 +408,10 @@
     }
     // Hız hissi (24 Eylül 2026): render mantığı ayrı fonksiyona çıkarıldı ki
     // önbellekten anında çizim ile sunucu cevabı birebir aynı kodu kullansın.
+    var ZK_STANDART_POZISYON = ['Teknisyen', 'Tasarımcı Teknisyen', 'Resepsiyon Sorumlusu', 'Satış Pazarlama Sorumlusu', 'Yönetici', 'İşveren'];
+    var zkOzelPozisyonlar = [];
     function paintTeam(allStaff, counts) {
+          zkOzelPozisyonlar = allStaff.map(function (s) { return s.position; }).filter(function (p, i, a) { return p && ZK_STANDART_POZISYON.indexOf(p) < 0 && a.indexOf(p) === i; });
           var activeStaff = allStaff.filter(function (s) { return s.status === 'approved'; });
           var passiveStaff = allStaff.filter(function (s) { return s.status !== 'approved'; });
           document.getElementById('stat-active').textContent = activeStaff.length;
@@ -1141,7 +1147,16 @@
       document.getElementById('add-staff-sheet').classList.remove('hidden');
       document.getElementById('ns-error').classList.add('hidden');
       document.getElementById('ns-success').classList.add('hidden');
+      var sel = document.getElementById('ns-position');
+      Array.prototype.slice.call(sel.querySelectorAll('option[data-ozel]')).forEach(function (o) { o.remove(); });
+      zkOzelPozisyonlar.forEach(function (ad) {
+        var o = document.createElement('option'); o.value = ad; o.textContent = ad; o.setAttribute('data-ozel', '1');
+        sel.insertBefore(o, sel.querySelector('option[value="__yeni"]'));
+      });
       zkLoadStaffLabOptions();
+    }
+    function zkYeniPozisyonGoster() {
+      document.getElementById('ns-position-yeni').classList.toggle('hidden', document.getElementById('ns-position').value !== '__yeni');
     }
     function zkCloseAddStaff() { document.getElementById('add-staff-sheet').classList.add('hidden'); }
 
@@ -1234,6 +1249,14 @@
       var labIds = Array.prototype.slice.call(document.querySelectorAll('.ns-lab-cb:checked')).map(function (cb) { return cb.value; });
       var roomIds = Array.prototype.slice.call(document.querySelectorAll('.ns-room-cb:checked')).map(function (cb) { return cb.value; });
       var position = document.getElementById('ns-position').value;
+      if (position === '__yeni') {
+        position = document.getElementById('ns-position-yeni').value.trim().replace(/\s+/g, ' ');
+        if (!position) {
+          errEl.textContent = 'Yeni pozisyonun adını yazın.';
+          errEl.classList.remove('hidden');
+          return;
+        }
+      }
 
       var btn = document.getElementById('ns-submit');
       btn.disabled = true;
