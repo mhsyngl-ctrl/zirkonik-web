@@ -210,6 +210,7 @@
             </summary>
             <div class="border-t border-border px-4 py-3.5 text-xs leading-5 text-muted-foreground">
               <p><b class="text-card-foreground">Aç →</b> Doktor, hasta adı ve protokol numarası zorunlu. İş numarası otomatik verilir.</p>
+              <p class="mt-2">Yeni işi yönetici ve “sipariş yönetimi” yetkisi verilen personel (resepsiyon) açabilir. Personel açınca <b class="text-card-foreground">fiyat</b> (doktora özel anlaşma varsa o, yoksa liste fiyatı) ve <b class="text-card-foreground">fatura sistem tarafından otomatik</b> kurulur, personel fiyatı görmez. Çalışma türünün rotası tanımlıysa iş doğrudan rotanın ilk odasına girer; tanımlı değilse “yönlendirme bekliyor” olarak kalır ve yöneticiye bildirim gider. İşi açan kişi, bir oda <b class="text-card-foreground">Teslim Al</b> diyene kadar işi kendi listesinde görmeye devam eder; yönetici ve işveren her işi her zaman görür.</p>
               <p class="mt-2"><b class="text-card-foreground">Odalar →</b> İş, o çalışma türünün rotasındaki odalardan sırayla geçer.</p>
               <p class="mt-2"><b class="text-card-foreground">Teslim →</b> Her odada teknisyen “Teslim Al” der. Diş başına hakediş teslim alana yazılır.</p>
               <p class="mt-2"><b class="text-card-foreground">Bitiş →</b> Son odadan çıkınca iş tamamlanır: fatura kesilir, hakediş yazılır.</p>
@@ -228,7 +229,7 @@
               <p class="mt-2"><b class="text-card-foreground">Elle onay (varsayılan):</b> Siparişler ekranında resepsiyon ya da yönetici siparişi onaylar; iş oluşur.</p>
               <p class="mt-2"><b class="text-card-foreground">Otomatik onay:</b> Laboratuvar sahibi Laboratuvarlar → kalem simgesi → “Laboratuvarı düzenle” penceresinden <b class="text-card-foreground">Siparişleri otomatik onayla</b> kutusunu açar. Onaylı doktorun siparişi resepsiyona uğramadan işe dönüşür ve rotasının ilk odasına girer.</p>
               <p class="mt-2">Odadaki teknisyen yine <b class="text-card-foreground">Teslim Al</b> der; bu adım değişmez.</p>
-              <p class="mt-2 rounded-theme border border-accent/40 bg-background p-2.5 text-[11px] leading-4">Rotası tanımsız bir kalem varsa ya da doktor henüz onaylı değilse sipariş otomatik geçmez, “Bekleyen”de kalır ve elle onaylanır.</p>
+              <p class="mt-2 rounded-theme border border-accent/40 bg-background p-2.5 text-[11px] leading-4">Rotası tanımsız bir kalem varsa ya da doktor henüz onaylı değilse sipariş otomatik geçmez, “Bekleyen”de kalır ve elle onaylanır. Otomatik onay açıkken bir sipariş 10 dakikadan uzun bekleyen kalırsa yöneticilere “Otomatik onay çalışmadı” bildirimi gider.</p>
             </div>
           </details>
 

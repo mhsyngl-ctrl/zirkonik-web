@@ -634,8 +634,9 @@
 
       ZirkonikAuth.me().then(function (me) {
         var perms = (me.user_permissions && me.user_permissions[0]) || me.user_permissions || {};
-        // Fiyat yazma izni sunucuda 'siparis yonetimi' VE 'fiyatlari gorebilir' ister (job_prices_write); finans yetkisi tek basina yetmez.
-        canOverridePrice = me.role === 'yonetici' || (!!perms.can_view_prices && !!perms.can_manage_orders);
+        // Fiyat elle yalnız yönetici/işveren girer. Personelde (sipariş yönetimi yetkili) fiyat, anlaşmalı fiyat ve fatura SUNUCUDA
+        // otomatik kurulur (zk_personel_is_ac -> approve_order_core); istemci fiyatı bu yolda hiç gönderilmez.
+        canOverridePrice = me.role === 'yonetici';
         // 25 Eylül 2026, sahibinin kuralı: Yeni İş Oluştur artık sipariş yönetimi
         // yetkisi olan personele de (Resepsiyon) açık — ama fiyat görmesin, salt
         // salt-okunur değil, TAMAMEN gizli.
@@ -800,6 +801,33 @@
       btn.disabled = true;
 
       ZirkonikAuth.me().then(function (me) {
+        // Yönetici dışı personel (sipariş yönetimi yetkili): iş, fiyat, fatura ve ilk odaya yerleştirme SUNUCUDA tek adımda
+        // (zk_personel_is_ac). Tek kullanımlık istek kimliği çift tıklama/ağ tekrarında ikinci iş açılmasını önler.
+        if (me.role !== 'yonetici') {
+          window.__yeniIsId = window.__yeniIsId || (window.crypto && crypto.randomUUID ? crypto.randomUUID() : null);
+          var teslimDeger = document.getElementById('f-delivery').value;
+          return client.rpc('zk_personel_is_ac', {
+            p_doctor_id: doctorId,
+            p_laboratory_id: labId,
+            p_patient_name: patientName,
+            p_clinic_protocol_no: protocolNo,
+            p_patient_reference: document.getElementById('f-reference').value.trim() || null,
+            p_note: null,
+            p_designer_id: document.getElementById('f-designer').value || null,
+            p_is_priority: document.getElementById('f-priority').value === '1',
+            p_requested_delivery_at: teslimDeger ? new Date(teslimDeger).toISOString() : null,
+            p_items: draftItems.map(function (it) {
+              return {
+                price_item_id: it.price_item_id, restoration_type: it.name, teeth: it.teeth || [],
+                unit_count: Math.max(1, Number(it.unit_count) || 1), work_form: it.work_form || null, color_index: it.color_index || 0
+              };
+            }),
+            p_request_id: window.__yeniIsId
+          }).then(function (rr) {
+            if (rr.error) throw rr.error;
+            return { data: { id: rr.data.job_id, job_number: rr.data.job_number, organization_id: me.organization_id, doctor_id: doctorId }, tutarGruplari: {} };
+          });
+        }
         // Her kalemin rotası bu laboratuvarın odalarına indirgenir — rota
         // başka labın odalarını da içerebilir, iş tek labda yürür.
         // Odalar bir kez çekilip tüm kalemler için kullanılıyor.
