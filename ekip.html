@@ -294,6 +294,7 @@
           <option value="İşveren">İşveren (tam yetki)</option>
           <option value="__yeni">＋ Yeni pozisyon ekle…</option>
         </select>
+        <p id="ns-position-note" class="-mt-1 px-1 text-[11px] leading-4 text-muted-foreground"></p>
         <input id="ns-position-yeni" type="text" maxlength="40" placeholder="Yeni pozisyonun adı" class="hidden h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         <input id="ns-email" type="email" placeholder="E-posta *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         <div class="flex gap-2">
@@ -1153,10 +1154,14 @@
         var o = document.createElement('option'); o.value = ad; o.textContent = ad; o.setAttribute('data-ozel', '1');
         sel.insertBefore(o, sel.querySelector('option[value="__yeni"]'));
       });
+      zkYeniPozisyonGoster();
       zkLoadStaffLabOptions();
     }
+    var ZK_POZ_ACIKLAMA = {"Teknisyen": "Yetkili olduğu odalardaki işleri görür ve durumunu ilerletir. Fiyat ve finans görmez (yönetici yetki vermedikçe).", "Tasarımcı Teknisyen": "Teknisyen gibi çalışır; ek olarak yalnız kendisi tasarımcı seçilmiş işleri ve siparişleri görür. İşin içini açabilmesi için oda yetkisi verilmelidir.", "Resepsiyon Sorumlusu": "Siparişleri ve doktor işlerini yönetir (sipariş onayı, doktor kayıtları). Finans ve Doktor Havuzu ekranlarına giremez.", "Satış Pazarlama Sorumlusu": "Yalnız Doktor Havuzu'nu (aday doktorlar) kullanır; işleri ve finansı görmez.", "Yönetici": "Her şeyi görür ve yönetir (tam yetki).", "İşveren": "Her şeyi görür ve yönetir (tam yetki)."};
     function zkYeniPozisyonGoster() {
-      document.getElementById('ns-position-yeni').classList.toggle('hidden', document.getElementById('ns-position').value !== '__yeni');
+      var v = document.getElementById('ns-position').value;
+      document.getElementById('ns-position-yeni').classList.toggle('hidden', v !== '__yeni');
+      document.getElementById('ns-position-note').textContent = ZK_POZ_ACIKLAMA[v] || '"""+OZEL+"""';
     }
     function zkCloseAddStaff() { document.getElementById('add-staff-sheet').classList.add('hidden'); }
 

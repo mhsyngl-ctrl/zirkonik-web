@@ -134,6 +134,7 @@
                 <option value="Yönetici">Yönetici (tam yetki)</option>
                 <option value="İşveren">İşveren (tam yetki)</option>
               </select>
+              <span id="pi-position-note" class="mt-1 block text-[11px] font-semibold leading-4 text-card-foreground"></span>
               <span class="mt-1 block text-[11px] text-muted-foreground">Yönetici/İşveren her şeyi görür. Diğer pozisyonlar aşağıdaki yetki anahtarlarına ve oda kapsamına tabidir; pozisyonda etkisiz anahtarlar gri görünür.</span>
               <button type="button" onclick="zkSablonUygula()" class="mt-2 flex h-9 items-center gap-1.5 rounded-theme border border-border bg-background px-3 text-xs font-bold text-primary">
                 <iconify-icon icon="lucide:wand-2" class="text-sm"></iconify-icon> Pozisyon şablonunu uygula
@@ -366,7 +367,13 @@
       return !kural || kural.izinli.indexOf(key) >= 0;
     }
     // Pozisyon değişince etkisiz anahtarlar kapanır ve liste yeniden çizilir.
+    var ZK_POZ_ACIKLAMA = {"Teknisyen": "Yetkili olduğu odalardaki işleri görür ve durumunu ilerletir. Fiyat ve finans görmez (yönetici yetki vermedikçe).", "Tasarımcı Teknisyen": "Teknisyen gibi çalışır; ek olarak yalnız kendisi tasarımcı seçilmiş işleri ve siparişleri görür. İşin içini açabilmesi için oda yetkisi verilmelidir.", "Resepsiyon Sorumlusu": "Siparişleri ve doktor işlerini yönetir (sipariş onayı, doktor kayıtları). Finans ve Doktor Havuzu ekranlarına giremez.", "Satış Pazarlama Sorumlusu": "Yalnız Doktor Havuzu'nu (aday doktorlar) kullanır; işleri ve finansı görmez.", "Yönetici": "Her şeyi görür ve yönetir (tam yetki).", "İşveren": "Her şeyi görür ve yönetir (tam yetki)."};
+    function zkPozisyonNotu() {
+      var v = zkSeciliPozisyon();
+      document.getElementById('pi-position-note').textContent = ZK_POZ_ACIKLAMA[v] || '"""+OZEL+"""';
+    }
     function zkPozisyonDegisti() {
+      zkPozisyonNotu();
       PERMS.forEach(function (p) { if (!zkIzinliMi(p.key)) currentPerms[p.key] = false; });
       renderPermissions();
     }
@@ -414,6 +421,7 @@
             var op = document.createElement('option'); op.value = u.position; op.textContent = u.position; piPos.appendChild(op);
           }
           piPos.value = u.position || (u.role === 'yonetici' ? 'Yönetici' : 'Teknisyen');
+          zkPozisyonNotu();
           document.getElementById('pi-phone').value = u.phone || '';
           document.getElementById('pi-hire').value = u.hire_date || '';
           document.getElementById('pi-birth').value = u.birth_date || '';
