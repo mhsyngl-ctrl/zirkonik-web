@@ -312,7 +312,15 @@
             // liste $ olsa da bir doktorla TL uzerinden anlasilabiliyor. Bu
             // yuzden kapsam secildiginde para birimi de satirda secilebilir.
             var curVal = ZirkonikMoney.normalize(ov ? ov.currency : p.currency);
-            var curCell = (inScope && canEdit)
+            // Genel listede de para birimi satırdan seçilir (30 Ekim 2026): yeni siparişlerde bu kalem seçilen birimle fiyatlanır;
+            // geçmiş fatura ve işler ile doktora özel anlaşmalı fiyatlar etkilenmez.
+            var genelCurCell = (!inScope && canEdit)
+              ? '<select data-genel-currency-for="' + p.id + '" aria-label="Para birimi" class="h-10 w-14 rounded-theme border border-border bg-input px-1 text-center text-sm">' +
+                  ZirkonikMoney.SYMBOLS.map(function (sym) {
+                    return '<option value="' + sym + '"' + (sym === curVal ? ' selected' : '') + '>' + sym + '</option>';
+                  }).join('') + '</select>'
+              : null;
+            var curCell = genelCurCell ? genelCurCell : (inScope && canEdit)
               ? '<select data-currency-for="' + p.id + '" class="h-10 w-14 rounded-theme border ' + (ov ? 'border-primary' : 'border-border') + ' bg-input px-1 text-center text-sm">' +
                   ZirkonikMoney.SYMBOLS.map(function (sym) {
                     return '<option value="' + sym + '"' + (sym === curVal ? ' selected' : '') + '>' + sym + '</option>';
@@ -377,6 +385,17 @@
               // anlasma yok; secim ekranda kalir, tutar girilince yazilir.
               if (!inp || inp.value === '') return;
               anlasmaKaydet(id);
+            });
+          });
+          main.querySelectorAll('[data-genel-currency-for]').forEach(function (sel) {
+            sel.addEventListener('change', function () {
+              var id = sel.getAttribute('data-genel-currency-for');
+              ZirkonikData.updatePriceItem(id, { currency: sel.value }).then(function (res) {
+                if (res.error) { zkToast('Kaydedilemedi: ' + res.error.message); loadList(); return; }
+                var item = items.find(function (p) { return p.id === id; });
+                if (item) item.currency = sel.value;
+                zkToast('Para birimi güncellendi: yeni siparişlerde ' + sel.value + ' geçerli.');
+              });
             });
           });
           main.querySelectorAll('[data-price-for]').forEach(function (inp) {
