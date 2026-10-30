@@ -1161,7 +1161,7 @@
     function zkYeniPozisyonGoster() {
       var v = document.getElementById('ns-position').value;
       document.getElementById('ns-position-yeni').classList.toggle('hidden', v !== '__yeni');
-      document.getElementById('ns-position-note').textContent = ZK_POZ_ACIKLAMA[v] || '"""+OZEL+"""';
+      document.getElementById('ns-position-note').textContent = ZK_POZ_ACIKLAMA[v] || 'Kendi yazdığınız pozisyon Teknisyen gibi başlar; ne göreceğini kişinin yetki ekranından siz seçersiniz.';
     }
     function zkCloseAddStaff() { document.getElementById('add-staff-sheet').classList.add('hidden'); }
 
