@@ -867,3 +867,8 @@ body { animation: zkPageIn .2s ease both; }
 @media (min-width: 720px) {
   .zk-tabbar-inner { max-width: 840px; margin-left: auto; margin-right: auto; }
 }
+
+/* 30 Ekim 2026: kılavuz pozisyon listesi ve Personel ekle notu için (statik tailwind.css'te yok) */
+.list-disc { list-style-type: disc; }
+.pl-5 { padding-left: 1.25rem; }
+.-mt-1 { margin-top: -0.25rem; }

@@ -734,8 +734,8 @@
       var tasEl = document.getElementById('job-designer');
       if (j.designer_id) {
         zkTasarimciAdlari().then(function (liste) {
-          var t = liste.filter(function (x) { return x.id === j.designer_id; })[0];
-          tasEl.textContent = 'Tasarımcı: ' + (t ? t.full_name : 'artık listede yok');
+          var t = (liste || []).filter(function (x) { return x.id === j.designer_id; })[0];
+          tasEl.textContent = 'Tasarımcı: ' + (t ? t.full_name : (liste === null ? 'yüklenemedi' : 'artık listede yok'));
           tasEl.classList.remove('hidden');
         });
       } else {
@@ -893,13 +893,15 @@
     var workTypes = null;
     var tasarimciListe = null;
     function zkTasarimciAdlari() {
-      return tasarimciListe ? Promise.resolve(tasarimciListe) : ZirkonikData.listDesigners().then(function (r) { tasarimciListe = (r && r.data) || []; return tasarimciListe; }).catch(function () { return []; });
+      // Hata olursa (çevrimdışı vb.) null döner ve önbelleğe alınmaz: sonraki çağrı yeniden dener, etiket yanlışlıkla "listede yok" demez.
+      return tasarimciListe ? Promise.resolve(tasarimciListe) : ZirkonikData.listDesigners().then(function (r) { if (!r || r.error || !Array.isArray(r.data)) return null; tasarimciListe = r.data; return tasarimciListe; }).catch(function () { return null; });
     }
     // Düzenleme penceresi: seçim yalnız yönetici/işverene görünür (sunucu da başkasının değiştirmesini reddeder).
     function zkDolduTasarimci() {
       var wrap = document.getElementById('ej-designer-wrap');
       if (myRole !== 'yonetici') { wrap.classList.add('hidden'); return; }
       zkTasarimciAdlari().then(function (liste) {
+        liste = liste || [];
         var sel = document.getElementById('ej-designer');
         while (sel.options.length > 1) sel.remove(1);
         liste.forEach(function (t) { var o = document.createElement('option'); o.value = t.id; o.textContent = t.full_name; sel.appendChild(o); });

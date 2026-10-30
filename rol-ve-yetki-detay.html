@@ -419,7 +419,7 @@
           document.getElementById('pi-name').value = u.full_name || '';
           var piPos = document.getElementById('pi-position');
           // Yönetici/işverenin kendi yazdığı pozisyon listede yoksa seçenek olarak eklenir.
-          if (u.position && !piPos.querySelector('option[value="' + u.position.replace(/"/g, '&quot;') + '"]')) {
+          if (u.position && !Array.prototype.some.call(piPos.options, function (o) { return o.value === u.position; })) {
             var op = document.createElement('option'); op.value = u.position; op.textContent = u.position; piPos.appendChild(op);
           }
           piPos.value = u.position || (u.role === 'yonetici' ? 'Yönetici' : 'Teknisyen');

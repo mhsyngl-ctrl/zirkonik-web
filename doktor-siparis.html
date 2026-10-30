@@ -408,6 +408,8 @@
     var TAB_ORDER = ['new', 'list', 'prices', 'cari'];
     var lastTab = 'new';
     function zkSetTab(tab) {
+      // Doktor kaydı gelmediyse ("Doktor kaydı bulunamadı") diğer sekmeler null'a takılmasın.
+      if (!doctor && tab !== 'new') return;
       var isNew = tab === 'new';
       document.getElementById('panel-new').classList.toggle('hidden', tab !== 'new');
       document.getElementById('submit-bar').classList.toggle('hidden', tab !== 'new' || !doctor);
