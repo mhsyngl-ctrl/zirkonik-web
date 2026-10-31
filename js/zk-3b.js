@@ -593,19 +593,20 @@
           : (s.uploaded_role === 'doktor' ? 'doktor yükledi' : 'laboratuvar yükledi')) +
         (s.uploaded_at ? ' · ' + new Date(s.uploaded_at).toLocaleDateString('tr-TR') : '');
       var rozet = !stl ? (s.sent_to_doctor_at
-        ? '<span class="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-secondary-foreground">Doktora gönderildi</span>'
-        : '<span class="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-accent">Doktora gönderilmedi</span>') : '';
+        ? '<span class="shrink-0 whitespace-nowrap rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-secondary-foreground">Doktora gönderildi</span>'
+        : '<span class="shrink-0 whitespace-nowrap rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-accent">Doktora gönderilmedi</span>') : '';
       var dugmeler = '<a href="' + gosterUrl(s, geri) + '" class="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-theme bg-primary text-xs font-bold text-primary-foreground"><iconify-icon icon="lucide:rotate-3d" class="text-sm"></iconify-icon>3B göster</a>';
       if (yetki.indir) dugmeler += '<button type="button" data-3b-eylem="indir" data-3b-id="' + s.id + '" class="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-theme border border-border bg-background text-xs font-bold text-primary"><iconify-icon icon="lucide:download" class="text-sm"></iconify-icon>İndir</button>';
-      if (!stl && !s.sent_to_doctor_at && yetki.gonder) dugmeler += '<button type="button" data-3b-eylem="gonder" data-3b-id="' + s.id + '" class="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-theme border border-border bg-background text-xs font-bold text-primary"><iconify-icon icon="lucide:send" class="text-sm"></iconify-icon>Doktora gönder</button>';
+      var gonderSatiri = '';
+      if (!stl && !s.sent_to_doctor_at && yetki.gonder) gonderSatiri = '<div class="mt-2 flex">' + '<button type="button" data-3b-eylem="gonder" data-3b-id="' + s.id + '" class="flex h-9 w-full flex-1 items-center justify-center gap-1.5 rounded-theme border border-border bg-background text-xs font-bold text-primary"><iconify-icon icon="lucide:send" class="text-sm"></iconify-icon>Doktora gönder</button>' + '</div>';
       if (yetki.sil) dugmeler += '<button type="button" data-3b-eylem="sil" data-3b-id="' + s.id + '" aria-label="Sil" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-theme border border-border bg-background text-destructive"><iconify-icon icon="lucide:trash-2" class="text-sm"></iconify-icon></button>';
       return '<div class="rounded-theme border border-border bg-background px-3 py-2.5">' +
         '<div class="flex items-center gap-2.5">' +
           '<iconify-icon icon="' + (stl ? 'lucide:box' : 'lucide:file-code') + '" class="shrink-0 text-lg text-primary"></iconify-icon>' +
-          '<div class="min-w-0 flex-1"><p class="truncate text-sm font-bold">' + kacis(stl ? (uzanti(s.file_name) === 'ply' ? 'PLY tarama' : 'STL tarama') : 'exocad tasarım') + ' <span class="font-normal text-muted-foreground">· ' + kacis(s.file_name) + '</span></p>' +
+          '<div class="min-w-0 flex-1"><p class="break-words text-sm font-bold">' + kacis(stl ? (uzanti(s.file_name) === 'ply' ? 'PLY Tarama' : 'STL Tarama') : 'HTML Tarama') + ' <span class="font-normal text-muted-foreground">· ' + kacis(s.file_name) + '</span></p>' +
           '<p class="mt-0.5 text-[11px] text-muted-foreground">' + kacis(alt) + '</p></div>' + rozet +
         '</div>' +
-        '<div class="mt-2.5 flex gap-2">' + dugmeler + '</div>' +
+        '<div class="mt-2.5 flex gap-2">' + dugmeler + '</div>' + gonderSatiri +
       '</div>';
     }).join('');
   }

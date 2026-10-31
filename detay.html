@@ -206,7 +206,7 @@
         <section id="dosya-3b-card" class="hidden rounded-theme border border-border bg-card p-4">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-accent">3B dosyalar</p>
+              <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-accent">3B / Exocad dosyaları</p>
               <h2 class="mt-1 font-heading text-base font-bold">Tarama ve tasarım</h2>
             </div>
             <iconify-icon icon="lucide:box" class="text-xl text-primary"></iconify-icon>
@@ -1363,8 +1363,8 @@
       document.getElementById('dosya-3b-bos').classList.toggle('hidden', s.length > 0);
       var secim = document.getElementById('dosya-3b-secim');
       var dugmeler = [];
-      if (y.htmlYukle) dugmeler.push('<button type="button" onclick="zk3BSec(\'html\')" class="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-theme border border-border bg-background text-xs font-bold text-primary"><iconify-icon icon="lucide:file-code" class="text-base"></iconify-icon>exocad tasarımı yükle</button>');
-      if (y.stlEkle) dugmeler.push('<button type="button" onclick="zk3BSec(\'stl\')" class="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-theme border border-border bg-background text-xs font-bold text-primary"><iconify-icon icon="lucide:box" class="text-base"></iconify-icon>STL / PLY ekle</button>');
+      // Tek düğme (4.3, native ile aynı): dosya türü seçilen dosyanın uzantısından anlaşılır.
+      if (y.htmlYukle || y.stlEkle) dugmeler.push('<button type="button" onclick="zk3BHepsiSec()" class="flex h-11 w-full items-center justify-center gap-1.5 rounded-theme border border-border bg-background text-xs font-bold text-primary"><iconify-icon icon="lucide:upload" class="text-base"></iconify-icon>' + (y.stlEkle && y.htmlYukle ? 'STL / PLY / HTML ekle' : (y.stlEkle ? 'STL / PLY ekle' : 'HTML ekle')) + '</button>');
       secim.innerHTML = dugmeler.length ? '<div class="flex gap-2">' + dugmeler.join('') + '</div>' : '';
       secim.classList.toggle('hidden', !dugmeler.length || !!dosya3B.tur);
       document.getElementById('dosya-3b-yukle').classList.toggle('hidden', !dosya3B.tur);
@@ -1386,6 +1386,63 @@
         }
       });
       ciz3B();
+    }
+    // Tek "ekle" düğmesi: .stl/.ply → STL, .html/.htm → exocad HTML. Tanınmayan ya da yetkisiz dosya yüklenmez, hata görünür.
+    function zk3BHepsiSec() {
+      if (dosya3B.yukleniyor) return;
+      var inp = document.createElement('input');
+      inp.type = 'file'; inp.multiple = true; inp.accept = '.stl,.ply,.html,.htm'; inp.style.display = 'none';
+      document.body.appendChild(inp);
+      inp.addEventListener('change', function () {
+        var f = [].slice.call(inp.files || []);
+        if (inp.parentNode) inp.parentNode.removeChild(inp);
+        if (f.length) zk3BHepsiYukle(f);
+      });
+      inp.click();
+    }
+    function zk3BHepsiYukle(dosyalar) {
+      var y = dosya3B.yetki, hataEl = document.getElementById('dosya-3b-hata');
+      function uz(f) { return (String(f.name).split('.').pop() || '').toLowerCase(); }
+      var stl = dosyalar.filter(function (f) { return uz(f) === 'stl' || uz(f) === 'ply'; });
+      var html = dosyalar.filter(function (f) { return uz(f) === 'html' || uz(f) === 'htm'; });
+      var hata = null;
+      if (stl.length + html.length !== dosyalar.length) hata = 'STL, PLY ya da HTML dosyası seçin (.stl, .ply, .html).';
+      else if (stl.length && !y.stlEkle) hata = 'STL / PLY ekleme yetkiniz yok.';
+      else if (html.length && !y.htmlYukle) hata = 'HTML ekleme yetkiniz yok.';
+      else if (html.length > 1) hata = 'Tek seferde bir exocad HTML dosyası seçin.';
+      if (hata) { hataEl.textContent = hata; hataEl.classList.remove('hidden'); return; }
+      hataEl.classList.add('hidden');
+      dosya3B.yukleniyor = true;
+      var ilerlemeEl = document.getElementById('dosya-3b-ilerleme');
+      var durum = ZK3B.ilerlemeCubugu(ilerlemeEl);
+      var hatalar = [], basarili = 0, tekHtml = false;
+      ZirkonikAuth.me().then(function (me) {
+        var ortak = { jobId: jobId, orgId: currentJob.organization_id, userId: me.id, rol: 'laboratuvar', durum: durum };
+        var p = Promise.resolve();
+        // Sırayla: önce STL grubu, sonra tek HTML (sunucu aynı anda en çok 3 yarım yükleme kabul eder)
+        if (stl.length) p = p.then(function () { return ZK3B.yuklePaket(stl, Object.assign({ tur: 'stl' }, ortak)).then(function (s) { basarili += s.basarili; hatalar = hatalar.concat(s.hatalar); }); });
+        if (html.length) p = p.then(function () { return ZK3B.yuklePaket(html, Object.assign({ tur: 'html' }, ortak)).then(function (s) { basarili += s.basarili; hatalar = hatalar.concat(s.hatalar); tekHtml = s.basarili === 1; }); });
+        return p;
+      }).then(function () {
+        dosya3B.yukleniyor = false;
+        ilerlemeEl.classList.add('hidden');
+        if (hatalar.length) { hataEl.textContent = 'Yüklenemeyen: ' + hatalar.join('; '); hataEl.classList.remove('hidden'); }
+        if (basarili) zkToast(basarili > 1 ? basarili + ' dosya kaydedildi.' : (tekHtml ? 'Tasarım dosyası kaydedildi.' : 'Dosya kaydedildi.'));
+        // exocad tasarımı tek dosyadır: kaydedince doktora gitsin mi diye sorulur (yalnız yetkili).
+        if (tekHtml && y.gonder) {
+          return ZK3B.listele({ jobId: jobId }).then(function (satirlar) {
+            var son = satirlar.filter(function (x) { return x.kind === 'html' && !x.sent_to_doctor_at; }).pop();
+            if (son && confirm('Tasarım doktora gönderilsin mi? Doktora bildirim gider ve dosyayı kendi ekranından açar.')) {
+              return ZK3B.doktoraGonder(son.id).then(function () { zkToast('Doktora gönderildi.'); }, function (e) { zkToast('Gönderilemedi: ' + e.message); });
+            }
+          });
+        }
+      }).catch(function (e) {
+        dosya3B.yukleniyor = false;
+        ilerlemeEl.classList.add('hidden');
+        hataEl.textContent = 'Yüklenemedi: ' + ((e && e.message) || e);
+        hataEl.classList.remove('hidden');
+      }).then(function () { load3B(); });
     }
     function zk3BVazgec() {
       if (dosya3B.yukleniyor) return;

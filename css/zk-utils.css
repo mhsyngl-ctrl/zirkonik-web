@@ -872,3 +872,19 @@ body { animation: zkPageIn .2s ease both; }
 .list-disc { list-style-type: disc; }
 .pl-5 { padding-left: 1.25rem; }
 .-mt-1 { margin-top: -0.25rem; }
+
+
+/* 31 Ekim 2026 (4.3): native uygulamayla aynı görünüm.
+   - Üretim sekmesi simgesi Zirkonik dişi (native alt menüdeki gibi); renk currentColor'dan gelir: pasifken gri, seçiliyken vurgu rengi.
+   - Ana sayfaların sol üstünde küçük yuvarlak logo. */
+.zk-tabbar .zk-tab-dis {
+  display: block; width: 23px; height: 23px; background-color: currentColor;
+  -webkit-mask: url(../tab-dis.png) center / contain no-repeat; mask: url(../tab-dis.png) center / contain no-repeat;
+}
+.zk-logo-chip {
+  display: flex; flex: 0 0 auto; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: 9999px;
+  border: 1px solid var(--color-border); background: var(--color-background);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
+}
+.zk-logo-chip img { width: 26px; height: 28px; object-fit: contain; }

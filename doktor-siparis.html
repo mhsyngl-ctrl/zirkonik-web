@@ -1426,7 +1426,7 @@
       if (!el || !window.ZK3B) return;
       ZK3B.listele({ jobId: jobId }).then(function (satirlar) {
         if (!document.getElementById('jd-3b')) return;
-        el.innerHTML = '<p class="mt-4 text-xs font-bold">3B dosyalar</p>' +
+        el.innerHTML = '<p class="mt-4 text-xs font-bold">3B / Exocad dosyaları</p>' +
           (satirlar.length ? '<div class="mt-2 space-y-2">' + ZK3B.listeHtml(satirlar, { gonder: false, sil: false }, 'doktor-siparis.html?is=' + jobId) + '</div>' : '<p class="mt-1 text-[11px] text-muted-foreground">Henüz 3B dosya yok.</p>') +
           '<div class="mt-3"><div id="jd-3b-secici"></div><div id="jd-3b-ilerleme" class="mt-2 hidden"></div>' +
           '<button type="button" id="jd-3b-yukle" disabled class="mt-2 flex h-11 w-full items-center justify-center rounded-theme bg-primary text-xs font-bold text-primary-foreground opacity-50">STL dosyalarını yükle</button>' +
