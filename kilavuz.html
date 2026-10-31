@@ -109,7 +109,7 @@
           <div id="kv-progress-list" class="mt-3 space-y-2">
             <p class="text-xs text-muted-foreground">Yükleniyor…</p>
           </div>
-          <p class="mt-3 text-[11px] leading-4 text-muted-foreground">Sıra önemlidir: oda olmadan iş ilerlemez, fiyat listesi olmadan iş açılmaz.</p>
+          <p class="mt-3 text-[11px] leading-4 text-muted-foreground">Sıra önemlidir: oda olmadan iş ilerlemez, fiyat listesi olmadan iş açılmaz, rota olmadan iş odalara girmez.</p>
         </section>
 
         <p class="mt-6 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Konular</p>
@@ -189,14 +189,15 @@
               <iconify-icon icon="lucide:chevron-right" class="kv-ok shrink-0 text-base text-muted-foreground"></iconify-icon>
             </summary>
             <div class="border-t border-border px-4 py-3.5 text-xs leading-5 text-muted-foreground">
-              <p>Sırayla altı adım:</p>
+              <p>Sırayla yedi adım:</p>
               <ol class="mt-2 space-y-1.5">
                 <li><b class="text-card-foreground">1.</b> Laboratuvar bilgilerini tamamlayın.</li>
                 <li><b class="text-card-foreground">2.</b> Odaları ekleyin — iş bu odalardan geçecek.</li>
-                <li><b class="text-card-foreground">3.</b> Fiyat listesini girin.</li>
-                <li><b class="text-card-foreground">4.</b> Personeli ekleyin, oda erişimi verin.</li>
-                <li><b class="text-card-foreground">5.</b> Doktorları kaydedin.</li>
-                <li><b class="text-card-foreground">6.</b> İlk işinizi açın.</li>
+                <li><b class="text-card-foreground">3.</b> Fiyat listesini girin: kalemleri ve para birimini ekleyin.</li>
+                <li><b class="text-card-foreground">4.</b> Her kalem için üretim rotasını belirleyin (Fiyat Listesi › kalemin yanındaki rota düğmesi): iş hangi odalardan, hangi sırayla geçecek. <b class="text-card-foreground">En önemli adım budur:</b> rotası olmayan kalemde iş hiçbir odaya girmez.</li>
+                <li><b class="text-card-foreground">5.</b> Personeli ekleyin, oda erişimi verin.</li>
+                <li><b class="text-card-foreground">6.</b> Doktorları kaydedin.</li>
+                <li><b class="text-card-foreground">7.</b> İlk işinizi açın.</li>
               </ol>
               <p class="mt-2">Üstteki “Nerede kaldınız?” kutusu hangi adımların bittiğini canlı gösterir.</p>
             </div>
@@ -436,6 +437,106 @@
             </div>
           </details>
 
+          <details class="rounded-theme border border-border bg-card" ontoggle="zkNudgeScroll(this)">
+            <summary class="flex items-center gap-3 px-4 py-3.5">
+              <iconify-icon icon="lucide:calendar-clock" class="shrink-0 text-lg text-primary"></iconify-icon>
+              <span class="flex-1 text-sm font-bold">İzin talebi nasıl açılır?</span>
+              <iconify-icon icon="lucide:chevron-right" class="kv-ok shrink-0 text-base text-muted-foreground"></iconify-icon>
+            </summary>
+            <div class="border-t border-border px-4 py-3.5 text-xs leading-5 text-muted-foreground">
+              <p>Profil sayfasındaki ya da Üretim kısayollarındaki <b class="text-card-foreground">İzinlerim</b>'e girin. Üstte yıllık izin hakkınız ve kalan günleriniz görünür. Yıllık izin hakkı, ekip kaydındaki <b class="text-card-foreground">işe giriş tarihinden</b> hesaplanır.</p>
+              <p class="mt-2"><b class="text-card-foreground">Yeni İzin Talebi:</b> İzin türünü (yıllık, mazeret, raporlu, ücretsiz) seçin, başlangıç ve bitiş tarihini girin, isterseniz açıklama yazın. Kaç gün izin istediğiniz formda görünür.</p>
+              <p class="mt-2">Talebiniz yöneticiye gider. Karar verilince <b class="text-card-foreground">Taleplerim</b> listesinde durumu ve yönetici notu görünür. Karar verilmeden önce <b class="text-card-foreground">Talebi geri çek</b> ile iptal edebilirsiniz.</p>
+              <p class="mt-2">Yönetici, bekleyen talepleri <b class="text-card-foreground">Üretim</b> sayfasındaki <b class="text-card-foreground">İzin talepleri</b> bölümünde onaylar ya da reddeder.</p>
+            </div>
+          </details>
+
+          <details class="rounded-theme border border-border bg-card" ontoggle="zkNudgeScroll(this)">
+            <summary class="flex items-center gap-3 px-4 py-3.5">
+              <iconify-icon icon="lucide:printer" class="shrink-0 text-lg text-primary"></iconify-icon>
+              <span class="flex-1 text-sm font-bold">İş fişi nasıl yazdırılır ya da gönderilir?</span>
+              <iconify-icon icon="lucide:chevron-right" class="kv-ok shrink-0 text-base text-muted-foreground"></iconify-icon>
+            </summary>
+            <div class="border-t border-border px-4 py-3.5 text-xs leading-5 text-muted-foreground">
+              <p>İş detayındaki <b class="text-card-foreground">İş fişi</b> kartında <b class="text-card-foreground">Yazdır / Paylaş</b>'a basın. Laboratuvar adı, iş numarası, doktor, hasta ve protokol, geliş ve teslim tarihi, çalışma formu bilgileri ve üretim süreci tek sayfalık bir PDF olarak hazırlanır.</p>
+              <p class="mt-2">PDF'i telefonun paylaşım menüsünden yazdırabilir, kaydedebilir ya da WhatsApp ve e-posta ile gönderebilirsiniz. <b class="text-card-foreground">Doktora e-posta</b> düğmesi fişi doğrudan doktora gönderir. Fişin altında teslim eden ve teslim alan için imza alanı vardır.</p>
+              <p class="mt-2">İş fişini yalnızca yönetici ve resepsiyon görür.</p>
+            </div>
+          </details>
+
+          <details class="rounded-theme border border-border bg-card" ontoggle="zkNudgeScroll(this)">
+            <summary class="flex items-center gap-3 px-4 py-3.5">
+              <iconify-icon icon="lucide:map" class="shrink-0 text-lg text-primary"></iconify-icon>
+              <span class="flex-1 text-sm font-bold">Doktor hesabında işlerim nerede görünür?</span>
+              <iconify-icon icon="lucide:chevron-right" class="kv-ok shrink-0 text-base text-muted-foreground"></iconify-icon>
+            </summary>
+            <div class="border-t border-border px-4 py-3.5 text-xs leading-5 text-muted-foreground">
+              <p>Doktor hesabıyla girince <b class="text-card-foreground">Siparişlerim</b> sekmesinin üstünde <b class="text-card-foreground">İşlerim istasyon ağında</b> bölümü görünür. Her kutu laboratuvarın bir odasıdır; içindeki sayı, o odada bekleyen işlerinizin sayısıdır.</p>
+              <p class="mt-2">Bir kutuya basınca o odadaki işleriniz listelenir. Her işte hastanın adı ve <b class="text-card-foreground">Sıradaki</b> oda yazar. İşe basınca salt okunur iş takibi açılır; doktor işi değiştiremez.</p>
+              <p class="mt-2">Biten işleriniz <b class="text-card-foreground">Tamamlanan işler</b> altında kalır. Tasarım dosyası size gönderildiyse iş takibinde 3B dosyayı açabilirsiniz.</p>
+            </div>
+          </details>
+
+          <details class="rounded-theme border border-border bg-card" ontoggle="zkNudgeScroll(this)">
+            <summary class="flex items-center gap-3 px-4 py-3.5">
+              <iconify-icon icon="lucide:layers" class="shrink-0 text-lg text-primary"></iconify-icon>
+              <span class="flex-1 text-sm font-bold">Gece plağı gibi takım işleri nasıl fiyatlanır?</span>
+              <iconify-icon icon="lucide:chevron-right" class="kv-ok shrink-0 text-base text-muted-foreground"></iconify-icon>
+            </summary>
+            <div class="border-t border-border px-4 py-3.5 text-xs leading-5 text-muted-foreground">
+              <p>Fiyat listesinde her kalem <b class="text-card-foreground">diş başı</b> (varsayılan) ya da <b class="text-card-foreground">adet / takım</b> olarak fiyatlanır. Adet kalemlerinde (gece plağı, üst veya alt çene takımı) fiyat diş sayısıyla çarpılmaz, adetle çarpılır.</p>
+              <p class="mt-2"><b class="text-card-foreground">Ayarlamak:</b> Laboratuvarlar sayfasındaki Fiyat Listesi'nde kalemin adına basın, <b class="text-card-foreground">Adet / takım olarak fiyatlanır</b>'ı seçin. Kalemin yanında <b class="text-card-foreground">Adet</b> rozeti çıkar. Yeni kalem eklerken de aynı seçenek vardır.</p>
+              <p class="mt-2"><b class="text-card-foreground">Sipariş verirken:</b> Adet kalemini seçince <b class="text-card-foreground">Diş sayısı</b> kutusu <b class="text-card-foreground">Adet</b> olur ve 1'de kalır. <b class="text-card-foreground">Üst çene</b>, <b class="text-card-foreground">Alt çene</b> ya da <b class="text-card-foreground">Tümü</b> düğmesi bütün dişleri tek dokunuşla işaretler; dişler laboratuvara yeri göstermek içindir, fiyatı değiştirmez. Özet satırında "Üst çene" ya da "Tam ağız" yazar.</p>
+              <p class="mt-2"><b class="text-card-foreground">Karma sipariş:</b> Aynı hastada bir çene takım, diğer çenede 2-3 zirkonyum diş varsa iki kalem ekleyin: önce takımı (adet), sonra kronları (diş başı). Toplam, iki kalemin toplamıdır; fatura ve ekstrede iki satır olur.</p>
+              <p class="mt-2"><b class="text-card-foreground">Dikkat:</b> Personelin diş başı hakedişi, işin toplam adedi üzerinden yazılır; takım kalemi 1 adet sayılır.</p>
+            </div>
+          </details>
+
+          <details class="rounded-theme border border-border bg-card" ontoggle="zkNudgeScroll(this)">
+            <summary class="flex items-center gap-3 px-4 py-3.5">
+              <iconify-icon icon="lucide:percent" class="shrink-0 text-lg text-primary"></iconify-icon>
+              <span class="flex-1 text-sm font-bold">KDV nasıl işler?</span>
+              <iconify-icon icon="lucide:chevron-right" class="kv-ok shrink-0 text-base text-muted-foreground"></iconify-icon>
+            </summary>
+            <div class="border-t border-border px-4 py-3.5 text-xs leading-5 text-muted-foreground">
+              <p>Fiyat listesindeki fiyatlar <b class="text-card-foreground">KDV hariçtir</b>. Doktorun hesabı <b class="text-card-foreground">faturalı</b> ise fatura kesilirken KDV (varsayılan %10) fiyatın <b class="text-card-foreground">üstüne</b> eklenir. Faturasız çalışan doktorda KDV yoktur.</p>
+              <p class="mt-2"><b class="text-card-foreground">Nerede görünür?</b> Yalnız iki yerde: <b class="text-card-foreground">Finans</b> ekranında "Toplam alacak" kutusunun altında ("Bunun KDV'si"), ve doktorun <b class="text-card-foreground">Cari</b> hesabında fatura satırının altında ("KDV hariç … · KDV %10 …"). Fiyat listesi, sipariş ve iş ekranlarında KDV gösterilmez.</p>
+              <p class="mt-2"><b class="text-card-foreground">Dikkat:</b> KDV, fatura oluşurken sunucuda hesaplanır; eski faturalar değişmez. Doktorun faturalı ya da faturasız olması, doktor kartından ayarlanır.</p>
+            </div>
+          </details>
+
+          <details class="rounded-theme border border-border bg-card" ontoggle="zkNudgeScroll(this)">
+            <summary class="flex items-center gap-3 px-4 py-3.5">
+              <iconify-icon icon="lucide:stethoscope" class="shrink-0 text-lg text-primary"></iconify-icon>
+              <span class="flex-1 text-sm font-bold">Doktor portalı: doktor nasıl sipariş verir, neleri görür?</span>
+              <iconify-icon icon="lucide:chevron-right" class="kv-ok shrink-0 text-base text-muted-foreground"></iconify-icon>
+            </summary>
+            <div class="border-t border-border px-4 py-3.5 text-xs leading-5 text-muted-foreground">
+              <p>Doktor hesabıyla girince dört sekme görünür: <b class="text-card-foreground">Yeni Sipariş</b>, <b class="text-card-foreground">Siparişlerim</b>, <b class="text-card-foreground">Fiyatlar</b>, <b class="text-card-foreground">Cari</b>. Üstteki telefon düğmesi laboratuvarın adres, telefon ve e-postasını açar.</p>
+              <p class="mt-2"><b class="text-card-foreground">Yeni Sipariş:</b> Hasta adı yerine baş harfleri yazabilirsiniz (gizlilik için); işi <b class="text-card-foreground">hasta referansı / protokol no</b> eşleştirir. İsterseniz not yazın, STL tarama dosyası ekleyin (her biri en fazla 50 MB), dişleri şemadan işaretleyin ve <b class="text-card-foreground">Siparişi Gönder</b>'e basın.</p>
+              <p class="mt-2"><b class="text-card-foreground">Sipariş işe nasıl döner?</b> Laboratuvarda resepsiyon ya da yönetici siparişi onaylar; laboratuvar otomatik onayı açtıysa onaylı doktorun siparişi doğrudan işe döner. Rotası olmayan kalem otomatik geçmez, elle onay bekler.</p>
+              <p class="mt-2"><b class="text-card-foreground">Siparişlerim:</b> Gönderdiğiniz siparişlerin durumu ve <b class="text-card-foreground">İşlerim istasyon ağında</b> bölümü. Tamamlanan işi kendi ekranınızda <b class="text-card-foreground">Teslim aldım</b> diyerek onaylarsınız; bu yalnız kayıttır, fatura ve hakedişi değiştirmez.</p>
+              <p class="mt-2"><b class="text-card-foreground">Fiyatlar:</b> Laboratuvarın size uyguladığı fiyatlar (anlaşmalı fiyatınız varsa o, yoksa liste fiyatı). <b class="text-card-foreground">Cari:</b> bakiyeniz, iş performansınız ve fatura / ödeme hareketleriniz.</p>
+              <p class="mt-2"><b class="text-card-foreground">Prova:</b> Laboratuvar size prova gönderdiyse onaylayana ya da değişiklik isteyene kadar iş sonraki odaya geçmez.</p>
+            </div>
+          </details>
+
+          <details class="rounded-theme border border-border bg-card" ontoggle="zkNudgeScroll(this)">
+            <summary class="flex items-center gap-3 px-4 py-3.5">
+              <iconify-icon icon="lucide:user-plus" class="shrink-0 text-lg text-primary"></iconify-icon>
+              <span class="flex-1 text-sm font-bold">Doktor CRM ve aday havuzu nasıl kullanılır?</span>
+              <iconify-icon icon="lucide:chevron-right" class="kv-ok shrink-0 text-base text-muted-foreground"></iconify-icon>
+            </summary>
+            <div class="border-t border-border px-4 py-3.5 text-xs leading-5 text-muted-foreground">
+              <p><b class="text-card-foreground">Hangi pakette?</b> Zirkonik Plus ve Zirkonik Tek. Doktorlar ekranındaki <b class="text-card-foreground">Doktor Havuzu</b>'ndan açılır. Satış Pazarlama Sorumlusu pozisyonu yalnız Doktor Havuzu'nu görür.</p>
+              <p class="mt-2"><b class="text-card-foreground">Aday ekle:</b> Doktor adı zorunludur; klinik adı, adres, telefon, il / ilçe / mahalle, kaynak ve öncelik (yüksek, orta, düşük) eklenir. <b class="text-card-foreground">Aday türü</b> olarak doktor ya da laboratuvar seçilir.</p>
+              <p class="mt-2"><b class="text-card-foreground">Aday kartı:</b> Aşamayı ve önceliği buradan değiştirirsiniz. <b class="text-card-foreground">Gelişme ekle</b> ile bir görüşmeyi kaydedersiniz: şimdi mi oldu, ileri bir tarihe mi planlandı, türü (ziyaret gibi), kiminle görüşüldü, not. Geçmiş ve gönderilen işler aynı kartta görünür.</p>
+              <p class="mt-2"><b class="text-card-foreground">Bölgeler:</b> Her bölge bir temsilciye atanır; iki temsilci aynı kliniğe gitmesin diye. Bölge dışı eklenen doktorlar yönetici onayını bekler: <b class="text-card-foreground">Onay bekleyenler</b> ekranında <b class="text-card-foreground">Onayla</b> ile aktif edilir.</p>
+              <p class="mt-2"><b class="text-card-foreground">Görevler:</b> Günlük ziyaret görevleri taslak olarak hazırlanır; yöneticiye "onay bekleyen taslak görevler" bildirimi gider. Onaylanınca temsilcinin günlük görevleri Doktor Havuzu'nda görünür.</p>
+              <p class="mt-2"><b class="text-card-foreground">Temas kayıtları:</b> Görüşmenin tarihi herkese, saati yalnız işveren ve yöneticiye görünür. <b class="text-card-foreground">Laboratuvar adayı:</b> detayındaki <b class="text-card-foreground">Davet kodunu gönder</b> ile kodunuzu paylaşırsınız; karşı laboratuvar kabul edince aday müşteriye döner.</p>
+            </div>
+          </details>
+
         </div>
       </main>
     </div>
@@ -494,6 +595,7 @@
         client.from('laboratories').select('id', { count: 'exact', head: true }),
         client.from('rooms').select('id', { count: 'exact', head: true }),
         client.from('price_list_items').select('id', { count: 'exact', head: true }),
+        client.from('price_list_items').select('id, route_room_ids'),
         client.from('app_users').select('id', { count: 'exact', head: true }),
         client.from('doctors').select('id', { count: 'exact', head: true }),
         client.from('jobs').select('id', { count: 'exact', head: true })
@@ -502,9 +604,10 @@
           { ad: 'Laboratuvar', n: r[0].count || 0 },
           { ad: 'Odalar', n: r[1].count || 0 },
           { ad: 'Fiyat listesi', n: r[2].count || 0 },
-          { ad: 'Personel', n: Math.max(0, (r[3].count || 0) - 1) },
-          { ad: 'Doktorlar', n: r[4].count || 0 },
-          { ad: 'İlk iş', n: r[5].count || 0 }
+          { ad: 'Üretim rotası', n: (r[3].data || []).filter(function (p) { return p.route_room_ids && p.route_room_ids.length; }).length },
+          { ad: 'Personel', n: Math.max(0, (r[4].count || 0) - 1) },
+          { ad: 'Doktorlar', n: r[5].count || 0 },
+          { ad: 'İlk iş', n: r[6].count || 0 }
         ];
         document.getElementById('kv-progress-list').innerHTML = steps.map(function (s) {
           var ok = s.n > 0;
