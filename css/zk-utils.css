@@ -902,14 +902,6 @@ body { animation: zkPageIn .2s ease both; }
   border: 0; border-radius: 9999px; background: none; color: var(--color-primary); cursor: pointer;
 }
 .zk-ust-hap iconify-icon { font-size: 22px; }
-.zk-ust-hap svg { width: 22px; height: 22px; }
-.zk-ust-hap .zk-ust-logo { height: 24px; width: auto; }
-/* "Ekle" düğmesi simgesi: figür solda, sağ altta Ekip'teki kişi+artı simgesinin artısı (lucide user-plus: aynı yol, aynı kalınlık).
-   Artının çevresi hap zemin rengiyle oyulur ki figürle karışmasın. Yalnız Laboratuvar kullanır: çizgi diş (tabler dental). Doktor ve Ekip: lucide user-plus. */
-.zk-ust-hap svg { width: 22px; height: 22px; }
-.zk-ust-hap .zk-arti-hl, .zk-ust-hap .zk-arti-cz { fill: none; stroke-linecap: round; }
-.zk-ust-hap .zk-arti-hl { stroke: var(--color-background); stroke-width: 4.5; }
-.zk-ust-hap .zk-arti-cz { stroke: currentColor; stroke-width: 2; }
 .zk-ust-ust { margin: 0 0 2px; font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-muted-foreground); }
 .zk-ust-baslik { margin: 0; font-size: 34px; line-height: 1.1; font-weight: 800; letter-spacing: -0.02em; }
 .zk-ust-alt { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
