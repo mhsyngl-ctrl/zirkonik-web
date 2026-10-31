@@ -54,14 +54,13 @@
   <div class="h-screen w-screen overflow-y-auto">
     <div class="min-h-screen w-full bg-background text-foreground font-body pb-32">
       <header class="border-b border-border bg-card px-5 pb-5 pt-12" style="padding-top:max(3rem,calc(env(safe-area-inset-top) + 12px));">
-        <div class="mb-4 flex items-center justify-between">
+        <div class="zk-ust-satir">
           <div class="zk-logo-chip" role="img" aria-label="Zirkonik"><img src="brand/mark.png" alt="" width="26" height="28"></div>
-          
+          <div class="zk-ust-hap"><button onclick="location.href='bildirimler.html'" aria-label="Bildirimler"><iconify-icon icon="lucide:bell"></iconify-icon><span id="notif-badge" class="zk-notif-badge" hidden></span></button><button onclick="location.href='profil.html'" aria-label="Profil"><iconify-icon icon="lucide:circle-user-round"></iconify-icon></button></div>
         </div>
         <div>
-            <p class="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Operasyon ağı</p>
-            <h1 class="mt-1 font-heading text-2xl font-bold tracking-tight">Laboratuvarlar</h1>
-          </div>
+          <h1 class="zk-ust-baslik font-heading font-bold tracking-tight">Laboratuvarlar</h1>
+        </div>
       </header>
 
       <main>
@@ -71,10 +70,7 @@
               <h2 class="font-heading text-lg font-bold">Laboratuvar ağı</h2>
               <p class="mt-0.5 text-xs text-muted-foreground">Üretim noktalarını tek görünümden yönetin</p>
             </div>
-            <button onclick="zkOpenAddLab()" class="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground">
-              <iconify-icon icon="lucide:plus" class="text-sm"></iconify-icon>
-              Laboratuvar ekle
-            </button>
+            <button onclick="zkOpenAddLab()" class="zk-btn-ek"><iconify-icon icon="lucide:plus"></iconify-icon>Laboratuvar ekle</button>
           </div>
 
           <div id="labs-list" class="mt-4 space-y-3">
@@ -303,6 +299,7 @@
   <script src="js/net-guard.js"></script>
   <script src="supabase-client.js"></script>
   <script src="js/zk-guard.js"></script>
+  <script src="js/zk-ust-bildirim.js"></script>
   <script src="js/zk-picker.js"></script>
   <script src="js/zk-ptr.js"></script>
   <script src="js/zk-hiz.js"></script>

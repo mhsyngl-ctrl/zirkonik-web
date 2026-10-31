@@ -888,3 +888,29 @@ body { animation: zkPageIn .2s ease both; }
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
 }
 .zk-logo-chip img { width: 26px; height: 28px; object-fit: contain; }
+
+/* 31 Ekim 2026 (4.3): ana ekranların ortak üst barı, native uygulamayla aynı.
+   Satır: solda logo, sağda tek hap içinde (ekle) + zil + profil. Altında büyük kalın başlık; alt yazı satırında sağda yazılı düğme. */
+.zk-ust-satir { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+.zk-ust-hap {
+  display: flex; align-items: center; padding: 3px;
+  border: 1px solid var(--color-border); border-radius: 9999px; background: var(--color-background);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
+}
+.zk-ust-hap > * {
+  position: relative; display: flex; width: 40px; height: 40px; align-items: center; justify-content: center;
+  border: 0; border-radius: 9999px; background: none; color: var(--color-primary); cursor: pointer;
+}
+.zk-ust-hap iconify-icon { font-size: 22px; }
+.zk-ust-ust { margin: 0 0 2px; font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-muted-foreground); }
+.zk-ust-baslik { margin: 0; font-size: 34px; line-height: 1.1; font-weight: 800; letter-spacing: -0.02em; }
+.zk-ust-alt { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
+.zk-ust-alt > div { min-width: 0; }
+.zk-ust-alt p:not(.zk-ust-ust) { margin: 0; min-width: 0; font-size: 14px; line-height: 1.35; color: var(--color-muted-foreground); }
+.zk-btn-ek {
+  display: inline-flex; flex: 0 0 auto; align-items: center; gap: 6px; height: 38px; padding: 0 14px;
+  border: 0; border-radius: 9999px; background: var(--color-secondary); color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  font-size: 14px; font-weight: 700; white-space: nowrap; cursor: pointer; text-decoration: none;
+}
+.zk-btn-ek iconify-icon { font-size: 17px; }
