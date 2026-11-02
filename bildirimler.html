@@ -177,9 +177,16 @@
       // Hata bildirimleri yalnız platform sahibine gider; dokununca hata günlüğü (Profil) açılır.
       if (n.type === 'hata_bildirimi' || n.type === 'hata_ozeti') return 'profil.html#pf-errors-section';
       if (n.order_id && myRole === 'yonetici') return 'siparisler.html';
-      // 2 Kasım 2026: pazarlama (CRM) bildirimleri dokununca hiçbir yere gitmiyordu; Aday havuzu görevlerini açar.
-      if (n.type === 'gunluk_ziyaret_taslagi' || n.type === 'gunluk_gorev_hatirlatma' || n.type === 'doktor_uyudu') return 'aday-havuzu.html';
+      // 2 Kasım 2026: pazarlama (CRM) bildirimleri dokununca hiçbir yere gitmiyordu; Aday havuzunu açar.
+      // YALNIZ pazarlama paketi (Plus/Tek) açıksa ve kişinin yetkisi varsa: Standart pakette sayfa Üretim'e geri atıyordu.
+      if ((n.type === 'gunluk_ziyaret_taslagi' || n.type === 'gunluk_gorev_hatirlatma' || n.type === 'doktor_uyudu') && pazarlamaAcik()) return 'aday-havuzu.html';
       return null;
+    }
+    // zk-guard anlık görüntüsü: plan bilinmiyorsa kapalı say (ölü bağlantıdan iyi). Yönetici serbest, personel için can_manage_prospects.
+    function pazarlamaAcik() {
+      var g = null;
+      try { g = JSON.parse(localStorage.getItem('zk-guard') || 'null'); } catch (e) {}
+      return !!(g && (g.plan === 'plus' || g.plan === 'tek') && (myRole === 'yonetici' || g.can_manage_prospects));
     }
 
     // 24 Eylül 2026: sayfayı açmak bildirimleri okundu YAPMIYORDU — yalnızca
