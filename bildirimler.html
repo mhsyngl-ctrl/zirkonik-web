@@ -177,6 +177,8 @@
       // Hata bildirimleri yalnız platform sahibine gider; dokununca hata günlüğü (Profil) açılır.
       if (n.type === 'hata_bildirimi' || n.type === 'hata_ozeti') return 'profil.html#pf-errors-section';
       if (n.order_id && myRole === 'yonetici') return 'siparisler.html';
+      // 2 Kasım 2026: pazarlama (CRM) bildirimleri dokununca hiçbir yere gitmiyordu; Aday havuzu görevlerini açar.
+      if (n.type === 'gunluk_ziyaret_taslagi' || n.type === 'gunluk_gorev_hatirlatma' || n.type === 'doktor_uyudu') return 'aday-havuzu.html';
       return null;
     }
 

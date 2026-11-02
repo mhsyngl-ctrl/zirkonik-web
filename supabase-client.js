@@ -1744,14 +1744,18 @@
     // 25 Eylül 2026, sahibinin kuralı: bir işe bağlı bildirim, o iş
     // tamamlanınca/iptal olunca artık "bildirim" değil — listeden düşer.
     // job_id'siz bildirimler (izin, sistem vb.) her zaman kalır.
+    // 2 Kasım 2026: işe bağlı ama iş artık bu kullanıcıya GÖRÜNMÜYORSA (başka odaya geçti, RLS gizliyor;
+    // `jobs` gömmesi null döner) bildirim de düşer — dokununca "iş bulunamadı" (406) veriyordu.
+    bildirimGorunur: function (n) {
+      if (!n.job_id) return true;
+      if (!n.jobs) return false;
+      return n.jobs.status !== 'completed' && n.jobs.status !== 'cancelled';
+    },
     listNotifications: function () {
       return client().from('notifications').select('*, jobs(status)').order('created_at', { ascending: false }).limit(100)
         .then(function (r) {
           if (r.error) return r;
-          var data = (r.data || []).filter(function (n) {
-            if (!n.jobs) return true;
-            return n.jobs.status !== 'completed' && n.jobs.status !== 'cancelled';
-          });
+          var data = (r.data || []).filter(Data.bildirimGorunur);
           return { data: data, error: null };
         });
     },
@@ -1765,10 +1769,7 @@
       return client().from('notifications').select('id, job_id, jobs(status)').is('read_at', null)
         .then(function (r) {
           if (r.error) return r;
-          var count = (r.data || []).filter(function (n) {
-            if (!n.jobs) return true;
-            return n.jobs.status !== 'completed' && n.jobs.status !== 'cancelled';
-          }).length;
+          var count = (r.data || []).filter(Data.bildirimGorunur).length;
           return { count: count, error: null };
         });
     },

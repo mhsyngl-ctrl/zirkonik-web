@@ -707,7 +707,14 @@
           loadAltyapi(); // modül açıksa alıcı tarafı kartını da (loadAltyapiKaynak) çağırır
         });
       }).catch(function (err) {
-        document.querySelector('main').innerHTML = '<p class="text-sm text-destructive">Yüklenemedi: ' + escapeHtml(err.message) + '</p>';
+        // 2 Kasım 2026: iş başka odaya geçince ya da tamamlanınca bu kullanıcıya görünmez (PGRST116 / "bulunamadı");
+        // ham sunucu mesajı yerine anlaşılır cümle + geri düğmesi.
+        var yok = err && (err.code === 'PGRST116' || /bulunamad|single JSON object|rows returned/i.test(err.message || ''));
+        document.querySelector('main').innerHTML = yok
+          ? '<div class="mt-10 text-center"><p class="text-sm font-bold">Bu iş artık sizin odanızda değil ya da tamamlandı.</p>' +
+            '<p class="mt-1 text-xs text-muted-foreground">Bu yüzden açılamıyor. Güncel işleriniz için listeye dönebilirsiniz.</p>' +
+            '<button onclick="history.length > 1 ? history.back() : (location.href=\'retim.html\')" class="mt-4 rounded-theme bg-primary px-4 py-2 text-sm font-bold text-primary-foreground">Geri dön</button></div>'
+          : '<p class="text-sm text-destructive">Yüklenemedi: ' + escapeHtml(err.message) + '</p>';
       });
     }
 
