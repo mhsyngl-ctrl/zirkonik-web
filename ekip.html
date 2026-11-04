@@ -305,7 +305,7 @@
           <input id="ns-hire" type="date" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         </label>
         <div>
-          <p class="mb-1.5 text-xs font-bold text-card-foreground">Laboratuvar erişimi</p>
+          <p class="mb-1.5 text-xs font-bold text-card-foreground">Laboratuvar erişimi <span class="font-normal text-muted-foreground">(en az biri zorunlu)</span></p>
           <div id="ns-labs" class="space-y-1.5 rounded-theme border border-border p-3 text-sm">—</div>
         </div>
         <div>
@@ -1260,6 +1260,13 @@
           errEl.classList.remove('hidden');
           return;
         }
+      }
+
+      // 4 Kasım 2026 (sahibinin kararı): personel için en az bir laboratuvar zorunlu (yönetici/işveren zaten tüm laboratuvarlara erişir).
+      if (position !== 'Yönetici' && position !== 'İşveren' && !labIds.length) {
+        errEl.textContent = document.querySelector('.ns-lab-cb') ? 'Personel için en az bir laboratuvar seçin.' : 'Önce Laboratuvarlar sekmesinden bir laboratuvar ekleyin.';
+        errEl.classList.remove('hidden');
+        return;
       }
 
       var btn = document.getElementById('ns-submit');
