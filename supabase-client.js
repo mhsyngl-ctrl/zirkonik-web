@@ -1489,8 +1489,17 @@
         }));
       }
       return Promise.all(isler).catch(function () { hata = true; }).then(function () {
-        if (!eksik.length) D.onayIsaretle(me.id, hata);
-        return eksik;
+        if (!eksik.length) { D.onayIsaretle(me.id, hata); return eksik; }
+        // Kayıt formunda bu metinler zaten işaretlendiyse (giris.html: kullanıcı verisinde sürüm + an) kayıt sessizce yazılır,
+        // e-posta onayından sonraki ilk girişte aynı soru ikinci kez sorulmaz. Yazılamazsa soru normal akışla gelir.
+        return client().auth.getSession().then(function (r) {
+          var u = r && r.data && r.data.session && r.data.session.user, m = (u && u.user_metadata) || {};
+          var tamam = eksik.every(function (b) {
+            return b === 'gizlilik' ? m.aydinlatma_okundu === S.gizlilik : b === 'veri_isleme' ? m.veri_isleme_kabul === S.veri_isleme : false;
+          });
+          if (!tamam) return eksik;
+          return D.onayVer(eksik, me.id).then(function (res) { return (res && res.error) ? eksik : []; });
+        }).catch(function () { return eksik; });
       });
     },
     /** Eksik belgeleri kabul eder (sırayla; ilk hata durdurur). Başarıda cihaz işareti yazılır. Dönen: son sonuç ya da {error}. */

@@ -122,8 +122,11 @@
               <input id="su-dpa" type="checkbox" required style="margin-top:2px">
               <span><a href="veri-isleme-sozlesmesi.html" target="_blank" rel="noopener" class="font-bold text-primary">Veri İşleme Sözleşmesi</a>'ni laboratuvarım adına kabul ediyorum.</span>
             </label>
-            <!-- 4 Kasım 2026: Kurul ilke kararı 2026/347 — aydınlatmadan "kabul/onay" istenmez; metin yalnızca bilgi olarak gösterilir, okundu/anlaşıldı geri bildirimi giriş sonrası onay sorusunda alınır. -->
-            <p style="margin:0;font-size:11px;line-height:1.5" class="text-muted-foreground">Kişisel verilerinizin nasıl işlendiğini ve haklarınızı <a href="gizlilik-politikasi.html" target="_blank" rel="noopener" class="font-bold text-primary">Gizlilik Politikası ve KVKK Aydınlatma Metni</a>'nde bulabilirsiniz.</p>
+            <!-- 4 Kasım 2026: Kurul ilke kararı 2026/347 — aydınlatmadan "kabul/onay" istenmez; yalnızca "okudum ve anladım" geri bildirimi alınır. -->
+            <label style="display:flex;align-items:flex-start;gap:8px;font-size:11px;line-height:1.5" class="text-muted-foreground">
+              <input id="su-aydinlatma" type="checkbox" required style="margin-top:2px">
+              <span><a href="gizlilik-politikasi.html" target="_blank" rel="noopener" class="font-bold text-primary">Gizlilik Politikası ve KVKK Aydınlatma Metni</a>'ni okudum ve anladım.</span>
+            </label>
             <label style="display:flex;align-items:flex-start;gap:8px;font-size:11px;line-height:1.5" class="text-muted-foreground">
               <input id="su-yas" type="checkbox" required style="margin-top:2px">
               <span>18 yaşından büyük olduğumu ve Zirkonik'i mesleki amaçla kullandığımı beyan ederim.</span>
@@ -292,6 +295,12 @@
         return;
       }
 
+      // 4 Kasım 2026: aydınlatma "okudum ve anladım" kutusu; işaretlenmeden kayıt isteği hiç gitmez.
+      if (!document.getElementById('su-aydinlatma').checked) {
+        errEl.textContent = 'Devam etmek için Gizlilik Politikası ve KVKK Aydınlatma Metni\'ni okuduğunuzu belirtmeniz gerekir.';
+        errEl.classList.remove('hidden');
+        return;
+      }
       // 3 Kasım 2026: 18 yaş + mesleki kullanım beyanı; kutu işaretlenmeden kayıt isteği hiç gitmez.
       if (!document.getElementById('su-yas').checked) {
         errEl.textContent = 'Devam etmek için 18 yaşından büyük olduğunuzu ve mesleki amaçla kullandığınızı beyan etmeniz gerekir.';
@@ -308,7 +317,12 @@
           full_name: document.getElementById('su-name').value.trim(),
           // Beyan hesabın kullanıcı verisine (auth) yazılır; şema/SQL değişikliği gerekmez.
           adult_professional_consent: true,
-          adult_professional_consent_at: new Date().toISOString()
+          adult_professional_consent_at: new Date().toISOString(),
+          // 4 Kasım 2026: işaretlenen metinlerin sürümü ve anı (delil). İlk girişte onay kapısı bunları sessizce kayda geçirir, soru tekrarlanmaz.
+          aydinlatma_okundu: ZirkonikData.ONAY_SURUM.gizlilik,
+          aydinlatma_okundu_at: new Date().toISOString(),
+          veri_isleme_kabul: ZirkonikData.ONAY_SURUM.veri_isleme,
+          veri_isleme_kabul_at: new Date().toISOString()
         }
       ).then(function (res) {
         if (res.error) {
