@@ -25,6 +25,8 @@
     .evet { border: 0; background: var(--blue); color: #fff; margin-bottom: 10px; }
     .hayir { border: 1px solid var(--line); background: transparent; color: var(--muted); }
     button:disabled { opacity: .55; cursor: default; }
+    #beyanlar { margin: 0 0 16px; padding-left: 20px; color: var(--muted); font-size: 14px; line-height: 1.6; }
+    #beyanlar li { margin: 4px 0; }
     .not { font-size: 13px; text-align: center; margin: 14px 0 0; }
     #hata { color: var(--red); font-size: 14px; font-weight: 600; margin: 0 0 12px; text-align: center; }
     #yukleniyor { text-align: center; }
@@ -39,16 +41,18 @@
     <p id="yukleniyor">Kontrol ediliyor…</p>
 
     <div id="soru" hidden>
-      <p>Zirkonik'i kullanmaya devam edebilmek için aşağıdaki metinleri okuyup kabul etmeniz gerekir. Bu soru yalnızca bir kez sorulur.</p>
+      <p>Zirkonik'i kullanmaya devam edebilmek için aşağıdaki metinleri okumanız ve beyanları onaylamanız gerekir. Bu soru yalnızca bir kez sorulur.</p>
       <div class="card" id="belgeler"></div>
+      <p style="color:var(--fg);font-weight:600;margin-bottom:6px">Aşağıdaki beyanları onaylıyor musunuz?</p>
+      <ul id="beyanlar"></ul>
       <p id="hata" hidden></p>
-      <button type="button" class="evet" id="evet">Okudum, kabul ediyorum</button>
-      <button type="button" class="hayir" id="hayir">Kabul etmiyorum</button>
-      <p class="not">Kabul etmezseniz oturumunuz kapanır ve uygulama açılmaz. Giriş yaptığınızda bu soru yeniden sorulur.</p>
+      <button type="button" class="evet" id="evet">Evet, devam et</button>
+      <button type="button" class="hayir" id="hayir">Hayır, çıkış yap</button>
+      <p class="not">Hayır derseniz oturumunuz kapanır ve uygulama açılmaz. Giriş yaptığınızda bu soru yeniden sorulur.</p>
     </div>
 
     <div id="ret" hidden>
-      <p style="text-align:center">Onay vermediğiniz için uygulama açılmadı ve oturumunuz kapatılıyor. Dilediğiniz zaman tekrar giriş yapıp onay verebilirsiniz.</p>
+      <p style="text-align:center">Beyanları onaylamadığınız için uygulama açılmadı ve oturumunuz kapatılıyor. Dilediğiniz zaman tekrar giriş yapıp devam edebilirsiniz.</p>
     </div>
 
     <div id="tekrar" hidden>
@@ -66,8 +70,8 @@
       // 4 Kasım 2026 — KVKK onay kapısı (sahibinin kararı): kabul etmemiş herkese tek seferlik soru. "Evet" = uygulama açılır;
       // "Hayır" = oturum kapanır, sonraki girişte soru yeniden gelir. Ret kaydedilmez, deneme sayısı sınırlanmaz.
       var BELGE = {
-        gizlilik: { baslik: 'Gizlilik Politikası ve KVKK Aydınlatma Metni', ayrinti: 'Verilerinizin nasıl işlendiği ve haklarınız', url: 'gizlilik-politikasi.html' },
-        veri_isleme: { baslik: 'Veri İşleme Sözleşmesi', ayrinti: 'Laboratuvarınız adına kabul edilir (yalnız sahip/yönetici)', url: 'veri-isleme-sozlesmesi.html' }
+        gizlilik: { baslik: 'Gizlilik Politikası ve KVKK Aydınlatma Metni', ayrinti: 'Verilerinizin nasıl işlendiği ve haklarınız (bilgilendirme metnidir, açık rıza değildir)', beyan: 'Gizlilik Politikası ve KVKK Aydınlatma Metni\'ni okudum ve anladım.', url: 'gizlilik-politikasi.html' },
+        veri_isleme: { baslik: 'Veri İşleme Sözleşmesi', ayrinti: 'Laboratuvarınız adına kabul edilir (yalnız sahip/yönetici)', beyan: 'Veri İşleme Sözleşmesi\'ni laboratuvarım adına kabul ediyorum.', url: 'veri-isleme-sozlesmesi.html' }
       };
       var S = (window.ZirkonikData && ZirkonikData.ONAY_SURUM) || {};
       function $(id) { return document.getElementById(id); }
@@ -94,6 +98,7 @@
           var d = BELGE[b]; if (!d) return '';
           return '<a class="belge" href="' + d.url + '">' + kac(d.baslik) + ' <span>(sürüm ' + kac(S[b] || '') + ') &rsaquo;</span><small>' + kac(d.ayrinti) + '</small></a>';
         }).join('');
+        $('beyanlar').innerHTML = eksik.map(function (b) { return BELGE[b] ? '<li>' + kac(BELGE[b].beyan) + '</li>' : ''; }).join('');
         goster('soru');
       }
 
