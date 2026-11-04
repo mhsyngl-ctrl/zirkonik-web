@@ -355,6 +355,17 @@
       });
     }
 
+    // 4 Kasım 2026: onay linkinin süresi dolmuşsa (Supabase giriş sayfasına #error_code=otp_expired ile döner) sayfa
+    // sessiz kalmasın: neden + yeniden gönderme yolu gösterilir. Kullanılmış link de aynı hatayı verir, bu yüzden iki durum da anlatılır.
+    (function () {
+      if (!/error_code=otp_expired|error=access_denied/.test(location.hash || '')) return;
+      var errEl = document.getElementById('si-error');
+      errEl.textContent = 'Bu onay bağlantısı geçersiz: süresi dolmuş ya da daha önce kullanılmış olabilir. E-postanız zaten onaylandıysa şifrenizle giriş yapın; onaylanmadıysa e-posta adresinizi yazıp aşağıdan yeniden gönderin.';
+      errEl.classList.remove('hidden');
+      document.getElementById('si-resend-kutu').classList.remove('hidden');
+      try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+    })();
+
     // Zaten girişliyse doğrudan panele yönlendir.
     ZirkonikAuth.getSession().then(function (session) {
       if (session) zkRouteByRole();
