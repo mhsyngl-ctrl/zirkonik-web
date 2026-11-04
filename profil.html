@@ -72,6 +72,22 @@
       </header>
 
       <main class="px-5 pt-5">
+        <!-- 4 Kasım 2026: yeni lab sahibine «sıradaki adım» kartı (yalnız yönetici, gerekli adımlar bitene dek). -->
+        <section id="pf-kurulum" class="hidden rounded-theme border border-primary/40 bg-card p-4" style="margin-bottom:1.25rem">
+          <div class="flex items-center justify-between">
+            <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">Kurulum</p>
+            <p id="pf-kurulum-sayi" class="text-xs font-bold tabular-nums text-card-foreground"></p>
+          </div>
+          <div class="overflow-hidden rounded-full bg-muted" style="height:6px;margin-top:10px"><div id="pf-kurulum-bar" class="bg-primary" style="height:100%;width:0%"></div></div>
+          <p id="pf-kurulum-baslik" class="mt-3 text-sm font-bold"></p>
+          <p id="pf-kurulum-aciklama" class="mt-1 text-[11px] leading-4 text-muted-foreground"></p>
+          <button id="pf-kurulum-git" type="button" class="mt-3 flex h-12 w-full items-center justify-between rounded-theme bg-primary px-4 text-sm font-bold text-primary-foreground">
+            <span id="pf-kurulum-dugme"></span>
+            <iconify-icon icon="lucide:chevron-right" class="text-lg"></iconify-icon>
+          </button>
+          <button type="button" onclick="location.href='kilavuz.html'" class="mt-3 text-xs font-bold text-primary">Tüm adımları gör</button>
+        </section>
+
         <section class="rounded-theme border border-primary/40 bg-card p-4">
           <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">Yardım</p>
           <button onclick="location.href='kilavuz.html'" class="mt-3 flex h-12 w-full items-center justify-between rounded-theme bg-primary px-4 text-sm font-bold text-primary-foreground">
@@ -372,6 +388,7 @@
           document.getElementById('pf-reset-section').classList.remove('hidden');
           document.getElementById('pf-prova-section').classList.remove('hidden');
           zkLoadAbonelik();
+          zkLoadKurulum(me);
           zkLoadErrorLog();
           zkLoadBolge(me.organizations || {});
         }
@@ -443,6 +460,49 @@
             ' · ' + e.tooth_count + ' diş/adet × ' + ZirkonikMoney.format(e.unit_rate, e.currency, 2) + ' · ' + (DURUM_ETIKET[e.status] || e.status) + '</p></div>' +
             '<p class="shrink-0 text-sm font-bold tabular-nums">' + ZirkonikMoney.format(e.amount, e.currency, 2) + '</p></div>';
         }).join('');
+      }).catch(function () {});
+    }
+
+    /* Kurulum kartı (yönetici, 4 Kasım 2026): «sıradaki adım». Sayımlar Kılavuz'daki "Nerede kaldınız?" ile aynı.
+       Kendi kayıt olan 3 dış laboratuvarın 3'ü de kurulumu bırakmıştı (boş Üretim ekranı, yönlendirme yoktu).
+       Personel isteğe bağlıdır (tek kişilik laboratuvar); gerekli adımlar bitince bayrak yazılır ve kart bir daha sorgu yapmaz.
+       Tek pakette hekim/iş adımları yok (müşteriler laboratuvar). */
+    function zkLoadKurulum(me) {
+      var org = me.organizations;
+      if (Object.prototype.toString.call(org) === '[object Array]') org = org[0];
+      var tek = !!org && org.plan === 'tek';
+      var bayrak = 'zk-kurulum-tamam:' + me.organization_id;
+      try { if (localStorage.getItem(bayrak) === '1') return; } catch (e) {}
+      var c = ZirkonikAuth.client();
+      Promise.all([
+        c.from('laboratories').select('id', { count: 'exact', head: true }),
+        c.from('rooms').select('id', { count: 'exact', head: true }),
+        c.from('price_list_items').select('id, route_room_ids'),
+        c.from('app_users').select('id', { count: 'exact', head: true }),
+        c.from('doctors').select('id', { count: 'exact', head: true }),
+        c.from('jobs').select('id', { count: 'exact', head: true })
+      ]).then(function (r) {
+        for (var i = 0; i < r.length; i++) { if (r[i].error) return; } // ağ/yetki hatası: kartı hiç gösterme
+        var fiyatlar = r[2].data || [];
+        var adimlar = [
+          { n: r[0].count || 0, baslik: 'Laboratuvar bilgilerinizi tamamlayın', aciklama: 'Laboratuvarınızın adını ve bilgilerini kendi laboratuvarınıza göre düzenleyin.', dugme: 'Laboratuvarlara git', git: 'laboratuvarlar.html' },
+          { n: r[1].count || 0, baslik: 'Odalarınızı ekleyin', aciklama: 'İş, tanımladığınız odalardan sırayla geçer.', dugme: 'Laboratuvarlara git', git: 'laboratuvarlar.html' },
+          { n: fiyatlar.length, baslik: 'Fiyat listesini girin', aciklama: 'Yaptığınız işleri ve birim fiyatlarını ekleyin. Fatura ve cari bu listeden hesaplanır.', dugme: 'Fiyat listesine git', git: 'fiyat-listesi.html' },
+          { n: fiyatlar.filter(function (p) { return p.route_room_ids && p.route_room_ids.length; }).length, baslik: 'Bir kalemin üretim rotasını belirleyin', aciklama: 'İşin hangi odalardan hangi sırayla geçeceğini seçin. Rotası olmayan kalemde iş hiçbir odaya girmez.', dugme: 'Fiyat listesine git', git: 'fiyat-listesi.html' },
+          { n: Math.max(0, (r[3].count || 0) - 1), istege: true },
+          { n: r[4].count || 0, baslik: 'Çalıştığınız hekimleri kaydedin', aciklama: 'İsteyen hekime portal hesabı açabilirsiniz; hekim kendi telefonundan sipariş verir.', dugme: 'Doktorlara git', git: 'doktorlar.html', yok: tek },
+          { n: r[5].count || 0, baslik: 'İlk işinizi açın', aciklama: 'Hekimi, hasta adını ve protokol numarasını girin; iş ilk odaya düşer.', dugme: 'Yeni iş oluştur', git: 'yeni-giri-i.html', yok: tek }
+        ].filter(function (a) { return !a.yok; });
+        var sonraki = null, bitti = 0;
+        adimlar.forEach(function (a) { if (a.n > 0) bitti++; else if (!sonraki && !a.istege) sonraki = a; });
+        if (!sonraki) { try { localStorage.setItem(bayrak, '1'); } catch (e) {} return; }
+        document.getElementById('pf-kurulum-sayi').textContent = bitti + '/' + adimlar.length + ' adım';
+        document.getElementById('pf-kurulum-bar').style.width = Math.round(bitti * 100 / adimlar.length) + '%';
+        document.getElementById('pf-kurulum-baslik').textContent = 'Sıradaki adım: ' + sonraki.baslik;
+        document.getElementById('pf-kurulum-aciklama').textContent = sonraki.aciklama;
+        document.getElementById('pf-kurulum-dugme').textContent = sonraki.dugme;
+        document.getElementById('pf-kurulum-git').onclick = function () { location.href = sonraki.git; };
+        document.getElementById('pf-kurulum').classList.remove('hidden');
       }).catch(function () {});
     }
 
