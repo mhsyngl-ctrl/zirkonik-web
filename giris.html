@@ -82,6 +82,11 @@
               <span class="text-xs font-semibold text-card-foreground">Beni hatırla</span>
             </label>
             <p id="si-error" class="hidden text-xs font-semibold text-destructive"></p>
+            <!-- 4 Kasım 2026: e-postası doğrulanmamış kullanıcıya çıkış yolu (kendi kayıt olan 3 laboratuvardan 2'si burada kalmıştı). -->
+            <div id="si-resend-kutu" class="hidden space-y-1.5">
+              <button type="button" id="si-resend" onclick="zkResendConfirm('si')" class="w-full rounded-theme border border-primary/40 py-2.5 text-center text-xs font-bold text-primary">Onay mailini yeniden gönder</button>
+              <p id="si-resend-ok" class="hidden text-xs font-semibold text-success"></p>
+            </div>
             <button type="submit" class="flex h-12 w-full items-center justify-center gap-2 rounded-theme bg-primary font-heading text-sm font-bold text-primary-foreground">
               Giriş Yap
             </button>
@@ -123,6 +128,10 @@
             </label>
             <p id="su-error" class="hidden text-xs font-semibold text-destructive"></p>
             <p id="su-success" class="hidden text-xs font-semibold text-success"></p>
+            <div id="su-resend-kutu" class="hidden space-y-1.5">
+              <button type="button" id="su-resend" onclick="zkResendConfirm('su')" class="w-full rounded-theme border border-primary/40 py-2.5 text-center text-xs font-bold text-primary">Onay mailini yeniden gönder</button>
+              <p id="su-resend-ok" class="hidden text-xs font-semibold text-success"></p>
+            </div>
             <button type="submit" class="flex h-12 w-full items-center justify-center gap-2 rounded-theme bg-primary font-heading text-sm font-bold text-primary-foreground">
               Laboratuvarımı Oluştur
             </button>
@@ -180,6 +189,7 @@
       e.preventDefault();
       var errEl = document.getElementById('si-error');
       errEl.classList.add('hidden');
+      document.getElementById('si-resend-kutu').classList.add('hidden');
       ZirkonikAuth.setRemember(document.getElementById('si-remember').checked);
       ZirkonikAuth.signIn(
         document.getElementById('si-email').value.trim(),
@@ -187,6 +197,11 @@
       ).then(function (res) {
         if (res.error) {
           errEl.textContent = 'Giriş başarısız: ' + ZirkonikAuth.errorText(res.error);
+          // 4 Kasım 2026: e-postası doğrulanmamışsa yeniden gönderme yolu + spam uyarısı.
+          if (/email not confirmed/i.test((res.error && res.error.message) || '')) {
+            errEl.textContent += ' Onay e-postasını Gelen kutunuzda, Gereksiz (spam) ve Promosyonlar klasöründe arayın; bulamazsanız aşağıdan yeniden gönderin.';
+            document.getElementById('si-resend-kutu').classList.remove('hidden');
+          }
           errEl.classList.remove('hidden');
           return;
         }
@@ -265,6 +280,7 @@
       var okEl = document.getElementById('su-success');
       errEl.classList.add('hidden');
       okEl.classList.add('hidden');
+      document.getElementById('su-resend-kutu').classList.add('hidden');
 
       var pw = document.getElementById('su-password').value;
       var weak = zkWeakPasswordWarning(pw);
@@ -304,10 +320,40 @@
           Promise.resolve(kabul).catch(function () {}).then(function () { zkRouteByRole(); });
           return;
         }
-        okEl.textContent = 'Hesap oluşturuldu. E-postanıza gelen onay linkine tıklayıp giriş yapabilirsiniz.';
+        okEl.textContent = 'Hesap oluşturuldu. Onay bağlantısını ' + document.getElementById('su-email').value.trim() + ' adresine gönderdik. Birkaç dakika içinde gelmezse Gereksiz (spam) ve Promosyonlar klasörüne de bakın. Onayladıktan sonra giriş yapabilirsiniz.';
         okEl.classList.remove('hidden');
+        document.getElementById('su-resend-kutu').classList.remove('hidden');
       });
     });
+
+    // 4 Kasım 2026: «Onay mailini yeniden gönder» (giriş ve kayıt ekranı). Supabase aynı adrese 60 sn'de bir izin verir:
+    // düğme 60 sn kilitli kalır, hata Türkçe gösterilir.
+    function zkResendConfirm(on) {
+      var email = document.getElementById(on + '-email').value.trim();
+      var btn = document.getElementById(on + '-resend');
+      var okEl = document.getElementById(on + '-resend-ok');
+      var errEl = document.getElementById(on + '-error');
+      okEl.classList.add('hidden');
+      if (!email) { errEl.textContent = 'Önce e-posta adresinizi yazın.'; errEl.classList.remove('hidden'); return; }
+      btn.disabled = true;
+      ZirkonikAuth.resendConfirmation(email).then(function (res) {
+        if (res.error) throw res.error;
+        errEl.classList.add('hidden');
+        okEl.textContent = 'Onay e-postası yeniden gönderildi. Birkaç dakika içinde gelmezse Gereksiz (spam) klasörüne bakın.';
+        okEl.classList.remove('hidden');
+        var kalan = 60;
+        btn.textContent = 'Tekrar için ' + kalan + ' sn bekleyin';
+        var t = setInterval(function () {
+          kalan--;
+          if (kalan <= 0) { clearInterval(t); btn.disabled = false; btn.textContent = 'Onay mailini yeniden gönder'; }
+          else btn.textContent = 'Tekrar için ' + kalan + ' sn bekleyin';
+        }, 1000);
+      }).catch(function (err) {
+        btn.disabled = false;
+        errEl.textContent = ZirkonikAuth.errorText(err);
+        errEl.classList.remove('hidden');
+      });
+    }
 
     // Zaten girişliyse doğrudan panele yönlendir.
     ZirkonikAuth.getSession().then(function (session) {

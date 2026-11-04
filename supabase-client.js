@@ -103,6 +103,16 @@
       return client().auth.signInWithPassword({ email: email, password: password });
     },
 
+    /** 4 Kasım 2026: onay e-postası gelmeyen/kaybolan kullanıcı için yeniden gönderir (signUp ile aynı yönlendirme).
+     *  Kendi kayıt olan 3 laboratuvarın 2'si onay adımında kalmıştı; giriş ekranında çıkış yolu yoktu.
+     *  Supabase aynı adrese 60 sn'de bir izin verir (errorText Türkçeleştirir). */
+    resendConfirmation: function (email) {
+      var redirect = (window.location.protocol === 'file:')
+        ? 'zirkonik://reset-password'
+        : (window.location.origin + '/giris.html');
+      return client().auth.resend({ type: 'signup', email: email, options: { emailRedirectTo: redirect } });
+    },
+
     /** "Şifremi unuttum" — sıfırlama linkini e-postayla gönderir. Link
      *  zirkonik://reset-password'a düşer (bkz. iOS ContentView.swift
      *  onOpenURL + Info.plist CFBundleURLTypes); bu redirect URL'in
@@ -212,6 +222,7 @@
       if (t.indexOf('user already registered') >= 0 || t.indexOf('already been registered') >= 0) return 'Bu e-posta ile zaten bir hesap var.';
       if (t.indexOf('password should be at least') >= 0) return 'Şifre çok kısa — en az 6 karakter olmalı.';
       if (t.indexOf('weak password') >= 0 || t.indexOf('pwned') >= 0) return 'Bu şifre çok yaygın/zayıf, daha güçlü bir şifre seçin.';
+      if (t.indexOf('only request this') >= 0) return 'Güvenlik nedeniyle yeni bir e-posta için 60 saniye beklemeniz gerekir.';
       if (t.indexOf('rate limit') >= 0 || t.indexOf('too many requests') >= 0) return 'Çok fazla deneme yapıldı, birkaç dakika sonra tekrar deneyin.';
       if (t.indexOf('user is banned') >= 0 || t.indexOf('banned') >= 0) return 'Bu hesap kapatılmış. Laboratuvar yöneticinizle görüşün.';
       if (t.indexOf('token has expired') >= 0 || t.indexOf('invalid token') >= 0 || t.indexOf('expired') >= 0) return 'Bağlantının süresi dolmuş, yeni bir bağlantı isteyin.';
