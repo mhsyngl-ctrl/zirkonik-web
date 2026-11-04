@@ -41,7 +41,7 @@
 // hiç dönmezse tam ekran "İnternet yok" uyarısı + Tekrar Dene gösterir.
 (function () {
   var page = (location.pathname.split('/').pop() || 'index.html').toLowerCase().replace('.html', '') || 'index';
-  var PUBLIC = { giris: 1, 'sifre-sifirla': 1, index: 1, 'hesap-kilitli': 1 };
+  var PUBLIC = { giris: 1, 'sifre-sifirla': 1, index: 1, 'hesap-kilitli': 1, onay: 1 };
   if (PUBLIC[page] || !window.ZirkonikAuth || !window.ZirkonikAuth.getSession) return;
 
   var settled = false;
@@ -87,9 +87,21 @@
 })();
 
 (function () {
-  var PUBLIC = { giris: 1, 'sifre-sifirla': 1, index: 1, 'hesap-kilitli': 1 };
+  var PUBLIC = { giris: 1, 'sifre-sifirla': 1, index: 1, 'hesap-kilitli': 1, onay: 1 };
   var page = (location.pathname.split('/').pop() || 'index.html').toLowerCase().replace('.html', '') || 'index';
   if (PUBLIC[page] || !window.ZirkonikAuth || !window.ZirkonikAuth.me) return;
+  // 4 Kasım 2026: KVKK onay kapısı perdesi. Bu cihazda onay henüz doğrulanmadıysa içerik, kontrol bitene kadar görünmez
+  // (onay vermemiş kullanıcı uygulamayı bir an bile görmesin). Doğrulanmış cihazda perde hiç çıkmaz. 6 sn'de kendiliğinden kalkar.
+  var onayPerde = null;
+  function perdeKaldir() { if (onayPerde && onayPerde.parentNode) onayPerde.parentNode.removeChild(onayPerde); onayPerde = null; }
+  if (window.ZirkonikData && ZirkonikData.onayIsareti && !ZirkonikData.onayIsareti()) {
+    onayPerde = document.createElement('div');
+    onayPerde.id = 'zk-onay-perde';
+    onayPerde.style.cssText = 'position:fixed;inset:0;z-index:29999;background:#0E1013;';
+    if (document.body) document.body.appendChild(onayPerde);
+    else document.addEventListener('DOMContentLoaded', function () { if (onayPerde) document.body.appendChild(onayPerde); });
+    setTimeout(perdeKaldir, 6000);
+  }
   // 28 Eylül 2026: kural mantığı (hangi sayfa kime kapalı, hangi bölüm
   // gizlenir) js/zk-guard-core.js'e taşındı — js/zk-erken-koruma.js
   // <head>'te AYNI kuralları kullanarak boyamadan önce uyguluyor. Burada
@@ -132,7 +144,7 @@
 
   // 2) ASENKRON: taze yetkiyle doğrula ve önbelleği tazele
   ZirkonikAuth.me().then(function (me) {
-    if (!me) return; // oturum denetimini sayfanın kendi requireAuth'u yapar
+    if (!me) { perdeKaldir(); return; } // oturum denetimini sayfanın kendi requireAuth'u yapar
     // Devre dışı bırakılmış kullanıcı: RLS zaten tüm veriyi reddeder (asıl
     // güvenlik orada) ama bunu görmeden boş/kırık ekranlarla karşılaşmasın —
     // açık bir mesajla oturumu kapat.
@@ -168,6 +180,14 @@
     };
     try { localStorage.setItem('zk-guard', JSON.stringify(snap)); } catch (e) {}
     if (enforce(snap.role, snap)) return;
+    // KVKK onay kapısı: eksik onay varsa kullanıcı onay.html'e alınır ("hayır" oturumu kapatır, her girişte yeniden sorulur).
+    // Denetlenemezse (tablo yok/ağ hatası) kapı açık kalır: kimse yanlışlıkla dışarıda kalmasın.
+    if (window.ZirkonikData && ZirkonikData.onayEksikleri) {
+      ZirkonikData.onayEksikleri(me).then(function (eksik) {
+        if (eksik.length) { location.replace('onay.html?don=' + encodeURIComponent((location.pathname.split('/').pop() || 'retim.html') + location.search)); return; }
+        perdeKaldir();
+      }, perdeKaldir);
+    } else perdeKaldir();
     if (snap.role === 'personel') applyStaff(snap);
     // Paket görünümü (tüm roller): Zirkonik Tek'te doktor ögeleri gizlenir, etiketler değişir.
     if (ZkGuardCore.paketUi) {

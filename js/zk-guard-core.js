@@ -8,7 +8,8 @@
  * başında güvenle çalışabilir.
  */
 (function () {
-  var PUBLIC = { giris: 1, 'sifre-sifirla': 1, index: 1, 'hesap-kilitli': 1 };
+  // 4 Kasım 2026: onay (KVKK onay kapısı) her rolün açabildiği, bekçiden muaf sayfadır; kendi oturum denetimini yapar.
+  var PUBLIC = { giris: 1, 'sifre-sifirla': 1, index: 1, 'hesap-kilitli': 1, onay: 1 };
 
   // Bunlar hiçbir izinle personele açılmaz — organizasyon/kadro ayarı, yönetici işi.
   var ADMIN_PAGES = { ekip: 1, laboratuvarlar: 1, 'rol-ve-yetki-detay': 1 };

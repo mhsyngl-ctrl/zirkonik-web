@@ -1456,6 +1456,55 @@
     acceptContract: function (belge, surum) {
       return client().rpc('sozlesme_kabul_et', { p_belge: belge, p_surum: surum });
     },
+    // ---- KVKK onay kapısı (4 Kasım 2026, sahibinin kararı): her kullanıcı güncel Gizlilik Politikası / aydınlatma metnini,
+    // kuruluş sahibi/yöneticisi ayrıca Veri İşleme Sözleşmesini kabul edene kadar uygulama açılmaz (onay.html).
+    // "Kabul etmiyorum" = oturum kapanır; sonraki girişte soru yeniden gelir (ret kaydedilmez, sayı sınırı yok).
+    // Yeni metin yayımlanınca AŞAĞIDAKİ sürüm numarası artırılır: herkesten yeniden istenir.
+    // Güvenlik: tablo/fonksiyon henüz kurulu değilse ya da ağ/sunucu hatası varsa kapı AÇIK kalır (kimse yanlışlıkla dışarıda kalmasın).
+    ONAY_SURUM: { veri_isleme: '0.1', gizlilik: '1.0' },
+    /** Bu cihazda, bu kullanıcı için ve bu sürümlerle onay doğrulanmış mı (eşzamanlı; sayfa açılışında perde kararı için). */
+    onayIsareti: function (uid) {
+      try {
+        var S = window.ZirkonikData.ONAY_SURUM, m = JSON.parse(localStorage.getItem('zk-onay-ok') || 'null');
+        if (!m || m.v !== S.veri_isleme + '|' + S.gizlilik || (uid && m.u !== uid)) return false;
+        return m.h ? (Date.now() - m.t < 30 * 60 * 1000) : true; // hata yüzünden açık bırakılan kayıt 30 dk geçerli
+      } catch (e) { return false; }
+    },
+    onayIsaretle: function (uid, hata) {
+      var S = window.ZirkonikData.ONAY_SURUM;
+      try { localStorage.setItem('zk-onay-ok', JSON.stringify({ u: uid, v: S.veri_isleme + '|' + S.gizlilik, h: hata ? 1 : 0, t: Date.now() })); } catch (e) {}
+    },
+    /** Kullanıcının kabul etmesi gereken belgeler: [] = hepsi tamam ya da denetlenemedi (kapı açık). */
+    onayEksikleri: function (me) {
+      var D = window.ZirkonikData, S = D.ONAY_SURUM, eksik = [], hata = false;
+      if (!me || !me.id || D.onayIsareti(me.id)) return Promise.resolve([]);
+      // user_id süzgeci ŞART: sahip/yönetici RLS ile ekibinin kayıtlarını da görür; başkasının kabulü sayılmasın.
+      var isler = [client().from('kullanici_kabulleri').select('kabul_zamani').eq('belge', 'gizlilik').eq('surum', S.gizlilik)
+        .eq('user_id', me.id).limit(1).then(function (r) {
+          if (!r || r.error) hata = true; else if (!(r.data && r.data.length)) eksik.push('gizlilik');
+        })];
+      if (me.role === 'yonetici' && me.organization_id) {
+        isler.push(D.getSozlesmeKabul('veri_isleme', S.veri_isleme, me.organization_id).then(function (r) {
+          if (!r || r.error) hata = true; else if (!(r.data && r.data.length)) eksik.push('veri_isleme');
+        }));
+      }
+      return Promise.all(isler).catch(function () { hata = true; }).then(function () {
+        if (!eksik.length) D.onayIsaretle(me.id, hata);
+        return eksik;
+      });
+    },
+    /** Eksik belgeleri kabul eder (sırayla; ilk hata durdurur). Başarıda cihaz işareti yazılır. Dönen: son sonuç ya da {error}. */
+    onayVer: function (eksik, uid) {
+      var D = window.ZirkonikData, S = D.ONAY_SURUM, adimlar = [];
+      if (eksik.indexOf('veri_isleme') >= 0) adimlar.push(function () { return client().rpc('sozlesme_kabul_et', { p_belge: 'veri_isleme', p_surum: S.veri_isleme }); });
+      if (eksik.indexOf('gizlilik') >= 0) adimlar.push(function () { return client().rpc('kullanici_kabul_et', { p_belge: 'gizlilik', p_surum: S.gizlilik }); });
+      return adimlar.reduce(function (p, f) {
+        return p.then(function (son) { return (son && son.error) ? son : f(); });
+      }, Promise.resolve(null)).then(function (son) {
+        if (!(son && son.error)) D.onayIsaretle(uid, false);
+        return son;
+      });
+    },
     // ---- Pazarlama performansı (yönetici) — 13 Ekim 2026, sahibinin isteği ----
     // "Satış Pazarlama Sorumlusu" pozisyonundaki her temsilci için, dönem içinde:
     //   temas (ziyaret/arama/WhatsApp/numune/randevu), farklı klinik sayısı,

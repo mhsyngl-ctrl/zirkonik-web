@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://cuujupeindodpsdjcivm.supabase.co wss://cuujupeindodpsdjcivm.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <title>Gizlilik ve Veri Onayı — Zirkonik</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="theme-color" content="#0E1013">
+  <style>
+    :root { --bg:#0E1013; --card:#15181D; --line:#232830; --fg:#F4F6F8; --muted:#9AA4B2; --blue:#3D7CDC; --red:#EF5350; --ok:#10B981; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--bg); color: var(--fg); font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-text-size-adjust: 100%; }
+    .wrap { min-height: 100vh; max-width: 520px; margin: 0 auto; padding: max(28px, env(safe-area-inset-top)) 20px max(28px, env(safe-area-inset-bottom)); display: flex; flex-direction: column; justify-content: center; }
+    .logo { display: block; width: 72px; height: 72px; margin: 0 auto 18px; border-radius: 18px; }
+    h1 { font-size: 22px; line-height: 1.25; margin: 0 0 8px; text-align: center; letter-spacing: -.01em; }
+    p { color: var(--muted); font-size: 15px; line-height: 1.6; margin: 0 0 14px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 6px 16px; margin: 6px 0 18px; }
+    .belge { display: block; padding: 14px 0; border-bottom: 1px solid var(--line); color: var(--fg); text-decoration: none; font-size: 15px; font-weight: 600; }
+    .belge:last-child { border-bottom: 0; }
+    .belge small { display: block; margin-top: 3px; font-size: 13px; font-weight: 400; color: var(--muted); }
+    .belge span { color: var(--blue); }
+    button { width: 100%; min-height: 50px; border-radius: 12px; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
+    .evet { border: 0; background: var(--blue); color: #fff; margin-bottom: 10px; }
+    .hayir { border: 1px solid var(--line); background: transparent; color: var(--muted); }
+    button:disabled { opacity: .55; cursor: default; }
+    .not { font-size: 13px; text-align: center; margin: 14px 0 0; }
+    #hata { color: var(--red); font-size: 14px; font-weight: 600; margin: 0 0 12px; text-align: center; }
+    #yukleniyor { text-align: center; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body data-page="onay">
+  <div class="wrap">
+    <img class="logo" src="icon-192.png" alt="Zirkonik">
+    <h1>Gizlilik ve veri onayı</h1>
+
+    <p id="yukleniyor">Kontrol ediliyor…</p>
+
+    <div id="soru" hidden>
+      <p>Zirkonik'i kullanmaya devam edebilmek için aşağıdaki metinleri okuyup kabul etmeniz gerekir. Bu soru yalnızca bir kez sorulur.</p>
+      <div class="card" id="belgeler"></div>
+      <p id="hata" hidden></p>
+      <button type="button" class="evet" id="evet">Okudum, kabul ediyorum</button>
+      <button type="button" class="hayir" id="hayir">Kabul etmiyorum</button>
+      <p class="not">Kabul etmezseniz oturumunuz kapanır ve uygulama açılmaz. Giriş yaptığınızda bu soru yeniden sorulur.</p>
+    </div>
+
+    <div id="ret" hidden>
+      <p style="text-align:center">Onay vermediğiniz için uygulama açılmadı ve oturumunuz kapatılıyor. Dilediğiniz zaman tekrar giriş yapıp onay verebilirsiniz.</p>
+    </div>
+
+    <div id="tekrar" hidden>
+      <p id="tekrar-metin" style="text-align:center"></p>
+      <button type="button" class="evet" id="tekrar-dugme">Tekrar dene</button>
+    </div>
+  </div>
+
+  <script src="vendor/supabase-js.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="js/net-guard.js"></script>
+  <script src="supabase-client.js"></script>
+  <script>
+    (function () {
+      // 4 Kasım 2026 — KVKK onay kapısı (sahibinin kararı): kabul etmemiş herkese tek seferlik soru. "Evet" = uygulama açılır;
+      // "Hayır" = oturum kapanır, sonraki girişte soru yeniden gelir. Ret kaydedilmez, deneme sayısı sınırlanmaz.
+      var BELGE = {
+        gizlilik: { baslik: 'Gizlilik Politikası ve KVKK Aydınlatma Metni', ayrinti: 'Verilerinizin nasıl işlendiği ve haklarınız', url: 'gizlilik-politikasi.html' },
+        veri_isleme: { baslik: 'Veri İşleme Sözleşmesi', ayrinti: 'Laboratuvarınız adına kabul edilir (yalnız sahip/yönetici)', url: 'veri-isleme-sozlesmesi.html' }
+      };
+      var S = (window.ZirkonikData && ZirkonikData.ONAY_SURUM) || {};
+      function $(id) { return document.getElementById(id); }
+      function kac(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+      // Açık yönlendirme koruması: yalnızca aynı klasördeki bir .html sayfasına dönülür.
+      var don = new URLSearchParams(location.search).get('don') || '';
+      if (!/^[A-Za-z0-9_-]+\.html(\?[A-Za-z0-9_=&%.-]*)?$/.test(don) || /^onay\.html/i.test(don)) don = '';
+
+      var me = null, eksik = [];
+
+      function git() {
+        location.replace(don || (me && me.role === 'doktor' ? 'doktor-siparis.html' : 'retim.html'));
+      }
+      function goster(id) {
+        ['yukleniyor', 'soru', 'ret', 'tekrar'].forEach(function (x) { $(x).hidden = (x !== id); });
+      }
+      function tekrarDene(metin) {
+        $('tekrar-metin').textContent = metin;
+        goster('tekrar');
+      }
+      function cizSoru() {
+        $('belgeler').innerHTML = eksik.map(function (b) {
+          var d = BELGE[b]; if (!d) return '';
+          return '<a class="belge" href="' + d.url + '">' + kac(d.baslik) + ' <span>(sürüm ' + kac(S[b] || '') + ') &rsaquo;</span><small>' + kac(d.ayrinti) + '</small></a>';
+        }).join('');
+        goster('soru');
+      }
+
+      function kontrol() {
+        goster('yukleniyor');
+        ZirkonikAuth.getSession().then(function (s) {
+          if (!s) { location.replace('giris.html'); return null; }
+          return ZirkonikAuth.me();
+        }).then(function (m) {
+          if (!m) return null;
+          me = m;
+          try { localStorage.removeItem('zk-onay-ok'); } catch (e) {} // eski işareti yok say: burada taze denetim yapılır
+          return ZirkonikData.onayEksikleri(me).then(function (e) {
+            if (!e.length) { git(); return; }   // zaten kabul edilmiş (ya da denetlenemiyor: kapı açık)
+            eksik = e; cizSoru();
+          });
+        }).catch(function () { tekrarDene('Bağlantı kurulamadı. İnternetinizi kontrol edip tekrar deneyin.'); });
+      }
+
+      $('evet').addEventListener('click', function () {
+        var b = $('evet'); b.disabled = true; $('hata').hidden = true;
+        ZirkonikData.onayVer(eksik, me.id).then(function (res) {
+          if (res && res.error) throw res.error;
+          git();
+        }).catch(function (err) {
+          b.disabled = false;
+          $('hata').textContent = 'Kaydedilemedi: ' + ((window.ZirkonikAuth && ZirkonikAuth.errorText) ? ZirkonikAuth.errorText(err) : 'bir sorun oluştu') + ' Lütfen tekrar deneyin.';
+          $('hata').hidden = false;
+        });
+      });
+      $('hayir').addEventListener('click', function () {
+        $('hayir').disabled = true; $('evet').disabled = true;
+        goster('ret');
+        setTimeout(function () { ZirkonikAuth.signOut(); }, 1800);   // oturum kapanır, giriş sayfası açılır
+      });
+      $('tekrar-dugme').addEventListener('click', kontrol);
+
+      kontrol();
+    })();
+  </script>
+</body>
+</html>
