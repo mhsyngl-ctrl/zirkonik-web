@@ -95,22 +95,14 @@
   <p>Kişisel veriler; kayıt ve giriş formları, iş/sipariş giriş ekranları, laboratuvar ya da hekim tarafından yüklenen dosyalar ve uygulamanın otomatik ürettiği teknik kayıtlar aracılığıyla, elektronik ortamda, tamamen veya kısmen otomatik yollarla toplanır.</p>
 
   <h2>5. Verilerin aktarılması</h2>
-  <h3>Yurt içi ve uygulama içi paylaşım</h3>
+  <h3>Uygulama içi ve yasal paylaşım</h3>
   <ul>
     <li>Aynı laboratuvarın yetkili kullanıcıları ile işi veren diş hekimi; her laboratuvarın verisi diğerlerinden izole edilmiştir.</li>
     <li>Kullanıcının başlattığı laboratuvarlar arası iş aktarımında, karşı laboratuvara iş bilgisi gider; <strong>hasta adı aktarılmaz.</strong></li>
     <li>Yasal bir zorunluluk veya yetkili bir kamu kurumunun talebi hâlinde ilgili kurum ve kuruluşlar.</li>
   </ul>
-  <h3>Yurt dışına aktarım</h3>
-  <p>Hizmetin sunulması için aşağıdaki altyapı sağlayıcıları kullanılır; bunların bir kısmı Türkiye dışında, Avrupa Birliği'nde ve ABD'de hizmet verir. Aktarımlar KVKK m.9 kapsamında öngörülen şartlar ve uygun güvenceler sağlanarak yapılır.</p>
-  <table>
-    <tr><th style="width:30%">Alıcı</th><th>Amaç</th><th style="width:28%">Konum</th></tr>
-    <tr><td>Supabase</td><td>Veritabanı, kimlik doğrulama, sunucu işlevleri</td><td>Frankfurt, Almanya (AB)</td></tr>
-    <tr><td>Vercel</td><td>Web arayüzünün barındırılması ve sunulması</td><td>Küresel dağıtım ağı (ABD merkezli)</td></tr>
-    <tr><td>Resend</td><td>İş kâğıdı ve ekstre gibi işlem e-postalarının gönderimi</td><td>ABD merkezli</td></tr>
-    <tr><td>Apple (APNs), Google (FCM)</td><td>Mobil bildirim iletimi (bildirim başlığı ve metni)</td><td>ABD merkezli</td></tr>
-    <tr><td>Zirkonik yedek sunucusu</td><td>Günlük şifreli yedek</td><td>Talep üzerine bildirilir</td></tr>
-  </table>
+  <h3>Anlaşmalı veri sağlayıcıları</h3>
+  <p>Hizmeti sunabilmek için sözleşmeli (anlaşmalı) veri ve altyapı sağlayıcılarından yararlanırız: veritabanı ve kimlik doğrulama, web barındırma, işlem e-postaları, bildirim iletimi ve yedekleme hizmetleri. Veritabanı Avrupa Birliği'ndeki (Frankfurt) sunucularda barındırılır. Bu sağlayıcıların bir kısmı yurt dışında hizmet verebilir; bu durumda aktarım KVKK m.9 kapsamında öngörülen şartlar ve uygun güvenceler sağlanarak yapılır. Sağlayıcıların güncel listesi laboratuvarlara <a href="veri-isleme-sozlesmesi.html">Veri İşleme Sözleşmesi</a>'nin Ek-2'sinde bildirilir.</p>
   <p>Aday havuzundaki <strong>"Konumdan Doldur"</strong> düğmesine bastığınızda, cihazınızın o anki koordinatları adres bilgisini bulmak için OpenStreetMap'in açık hizmeti Nominatim'e (nominatim.openstreetmap.org) gönderilir. Düğmeye basmazsanız hiçbir konum bilgisi gönderilmez. Koordinatlarınız Zirkonik sunucularında saklanmaz; yalnızca forma dolan adres metni, siz kaydederseniz saklanır.</p>
   <p>Verileriniz satılmaz ve reklam ağlarıyla paylaşılmaz.</p>
 
