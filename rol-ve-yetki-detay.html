@@ -213,7 +213,7 @@
             </div>
           </div>
           <div class="mt-3 rounded-theme border border-border bg-card p-4">
-            <p class="mb-1.5 text-xs font-bold text-card-foreground">Laboratuvarlar</p>
+            <p class="mb-1.5 text-xs font-bold text-card-foreground">Laboratuvarlar <span class="font-normal text-muted-foreground">(birden fazla seçilebilir, en az biri zorunlu)</span></p>
             <div id="access-labs" class="space-y-1.5 text-sm">Yükleniyor…</div>
             <p class="mb-1.5 mt-4 text-xs font-bold text-card-foreground">Odalar</p>
             <div id="access-rooms" class="space-y-1.5 text-sm">Önce laboratuvar seçin.</div>
@@ -633,6 +633,17 @@
       var infoVisible = !document.getElementById('personal-info-section').classList.contains('hidden');
       if (infoVisible && !document.getElementById('pi-name').value.trim()) {
         errEl.textContent = 'Ad soyad zorunludur.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      // 4 Kasım 2026 (sahibinin kararı): personel en az bir laboratuvara erişmeli (birden fazla olabilir);
+      // yönetici/işveren zaten tüm laboratuvarları görür. Liste yüklenmediyse boş kayıt mevcut erişimi silerdi.
+      var erisimGorunur = !document.getElementById('access-section').classList.contains('hidden');
+      var yeniPoz = infoVisible ? document.getElementById('pi-position').value : '';
+      if (erisimGorunur && yeniPoz !== 'Yönetici' && yeniPoz !== 'İşveren' && !document.querySelector('.acc-lab-cb:checked')) {
+        errEl.textContent = document.querySelector('.acc-lab-cb') ? 'Personel için en az bir laboratuvar seçin.'
+          : (/Henüz laboratuvar yok/.test(document.getElementById('access-labs').textContent) ? 'Önce Laboratuvarlar sekmesinden bir laboratuvar ekleyin.' : 'Laboratuvar listesi henüz yüklenmedi, birkaç saniye sonra tekrar deneyin.');
         errEl.classList.remove('hidden');
         return;
       }
