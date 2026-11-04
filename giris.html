@@ -118,18 +118,11 @@
                 <button type="button" onclick="zkSuggestPassword()" class="shrink-0 text-[11px] font-bold text-primary">Şifre öner</button>
               </div>
             </label>
+            <!-- 4 Kasım 2026: TEK kutu (sahibinin tercihi: çok kutu olmasın). Üç ayrı cümle: aydınlatma = "okudum ve anladım" (Kurul ilke kararı 2026/347, "kabul" denmez);
+                 "kabul ediyorum" yalnız sözleşme için; yaş/mesleki kullanım beyanı. -->
             <label style="display:flex;align-items:flex-start;gap:8px;font-size:11px;line-height:1.5" class="text-muted-foreground">
-              <input id="su-dpa" type="checkbox" required style="margin-top:2px">
-              <span><a href="veri-isleme-sozlesmesi.html" target="_blank" rel="noopener" class="font-bold text-primary">Veri İşleme Sözleşmesi</a>'ni laboratuvarım adına kabul ediyorum.</span>
-            </label>
-            <!-- 4 Kasım 2026: Kurul ilke kararı 2026/347 — aydınlatmadan "kabul/onay" istenmez; yalnızca "okudum ve anladım" geri bildirimi alınır. -->
-            <label style="display:flex;align-items:flex-start;gap:8px;font-size:11px;line-height:1.5" class="text-muted-foreground">
-              <input id="su-aydinlatma" type="checkbox" required style="margin-top:2px">
-              <span><a href="gizlilik-politikasi.html" target="_blank" rel="noopener" class="font-bold text-primary">Gizlilik Politikası ve KVKK Aydınlatma Metni</a>'ni okudum ve anladım.</span>
-            </label>
-            <label style="display:flex;align-items:flex-start;gap:8px;font-size:11px;line-height:1.5" class="text-muted-foreground">
-              <input id="su-yas" type="checkbox" required style="margin-top:2px">
-              <span>18 yaşından büyük olduğumu ve Zirkonik'i mesleki amaçla kullandığımı beyan ederim.</span>
+              <input id="su-kabul" type="checkbox" required style="margin-top:2px">
+              <span><a href="gizlilik-politikasi.html" target="_blank" rel="noopener" class="font-bold text-primary">Gizlilik Politikası ve KVKK Aydınlatma Metni</a>'ni okudum ve anladım. <a href="veri-isleme-sozlesmesi.html" target="_blank" rel="noopener" class="font-bold text-primary">Veri İşleme Sözleşmesi</a>'ni laboratuvarım adına kabul ediyorum. 18 yaşından büyük olduğumu ve Zirkonik'i mesleki amaçla kullandığımı beyan ederim.</span>
             </label>
             <p id="su-error" class="hidden text-xs font-semibold text-destructive"></p>
             <p id="su-success" class="hidden text-xs font-semibold text-success"></p>
@@ -295,15 +288,9 @@
         return;
       }
 
-      // 4 Kasım 2026: aydınlatma "okudum ve anladım" kutusu; işaretlenmeden kayıt isteği hiç gitmez.
-      if (!document.getElementById('su-aydinlatma').checked) {
-        errEl.textContent = 'Devam etmek için Gizlilik Politikası ve KVKK Aydınlatma Metni\'ni okuduğunuzu belirtmeniz gerekir.';
-        errEl.classList.remove('hidden');
-        return;
-      }
-      // 3 Kasım 2026: 18 yaş + mesleki kullanım beyanı; kutu işaretlenmeden kayıt isteği hiç gitmez.
-      if (!document.getElementById('su-yas').checked) {
-        errEl.textContent = 'Devam etmek için 18 yaşından büyük olduğunuzu ve mesleki amaçla kullandığınızı beyan etmeniz gerekir.';
+      // 4 Kasım 2026: tek kutu (aydınlatma okundu/anlaşıldı + sözleşme kabulü + 18 yaş/mesleki kullanım); işaretlenmeden kayıt isteği hiç gitmez.
+      if (!document.getElementById('su-kabul').checked) {
+        errEl.textContent = 'Devam etmek için kutuyu işaretleyerek Gizlilik Politikası ve KVKK Aydınlatma Metni\'ni okuduğunuzu, Veri İşleme Sözleşmesi\'ni kabul ettiğinizi ve 18 yaşından büyük olduğunuzu belirtmeniz gerekir.';
         errEl.classList.remove('hidden');
         return;
       }
