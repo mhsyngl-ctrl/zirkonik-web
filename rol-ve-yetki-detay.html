@@ -423,6 +423,13 @@
             var op = document.createElement('option'); op.value = u.position; op.textContent = u.position; piPos.appendChild(op);
           }
           piPos.value = u.position || (u.role === 'yonetici' ? 'Yönetici' : 'Teknisyen');
+          // Yönetici/işveren personele düşürülmez (sahibinin kararı, 5 Kasım 2026): listede yalnız tam yetkili pozisyonlar kalır.
+          window.zkYuklenenRol = u.role;
+          if (u.role === 'yonetici') {
+            Array.prototype.slice.call(piPos.options).forEach(function (o) {
+              if (o.value !== 'Yönetici' && o.value !== 'İşveren' && o.value !== u.position) piPos.removeChild(o);
+            });
+          }
           zkPozisyonNotu();
           document.getElementById('pi-phone').value = u.phone || '';
           document.getElementById('pi-hire').value = u.hire_date || '';
@@ -664,8 +671,8 @@
             hire_date: document.getElementById('pi-hire').value || null,
             birth_date: document.getElementById('pi-birth').value || null,
             position: pos,
-            // İşveren/Yönetici tam yetkili roldür; diğer pozisyonlar personel.
-            role: (pos === 'Yönetici' || pos === 'İşveren') ? 'yonetici' : 'personel',
+            // İşveren/Yönetici tam yetkili roldür; diğer pozisyonlar personel. Zaten yönetici olan kişi personele dönmez.
+            role: (window.zkYuklenenRol === 'yonetici' || pos === 'Yönetici' || pos === 'İşveren') ? 'yonetici' : 'personel',
           }).eq('id', userId);
         }).then(function (res) {
           if (res.error) throw res.error;
