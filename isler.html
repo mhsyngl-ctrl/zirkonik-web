@@ -197,6 +197,25 @@
         '<button type="button" onclick="zkOdakTemizle()" aria-label="Filtreyi kaldır" class="text-primary">✕</button></span>';
     }
     var currentJobs = [];
+    // 5 Kasım 2026 (sahibinin isteği): laboratuvar ayarı açıksa iş kartında numaranın yanında hasta, doktor ve işi yapan teknisyen adı görünür.
+    var labKisiAyari = {};        // laboratuvar kimliği → ayar açık mı
+    var teknisyenOnbellek = {};   // iş kimliği → son işleyen çalışanın adı ('' = yok); yalnız ayarı açık laboratuvarların işleri için sorulur
+    function kisiGoster(j) { return labKisiAyari[j.laboratory_id] === true; }
+    // Kısaltmalar: H: hasta · Dr. doktor · Dt. teknisyen. Adın içinde zaten "Dr."/"Dt." varsa ("Uzman Diş Hekimi Dr. Çınar…") ikinci kez eklenmez.
+    function unvanli(unvan, ad) { return /(^|\s)(dr|dt)\.?(\s|$)/i.test(ad) ? ad : unvan + ' ' + ad; }
+    function teknisyenleriYukle(isler) {
+      var yeni = isler.filter(function (j) { return kisiGoster(j) && !(j.id in teknisyenOnbellek); }).map(function (j) { return j.id; });
+      if (!yeni.length) return;
+      yeni.forEach(function (id) { teknisyenOnbellek[id] = ''; });   // aynı işi iki kez isteme
+      ZirkonikAuth.client().from('job_stage_history').select('job_id, handled_by, entered_at, app_users:handled_by(full_name)')
+        .in('job_id', yeni).order('entered_at', { ascending: false }).then(function (r) {
+          var gorulen = {};
+          (r.data || []).forEach(function (h) {
+            if (!gorulen[h.job_id] && h.handled_by && h.app_users && h.app_users.full_name) { gorulen[h.job_id] = true; teknisyenOnbellek[h.job_id] = h.app_users.full_name; }
+          });
+          renderJobs();
+        });
+    }
 
     function zkSetTab(tab) {
       currentTab = tab;
@@ -207,9 +226,11 @@
 
     function loadFilters() {
       var client = ZirkonikAuth.client();
-      client.from('laboratories').select('id, name').order('name').then(function (r) {
+      // 'select *': "kartlarda kişi adları" sütunu (show_people_on_job_cards) SQL'den önce istenmesin (sütun yoksa gelmez, ayar kapalı sayılır).
+      client.from('laboratories').select('*').order('name').then(function (r) {
         var sel = document.getElementById('f-lab');
         (r.data || []).forEach(function (l) {
+          labKisiAyari[l.id] = l.show_people_on_job_cards === true;
           var opt = document.createElement('option');
           opt.value = l.id; opt.textContent = l.name;
           sel.appendChild(opt);
@@ -291,7 +312,7 @@
             currentJobs = []; renderJobs(); return;
           }
           var q = client.from('jobs')
-            .select('id, job_number, restoration_type, unit_count, status, created_at, completed_at, requested_delivery_at, doctors(full_name, clinic_name), laboratories(name)', { count: 'exact' })
+            .select('id, job_number, restoration_type, unit_count, status, created_at, completed_at, requested_delivery_at, doctors(full_name, clinic_name), laboratories(name), laboratory_id, patient_name', { count: 'exact' })
             .eq('status', currentTab);
           if (labId) q = q.eq('laboratory_id', labId);
           if (doctorId) q = q.eq('doctor_id', doctorId);
@@ -344,13 +365,26 @@
         el.innerHTML = '<p class="p-4 text-center text-xs text-muted-foreground">Bu filtrelerle eşleşen iş yok.</p>';
         return;
       }
+      teknisyenleriYukle(currentJobs);
       el.innerHTML = currentJobs.map(function (j) {
+        var kisi = kisiGoster(j), meta = '';
+        if (kisi) {
+          var p = [];
+          // Her ad tek satırda kesilir (uzun klinik adları kartı doldurmasın); tam adlar iş detayında.
+          var kes = 'display:inline-block;max-width:11rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom';
+          // Hasta adı KALIN ve koyu (asıl aranan bilgi); doktor ve teknisyen normal ağırlıkta.
+          if (j.patient_name) p.push('<span style="' + kes + '">H: <b class="font-bold text-card-foreground">' + escapeHtml(j.patient_name) + '</b></span>');
+          if (j.doctors && j.doctors.full_name) p.push('<span style="' + kes + '">' + escapeHtml(unvanli('Dr.', j.doctors.full_name)) + '</span>');
+          if (teknisyenOnbellek[j.id]) p.push('<span style="' + kes + '">' + escapeHtml(unvanli('Dt.', teknisyenOnbellek[j.id])) + '</span>');
+          meta = p.join('<span aria-hidden="true">·</span>');
+        }
         var dateLabel = currentTab === 'completed'
           ? (j.completed_at ? new Date(j.completed_at).toLocaleDateString('tr-TR') : '—')
           : (j.requested_delivery_at ? new Date(j.requested_delivery_at).toLocaleDateString('tr-TR') : 'Teslim tarihi yok');
         return '<button onclick="zkHandoffJob(\'' + j.id + '\'); location.href=\'detay.html?id=' + j.id + '\'" class="flex w-full items-center justify-between gap-3 rounded-theme border border-border bg-card px-3.5 py-3 text-left">' +
-          '<div class="min-w-0"><p class="text-sm font-bold">' + escapeHtml(j.job_number) + ' <span data-zk-is="' + j.id + '"></span></p>' +
-          '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + escapeHtml(j.doctors ? j.doctors.full_name : '') + ' · ' + escapeHtml(j.restoration_type || '') + (j.unit_count ? ' · ' + j.unit_count + ' diş' : '') + '</p></div>' +
+          '<div class="min-w-0"><p class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm font-bold"><span>' + escapeHtml(j.job_number) + ' <span data-zk-is="' + j.id + '"></span></span>' +
+            (meta ? '<span data-zk-kisiler class="flex flex-wrap items-baseline gap-x-1.5 text-[11px] font-normal text-muted-foreground">' + meta + '</span>' : '') + '</p>' +
+          '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + (kisi ? '' : escapeHtml(j.doctors ? j.doctors.full_name : '') + ' · ') + escapeHtml(j.restoration_type || '') + (j.unit_count ? ' · ' + j.unit_count + ' diş' : '') + '</p></div>' +
           '<span class="shrink-0 text-[10px] font-semibold text-muted-foreground">' + escapeHtml(dateLabel) + '</span>' +
           '</button>';
       }).join('') +
