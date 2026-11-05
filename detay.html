@@ -87,6 +87,8 @@
                  ekran okumuyordu; teknisyen elindeki işin hangi hastaya ait
                  olduğunu göremiyordu. Boşsa satır tamamen gizlenir. -->
             <p id="job-patient" class="mt-1 hidden truncate text-[13px] font-semibold text-muted-foreground"></p>
+            <!-- 5 Kasım 2026: laboratuvar ayarı "kartlarda kişi adları" açıksa Dr./Dt. satırı (isler.html ile aynı ayar); kapalıysa hiç görünmez. -->
+            <p id="job-ekip" class="mt-0.5 text-xs text-muted-foreground" style="display:none;flex-wrap:wrap;align-items:baseline;column-gap:14px;row-gap:1px"></p>
             <p id="job-designer" class="mt-0.5 hidden truncate text-xs text-muted-foreground"></p>
           </div>
           <span id="priority-badge" class="hidden items-center gap-1.5 rounded-full bg-accent px-3 py-1.5 text-[11px] font-bold text-accent-foreground">
@@ -718,6 +720,46 @@
       });
     }
 
+    // Kişi satırları: "H: hasta" (kalın) + "Dr. doktor · Dt. teknisyen". Ayar laboratuvar başına; 'select *' ile okunur ki sütun SQL'den önce istenmesin (yoksa ayar kapalı sayılır).
+    var kisiAyari = null;      // null = henüz sorulmadı, true/false = laboratuvarın ayarı
+    var kisiTeknisyen = '';    // işin son işleyen çalışanı
+    function unvanli(unvan, ad) { return /(^|\s)(dr|dt)\.?(\s|$)/i.test(ad) ? ad : unvan + ' ' + ad; }
+    function kisiAyariYukle(j) {
+      if (kisiAyari !== null || !j.laboratory_id) return;
+      kisiAyari = false;       // aynı işi iki kez isteme; cevap gelince güncellenir
+      var client = ZirkonikAuth.client();
+      client.from('laboratories').select('*').eq('id', j.laboratory_id).maybeSingle().then(function (r) {
+        if (!(r.data && r.data.show_people_on_job_cards === true)) return;
+        kisiAyari = true;
+        client.from('job_stage_history').select('handled_by, entered_at, app_users:handled_by(full_name)')
+          .eq('job_id', jobId).order('entered_at', { ascending: false }).then(function (h) {
+            (h.data || []).some(function (x) {
+              if (x.handled_by && x.app_users && x.app_users.full_name) { kisiTeknisyen = x.app_users.full_name; return true; }
+              return false;
+            });
+            if (currentJob) kisiSatirlari(currentJob);
+          });
+        if (currentJob) kisiSatirlari(currentJob);
+      });
+    }
+    function kisiSatirlari(j) {
+      kisiAyariYukle(j);
+      var hastaEl = document.getElementById('job-patient');
+      var ekipEl = document.getElementById('job-ekip');
+      if (!kisiAyari) { ekipEl.style.display = 'none'; return; }
+      if (j.patient_name) {
+        hastaEl.innerHTML = 'H: <b style="font-weight:800">' + escapeHtml(j.patient_name) + '</b>' + (j.clinic_protocol_no ? ' · ' + escapeHtml(j.clinic_protocol_no) : '');
+        hastaEl.classList.remove('hidden');
+      }
+      var e = [];
+      var kes = 'max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+      var dr = j.doctors && j.doctors.full_name;
+      if (dr) e.push('<span style="' + kes + '">' + escapeHtml(unvanli('Dr.', dr)) + '</span>');
+      if (kisiTeknisyen) e.push('<span style="' + kes + '">' + escapeHtml(unvanli('Dt.', kisiTeknisyen)) + '</span>');
+      ekipEl.innerHTML = e.join('');
+      ekipEl.style.display = e.length ? 'flex' : 'none';
+    }
+
     function renderJob() {
       renderItemTabs();
       renderTeethMap();
@@ -738,6 +780,7 @@
       } else {
         patientEl.classList.add('hidden');
       }
+      kisiSatirlari(j);
       var tasEl = document.getElementById('job-designer');
       if (j.designer_id) {
         zkTasarimciAdlari().then(function (liste) {
