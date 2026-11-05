@@ -914,3 +914,10 @@ body { animation: zkPageIn .2s ease both; }
   font-size: 14px; font-weight: 700; white-space: nowrap; cursor: pointer; text-decoration: none;
 }
 .zk-btn-ek iconify-icon { font-size: 17px; }
+
+/* İş kartı rozetleri (5 Kasım 2026): "N. prova · doktorda" gibi durum hapı. Bekleyen = turuncu nokta + hafif turuncu zemin; sonuçlanmış = sönük. */
+.zk-rozet { display: inline-flex; align-items: center; gap: 4px; border-radius: 9999px; padding: 2px 8px; font-size: 10px; font-weight: 700; line-height: 1.4; white-space: nowrap;
+  background: var(--color-secondary); color: var(--color-muted-foreground); }
+.zk-rozet-bek { color: var(--color-accent); background: rgba(240, 160, 60, 0.15); }
+.zk-rozet-bek::before { content: ''; width: 6px; height: 6px; border-radius: 9999px; background: var(--color-accent); flex: none; }
+

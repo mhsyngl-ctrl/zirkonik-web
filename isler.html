@@ -367,25 +367,28 @@
       }
       teknisyenleriYukle(currentJobs);
       el.innerHTML = currentJobs.map(function (j) {
-        var kisi = kisiGoster(j), meta = '';
+        var kisi = kisiGoster(j), meta = '', ekip = '';
         if (kisi) {
-          var p = [];
+          var p = [], e = [];
           // Her ad tek satırda kesilir (uzun klinik adları kartı doldurmasın); tam adlar iş detayında.
-          var kes = 'display:inline-block;max-width:11rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom';
+          var kes = 'display:inline-block;max-width:min(100%,22rem);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom';
           // Hasta adı KALIN ve koyu (asıl aranan bilgi); doktor ve teknisyen normal ağırlıkta.
           if (j.patient_name) p.push('<span style="' + kes + '">H: <b class="font-bold text-card-foreground">' + escapeHtml(j.patient_name) + '</b></span>');
-          if (j.doctors && j.doctors.full_name) p.push('<span style="' + kes + '">' + escapeHtml(unvanli('Dr.', j.doctors.full_name)) + '</span>');
-          if (teknisyenOnbellek[j.id]) p.push('<span style="' + kes + '">' + escapeHtml(unvanli('Dt.', teknisyenOnbellek[j.id])) + '</span>');
+          // Doktor ve teknisyen BİR ALT SATIRDA (sahibinin isteği): ilk satırda yalnız numara + hasta.
+          if (j.doctors && j.doctors.full_name) e.push('<span style="' + kes + '">' + escapeHtml(unvanli('Dr.', j.doctors.full_name)) + '</span>');
+          if (teknisyenOnbellek[j.id]) e.push('<span style="' + kes + '">' + escapeHtml(unvanli('Dt.', teknisyenOnbellek[j.id])) + '</span>');
           meta = p.join('<span aria-hidden="true">·</span>');
+          ekip = e.join('');   // ayraç yok: satır kırılınca sonda yalnız '·' kalmasın; boşluk 14px
         }
         var dateLabel = currentTab === 'completed'
           ? (j.completed_at ? new Date(j.completed_at).toLocaleDateString('tr-TR') : '—')
           : (j.requested_delivery_at ? new Date(j.requested_delivery_at).toLocaleDateString('tr-TR') : 'Teslim tarihi yok');
         return '<button onclick="zkHandoffJob(\'' + j.id + '\'); location.href=\'detay.html?id=' + j.id + '\'" class="flex w-full items-center justify-between gap-3 rounded-theme border border-border bg-card px-3.5 py-3 text-left">' +
-          '<div class="min-w-0"><p class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm font-bold"><span>' + escapeHtml(j.job_number) + ' <span data-zk-is="' + j.id + '"></span></span>' +
-            (meta ? '<span data-zk-kisiler class="flex flex-wrap items-baseline gap-x-1.5 text-[11px] font-normal text-muted-foreground">' + meta + '</span>' : '') + '</p>' +
+          '<div class="min-w-0"><p class="text-sm font-bold" style="display:flex;flex-wrap:wrap;align-items:baseline;column-gap:16px;row-gap:2px"><span>' + escapeHtml(j.job_number) + ' <span data-zk-is="' + j.id + '" data-zk-mod="logo"></span></span>' +
+            (meta ? '<span data-zk-kisiler class="text-[11px] font-normal text-muted-foreground">' + meta + '</span>' : '') + '</p>' +
+          (ekip ? '<p data-zk-ekip class="mt-0.5 text-[11px] text-muted-foreground" style="display:flex;flex-wrap:wrap;align-items:baseline;column-gap:14px;row-gap:1px">' + ekip + '</p>' : '') +
           '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + (kisi ? '' : escapeHtml(j.doctors ? j.doctors.full_name : '') + ' · ') + escapeHtml(j.restoration_type || '') + (j.unit_count ? ' · ' + j.unit_count + ' diş' : '') + '</p></div>' +
-          '<span class="shrink-0 text-[10px] font-semibold text-muted-foreground">' + escapeHtml(dateLabel) + '</span>' +
+          '<span class="flex shrink-0 flex-col items-end gap-1"><span class="text-[10px] font-semibold text-muted-foreground">' + escapeHtml(dateLabel) + '</span><span data-zk-is="' + j.id + '" data-zk-mod="prova"></span></span>' +
           '</button>';
       }).join('') +
       (jobsTotal > currentJobs.length

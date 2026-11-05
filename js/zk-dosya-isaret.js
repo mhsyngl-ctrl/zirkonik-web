@@ -9,12 +9,14 @@
   var bilinen = {}; // iş kimliği → { logo: bool, prova: { n, bek } | null, istek: bool }
   var bekle = null;
 
+  // data-zk-mod: "logo" yalnız 3B logosu, "prova" yalnız prova hapı, boş = ikisi yan yana (eski kullanım). İşler kartı logoyu numaranın yanına, hapı sağ sütuna koyar.
   function isaretle(el, b) {
     el.setAttribute('data-zk-is-tamam', '1');
+    var mod = el.getAttribute('data-zk-mod') || '', bosluk = mod ? '' : ' ml-1';
     var h = '';
-    if (b && b.logo) h += '<img src="logo-dis.png" alt="3B dosya var" title="Bu işte 3B dosya var" class="inline-block h-4 w-auto align-middle" style="height:16px;width:auto">';
-    if (b && !b.prova && b.istek) h += ' <span class="ml-1 rounded-full bg-secondary px-1.5 py-0.5 align-middle text-[10px] font-bold text-accent" title="Forma prova istendi, henüz doktora gönderilmedi">Prova bekleniyor</span>';
-    if (b && b.prova) h += ' <span class="ml-1 rounded-full bg-secondary px-1.5 py-0.5 align-middle text-[10px] font-bold ' + (b.prova.bek ? 'text-accent' : 'text-muted-foreground') + '" title="Prova turları">' + b.prova.n + '. prova' + (b.prova.bek ? ' · doktorda' : '') + '</span>';
+    if (mod !== 'prova' && b && b.logo) h += '<img src="logo-dis.png" alt="3B dosya var" title="Bu işte 3B dosya var" class="inline-block h-4 w-auto align-middle" style="height:16px;width:auto">';
+    if (mod !== 'logo' && b && !b.prova && b.istek) h += ' <span class="zk-rozet zk-rozet-bek' + bosluk + '" title="Forma prova istendi, henüz doktora gönderilmedi">Prova bekleniyor</span>';
+    if (mod !== 'logo' && b && b.prova) h += ' <span class="zk-rozet' + (b.prova.bek ? ' zk-rozet-bek' : '') + bosluk + '" title="Prova turları">' + b.prova.n + '. prova' + (b.prova.bek ? ' · doktorda' : '') + '</span>';
     el.innerHTML = h;
   }
 
