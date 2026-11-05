@@ -134,10 +134,11 @@
           if (!s) throw new Error('Dosya bulunamadı ya da görme yetkiniz yok.');
           satir = s;
           var j = s.jobs || {};
-          document.getElementById('baslik').textContent = (j.job_number ? j.job_number + ' › ' : '') + (s.kind === 'stl' ? (/\.ply$/i.test(s.file_name || '') ? 'PLY tarama' : 'STL tarama') : '3B tasarım');
+          document.getElementById('baslik').textContent = (j.job_number ? j.job_number + ' › ' : '') + (s.kind === 'zip' ? 'ZIP paketi' : (s.kind === 'stl' ? (/\.ply$/i.test(s.file_name || '') ? 'PLY tarama' : 'STL tarama') : '3B tasarım'));
           document.getElementById('altbaslik').textContent = (j.patient_name || j.clinic_protocol_no || '') + (s.file_name ? ' · ' + s.file_name : '');
           document.getElementById('indir-btn').classList.remove('hidden');
           document.getElementById('indir-btn').classList.add('flex');
+          if (s.kind === 'zip') { hata('ZIP paketi 3B olarak gösterilmez. Sağ üstteki "İndir" ile alıp bilgisayarınızda açın.'); return; }
           if (!ZK3B.webglVar()) {
             hata('Bu cihazda 3B çizim (WebGL) kapalı. Dosyayı "İndir" ile alıp bilgisayarda açabilirsiniz.');
             return;

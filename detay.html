@@ -754,7 +754,7 @@
       var e = [];
       var kes = 'max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
       var dr = j.doctors && j.doctors.full_name;
-      if (dr) e.push('<span style="' + kes + '">' + escapeHtml(unvanli('Dr.', dr)) + '</span>');
+      if (dr) e.push('<span style="' + kes + '">' + escapeHtml(j.doctors.kind === 'laborator' ? ZirkonikData.musteriAdi(j.doctors) : unvanli('Dr.', dr)) + '</span>');
       if (kisiTeknisyen) e.push('<span style="' + kes + '">' + escapeHtml(unvanli('Dt.', kisiTeknisyen)) + '</span>');
       ekipEl.innerHTML = e.join('');
       ekipEl.style.display = e.length ? 'flex' : 'none';
@@ -1414,7 +1414,7 @@
       var secim = document.getElementById('dosya-3b-secim');
       var dugmeler = [];
       // Tek düğme (4.3, native ile aynı): dosya türü seçilen dosyanın uzantısından anlaşılır.
-      if (y.htmlYukle || y.stlEkle) dugmeler.push('<button type="button" onclick="zk3BHepsiSec()" class="flex h-11 w-full items-center justify-center gap-1.5 rounded-theme border border-border bg-background text-xs font-bold text-primary"><iconify-icon icon="lucide:upload" class="text-base"></iconify-icon>' + (y.stlEkle && y.htmlYukle ? 'STL / PLY / HTML ekle' : (y.stlEkle ? 'STL / PLY ekle' : 'HTML ekle')) + '</button>');
+      if (y.htmlYukle || y.stlEkle) dugmeler.push('<button type="button" onclick="zk3BHepsiSec()" class="flex h-11 w-full items-center justify-center gap-1.5 rounded-theme border border-border bg-background text-xs font-bold text-primary"><iconify-icon icon="lucide:upload" class="text-base"></iconify-icon>' + (y.stlEkle && y.htmlYukle ? 'STL / PLY / ZIP / HTML ekle' : (y.stlEkle ? 'STL / PLY / ZIP ekle' : 'HTML ekle')) + '</button>');
       secim.innerHTML = dugmeler.length ? '<div class="flex gap-2">' + dugmeler.join('') + '</div>' : '';
       secim.classList.toggle('hidden', !dugmeler.length || !!dosya3B.tur);
       document.getElementById('dosya-3b-yukle').classList.toggle('hidden', !dosya3B.tur);
@@ -1423,7 +1423,7 @@
 
     function zk3BSec(tur) {
       dosya3B.tur = tur;
-      document.getElementById('dosya-3b-yukle-baslik').textContent = tur === 'html' ? 'exocad tasarım dosyası (HTML)' : 'STL / PLY tarama dosyası';
+      document.getElementById('dosya-3b-yukle-baslik').textContent = tur === 'html' ? 'exocad tasarım dosyası (HTML)' : 'STL / PLY / ZIP dosyası';
       document.getElementById('dosya-3b-ilerleme').classList.add('hidden');
       dosya3B.secici = ZK3B.secici(document.getElementById('dosya-3b-secici'), {
         tur: tur,
@@ -1437,11 +1437,11 @@
       });
       ciz3B();
     }
-    // Tek "ekle" düğmesi: .stl/.ply → STL, .html/.htm → exocad HTML. Tanınmayan ya da yetkisiz dosya yüklenmez, hata görünür.
+    // Tek "ekle" düğmesi: .stl/.ply/.zip → STL kolu (ZIP kendiliğinden 'zip' türü olur), .html/.htm → exocad HTML. Tanınmayan ya da yetkisiz dosya yüklenmez, hata görünür.
     function zk3BHepsiSec() {
       if (dosya3B.yukleniyor) return;
       var inp = document.createElement('input');
-      inp.type = 'file'; inp.multiple = true; inp.accept = '.stl,.ply,.html,.htm'; inp.style.display = 'none';
+      inp.type = 'file'; inp.multiple = true; inp.accept = '.stl,.ply,.zip,.html,.htm'; inp.style.display = 'none';
       document.body.appendChild(inp);
       inp.addEventListener('change', function () {
         var f = [].slice.call(inp.files || []);
@@ -1453,11 +1453,11 @@
     function zk3BHepsiYukle(dosyalar) {
       var y = dosya3B.yetki, hataEl = document.getElementById('dosya-3b-hata');
       function uz(f) { return (String(f.name).split('.').pop() || '').toLowerCase(); }
-      var stl = dosyalar.filter(function (f) { return uz(f) === 'stl' || uz(f) === 'ply'; });
+      var stl = dosyalar.filter(function (f) { return uz(f) === 'stl' || uz(f) === 'ply' || uz(f) === 'zip'; });
       var html = dosyalar.filter(function (f) { return uz(f) === 'html' || uz(f) === 'htm'; });
       var hata = null;
-      if (stl.length + html.length !== dosyalar.length) hata = 'STL, PLY ya da HTML dosyası seçin (.stl, .ply, .html).';
-      else if (stl.length && !y.stlEkle) hata = 'STL / PLY ekleme yetkiniz yok.';
+      if (stl.length + html.length !== dosyalar.length) hata = 'STL, PLY, ZIP ya da HTML dosyası seçin (.stl, .ply, .zip, .html).';
+      else if (stl.length && !y.stlEkle) hata = 'STL / PLY / ZIP ekleme yetkiniz yok.';
       else if (html.length && !y.htmlYukle) hata = 'HTML ekleme yetkiniz yok.';
       else if (html.length > 1) hata = 'Tek seferde bir exocad HTML dosyası seçin.';
       if (hata) { hataEl.textContent = hata; hataEl.classList.remove('hidden'); return; }

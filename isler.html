@@ -312,7 +312,7 @@
             currentJobs = []; renderJobs(); return;
           }
           var q = client.from('jobs')
-            .select('id, job_number, restoration_type, unit_count, status, created_at, completed_at, requested_delivery_at, doctors(full_name, clinic_name), laboratories(name), laboratory_id, patient_name', { count: 'exact' })
+            .select('id, job_number, restoration_type, unit_count, status, created_at, completed_at, requested_delivery_at, doctors(full_name, clinic_name, kind), laboratories(name), laboratory_id, patient_name', { count: 'exact' })
             .eq('status', currentTab);
           if (labId) q = q.eq('laboratory_id', labId);
           if (doctorId) q = q.eq('doctor_id', doctorId);
@@ -375,7 +375,7 @@
           // Hasta adı KALIN ve koyu (asıl aranan bilgi); doktor ve teknisyen normal ağırlıkta.
           if (j.patient_name) p.push('<span style="' + kes + '">H: <b class="font-bold text-card-foreground">' + escapeHtml(j.patient_name) + '</b></span>');
           // Doktor ve teknisyen BİR ALT SATIRDA (sahibinin isteği): ilk satırda yalnız numara + hasta.
-          if (j.doctors && j.doctors.full_name) e.push('<span style="' + kes + '">' + escapeHtml(unvanli('Dr.', j.doctors.full_name)) + '</span>');
+          if (j.doctors && j.doctors.full_name) e.push('<span style="' + kes + '">' + escapeHtml(j.doctors.kind === 'laborator' ? ZirkonikData.musteriAdi(j.doctors) : unvanli('Dr.', j.doctors.full_name)) + '</span>');
           if (teknisyenOnbellek[j.id]) e.push('<span style="' + kes + '">' + escapeHtml(unvanli('Dt.', teknisyenOnbellek[j.id])) + '</span>');
           meta = p.join('<span aria-hidden="true">·</span>');
           ekip = e.join('');   // ayraç yok: satır kırılınca sonda yalnız '·' kalmasın; boşluk 14px
