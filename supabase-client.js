@@ -954,9 +954,26 @@
       return client().auth.getUser().then(function (r) {
         var uid = r.data && r.data.user ? r.data.user.id : null;
         if (!uid) return { data: null };
-        return client().from('doctors').select('*').eq('user_id', uid).limit(1).maybeSingle();
+        return client().from('doctors').select('*').eq('user_id', uid).limit(1).maybeSingle().then(function (d) {
+          if (d.error || d.data) return d;
+          // Doktor satırı yoksa bu hesap bir doktorun ASİSTANI olabilir (5 Kasım 2026): yalnız para sütunsuz özet döner, data.asistan === true.
+          // SQL henüz canlıda değilse rpc hata verir ve eski davranış (kayıt yok) korunur.
+          return Promise.resolve(client().rpc('zk_asistan_doktor')).then(function (a) {
+            return (a && !a.error && a.data) ? { data: a.data, error: null } : d;
+          }, function () { return d; });
+        });
       });
     },
+    // ---- Doktor asistanı (5 Kasım 2026): doktor ekler/kaldırır (en fazla 3); asistan iş verisini para sütunsuz işlevlerle okur ----
+    asistanlarim: function () { return client().rpc('zk_asistanlarim'); },
+    createAssistantAccount: function (fields) {
+      return unwrapFnResult(client().functions.invoke('create-assistant-account', { body: fields }));
+    },
+    deleteAssistantAccount: function (userId) {
+      return unwrapFnResult(client().functions.invoke('delete-assistant-account', { body: { assistant_user_id: userId } }));
+    },
+    asistanIsler: function (durum, limit) { return client().rpc('zk_asistan_isler', { p_durum: durum || 'active', p_limit: limit || 100 }); },
+    asistanIs: function (jobId) { return client().rpc('zk_asistan_is', { p_job: jobId }); },
     // Tasarımcı seçim listesi: pozisyonu "Tasarımcı Teknisyen" olan aktif personel (sunucu kendi kuruluşuyla sınırlar).
     listDesigners: function () {
       return client().rpc('zk_tasarimcilar');

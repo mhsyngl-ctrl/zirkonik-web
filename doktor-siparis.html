@@ -59,7 +59,7 @@
           <div class="flex items-center gap-3">
             <img src="brand/mark.png" alt="Zirkonik" style="height:44px;width:auto;display:block">
             <div>
-              <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Doktor paneli</p>
+              <p id="hdr-role" class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Doktor paneli</p>
               <p id="hdr-doctor" class="mt-0.5 font-heading text-[17px] font-bold tracking-tight">—</p>
             </div>
           </div>
@@ -80,7 +80,7 @@
           </div>
         </div>
 
-        <div class="mt-5 grid grid-cols-4 gap-1.5 rounded-theme border border-border bg-background p-1">
+        <div id="tabs-bar" class="mt-5 grid grid-cols-4 gap-1.5 rounded-theme border border-border bg-background p-1">
           <button id="tab-new" onclick="window.zkSetTab&&zkSetTab('new')" class="flex h-10 items-center justify-center rounded-lg bg-primary text-[11px] font-bold text-primary-foreground">Yeni Sipariş</button>
           <button id="tab-list" onclick="window.zkSetTab&&zkSetTab('list')" class="flex h-10 items-center justify-center rounded-lg text-[11px] font-bold text-muted-foreground">Siparişlerim</button>
           <button id="tab-prices" onclick="window.zkSetTab&&zkSetTab('prices')" class="flex h-10 items-center justify-center rounded-lg text-[11px] font-bold text-muted-foreground">Fiyatlar</button>
@@ -359,6 +359,16 @@
   <script>
     var doctor = null;
     var priceItems = [];
+    // 5 Kasım 2026 — DOKTOR ASİSTANI: aynı sayfa, iki sekme (Yeni Sipariş, Siparişlerim). Fiyat, cari, iş performansı ve tutar YOK;
+    // iş verisi tablolardan değil para sütunsuz sunucu işlevlerinden (zk_asistan_isler / zk_asistan_is) gelir; provayı yanıtlayamaz.
+    var isAsistan = false;
+    function zkAsistanDuzeni() {
+      document.getElementById('hdr-role').textContent = 'Asistan paneli';
+      document.getElementById('tab-prices').classList.add('hidden');
+      document.getElementById('tab-cari').classList.add('hidden');
+      var bar = document.getElementById('tabs-bar');
+      bar.classList.remove('grid-cols-4'); bar.classList.add('grid-cols-2');
+    }
 
     ZkWorkForm.render(document.getElementById('wf-container'));
     // VITA rengi kalem bazinda kaydediliyor; hangi rengin bu kaleme
@@ -410,6 +420,7 @@
     function zkSetTab(tab) {
       // Doktor kaydı gelmediyse ("Doktor kaydı bulunamadı") diğer sekmeler null'a takılmasın.
       if (!doctor && tab !== 'new') return;
+      if (isAsistan && (tab === 'prices' || tab === 'cari')) return;
       var isNew = tab === 'new';
       document.getElementById('panel-new').classList.toggle('hidden', tab !== 'new');
       document.getElementById('submit-bar').classList.toggle('hidden', tab !== 'new' || !doctor);
@@ -417,6 +428,7 @@
       document.getElementById('panel-prices').classList.toggle('hidden', tab !== 'prices');
       document.getElementById('panel-cari').classList.toggle('hidden', tab !== 'cari');
       ['new', 'list', 'prices', 'cari'].forEach(function (t) {
+        if (isAsistan && (t === 'prices' || t === 'cari')) return; // asistanda bu iki sekme gizli kalır (className yeniden yazılınca 'hidden' silinmesin)
         document.getElementById('tab-' + t).className = (t === tab)
           ? 'flex h-10 items-center justify-center rounded-lg bg-primary text-[11px] font-bold text-primary-foreground'
           : 'flex h-10 items-center justify-center rounded-lg text-[11px] font-bold text-muted-foreground';
@@ -867,6 +879,8 @@
           return;
         }
         document.getElementById('hdr-doctor').textContent = 'Dr. ' + doctor.full_name;
+        isAsistan = doctor.asistan === true;
+        if (isAsistan) zkAsistanDuzeni();
         zkLoadNotifBadge();
         zkSetTab('new');
         // 15 Ekim 2026: bildirimden ("Tasarım dosyanız hazır") gelince ilgili iş açılır.
@@ -1119,8 +1133,10 @@
         if (onb) processDoctorHive(onb.jobs, onb.rooms);
       }
       Promise.all([
-        client.from('jobs').select('id, job_number, restoration_type, current_room_id, planned_route, laboratory_id, patient_name, clinic_protocol_no')
-          .eq('doctor_id', doctor.id).eq('status', 'active'),
+        isAsistan
+          ? ZirkonikData.asistanIsler('active', 200)
+          : client.from('jobs').select('id, job_number, restoration_type, current_room_id, planned_route, laboratory_id, patient_name, clinic_protocol_no')
+              .eq('doctor_id', doctor.id).eq('status', 'active'),
         client.from('rooms').select('id, name, laboratory_id, sort_order').order('sort_order')
       ]).then(function (res) {
         var jobs = res[0].data || [];
@@ -1203,11 +1219,13 @@
     function loadDoctorCompleted() {
       var host = document.getElementById('doctor-hive');
       if (!host) return;
-      ZirkonikAuth.client()
-        .from('jobs')
-        .select('id, job_number, restoration_type, completed_at, patient_name, clinic_protocol_no')
-        .eq('doctor_id', doctor.id).eq('status', 'completed')
-        .order('completed_at', { ascending: false }).limit(20)
+      (isAsistan
+        ? ZirkonikData.asistanIsler('completed', 20)
+        : ZirkonikAuth.client()
+            .from('jobs')
+            .select('id, job_number, restoration_type, completed_at, patient_name, clinic_protocol_no')
+            .eq('doctor_id', doctor.id).eq('status', 'completed')
+            .order('completed_at', { ascending: false }).limit(20))
         .then(function (r) {
           var rows = r.data || [];
           var old = document.getElementById('dh-completed');
@@ -1245,6 +1263,22 @@
       document.getElementById('job-detail-sheet').classList.add('hidden');
     }
 
+    // Asistanın iş ayrıntısı: tek sunucu işlevi (para sütunsuz) + oda adları; doktorun tablo sorgularıyla AYNI biçime çevrilir ki çizim kodu tek kalsın.
+    function zkAsistanIsYukle(client, jobId) {
+      return Promise.all([ZirkonikData.asistanIs(jobId), client.from('rooms').select('id, name')]).then(function (x) {
+        var a = x[0];
+        if (a.error || !a.data) return [{ data: null, error: a.error || { message: 'İş açılamadı' } }, {}, {}, {}, {}];
+        var d = a.data, j = Object.assign({}, d.is, { laboratories: { name: d.is.laboratory_name }, rooms: { name: d.is.oda_adi } });
+        return [
+          { data: j, error: null },
+          { data: (d.asamalar || []).map(function (h) { return { room_id: h.room_id, entered_at: h.entered_at, exited_at: h.exited_at, confirmed_at: h.confirmed_at, rooms: { name: h.oda_adi } }; }), error: null },
+          x[1],
+          { data: d.kalemler || [], error: null },
+          { data: d.teslim || null, error: null }
+        ];
+      });
+    }
+
     function zkDocOpenJob(jobId) {
       var sheet = document.getElementById('job-detail-sheet');
       var body = document.getElementById('jd-body');
@@ -1254,7 +1288,7 @@
       sheet.classList.remove('hidden');
 
       var client = ZirkonikAuth.client();
-      Promise.all([
+      (isAsistan ? zkAsistanIsYukle(client, jobId) : Promise.all([
         client.from('jobs').select('*, job_prices(price, currency), laboratories(name), rooms:current_room_id(name)').eq('id', jobId).single(),
         client.from('job_stage_history').select('room_id, entered_at, exited_at, confirmed_at, rooms(name)').eq('job_id', jobId).order('entered_at'),
         client.from('rooms').select('id, name'),
@@ -1262,7 +1296,7 @@
         client.from('job_items').select('teeth, color_index, restoration_type, job_item_prices(price, currency)').eq('job_id', jobId).order('sort_order'),
         // 23 Ekim 2026: "Teslim aldım" onayı. SQL gelmeden tablo yoksa hata döner → düğme gizli kalır.
         client.from('job_teslim_onaylari').select('received_at, kaynak').eq('job_id', jobId).maybeSingle()
-      ]).then(function (res) {
+      ])).then(function (res) {
         if (res[0].error) {
           body.innerHTML = '<p class="text-xs text-destructive">Açılamadı: ' + escapeHtml(res[0].error.message) + '</p>';
           return;
@@ -1408,7 +1442,7 @@
           ZkWorkForm.renderChartOnly(chartEl, colorMap, chartLabels);
         }
         zkDoc3B(jobId);
-        if (window.ZKProva) ZKProva.ciz(document.getElementById('jd-prova'), { jobId: jobId, rol: 'doktor' });
+        if (window.ZKProva) ZKProva.ciz(document.getElementById('jd-prova'), { jobId: jobId, rol: isAsistan ? 'asistan' : 'doktor' });
         var teslimBtn = document.getElementById('jd-teslim-aldim');
         if (teslimBtn) teslimBtn.addEventListener('click', function () {
           var bitir = ZKHiz.mesgul(teslimBtn, 'Kaydediliyor…');
@@ -1482,7 +1516,7 @@
         var onb = ZKHiz.cachePeek('doc_orders');
         if (onb) paintOrders(onb);
       }
-      ZirkonikData.listOrders({ doctorId: doctor.id }).then(function (r) {
+      ZirkonikData.listOrders({ doctorId: doctor.id, includePrice: !isAsistan }).then(function (r) {
         var list = r.data || [];
         paintOrders(list);
         if (window.ZKHiz) ZKHiz.cachePut('doc_orders', list);
@@ -1494,7 +1528,7 @@
      * ve sekmeye geri donus (zk-yenile.js) bunu cagirir; sayfa yeniden
      * yuklenmez, yalniz veri tazelenir. */
     window.zkRefresh = function () {
-      return Promise.all([Promise.resolve(zkLoadNotifBadge()), Promise.resolve(loadCari()), Promise.resolve(loadDoctorHive()), Promise.resolve(loadOrders())]);
+      return Promise.all([Promise.resolve(zkLoadNotifBadge()), Promise.resolve(isAsistan ? null : loadCari()), Promise.resolve(loadDoctorHive()), Promise.resolve(loadOrders())]);
     };
   </script>
 

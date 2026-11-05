@@ -38,15 +38,16 @@
         var turlar = r.data || [];
         var bekleyen = turlar.filter(function (t) { return t.sonuc === 'bekliyor'; })[0] || null;
         var doktor = o.rol === 'doktor';
-        if (!turlar.length && (doktor || !o.aktif)) { el.innerHTML = ''; return; }
+        var asistan = o.rol === 'asistan'; // doktorun asistanı: provaları GÖRÜR, yanıtlayamaz (5 Kasım 2026)
+        if (!turlar.length && (doktor || asistan || !o.aktif)) { el.innerHTML = ''; return; }
         var h = '<section class="rounded-theme border border-border bg-card p-4">' +
           '<div class="flex items-center justify-between"><div>' +
           '<p class="text-[10px] font-bold uppercase tracking-[0.16em] text-accent">Prova turları</p>' +
           '<h2 class="mt-1 font-heading text-base font-bold">' + (turlar.length ? turlar.length + ' tur' : 'Henüz prova yok') + '</h2></div>' +
           '<iconify-icon icon="lucide:repeat-2" class="text-xl text-primary"></iconify-icon></div>' +
           '<div class="mt-3 space-y-2">' + turlar.slice().reverse().map(turHtml).join('') + '</div>';
-        if (!doktor && o.aktif && o.istek && !turlar.length) h += '<p class="mt-3 rounded-theme border border-border bg-background px-3 py-2 text-xs font-semibold text-accent">Bu iş için prova istendi. Hazır olunca "Provayı doktora gönder" deyin.</p>';
-        if (!doktor && o.aktif && !bekleyen) {
+        if (!doktor && !asistan && o.aktif && o.istek && !turlar.length) h += '<p class="mt-3 rounded-theme border border-border bg-background px-3 py-2 text-xs font-semibold text-accent">Bu iş için prova istendi. Hazır olunca "Provayı doktora gönder" deyin.</p>';
+        if (!doktor && !asistan && o.aktif && !bekleyen) {
           h += '<div class="mt-3"><textarea id="prova-not" rows="2" maxlength="500" placeholder="Doktora not (isteğe bağlı)" class="w-full rounded-theme border border-border bg-background px-3 py-2 text-sm"></textarea>' +
             '<button type="button" id="prova-gonder" class="mt-2 flex h-11 w-full items-center justify-center gap-1.5 rounded-theme bg-primary text-xs font-bold text-primary-foreground"><iconify-icon icon="lucide:send" class="text-sm"></iconify-icon>Provayı doktora gönder</button></div>';
         }
@@ -56,7 +57,7 @@
             '<button type="button" id="prova-degisiklik" class="flex h-11 flex-1 items-center justify-center rounded-theme border border-border bg-background text-xs font-bold text-primary">Değişiklik istiyorum</button>' +
             '<button type="button" id="prova-onay" class="flex h-11 flex-1 items-center justify-center rounded-theme bg-primary text-xs font-bold text-primary-foreground">Prova onaylandı</button></div></div>';
         }
-        if (!doktor && bekleyen) h += '<p class="mt-3 text-xs text-muted-foreground">Doktorun yanıtı bekleniyor. Yanıt gelince bildirim alırsınız.</p>';
+        if (!doktor && bekleyen) h += '<p class="mt-3 text-xs text-muted-foreground">' + (asistan ? 'Provayı yalnız doktor yanıtlayabilir; doktorun yanıtı bekleniyor.' : 'Doktorun yanıtı bekleniyor. Yanıt gelince bildirim alırsınız.') + '</p>';
         h += '</section>';
         el.innerHTML = h;
         var yenile = function () { return ciz(el, o).then(function () { if (typeof o.degisti === 'function') o.degisti(); }); };

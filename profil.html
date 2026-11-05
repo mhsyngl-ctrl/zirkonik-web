@@ -229,6 +229,36 @@
           <button onclick="zkSaveDoctorProfile()" class="mt-3 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
         </section>
 
+        <!-- 5 Kasım 2026 (sahibinin kararı): doktorun asistanını DOKTOR ekler ve kaldırır; en fazla 3. Asistan siparişlerinizi verir ve işlerinizi izler,
+             fiyat/cari/ödeme göremez. SQL canlıda değilse bölüm hiç görünmez. -->
+        <section id="pf-asistan-section" class="mt-5 hidden rounded-theme border border-border bg-card p-4">
+          <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Asistanlarım</p>
+          <p class="mt-2 text-xs leading-5 text-muted-foreground">Asistanınız siparişlerinizi verir, işlerinizin üretim aşamasını izler ve teslim aldığınızı bildirir. Fiyat, cari ve ödeme bilgilerini göremez, provayı onaylayamaz. En fazla 3 asistan ekleyebilirsiniz.</p>
+          <div id="pf-asistan-list" class="mt-3 space-y-2"></div>
+          <button id="pf-asistan-ekle-btn" type="button" onclick="zkAsistanFormAc()" class="mt-3 flex h-12 w-full items-center justify-center rounded-theme border border-border bg-background text-sm font-bold text-primary">Asistan ekle</button>
+          <p id="pf-asistan-dolu" class="mt-3 hidden text-xs font-semibold text-muted-foreground">3 asistan sınırına ulaştınız. Yeni eklemek için birini kaldırın.</p>
+          <form id="pf-asistan-form" class="mt-3 hidden space-y-3" onsubmit="event.preventDefault(); zkAsistanEkle();">
+            <label class="block">
+              <span class="mb-1.5 block text-xs font-bold text-card-foreground">Ad soyad</span>
+              <input id="pf-as-ad" type="text" maxlength="80" autocomplete="off" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="Asistanınızın adı">
+            </label>
+            <label class="block">
+              <span class="mb-1.5 block text-xs font-bold text-card-foreground">E-posta</span>
+              <input id="pf-as-eposta" type="email" autocomplete="off" autocapitalize="none" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm" placeholder="asistan@ornek.com">
+            </label>
+            <label class="block">
+              <span class="mb-1.5 block text-xs font-bold text-card-foreground">Geçici şifre</span>
+              <input id="pf-as-sifre" type="text" readonly class="h-12 w-full rounded-theme border border-border bg-muted px-3.5 font-mono text-sm tracking-wider">
+              <span class="mt-1 block text-[11px] leading-4 text-muted-foreground">Bu bilgiler asistanın e-postasına da gönderilir. İlk girişten sonra "Şifremi unuttum" ile değiştirebilir.</span>
+            </label>
+            <div class="flex gap-2">
+              <button type="button" onclick="zkAsistanFormKapat()" class="flex h-12 flex-1 items-center justify-center rounded-theme border border-border bg-background text-sm font-bold text-muted-foreground">Vazgeç</button>
+              <button id="pf-as-gonder" type="submit" class="flex h-12 flex-1 items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Hesabı aç</button>
+            </div>
+          </form>
+          <p id="pf-asistan-msg" class="mt-2 hidden text-xs font-semibold"></p>
+        </section>
+
         <!-- Çalıştığı laboratuvarın bilgileri. Doktor panelinde iletişim
              düğmesi zaten var; burada da duruyor ki ayarlardan da görülsün. -->
         <section id="pf-lab-section" class="mt-5 hidden rounded-theme border border-border bg-card p-4">
@@ -735,16 +765,22 @@
     }
 
     var pfDoctorId = null;
+    var pfAsistan = false; // bu hesap bir doktorun asistanı
     var pfOrgId = null;
     function zkLoadDoctorProfile() {
       ZirkonikData.myDoctorRecord().then(function (r) {
         var d = r && r.data;
         if (!d) return;
-        pfDoctorId = d.id;
-        document.getElementById('pf-doctor-section').classList.remove('hidden');
-        document.getElementById('pf-dr-clinic').value = d.clinic_name || '';
-        document.getElementById('pf-dr-phone').value = d.phone || '';
-        document.getElementById('pf-dr-address').value = d.address || '';
+        if (d.asistan === true) {
+          pfAsistan = true; // doktorun asistanı: klinik kaydı doktorun, burada düzenlenmez
+        } else {
+          pfDoctorId = d.id;
+          document.getElementById('pf-doctor-section').classList.remove('hidden');
+          document.getElementById('pf-dr-clinic').value = d.clinic_name || '';
+          document.getElementById('pf-dr-phone').value = d.phone || '';
+          document.getElementById('pf-dr-address').value = d.address || '';
+          zkAsistanlariYukle();
+        }
 
         var labEl = document.getElementById('pf-lab-body');
         document.getElementById('pf-lab-section').classList.remove('hidden');
@@ -763,6 +799,78 @@
           }).join('');
         });
       }).catch(function () {});
+    }
+
+    // ---- Asistanlarım (doktor) ----
+    function zkGenPassword() {
+      var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+      var out = '', arr = new Uint32Array(10);
+      crypto.getRandomValues(arr);
+      for (var i = 0; i < 10; i++) out += chars[arr[i] % chars.length];
+      return out;
+    }
+    function zkAsistanMesaj(metin, tur) {
+      var m = document.getElementById('pf-asistan-msg');
+      if (!metin) { m.classList.add('hidden'); return; }
+      m.textContent = metin;
+      m.className = 'mt-2 text-xs font-semibold ' + (tur === 'ok' ? 'text-success' : 'text-destructive');
+    }
+    function zkAsistanlariYukle() {
+      var sec = document.getElementById('pf-asistan-section');
+      Promise.resolve(ZirkonikData.asistanlarim()).then(function (r) {
+        if (!r || r.error) { sec.classList.add('hidden'); return; } // SQL canlıda değilse bölüm görünmez
+        sec.classList.remove('hidden');
+        var liste = r.data || [];
+        document.getElementById('pf-asistan-list').innerHTML = liste.length ? liste.map(function (a) {
+          return '<div class="flex items-center justify-between gap-2 rounded-theme border border-border bg-background px-3 py-2.5">' +
+            '<div class="min-w-0"><p class="truncate text-sm font-bold">' + escapeHtml(a.full_name) + '</p>' +
+            '<p class="truncate text-[11px] text-muted-foreground">' + escapeHtml(a.email || '') + '</p></div>' +
+            '<button type="button" onclick="zkAsistanKaldir(\'' + escapeHtml(a.user_id) + '\')" class="shrink-0 rounded-theme border border-border px-3 py-1.5 text-[11px] font-bold text-destructive">Kaldır</button></div>';
+        }).join('') : '<p class="text-xs text-muted-foreground">Henüz asistan eklenmedi.</p>';
+        var dolu = liste.length >= 3;
+        if (dolu) zkAsistanFormKapat();   // önce formu kapat (ekle düğmesini geri açar); düğme gizliliği bunun ARDINDAN ayarlanır
+        document.getElementById('pf-asistan-ekle-btn').classList.toggle('hidden', dolu);
+        document.getElementById('pf-asistan-dolu').classList.toggle('hidden', !dolu);
+      }, function () { sec.classList.add('hidden'); });
+    }
+    function zkAsistanFormAc() {
+      zkAsistanMesaj('');
+      document.getElementById('pf-as-ad').value = '';
+      document.getElementById('pf-as-eposta').value = '';
+      document.getElementById('pf-as-sifre').value = zkGenPassword();
+      document.getElementById('pf-asistan-form').classList.remove('hidden');
+      document.getElementById('pf-asistan-ekle-btn').classList.add('hidden');
+      document.getElementById('pf-as-ad').focus();
+    }
+    function zkAsistanFormKapat() {
+      document.getElementById('pf-asistan-form').classList.add('hidden');
+      document.getElementById('pf-asistan-ekle-btn').classList.remove('hidden');
+    }
+    function zkAsistanEkle() {
+      var ad = document.getElementById('pf-as-ad').value.trim();
+      var eposta = document.getElementById('pf-as-eposta').value.trim();
+      var sifre = document.getElementById('pf-as-sifre').value;
+      if (!ad || !eposta) { zkAsistanMesaj('Ad soyad ve e-posta gerekli.', 'hata'); return; }
+      var btn = document.getElementById('pf-as-gonder');
+      btn.disabled = true; btn.textContent = 'Hesap açılıyor…'; zkAsistanMesaj('');
+      var bitir = function () { btn.disabled = false; btn.textContent = 'Hesabı aç'; };
+      ZirkonikData.createAssistantAccount({ full_name: ad, email: eposta, password: sifre }).then(function (res) {
+        bitir();
+        if (res.error) { zkAsistanMesaj('Açılamadı: ' + res.error.message, 'hata'); return; }
+        var d = res.data || {};
+        if (d.email_sent) { zkAsistanFormKapat(); zkAsistanMesaj('Asistan hesabı açıldı. Giriş bilgileri ' + eposta + ' adresine gönderildi.', 'ok'); }
+        else { zkAsistanMesaj('Hesap açıldı ama e-posta gönderilemedi' + (d.email_error ? ' (' + d.email_error + ')' : '') + '. Giriş bilgilerini asistanınıza elden iletin: ' + eposta + ' / ' + sifre, 'ok'); document.getElementById('pf-asistan-form').classList.add('hidden'); }
+        zkAsistanlariYukle();
+      }, function (e) { bitir(); zkAsistanMesaj('Açılamadı: ' + ((e && e.message) || 'bağlantı hatası'), 'hata'); });
+    }
+    function zkAsistanKaldir(userId) {
+      if (!confirm('Bu asistanın hesabı kapatılacak; artık giriş yapamaz. Geçmişte verdiği siparişler kayıtta kalır. Devam edilsin mi?')) return;
+      zkAsistanMesaj('');
+      ZirkonikData.deleteAssistantAccount(userId).then(function (res) {
+        if (res.error) { zkAsistanMesaj('Kaldırılamadı: ' + res.error.message, 'hata'); return; }
+        zkToast('Asistan kaldırıldı.');
+        zkAsistanlariYukle();
+      }, function (e) { zkAsistanMesaj('Kaldırılamadı: ' + ((e && e.message) || 'bağlantı hatası'), 'hata'); });
     }
 
     function zkSaveDoctorProfile() {
@@ -784,7 +892,7 @@
     function zkDeleteAccount() {
       // Uyari metni role gore: doktora "laboratuvarinizin tum verileri
       // silinir" demek yanlis ve gereksiz korkutucu.
-      var metin = pfDoctorId
+      var metin = (pfDoctorId || pfAsistan)
         ? 'Hesabınızı silmek üzeresiniz. Uygulama girişiniz kapanır ve kişisel bilgileriniz silinir. Laboratuvarın yasal olarak tutmak zorunda olduğu geçmiş iş ve fatura kayıtları saklanır. Bu işlem GERİ ALINAMAZ. Devam edilsin mi?'
         : 'Hesabınızı silmek üzeresiniz. Tek yöneticiyseniz laboratuvarınıza ait TÜM veriler (işler, doktorlar, stok, finans kayıtları) kalıcı olarak silinir. Önemli: Üretim ve iş kayıtlarının yasal saklama süresi olabilir (ısmarlama tıbbi cihaz kayıtları için birçok ülkede on yıla kadar). Silmeden önce kendi kayıtlarınızı dışa aktarmanızı öneririz. Silinen iş kayıtları, olası bir hata ya da uyuşmazlık için güvenlik amacıyla 5 yıl arşivde tutulur. Bu işlem GERİ ALINAMAZ. Devam edilsin mi?';
       var ok = confirm(metin);
