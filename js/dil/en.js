@@ -82,7 +82,7 @@ window.ZK_DIL_EN = {
 "Cmt":"Sat",
 "Paz":"Sun",
 "Telefon":"Phone",
-"Sadece yönetici görür":"Visible to admins only",
+"Sadece yönetici görür":"Visible to managers only",
 "Teslimat":"Delivery",
 "Alçı":"Plaster",
 "Bekleyen":"Waiting",
@@ -103,7 +103,7 @@ window.ZK_DIL_EN = {
 "Üretim panosu":"Production board",
 "Odalara göre aktif işler — bir işe dokunarak aşamasını ilerletin":"Active jobs by room — tap a job to advance its stage",
 "Laboratuvar seç":"Select laboratory",
-"İstasyon ağı":"Station network",
+"İstasyon ağı":"Room network",
 "Teslim bekliyor":"Awaiting handover",
 "↓ +N gelen iş":"↓ +N incoming jobs",
 "Yoğun — destek gerekebilir":"Busy — support may be needed",
@@ -168,10 +168,10 @@ window.ZK_DIL_EN = {
 "Yıllık izin hakkı":"Annual leave entitlement",
 "— gün kaldı":"— days left",
 "— gün":"— days",
-"Hak edilen":"Entitled",
+"Hak edilen":"Entitlement",
 "Bu yıl kullanılan":"Used this year",
 "Taleplerim":"My requests",
-"Kıdeme göre yasal hak (İş Kanunu md.53); bu yılın onaylı yıllık izinleri düşülür.":"Statutory entitlement by seniority (Labor Law art. 53); this year's approved annual leave is deducted.",
+"Kıdeme göre yasal hak (İş Kanunu md.53); bu yılın onaylı yıllık izinleri düşülür.":"Statutory entitlement by seniority (Turkish Labor Law art. 53); this year's approved annual leave is deducted.",
 "Henüz izin talebiniz yok. Sağ üstteki + ile talep açabilirsiniz.":"You have no leave requests yet. Use the + at the top right to create one.",
 "Yeni İzin Talebi":"New Leave Request",
 "İzin türü":"Leave type",
@@ -266,7 +266,7 @@ window.ZK_DIL_EN = {
 "Laboratuvar yok.":"No laboratories.",
 "Doktor işleri":"Doctor jobs",
 "Laboratuvarlar için üretim (iç üretim)":"Production for laboratories (in-house)",
-"Dışarıya verilen altyapı":"Outsourced infrastructure",
+"Dışarıya verilen altyapı":"Outsourced substructure",
 "Doktor bazında":"By doctor",
 "Seçili dönemde faturalanan tutara göre sıralı.":"Sorted by the amount invoiced in the selected period.",
 "Fatura yok.":"No invoices.",
@@ -473,7 +473,7 @@ window.ZK_DIL_EN = {
 "Riyad":"Riyadh",
 "Bakü":"Baku",
 "Lefkoşa":"Nicosia",
-"Grup içi altyapı siparişi (kendi laboratuvarlarınız arasında)":"Intra-group infrastructure orders (between your own laboratories)",
+"Grup içi altyapı siparişi (kendi laboratuvarlarınız arasında)":"Intra-group substructure orders (between your own laboratories)",
 "Faturasız — yalnız takip (aynı kasa)":"No invoice — tracking only (same cash box)",
 "Faturalı — laboratuvar carisine fatura kesilir":"Invoiced — an invoice is issued to the laboratory's account",
 "Abonelik":"Subscription",
@@ -494,8 +494,8 @@ window.ZK_DIL_EN = {
 "Diş başına:":"Per tooth:",
 "Bölge ayarı kaydedildi.":"Region settings saved.",
 "Laboratuvar ↔ doktor. Doktorlarınız sipariş verir, laboratuvar üretir, teslim eder. Laboratuvarlar arası iş yoktur.":"Laboratory ↔ doctor. Your doctors place orders, the laboratory produces and delivers. There is no work between laboratories.",
-"Her şey bir arada: laboratuvar ↔ doktor artı laboratuvarlar arası altyapı siparişi (ortak laboratuvarlara iş gönderir ve alırsınız).":"Everything together: laboratory ↔ doctor plus infrastructure orders between laboratories (you send and receive work to and from partner laboratories).",
-"Doktor yok. Müşterileriniz yalnız laboratuvarlar: başka laboratuvarlardan altyapı siparişi alır ve gönderirsiniz. Doktor ekranları kapalıdır.":"No doctors. Your customers are laboratories only: you receive and send infrastructure orders to and from other laboratories. Doctor screens are turned off.",
+"Her şey bir arada: laboratuvar ↔ doktor artı laboratuvarlar arası altyapı siparişi (ortak laboratuvarlara iş gönderir ve alırsınız).":"Everything together: laboratory ↔ doctor plus substructure orders between laboratories (you send and receive work to and from partner laboratories).",
+"Doktor yok. Müşterileriniz yalnız laboratuvarlar: başka laboratuvarlardan altyapı siparişi alır ve gönderirsiniz. Doktor ekranları kapalıdır.":"No doctors. Your customers are laboratories only: you receive and send substructure orders to and from other laboratories. Doctor screens are turned off.",
 "Kod hatası":"Code error",
 "Veri yüklenemedi":"Could not load data",
 "hata günlüğü:":"error log:",
@@ -509,10 +509,10 @@ window.ZK_DIL_EN = {
 "Klinik bilgileriniz güncellendi.":"Your clinic details have been updated.",
 "Hesabınızı silmek üzeresiniz. Uygulama girişiniz kapanır ve kişisel bilgileriniz silinir. Laboratuvarın yasal olarak tutmak zorunda olduğu geçmiş iş ve fatura kayıtları saklanır. Bu işlem GERİ ALINAMAZ. Devam edilsin mi?":"You are about to delete your account. Your app access will be closed and your personal information deleted. Past job and invoice records that the laboratory is legally required to keep are retained. This action CANNOT BE UNDONE. Continue?",
 "Hesabınızı silmek üzeresiniz. Tek yöneticiyseniz laboratuvarınıza ait TÜM veriler (işler, doktorlar, stok, finans kayıtları) kalıcı olarak silinir. Önemli: Üretim ve iş kayıtlarının yasal saklama süresi olabilir (ısmarlama tıbbi cihaz kayıtları için birçok ülkede on yıla kadar). Silmeden önce kendi kayıtlarınızı dışa aktarmanızı öneririz. Silinen iş kayıtları, olası bir hata ya da uyuşmazlık için güvenlik amacıyla 5 yıl arşivde tutulur. Bu işlem GERİ ALINAMAZ. Devam edilsin mi?":"You are about to delete your account. If you are the only manager, ALL data of your laboratory (jobs, doctors, stock, finance records) is permanently deleted. Important: Production and job records may have a statutory retention period (up to ten years in many countries for custom-made medical device records). We recommend exporting your own records before deleting. Deleted job records are kept in an archive for 5 years as a safeguard against errors or disputes. This action CANNOT BE UNDONE. Continue?",
-"Onaylamak için \"SİL\" yazın:":"Type \"SİL\" to confirm:",
+"Onaylamak için \"SİL\" yazın:":"Type \"DELETE\" to confirm:",
 "Hesabınız silindi.":"Your account has been deleted.",
 "Tüm iş geçmişi, faturalar, tahsilatlar, kasa teslimleri ve tedarikçi hareketleri kalıcı olarak silinecek. Doktorlar, personel ve kurulum (laboratuvar/oda/fiyat listesi) korunur. Önemli: Üretim ve iş kayıtlarının yasal saklama süresi olabilir (ısmarlama tıbbi cihaz kayıtları için birçok ülkede on yıla kadar). Silmeden önce kendi kayıtlarınızı dışa aktarmanızı öneririz. Silinen iş kayıtları, olası bir hata ya da uyuşmazlık için güvenlik amacıyla 5 yıl arşivde tutulur. Bu işlem GERİ ALINAMAZ. Devam edilsin mi?":"The entire job history, invoices, collections, cash handovers and supplier transactions will be permanently deleted. Doctors, staff and setup (laboratory/rooms/price list) are kept. Important: Production and job records may have a statutory retention period (up to ten years in many countries for custom-made medical device records). We recommend exporting your own records before deleting. Deleted job records are kept in an archive for 5 years as a safeguard against errors or disputes. This action CANNOT BE UNDONE. Continue?",
-"Onaylamak için \"SIFIRLA\" yazın:":"Type \"SIFIRLA\" to confirm:",
+"Onaylamak için \"SIFIRLA\" yazın:":"Type \"RESET\" to confirm:",
 "İptal edildi.":"Cancelled.",
 "Veriler sıfırlandı.":"Data has been reset.",
 "Asistan hesabı açıldı.":"Assistant account created.",
@@ -698,7 +698,7 @@ window.ZK_DIL_EN = {
 "Laboratuvar adı zorunludur.":"Laboratory name is required.",
 "Doktor adı zorunludur.":"Doctor name is required.",
 "Ön onay için gönderildi — işveren/yönetici onaylayana kadar kart kilitli.":"Sent for pre-approval — the card stays locked until the employer/manager approves.",
-"Ortak laboratuvar: bağlı. Bu laboratuvar size altyapı siparişi gönderebilir.":"Partner laboratory: linked. This laboratory can send you infrastructure orders.",
+"Ortak laboratuvar: bağlı. Bu laboratuvar size altyapı siparişi gönderebilir.":"Partner laboratory: linked. This laboratory can send you substructure orders.",
 "Henüz eşleşmedi. Davet kodunuzu gönderin; karşı laboratuvar kodu girince bu kayıt kendiliğinden bağlanır.":"Not matched yet. Send your invite code; when the other laboratory enters the code, this record links automatically.",
 "Pazarlamacı":"Marketer",
 "Davet kodu okunamadı. Kodu Laboratuvarlar › Ortaklar penceresinden bir yönetici verebilir.":"The invite code could not be read. A manager can provide the code from the Laboratories › Partners window.",
@@ -730,7 +730,7 @@ window.ZK_DIL_EN = {
 "Kasım":"November",
 "Aralık":"December",
 "Yeni sipariş":"New order",
-"Yeni altyapı siparişi":"New infrastructure order",
+"Yeni altyapı siparişi":"New substructure order",
 "Siparişiniz üretime alındı":"Your order has gone into production",
 "Odanıza iş geldi":"A job has arrived in your room",
 "İş aşama değiştirdi":"Job changed stage",
@@ -764,13 +764,13 @@ window.ZK_DIL_EN = {
 "Ortaklık kabul edildi":"Partnership accepted",
 "Ortaklık isteği reddedildi":"Partnership request rejected",
 "Ortaklık durduruldu":"Partnership stopped",
-"Altyapı teslim alındı":"Infrastructure received",
-"Altyapı siparişi geri çekildi":"Infrastructure order withdrawn",
-"Altyapı siparişi üretime alındı":"Infrastructure order went into production",
-"Altyapı siparişi reddedildi":"Infrastructure order rejected",
-"Altyapı ilerledi":"Infrastructure progressed",
-"Altyapı hazır":"Infrastructure ready",
-"Altyapı işi iptal edildi":"Infrastructure job cancelled",
+"Altyapı teslim alındı":"Substructure received",
+"Altyapı siparişi geri çekildi":"Substructure order withdrawn",
+"Altyapı siparişi üretime alındı":"Substructure order went into production",
+"Altyapı siparişi reddedildi":"Substructure order rejected",
+"Altyapı ilerledi":"Substructure progressed",
+"Altyapı hazır":"Substructure ready",
+"Altyapı işi iptal edildi":"Substructure job cancelled",
 "Teslim aldınız mı?":"Have you received it?",
 "Prova hazır":"Try-in ready",
 "Prova için değişiklik istendi":"Changes requested for try-in",
@@ -968,8 +968,8 @@ window.ZK_DIL_EN = {
 "Henüz laboratuvar yok.":"No laboratories yet.",
 "Doktorlardan gelen işler":"Jobs from doctors",
 "Laboratuvarlar için üretim":"Production for laboratories",
-"Ortak laboratuvarların altyapı siparişleri (iç üretim)":"Infrastructure orders of partner laboratories (in-house production)",
-"Ortak laboratuvarlara ödenecek altyapı faturaları":"Infrastructure invoices payable to partner laboratories",
+"Ortak laboratuvarların altyapı siparişleri (iç üretim)":"Substructure orders of partner laboratories (in-house production)",
+"Ortak laboratuvarlara ödenecek altyapı faturaları":"Substructure invoices payable to partner laboratories",
 "Fiyatı var, faturası yok — hiçbir cariye yansımıyor":"Has a price, no invoice — not reflected in any account",
 "Bekleyen tahsilatlar":"Pending collections",
 "Ödenmemiş / gecikmiş faturalar":"Unpaid / overdue invoices",
@@ -1077,7 +1077,7 @@ window.ZK_DIL_EN = {
 "Tedarikçi ödemesi kaydedildi.":"Supplier payment saved.",
 "· Faturasız":"· No invoice",
 "Açık bakiye:":"Open balance:",
-"Alacaklı:":"Creditor:",
+"Alacaklı:":"In credit:",
 "Bakiye kapalı":"Balance settled",
 "Sunucudan cevap gelmedi; tahsilat kaydedilmiş olabilir. Çift kayıt olmaması için sayfayı yenileyip doktorun carisini kontrol edin.":"No response from the server; the collection may have been saved. To avoid a duplicate, refresh the page and check the doctor's account.",
 "Tahsilat cariye işlendi, faturalar en eskiden başlayarak mahsup edildi.":"The collection was posted to the account; invoices were offset starting from the oldest.",
@@ -1124,11 +1124,11 @@ window.ZK_DIL_EN = {
 "Henüz dosya yok.":"No files yet.",
 "STL / PLY / ZIP / HTML ekle":"Add STL / PLY / ZIP / HTML",
 "Kaydet ve yükle":"Save and upload",
-"Altyapı":"Infrastructure",
+"Altyapı":"Substructure",
 "Başka laboratuvarda yapılan iş":"Work done at another laboratory",
-"Bu iş için altyapı siparişi yok.":"There is no infrastructure order for this job.",
-"Altyapı siparişi ver":"Place infrastructure order",
-"Altyapı siparişi":"Infrastructure order",
+"Bu iş için altyapı siparişi yok.":"There is no substructure order for this job.",
+"Altyapı siparişi ver":"Place substructure order",
+"Altyapı siparişi":"Substructure order",
 "Bu iş bir ortak laboratuvar için yapılıyor":"This job is being done for a partner laboratory",
 "Hasta bilgisi karşı laboratuvarda kalır; burada yalnız gönderenin iş numarası görünür. İş tamamlanınca gönderen laboratuvara haber gider.":"Patient information stays with the other laboratory; only the sender's job number appears here. The sending laboratory is notified when the job is completed.",
 "Fiyat ve tahsilat":"Price and collection",
@@ -1183,7 +1183,7 @@ window.ZK_DIL_EN = {
 "İptal ediliyor…":"Cancelling…",
 "İş iptal edildi.":"Job cancelled.",
 "İptal edilemedi.":"Could not cancel.",
-"Diş boyu":"Tooth shade",
+"Diş boyu":"Tooth length",
 "Gülüş tasarımı":"Smile design",
 "Gönderilen materyaller":"Materials sent",
 "İş iptal edildi":"Job cancelled",
@@ -1201,20 +1201,25 @@ window.ZK_DIL_EN = {
 "Tasarım doktora gönderilsin mi? Doktora bildirim gider ve dosyayı kendi ekranından açar.":"Send the design to the doctor? The doctor is notified and opens the file from their own screen.",
 "Doktora gönderildi.":"Sent to the doctor.",
 "STL dosyası kaydedildi.":"STL file saved.",
-"Altyapı teslim alındı olarak işaretlensin mi? Kalem üstyapıya devam edebilir.":"Mark the infrastructure as received? The item can continue to the superstructure.",
-"Altyapı teslim alındı.":"Infrastructure received.",
-"Altyapı siparişi geri çekilsin mi? Karşı laboratuvar henüz onaylamadıysa iptal edilir.":"Withdraw the infrastructure order? It is cancelled if the other laboratory has not yet approved it.",
+"Altyapı teslim alındı olarak işaretlensin mi? Kalem üstyapıya devam edebilir.":"Mark the substructure as received? The item can continue to the superstructure.",
+"Altyapı teslim alındı.":"Substructure received.",
+"Altyapı siparişi geri çekilsin mi? Karşı laboratuvar henüz onaylamadıysa iptal edilir.":"Withdraw the substructure order? It is cancelled if the other laboratory has not yet approved it.",
 "Sipariş geri çekildi.":"Order withdrawn.",
 "Laboratuvar seçin.":"Select a laboratory.",
 "Seçili her kalem için karşı labın çalışma türünü seçin.":"For each selected item, choose the other lab's work type.",
 "En az bir kalem seçin.":"Select at least one item.",
-"Altyapı siparişi gönderildi, karşı laboratuvarın onayı bekleniyor.":"Infrastructure order sent; waiting for the other laboratory's approval.",
+"Altyapı siparişi gönderildi, karşı laboratuvarın onayı bekleniyor.":"Substructure order sent; waiting for the other laboratory's approval.",
 "Teslim alınamadı":"Could not receive",
-"Bu kalemin altyapısı başka laboratuvarda sürüyor ve henüz teslim alınmadı. Yine de ilerletilsin mi?":"This item's infrastructure is still in progress at another laboratory and has not yet been received. Advance it anyway?",
+"Bu kalemin altyapısı başka laboratuvarda sürüyor ve henüz teslim alınmadı. Yine de ilerletilsin mi?":"This item's substructure is still in progress at another laboratory and has not yet been received. Advance it anyway?",
 "Tamamlanıyor…":"Completing…",
 "Bu kalem tamamlandı. Siparişin diğer kalemleri sürüyor.":"This item is completed. The other items of the order are still in progress.",
 "İşlem başarısız":"Operation failed",
 "Teslim aldım":"I received it",
+"Prova bekleniyor":"Awaiting try-in",
+"doktorda":"with doctor",
+"3B dosya var":"Has 3D file",
+"Bu işte 3B dosya var":"This job has a 3D file",
+"Forma prova istendi, henüz doktora gönderilmedi":"Try-in requested on the form; not yet sent to the doctor",
 "Yeni İş Girişi — Zirkonik":"New Job Entry — Zirkonik",
 "İş akışı":"Workflow",
 "Yeni iş girişi":"New job entry",
@@ -1239,7 +1244,7 @@ window.ZK_DIL_EN = {
 "Renk / Shade (VITA)":"Color / Shade (VITA)",
 "Diğer renk (özel)":"Other color (custom)",
 "Var":"Yes",
-"Yok":"None",
+"Yok":"No",
 "DVO (Oklüzal yükseklik)":"VDO (Occlusal vertical dimension)",
 "Korunsun":"Keep",
 "Prova isteniyor mu?":"Is a try-in requested?",
@@ -1379,7 +1384,7 @@ window.ZK_DIL_EN = {
 "Yeni şifreyi doktora iletin.":"Pass the new password to the doctor.",
 "Geçerli bir e-posta ve en az 6 karakterli şifre gerekli.":"A valid email and a password of at least 6 characters are required.",
 "Doktor onaylandı.":"Doctor approved.",
-"Asya Yakası":"Asian Side",
+"Asya Yakası":"Anatolian Side",
 "Laboratuvar bilgilerini düzenle":"Edit laboratory details",
 "Doktor bilgileri güncellendi.":"Doctor details updated.",
 "Doktor eklendi, onay kuyruğunda.":"Doctor added; in the approval queue.",
@@ -1447,8 +1452,8 @@ window.ZK_DIL_EN = {
 "Kategori ve çalışma türü adı zorunludur.":"Category and work type name are required.",
 "Çalışma türü eklendi. Şimdi rotasını seçin.":"Work type added. Now choose its route.",
 "· grup içi":"· in-group",
-"Altyapı siparişi kabulü açıldı.":"Accepting infrastructure orders turned on.",
-"Altyapı siparişi kabulü kapatıldı.":"Accepting infrastructure orders turned off.",
+"Altyapı siparişi kabulü açıldı.":"Accepting substructure orders turned on.",
+"Altyapı siparişi kabulü kapatıldı.":"Accepting substructure orders turned off.",
 "Davet kodu yenilensin mi? Eski kod artık çalışmaz; kurulu ortaklıklar etkilenmez.":"Regenerate the invite code? The old code will stop working; established partnerships are not affected.",
 "Kod seçildi, kopyalayabilirsiniz.":"Code selected; you can copy it.",
 "Kod 8 karakter olmalı.":"The code must be 8 characters.",
@@ -1457,7 +1462,7 @@ window.ZK_DIL_EN = {
 "İstek reddedilsin mi?":"Reject the request?",
 "Ortaklık kabul edildi.":"Partnership accepted.",
 "İstek reddedildi.":"Request rejected.",
-"Ortaklık durdurulsun mu? Süren altyapı siparişleri izlenmeye devam eder, yenisi gönderilemez.":"Stop the partnership? Ongoing infrastructure orders continue to be tracked, but new ones cannot be sent.",
+"Ortaklık durdurulsun mu? Süren altyapı siparişleri izlenmeye devam eder, yenisi gönderilemez.":"Stop the partnership? Ongoing substructure orders continue to be tracked, but new ones cannot be sent.",
 "Ortaklık durduruldu.":"Partnership stopped.",
 "Grup içi gönderim açıldı.":"In-group sending turned on.",
 "Grup içi gönderim kapatıldı.":"In-group sending turned off.",
@@ -1476,10 +1481,10 @@ window.ZK_DIL_EN = {
 "Çıkan iki aşamalı onayı tamamlayın.":"Complete the two-step confirmation that appears.",
 "Onayladığınız anda hesabınız sunucudan silinir; laboratuvarın iş kayıtları için aşağıdaki saklama kuralları geçerlidir. İşlem geri alınamaz.":"As soon as you confirm, your account is deleted from the server; the retention rules below apply to the laboratory's job records. This cannot be undone.",
 "Yöntem 2 — E-posta ile talep":"Method 2 — Request by email",
-"Uygulamaya erişemiyorsanız (örn. uygulamayı kaldırdıysanız veya şifrenizi unuttuysanız), hesabınızın kayıtlı e-posta adresinden":"If you cannot access the app (e.g. you uninstalled it or forgot your password), write from your account's registered email address to",
+"Uygulamaya erişemiyorsanız (örn. uygulamayı kaldırdıysanız veya şifrenizi unuttuysanız), hesabınızın kayıtlı e-posta adresinden":"If you cannot access the app (e.g. you uninstalled it or forgot your password), send an email from your account's registered email address to",
 "adresine":"with the subject",
 "“Zirkonik hesap silme talebi”":"“Zirkonik account deletion request”",
-"konulu bir e-posta gönderin. Kimlik doğrulamasının ardından talebiniz en geç":"— send the email. After identity verification your request will be concluded within",
+"konulu bir e-posta gönderin. Kimlik doğrulamasının ardından talebiniz en geç":". After identity verification your request will be completed within",
 "içinde sonuçlandırılır ve size yazılı olarak bilgi verilir.":"at the latest, and you will be informed in writing.",
 "Silinen ve saklanan veriler":"Deleted and retained data",
 "Veri":"Data",
@@ -1495,7 +1500,7 @@ window.ZK_DIL_EN = {
 "Yasal olarak saklanması zorunlu ticari ve mali kayıtlar":"Commercial and financial records that must be kept by law",
 "İlgili mevzuatın öngördüğü süre boyunca saklanır, süre sonunda silinir":"Kept for the period required by the relevant legislation, deleted at the end of that period",
 "Sunucu yedekleri":"Server backups",
-"Yedekleme döngüsüyle birlikte en geç 30 gün içinde yenilenir. Arşivdeki kayıtlar bu süre içinde yedeklerde de bulunabilir":"Renewed with the backup cycle within 30 days at the latest. Records in the archive may also exist in backups during this period",
+"Yedekleme döngüsüyle birlikte en geç 30 gün içinde yenilenir. Arşivdeki kayıtlar bu süre içinde yedeklerde de bulunabilir":"Overwritten as backups rotate, within 30 days at the latest. Records in the archive may also remain in backups during this period",
 "Hesabınız bir laboratuvara":"If your account is linked to a laboratory as",
 "personel":"staff",
 "veya":"or",
@@ -1533,7 +1538,7 @@ window.ZK_DIL_EN = {
 "ya da":"or",
 "der (değişiklikte kısa not şarttır). Onay gelince kalemler \"Final\" olur. Değişiklik gelirse size bildirim düşer; düzeltip yeniden gönderirsiniz (2. tur, 3. tur…). Doktor yanıtlamadan yeni prova gönderilemez.":"(a short note is required for changes). When approved, the items become \"Final\". If changes are requested you get a notification; you correct and send again (round 2, round 3…). A new try-in cannot be sent before the doctor replies.",
 "4. Takip:":"4. Follow-up:",
-"İşler listesinde işin yanında \"3. prova\", doktor yanıtı bekliyorsa \"3. prova · doktorda\" yazar. Her turun tarihi, notları ve sonucu iş detayında kalır.":"In the jobs list, \"3rd try-in\" is written next to the job, and \"3rd try-in · with doctor\" if awaiting the doctor's reply. The date, notes and result of each round stay in the job details.",
+"İşler listesinde işin yanında \"3. prova\", doktor yanıtı bekliyorsa \"3. prova · doktorda\" yazar. Her turun tarihi, notları ve sonucu iş detayında kalır.":"In the jobs list, \"Try-in 3\" is written next to the job, and \"Try-in 3 · with doctor\" if awaiting the doctor's reply. The date, notes and result of each round stay in the job details.",
 "Bekleme kuralı:":"Waiting rule:",
 "Doktora prova gönderilmişse, doktor yanıt verene kadar iş":"If a try-in was sent to the doctor, until the doctor replies the job",
 "sonraki odaya geçemez":"cannot move to the next room",
@@ -1567,13 +1572,13 @@ window.ZK_DIL_EN = {
 "Her şey bir arada. Zirkonik Kurumsal’ın tamamı artı":"Everything together. All of Zirkonik Corporate plus",
 "doktor CRM ve aday havuzu":"doctor CRM and prospect pool",
 "(aday ekleme, temas kayıtları, bölgeler, Satış Pazarlama Sorumlusu pozisyonu) ve":"(adding prospects, contact records, regions, the Sales & Marketing Manager position) and",
-"laboratuvarlar arası altyapı siparişi":"infrastructure orders between laboratories",
+"laboratuvarlar arası altyapı siparişi":"substructure orders between laboratories",
 ": ortak laboratuvarlara iş gönderir, onlardan iş alırsınız; karşı labdaki üretimi canlı izler, teslim alınca üstyapıya devam edersiniz. Karşı labın faturası sizde tedarikçi faturası olarak görünür.":": you send work to partner laboratories and receive work from them; you follow production at the other lab live, and continue with the superstructure once you receive it. The other lab's invoice appears in your account as a supplier invoice.",
 "Zirkonik Tek:":"Zirkonik Single:",
-"Doktor yok. Müşterileriniz yalnız laboratuvarlardır: başka laboratuvarlardan altyapı siparişi alır ve gönderirsiniz. Doktor ekranları ve doktor portalı kapalıdır.":"No doctors. Your customers are laboratories only: you receive and send infrastructure orders to and from other laboratories. The doctor screens and the doctor portal are turned off.",
+"Doktor yok. Müşterileriniz yalnız laboratuvarlardır: başka laboratuvarlardan altyapı siparişi alır ve gönderirsiniz. Doktor ekranları ve doktor portalı kapalıdır.":"No doctors. Your customers are laboratories only: you receive and send substructure orders to and from other laboratories. The doctor screens and the doctor portal are turned off.",
 "Laboratuvarlar arası iş için iki tarafın da Plus ya da Tek paketinde olması gerekir. Ortaklık kurma:":"For work between laboratories, both sides must be on the Plus or Single plan. Setting up a partnership:",
 "Laboratuvarlar › Ortaklar":"Laboratories › Partners",
-"(davet kodu). Altyapı siparişi: iş detayında":"(invite code). Infrastructure order: in the job details",
+"(davet kodu). Altyapı siparişi: iş detayında":"(invite code). Substructure order: in the job details",
 "3B dosyalar: STL / PLY tarama ve exocad tasarımı nasıl aktarılır?":"3D files: how are STL / PLY scans and exocad designs transferred?",
 "Tüm paketlerde vardır. Dosyalar güvenli depoda tutulur; dosya başına üst sınır 50 MB.":"Available in all plans. Files are kept in secure storage; the limit is 50 MB per file.",
 "\"3B dosya odası\"":"\"3D file room\"",
@@ -1590,7 +1595,7 @@ window.ZK_DIL_EN = {
 "4. Görüntüleme:":"4. Viewing:",
 "\"3B göster\" ile STL döndürülür, iki parmakla yakınlaştırılır; Üstten / Önden / Sıfırla / Tel kafes düğmeleri vardır. Dosya listesinde her dosyanın altında doğrudan":"With \"View in 3D\" the STL can be rotated and zoomed with two fingers; there are Top / Front / Reset / Wireframe buttons. In the file list, under each file there is directly a",
 "düğmesi vardır; dosya orijinal haliyle (.stl / .ply adıyla) iner ve exocad'e verilebilir (telefonda paylaşım sayfası açılır: Dosyalar'a kaydet, AirDrop, uygulamaya gönder). İşler ve Üretim listelerinde dosyası olan işin yanında küçük Zirkonik amblemi görünür. Doktor dosyaları yalnız görür, silemez.":"button; the file downloads in its original form (with the .stl / .ply name) and can be given to exocad (on a phone the share sheet opens: save to Files, AirDrop, send to an app). In the Jobs and Production lists, a small Zirkonik emblem appears next to a job that has a file. Doctors only view files; they cannot delete them.",
-"Altyapı siparişinde:":"In an infrastructure order:",
+"Altyapı siparişinde:":"In a substructure order:",
 "ortak laboratuvara gönderilen işe de STL ve tasarım eklenir; karşı labın 3B odası görür.":"STL and design are also added to the job sent to a partner laboratory; the other lab's 3D room sees them.",
 "Kuruluma nereden başlarım?":"Where do I start the setup?",
 "Sırayla yedi adım:":"Seven steps, in order:",
@@ -1788,8 +1793,8 @@ window.ZK_DIL_EN = {
 "Fiyat listesi:":"Price list:",
 "genel fiyat, doktora/lokasyona özel anlaşmalı fiyat, para birimi, hesaplama türü (diş başı / adet).":"general price, doctor/location-specific agreed price, currency, calculation type (per tooth / piece).",
 "Personel ücreti ve hakediş:":"Staff pay and earnings:",
-"Ekip sekmesinde kişiye dokunup ücret modelini ve tutarı girer; maaş hesaplayıcıyı kullanır. Finans ›":"In the Team tab taps a person and enters the pay model and amount; uses the salary calculator. In Finance ›",
-"'nda her ay maaş + diş başı hakedişi hesaplar, düzeltme ve ödeme girer, ayı kapatır.":"each month calculates salary + per-tooth earnings, enters adjustments and payments, and closes the month.",
+"Ekip sekmesinde kişiye dokunup ücret modelini ve tutarı girer; maaş hesaplayıcıyı kullanır. Finans ›":"In the Team tab, they tap a person, enter the pay model and amount, and use the salary calculator. In Finance ›",
+"'nda her ay maaş + diş başı hakedişi hesaplar, düzeltme ve ödeme girer, ayı kapatır.":", they calculate salary + per-tooth earnings each month, enter adjustments and payments, and close the month.",
 "İş ve doktor listesini yalnız":"Only",
 "okur":"reads",
 "(fatura ve ekstre satırlarında iş numarası görünsün diye).":"the job and doctor lists (so that job numbers show on invoice and statement rows).",
@@ -1860,7 +1865,7 @@ window.ZK_DIL_EN = {
 "Doktor hesabında işlerim nerede görünür?":"Where do my jobs appear in the doctor account?",
 "Doktor hesabıyla girince":"When you sign in with a doctor account,",
 "sekmesinin üstünde":"above the tab",
-"İşlerim istasyon ağında":"the \"My jobs on the station network\"",
+"İşlerim istasyon ağında":"the \"My jobs in the room network\"",
 "bölümü görünür. Her kutu laboratuvarın bir odasıdır; içindeki sayı, o odada bekleyen işlerinizin sayısıdır.":"section appears. Each box is a room of the laboratory; the number inside is the number of your jobs waiting in that room.",
 "Bir kutuya basınca o odadaki işleriniz listelenir. Her işte hastanın adı ve":"Tapping a box lists your jobs in that room. On each job the patient's name and",
 "Sıradaki":"Next",
@@ -1910,7 +1915,7 @@ window.ZK_DIL_EN = {
 "eşleştirir. İsterseniz not yazın, STL tarama dosyası ekleyin (her biri en fazla 50 MB), dişleri şemadan işaretleyin ve":"Write a note if you wish, add an STL scan file (up to 50 MB each), mark the teeth on the chart and press",
 "'e basın.":".",
 "Sipariş işe nasıl döner?":"How does an order turn into a job?",
-"Laboratuvarda resepsiyon ya da yönetici siparişi onaylar; laboratuvar otomatik onayı açtıysa onaylı doktorun siparişi doğrudan işe döner. Rotası olmayan kalem otomatik geçmez, elle onay bekler.":"At the laboratory reception or the manager approves the order; if the laboratory turned on auto-approval, an approved doctor's order becomes a job directly. An item without a route is not passed automatically; it waits for manual approval.",
+"Laboratuvarda resepsiyon ya da yönetici siparişi onaylar; laboratuvar otomatik onayı açtıysa onaylı doktorun siparişi doğrudan işe döner. Rotası olmayan kalem otomatik geçmez, elle onay bekler.":"At the laboratory, reception or the manager approves the order; if the laboratory turned on auto-approval, an approved doctor's order becomes a job directly. An item without a route is not passed automatically; it waits for manual approval.",
 "Siparişlerim:":"My Orders:",
 "Gönderdiğiniz siparişlerin durumu ve":"The status of the orders you sent and the",
 "bölümü. Tamamlanan işi kendi ekranınızda":"section. You approve a completed job on your own screen by pressing",
@@ -1946,7 +1951,7 @@ window.ZK_DIL_EN = {
 "ile iptal edebilirsiniz.":".",
 "Onay e-postasını Gelen kutunuzda, Gereksiz (spam) ve Promosyonlar klasöründe arayın; bulamazsanız aşağıdan yeniden gönderin.":"Look for the confirmation email in your Inbox, Junk (spam) and Promotions folders; if you cannot find it, resend it below.",
 "kaydetmeden önce not alın.":"note it down before saving.",
-"Bu şifre çok yaygın kullanıldığı için kabul edilmiyor. \"Şifre öner\" düğmesiyle güçlü bir şifre oluşturabilirsiniz.":"This password is not accepted because it is very commonly used. You can create a strong password with the \"Suggest password\" button.",
+"Bu şifre çok yaygın kullanıldığı için kabul edilmiyor. \"Şifre öner\" düğmesiyle güçlü bir şifre oluşturabilirsiniz.":"This password is not accepted because it is very commonly used. You can create a strong password with the \"Suggest a password\" button.",
 "Yalnızca rakamdan oluşan şifreler kabul edilmiyor. Harf ve sembol de ekleyin.":"Passwords made only of digits are not accepted. Add letters and symbols too.",
 "Devam etmek için kutuyu işaretleyerek Gizlilik Politikası ve KVKK Aydınlatma Metni'ni okuduğunuzu, Veri İşleme Sözleşmesi'ni kabul ettiğinizi ve 18 yaşından büyük olduğunuzu belirtmeniz gerekir.":"To continue, tick the box to state that you have read the Privacy Policy and KVKK Disclosure Notice, accept the Data Processing Agreement and are over 18 years old.",
 "Önce e-posta adresinizi yazın.":"Enter your email address first.",
@@ -2046,7 +2051,7 @@ window.ZK_DIL_EN = {
 "Seçilen oda bu işin organizasyonuna ait değil.":"The selected room does not belong to this job's organization.",
 "Fatura doktoru bu organizasyona ait değil.":"The invoice's doctor does not belong to this organization.",
 "Fatura işi bu organizasyona ait değil.":"The invoice's job does not belong to this organization.",
-"Teslim onayını yalnızca yönetici/finans yetkilisi yapabilir.":"Only the manager/finance authority can approve a handover.",
+"Teslim onayını yalnızca yönetici/finans yetkilisi yapabilir.":"Only a manager or a user with the finance permission can approve a handover.",
 "Onaylanmış teslim kaydı değiştirilemez.":"An approved handover record cannot be changed.",
 "Kendi kasa teslim talebinizi onaylayamazsınız — başka bir yetkili onaylamalı.":"You cannot approve your own cash handover request — another authorized person must approve it.",
 "Bu iş bulunduğu odada henüz teslim alınmadı — önce teslim alınmalı.":"This job has not yet been received in its room — it must be received first.",
@@ -2055,7 +2060,7 @@ window.ZK_DIL_EN = {
 "Çalışan bulunamadı.":"Employee not found.",
 "Bu bilgiyi görme yetkiniz yok.":"You do not have permission to view this information.",
 "İş bulunamadı.":"Job not found.",
-"Bu işlem için laboratuvar sahibi yetkisi gerekli.":"This action requires laboratory owner authority.",
+"Bu işlem için laboratuvar sahibi yetkisi gerekli.":"This action requires the laboratory owner.",
 "Bu iş zaten iptal edilmiş.":"This job has already been cancelled.",
 "Bu iş iptal edilemez: personel hakedişi ödenmiş görünüyor. Önce hakediş kaydını düzeltin.":"This job cannot be cancelled: the staff earnings appear to be paid. Correct the earnings record first.",
 "Rol, onay durumu, organizasyon ve hakediş ücreti alanlarını yalnızca yönetici değiştirebilir.":"Only the manager can change the role, approval status, organization and earnings rate fields.",
@@ -2086,7 +2091,7 @@ window.ZK_DIL_EN = {
 "Yalnız tamamlanmış işler yeniden açılabilir.":"Only completed jobs can be reopened.",
 "Bu iş yeniden açılamaz: personel hakedişi ödenmiş görünüyor. Önce hakediş kaydını düzeltin.":"This job cannot be reopened: the staff earnings appear to be paid. Correct the earnings record first.",
 "Doktor bulunamadı":"Doctor not found",
-"Bu işlem için işveren/yönetici yetkisi gerekli":"This action requires employer/manager authority",
+"Bu işlem için işveren/yönetici yetkisi gerekli":"This action requires an employer or manager",
 "Giriş gerekli.":"Sign-in required.",
 "İşlem kimliği eksik.":"Operation ID is missing.",
 "Görev bulunamadı ya da bu görevi tamamlama yetkiniz yok.":"Task not found, or you do not have permission to complete this task.",
@@ -2121,11 +2126,11 @@ window.ZK_DIL_EN = {
 "Dosya 50 MB sınırını aşıyor":"The file exceeds the 50 MB limit",
 "Bu tasarımı doktora yalnız yönetici ya da işin bulunduğu 3B odasının yetkilisi gönderebilir":"Only the manager or the authorized person of the 3D room the job is in can send this design to the doctor",
 "Bu işlem için laboratuvar yöneticisi olmalısınız.":"You must be a laboratory manager for this action.",
-"Laboratuvarlar arası iş paketi kuruluşunuzda açık değil.":"The inter-laboratory work plan is not enabled in your organization.",
+"Laboratuvarlar arası iş paketi kuruluşunuzda açık değil.":"Inter-laboratory work is not enabled in your plan.",
 "Bu kodla bir laboratuvar bulunamadı.":"No laboratory was found with this code.",
 "Kendi laboratuvarınızın kodunu girdiniz.":"You entered your own laboratory's code.",
-"Karşı laboratuvarın paketi açık değil.":"The other laboratory's plan is not enabled.",
-"Karşı laboratuvar şu an altyapı siparişi kabul etmiyor.":"The other laboratory is not accepting infrastructure orders right now.",
+"Karşı laboratuvarın paketi açık değil.":"The other laboratory does not have inter-laboratory work enabled.",
+"Karşı laboratuvar şu an altyapı siparişi kabul etmiyor.":"The other laboratory is not accepting substructure orders right now.",
 "Bu laboratuvara yeniden istek göndermek için 24 saat bekleyin.":"Wait 24 hours to send another request to this laboratory.",
 "İstek bulunamadı.":"Request not found.",
 "Bu isteği yalnız alıcı laboratuvarın yöneticisi cevaplar.":"Only the manager of the receiving laboratory can answer this request.",
@@ -2138,19 +2143,19 @@ window.ZK_DIL_EN = {
 "Laboratuvar bulunamadı.":"Laboratory not found.",
 "Karşı laboratuvar bulunamadı.":"The other laboratory was not found.",
 "Bu laboratuvarla aktif ortaklık yok.":"There is no active partnership with this laboratory.",
-"Yalnız aktif işten altyapı siparişi verilir.":"An infrastructure order can only be placed from an active job.",
+"Yalnız aktif işten altyapı siparişi verilir.":"A substructure order can only be placed from an active job.",
 "Bu işlem için yönetici ya da sipariş yönetimi yetkisi gerekir.":"This action requires the manager or the order management permission.",
-"İki laboratuvarın da laboratuvarlar arası iş paketi açık olmalı.":"The inter-laboratory work plan must be enabled for both laboratories.",
+"İki laboratuvarın da laboratuvarlar arası iş paketi açık olmalı.":"Inter-laboratory work must be enabled for both laboratories.",
 "Karşı laboratuvarda müşteri kaydı oluşturulamadı.":"The customer record could not be created at the other laboratory.",
 "Kalem kimliği geçersiz.":"The item ID is invalid.",
 "Kalem bu işe ait değil.":"The item does not belong to this job.",
 "Aynı kalem iki kez seçildi.":"The same item was selected twice.",
-"Tamamlanmış kalem için altyapı siparişi verilemez.":"An infrastructure order cannot be placed for a completed item.",
-"Bu kalemin süren bir altyapı siparişi zaten var.":"This item already has an ongoing infrastructure order.",
+"Tamamlanmış kalem için altyapı siparişi verilemez.":"A substructure order cannot be placed for a completed item.",
+"Bu kalemin süren bir altyapı siparişi zaten var.":"This item already has an ongoing substructure order.",
 "Çalışma türü kimliği geçersiz.":"The work type ID is invalid.",
 "Karşı laboratuvarın çalışma türü seçilmedi.":"The other laboratory's work type was not selected.",
-"Altyapı siparişi bulunamadı.":"Infrastructure order not found.",
-"Karşı laboratuvar bu altyapıyı henüz tamamlamadı.":"The other laboratory has not yet completed this infrastructure.",
+"Altyapı siparişi bulunamadı.":"Substructure order not found.",
+"Karşı laboratuvar bu altyapıyı henüz tamamlamadı.":"The other laboratory has not yet completed this substructure.",
 "Durum bu arada değişti, sayfayı yenileyin.":"The status changed in the meantime; refresh the page.",
 "Karşı laboratuvar üretime başladı; iptal için onlarla görüşün.":"The other laboratory has started production; talk to them to cancel.",
 "Paket ve abonelik bilgisi uygulamadan değiştirilemez.":"Plan and subscription information cannot be changed from the app.",
@@ -2198,7 +2203,7 @@ window.ZK_DIL_EN = {
 "Asistan hesabı doktor rolünde olmalı.":"The assistant account must have the doctor role.",
 "Bir doktorun kendi hesabı asistan yapılamaz.":"A doctor's own account cannot be made an assistant.",
 "Bir doktor en fazla 3 asistan ekleyebilir.":"A doctor can add at most 3 assistants.",
-"Bu işlem için asistan yetkisi gerekli.":"This action requires assistant authority.",
+"Bu işlem için asistan yetkisi gerekli.":"This action requires the assistant role.",
 "Geçersiz durum.":"Invalid status.",
 "Bu işlem için doktor hesabı gerekli.":"This action requires a doctor account.",
 "STL ya da PLY dosyası seçin (.stl, .ply).":"Select an STL or PLY file (.stl, .ply).",
@@ -2239,7 +2244,7 @@ window.ZK_DIL_EN = {
 "Seçilen oda bu işin organizasyonuna ait değil":"The selected room does not belong to this job's organization",
 "Fatura doktoru bu organizasyona ait değil":"The invoice's doctor does not belong to this organization",
 "Fatura işi bu organizasyona ait değil":"The invoice's job does not belong to this organization",
-"Teslim onayını yalnızca yönetici/finans yetkilisi yapabilir":"Only the manager/finance authority can approve a handover",
+"Teslim onayını yalnızca yönetici/finans yetkilisi yapabilir":"Only a manager or a user with the finance permission can approve a handover",
 "Onaylanmış teslim kaydı değiştirilemez":"An approved handover record cannot be changed",
 "Kendi kasa teslim talebinizi onaylayamazsınız — başka bir yetkili onaylamalı":"You cannot approve your own cash handover request — another authorized person must approve it",
 "Bu iş bulunduğu odada henüz teslim alınmadı — önce teslim alınmalı":"This job has not yet been received in its room — it must be received first",
@@ -2247,7 +2252,7 @@ window.ZK_DIL_EN = {
 "İncelenmiş sipariş değiştirilemez.":"A reviewed order cannot be changed.",
 "Çalışan bulunamadı":"Employee not found",
 "Bu bilgiyi görme yetkiniz yok":"You do not have permission to view this information",
-"Bu işlem için laboratuvar sahibi yetkisi gerekli":"This action requires laboratory owner authority",
+"Bu işlem için laboratuvar sahibi yetkisi gerekli":"This action requires the laboratory owner",
 "Bu iş zaten iptal edilmiş":"This job has already been cancelled",
 "Bu iş iptal edilemez: personel hakedişi ödenmiş görünüyor. Önce hakediş kaydını düzeltin":"This job cannot be cancelled: the staff earnings appear to be paid. Correct the earnings record first",
 "Rol, onay durumu, organizasyon ve hakediş ücreti alanlarını yalnızca yönetici değiştirebilir":"Only the manager can change the role, approval status, organization and earnings rate fields",
@@ -2274,7 +2279,7 @@ window.ZK_DIL_EN = {
 "Diş seçimi zorunludur.":"Tooth selection is required.",
 "Yalnız tamamlanmış işler yeniden açılabilir":"Only completed jobs can be reopened",
 "Bu iş yeniden açılamaz: personel hakedişi ödenmiş görünüyor. Önce hakediş kaydını düzeltin":"This job cannot be reopened: the staff earnings appear to be paid. Correct the earnings record first",
-"Bu işlem için işveren/yönetici yetkisi gerekli.":"This action requires employer/manager authority.",
+"Bu işlem için işveren/yönetici yetkisi gerekli.":"This action requires an employer or manager.",
 "Giriş gerekli":"Sign-in required",
 "İşlem kimliği eksik":"Operation ID is missing",
 "Görev bulunamadı ya da bu görevi tamamlama yetkiniz yok":"Task not found, or you do not have permission to complete this task",
@@ -2308,11 +2313,11 @@ window.ZK_DIL_EN = {
 "Dosya 50 MB sınırını aşıyor.":"The file exceeds the 50 MB limit.",
 "Bu tasarımı doktora yalnız yönetici ya da işin bulunduğu 3B odasının yetkilisi gönderebilir.":"Only the manager or the authorized person of the 3D room the job is in can send this design to the doctor.",
 "Bu işlem için laboratuvar yöneticisi olmalısınız":"You must be a laboratory manager for this action",
-"Laboratuvarlar arası iş paketi kuruluşunuzda açık değil":"The inter-laboratory work plan is not enabled in your organization",
+"Laboratuvarlar arası iş paketi kuruluşunuzda açık değil":"Inter-laboratory work is not enabled in your plan",
 "Bu kodla bir laboratuvar bulunamadı":"No laboratory was found with this code",
 "Kendi laboratuvarınızın kodunu girdiniz":"You entered your own laboratory's code",
-"Karşı laboratuvarın paketi açık değil":"The other laboratory's plan is not enabled",
-"Karşı laboratuvar şu an altyapı siparişi kabul etmiyor":"The other laboratory is not accepting infrastructure orders right now",
+"Karşı laboratuvarın paketi açık değil":"The other laboratory does not have inter-laboratory work enabled",
+"Karşı laboratuvar şu an altyapı siparişi kabul etmiyor":"The other laboratory is not accepting substructure orders right now",
 "Bu laboratuvara yeniden istek göndermek için 24 saat bekleyin":"Wait 24 hours to send another request to this laboratory",
 "İstek bulunamadı":"Request not found",
 "Bu isteği yalnız alıcı laboratuvarın yöneticisi cevaplar":"Only the manager of the receiving laboratory can answer this request",
@@ -2325,20 +2330,20 @@ window.ZK_DIL_EN = {
 "Laboratuvar bulunamadı":"Laboratory not found",
 "Karşı laboratuvar bulunamadı":"The other laboratory was not found",
 "Bu laboratuvarla aktif ortaklık yok":"There is no active partnership with this laboratory",
-"Yalnız aktif işten altyapı siparişi verilir":"An infrastructure order can only be placed from an active job",
+"Yalnız aktif işten altyapı siparişi verilir":"A substructure order can only be placed from an active job",
 "Bu işlem için yönetici ya da sipariş yönetimi yetkisi gerekir":"This action requires the manager or the order management permission",
-"İki laboratuvarın da laboratuvarlar arası iş paketi açık olmalı":"The inter-laboratory work plan must be enabled for both laboratories",
+"İki laboratuvarın da laboratuvarlar arası iş paketi açık olmalı":"Inter-laboratory work must be enabled for both laboratories",
 "En az bir kalem seçin":"Select at least one item",
 "Karşı laboratuvarda müşteri kaydı oluşturulamadı":"The customer record could not be created at the other laboratory",
 "Kalem kimliği geçersiz":"The item ID is invalid",
 "Kalem bu işe ait değil":"The item does not belong to this job",
 "Aynı kalem iki kez seçildi":"The same item was selected twice",
-"Tamamlanmış kalem için altyapı siparişi verilemez":"An infrastructure order cannot be placed for a completed item",
-"Bu kalemin süren bir altyapı siparişi zaten var":"This item already has an ongoing infrastructure order",
+"Tamamlanmış kalem için altyapı siparişi verilemez":"A substructure order cannot be placed for a completed item",
+"Bu kalemin süren bir altyapı siparişi zaten var":"This item already has an ongoing substructure order",
 "Çalışma türü kimliği geçersiz":"The work type ID is invalid",
 "Karşı laboratuvarın çalışma türü seçilmedi":"The other laboratory's work type was not selected",
-"Altyapı siparişi bulunamadı":"Infrastructure order not found",
-"Karşı laboratuvar bu altyapıyı henüz tamamlamadı":"The other laboratory has not yet completed this infrastructure",
+"Altyapı siparişi bulunamadı":"Substructure order not found",
+"Karşı laboratuvar bu altyapıyı henüz tamamlamadı":"The other laboratory has not yet completed this substructure",
 "Durum bu arada değişti, sayfayı yenileyin":"The status changed in the meantime; refresh the page",
 "Karşı laboratuvar üretime başladı; iptal için onlarla görüşün":"The other laboratory has started production; talk to them to cancel",
 "Paket ve abonelik bilgisi uygulamadan değiştirilemez":"Plan and subscription information cannot be changed from the app",
@@ -2387,7 +2392,7 @@ window.ZK_DIL_EN = {
 "Asistan hesabı doktor rolünde olmalı":"The assistant account must have the doctor role",
 "Bir doktorun kendi hesabı asistan yapılamaz":"A doctor's own account cannot be made an assistant",
 "Bir doktor en fazla 3 asistan ekleyebilir":"A doctor can add at most 3 assistants",
-"Bu işlem için asistan yetkisi gerekli":"This action requires assistant authority",
+"Bu işlem için asistan yetkisi gerekli":"This action requires the assistant role",
 "Geçersiz durum":"Invalid status",
 "Bu işlem için doktor hesabı gerekli":"This action requires a doctor account",
 "STL ya da PLY dosyası seçin (.stl, .ply)":"Select an STL or PLY file (.stl, .ply)",
@@ -2543,6 +2548,10 @@ window.ZK_DIL_EN = {
 "Currency updated: $1 applies to new orders."
 ],
 [
+"^Reçete kaydedildi \\((1) malzeme\\)\\.$",
+"Recipe saved ($1 material)."
+],
+[
 "^Reçete kaydedildi \\((\\d+) malzeme\\)\\.$",
 "Recipe saved ($1 materials)."
 ],
@@ -2623,6 +2632,10 @@ window.ZK_DIL_EN = {
 "Your plan: $1."
 ],
 [
+"^Deneme süresi \\((1) gün kaldı\\)\\.$",
+"Trial period ($1 day left)."
+],
+[
 "^Deneme süresi \\((\\d+) gün kaldı\\)\\.$",
 "Trial period ($1 days left)."
 ],
@@ -2635,8 +2648,8 @@ window.ZK_DIL_EN = {
 "Last steps ($1)"
 ],
 [
-"^Asistan hesabı açıldı\\. Giriş bilgileri(.*)$",
-"Assistant account created. Sign-in details$1"
+"^Asistan hesabı açıldı\\. Giriş bilgileri (.+) adresine gönderildi\\.$",
+"Assistant account created. Sign-in details were sent to $1."
 ],
 [
 "^Hesap açıldı ama e-posta gönderilemedi(.*)$",
@@ -2659,6 +2672,10 @@ window.ZK_DIL_EN = {
 "Could not save: $1 Please try again."
 ],
 [
+"^Toplam (1) doktor$",
+"$1 doctor in total"
+],
+[
 "^Toplam (\\d+) doktor$",
 "$1 doctors in total"
 ],
@@ -2673,6 +2690,10 @@ window.ZK_DIL_EN = {
 [
 "^Gönderen: (.+)$",
 "Sent by: $1"
+],
+[
+"^(1) görev sorumlu pazarlamacıya gönderilecek\\. Onaylıyor musun\\?$",
+"$1 task will be sent to the responsible marketer. Do you approve?"
 ],
 [
 "^(\\d+) görev sorumlu pazarlamacıya gönderilecek\\. Onaylıyor musun\\?$",
@@ -2819,8 +2840,16 @@ window.ZK_DIL_EN = {
 "You have an overdue balance of $1 TL ($2 invoices). You can contact the laboratory."
 ],
 [
+"^(1) doktorda toplam (.+) TL vadesi geçmiş bakiye var\\.$",
+"A total of $2 TL is overdue across $1 doctor."
+],
+[
 "^(\\d+) doktorda toplam (.+) TL vadesi geçmiş bakiye var\\.$",
 "A total of $2 TL is overdue across $1 doctors."
+],
+[
+"^(1) tedarikçiye toplam (.+) TL vadesi geçmiş borç var\\.$",
+"A total of $2 TL is overdue to $1 supplier."
 ],
 [
 "^(\\d+) tedarikçiye toplam (.+) TL vadesi geçmiş borç var\\.$",
@@ -2843,12 +2872,20 @@ window.ZK_DIL_EN = {
 "$1 did not send a second case 30 days after the first case. [ref:$2]"
 ],
 [
+"^Bugün için (1) doktor ziyaret görevi atandı\\.$",
+"$1 doctor visit task was assigned for today."
+],
+[
 "^Bugün için (\\d+) doktor ziyaret görevi atandı\\.$",
 "$1 doctor visit tasks were assigned for today."
 ],
 [
 "^([^·—→]+) için (\\d+) taslak ziyaret görevi onayını bekliyor\\.$",
 "$2 draft visit tasks for $1 are awaiting approval."
+],
+[
+"^Bugün için (1) keşif görevin var$",
+"You have $1 discovery task for today"
 ],
 [
 "^Bugün için (\\d+) keşif görevin var$",
@@ -2884,11 +2921,11 @@ window.ZK_DIL_EN = {
 ],
 [
 "^([^·—→]+) altyapıyı tamamladı$",
-"$1 completed the infrastructure"
+"$1 completed the substructure"
 ],
 [
 "^([^·—→]+) altyapı işini iptal etti$",
-"$1 cancelled the infrastructure job"
+"$1 cancelled the substructure job"
 ],
 [
 "^([^·—→]+) siparişi kabul etmedi$",
@@ -2896,7 +2933,7 @@ window.ZK_DIL_EN = {
 ],
 [
 "^([^·—→]+) altyapıyı teslim aldı$",
-"$1 received the infrastructure"
+"$1 received the substructure"
 ],
 [
 "^([^·—→]+) siparişini geri çekti\\.$",
@@ -2904,7 +2941,7 @@ window.ZK_DIL_EN = {
 ],
 [
 "^([^·—→]+) altyapı siparişlerinizi kabul etti\\. Artık iş detayından altyapı siparişi verebilirsiniz\\.$",
-"$1 accepted your infrastructure orders. You can now place infrastructure orders from the job details."
+"$1 accepted your substructure orders. You can now place substructure orders from the job details."
 ],
 [
 "^([^·—→]+) isteğinizi kabul etmedi\\.$",
@@ -2912,11 +2949,11 @@ window.ZK_DIL_EN = {
 ],
 [
 "^([^·—→]+) ile altyapı ortaklığı durduruldu\\.$",
-"The infrastructure partnership with $1 was stopped."
+"The substructure partnership with $1 was stopped."
 ],
 [
 "^(.+) \\((.+)\\) size altyapı siparişi göndermek istiyor — Laboratuvarlar › Ortaklar$",
-"$1 ($2) wants to send you an infrastructure order — Laboratories › Partners"
+"$1 ($2) wants to send you a substructure order — Laboratories › Partners"
 ],
 [
 "^([^·—→]+) siparişi \\((.+)\\) 10 dakikadan uzun süredir bekliyor\\. Siparişler ekranından elle onaylayın\\.$",
@@ -2959,12 +2996,24 @@ window.ZK_DIL_EN = {
 "Inactive staff ($1)"
 ],
 [
+"^(1) temas$",
+"$1 contact"
+],
+[
 "^(\\d+) temas$",
 "$1 contacts"
 ],
 [
+"^(1) temas ·$",
+"$1 contact ·"
+],
+[
 "^(\\d+) temas ·$",
 "$1 contacts ·"
+],
+[
+"^(1) görev vadesi geldi$",
+"$1 task due"
 ],
 [
 "^(\\d+) görev vadesi geldi$",
@@ -2975,12 +3024,24 @@ window.ZK_DIL_EN = {
 "Funnel: $1 assigned → $2 first contact and beyond → $3 trial → $4 active"
 ],
 [
+"^Son (1) ay, çalışan bazlı üretim hakedişi\\.$",
+"Last $1 month, production earnings by employee."
+],
+[
 "^Son (\\d+) ay, çalışan bazlı üretim hakedişi\\.$",
 "Last $1 months, production earnings by employee."
 ],
 [
+"^Son (1) hafta, çalışan bazlı üretim hakedişi\\.$",
+"Last $1 week, production earnings by employee."
+],
+[
 "^Son (\\d+) hafta, çalışan bazlı üretim hakedişi\\.$",
 "Last $1 weeks, production earnings by employee."
+],
+[
+"^Son (1) yıl, çalışan bazlı üretim hakedişi\\.$",
+"Last $1 year, production earnings by employee."
 ],
 [
 "^Son (\\d+) yıl, çalışan bazlı üretim hakedişi\\.$",
@@ -3003,8 +3064,16 @@ window.ZK_DIL_EN = {
 "Employer cost is calculated with the standard SGK employer rate ($1%) without incentives; incentives specific to your business may reduce the real cost."
 ],
 [
+"^(1) aşama$",
+"$1 stage"
+],
+[
 "^(\\d+) aşama$",
 "$1 stages"
+],
+[
+"^(1) farklı iş$",
+"$1 different job"
 ],
 [
 "^(\\d+) farklı iş$",
@@ -3051,24 +3120,12 @@ window.ZK_DIL_EN = {
 "$1 cannot access these pages due to their position."
 ],
 [
-"^Aylık sabit personel gideri: (.+)$",
-"Monthly fixed staff expense: $1"
+"^(.+) \\(KDV %([\\d.,]+) dahil\\)$",
+"$1 (incl. $2% VAT)"
 ],
 [
-"^Nakit akışı öngörüsü yüklenemedi: (.+)$",
-"Could not load the cash flow forecast: $1"
-],
-[
-"^Finans özeti alınamadı: (.+)$",
-"Could not get the finance summary: $1"
-],
-[
-"^Geri alınamadı: (.+)$",
-"Could not undo: $1"
-],
-[
-"^(\\d+) faturasız iş$",
-"$1 jobs without invoice"
+"^KDV hariç (.+?) · KDV %([\\d.,]+) (.+)$",
+"Excl. VAT $1 · VAT $2% $3"
 ],
 [
 "^Aylık sabit personel gideri: (.+)$",
@@ -3087,8 +3144,16 @@ window.ZK_DIL_EN = {
 "Could not undo: $1"
 ],
 [
+"^(1) faturasız iş$",
+"$1 job without invoice"
+],
+[
 "^(\\d+) faturasız iş$",
 "$1 jobs without invoice"
+],
+[
+"^Diş (\\d+), (.+)$",
+"Tooth $1, $2"
 ],
 [
 "^Diş (\\d+)$",
@@ -3120,7 +3185,7 @@ window.ZK_DIL_EN = {
 ],
 [
 "^Altyapı bilgisi alınamadı: (.+)$",
-"Could not get infrastructure information: $1"
+"Could not get substructure information: $1"
 ],
 [
 "^Ortaklar alınamadı: (.+)$",
@@ -3136,55 +3201,7 @@ window.ZK_DIL_EN = {
 ],
 [
 "^Altyapı siparişi üretime alındı \\((.*)$",
-"Infrastructure order went into production ($1"
-],
-[
-"^Diş (\\d+)$",
-"Tooth $1"
-],
-[
-"^Açılamadı: (.+)$",
-"Could not open: $1"
-],
-[
-"^Çalışma türleri yüklenemedi: (.+)$",
-"Could not load work types: $1"
-],
-[
-"^Gönderilemedi: (.+)$",
-"Could not send: $1"
-],
-[
-"^3B dosyalar yüklenemedi: (.+)$",
-"Could not upload 3D files: $1"
-],
-[
-"^Yüklenemeyen: (.+)$",
-"Not uploaded: $1"
-],
-[
-"^İndirilemedi: (.+)$",
-"Could not download: $1"
-],
-[
-"^Altyapı bilgisi alınamadı: (.+)$",
-"Could not get infrastructure information: $1"
-],
-[
-"^Ortaklar alınamadı: (.+)$",
-"Could not get partners: $1"
-],
-[
-"^Teslim alınamadı: (.+)$",
-"Could not receive: $1"
-],
-[
-"^İşlem başarısız: (.+)$",
-"Operation failed: $1"
-],
-[
-"^Altyapı siparişi üretime alındı \\((.*)$",
-"Infrastructure order went into production ($1"
+"Substructure order went into production ($1"
 ],
 [
 "^Tam ağız \\((\\d+) diş\\)$",
@@ -3231,64 +3248,8 @@ window.ZK_DIL_EN = {
 "Could not load performance: $1"
 ],
 [
-"^Siparişiniz ve (\\d+) STL dosyanız laboratuvara iletildi\\.$",
-"Your order and $1 STL files were sent to the laboratory."
-],
-[
-"^Sipariş iletildi, (\\d+)/(\\d+) STL yüklendi\\. Yüklenemeyen: (.*)$",
-"Order sent, $1/$2 STL uploaded. Not uploaded: $3"
-],
-[
-"^Sipariş iletildi ama STL yüklenemedi: (.+)$",
-"Order sent but the STL could not be uploaded: $1"
-],
-[
-"^([+-]\\d+),(\\d) mm$",
-"$1.$2 mm"
-],
-[
-"^Tam ağız \\((\\d+) diş\\)$",
-"Full mouth ($1 teeth)"
-],
-[
-"^Üst çene \\((\\d+) diş\\)$",
-"Upper jaw ($1 teeth)"
-],
-[
-"^Alt çene \\((\\d+) diş\\)$",
-"Lower jaw ($1 teeth)"
-],
-[
-"^(\\d+) numaralı diş — bu işte yok$",
-"Tooth $1 — not in this job"
-],
-[
-"^Renk (\\d+)$",
-"Color $1"
-],
-[
-"^İş türleri yüklenemedi: (.+)$",
-"Could not load job types: $1"
-],
-[
-"^İş oluşturuldu ama fatura eklenemedi: (.+)$",
-"Job created but the invoice could not be added: $1"
-],
-[
-"^İş oluşturuldu ama şu STL yüklenemedi: (.+)$",
-"Job created but this STL could not be uploaded: $1"
-],
-[
-"^İş oluşturuldu ama STL yüklenemedi: (.+)$",
-"Job created but the STL could not be uploaded: $1"
-],
-[
-"^İş oluşturulamadı: (.+)$",
-"Could not create the job: $1"
-],
-[
-"^Performans yüklenemedi: (.+)$",
-"Could not load performance: $1"
+"^Siparişiniz ve (1) STL dosyanız laboratuvara iletildi\\.$",
+"Your order and $1 STL file were sent to the laboratory."
 ],
 [
 "^Siparişiniz ve (\\d+) STL dosyanız laboratuvara iletildi\\.$",
@@ -3305,6 +3266,10 @@ window.ZK_DIL_EN = {
 [
 "^([+-]\\d+),(\\d) mm$",
 "$1.$2 mm"
+],
+[
+"^(1) aktif iş$",
+"$1 active job"
 ],
 [
 "^(\\d+) aktif iş$",
@@ -3328,7 +3293,7 @@ window.ZK_DIL_EN = {
 ],
 [
 "^Yapılamadı: (.+)$",
-"Could not do it: $1"
+"Action failed: $1"
 ],
 [
 "^(.+) çıkarılsın mı\\? Hiç iş/fatura/tahsilat geçmişi yoksa kayıt tamamen silinir; geçmişi varsa kayıt korunur, portal girişi kapatılır ve e-postası serbest kalır\\. İstediğiniz zaman geri alabilirsiniz\\.$",
@@ -3345,6 +3310,10 @@ window.ZK_DIL_EN = {
 [
 "^(.+) yeniden etkinleştirildi\\.$",
 "$1 was reactivated."
+],
+[
+"^Ekstre (.+) adresine gönderildi\\.$",
+"Statement sent to $1."
 ],
 [
 "^(.+) adresine gönderildi\\.$",
@@ -3391,20 +3360,40 @@ window.ZK_DIL_EN = {
 "$1 h ago"
 ],
 [
+"^Daha fazla yükle \\((1) iş kaldı\\)$",
+"Load more ($1 job left)"
+],
+[
 "^Daha fazla yükle \\((\\d+) iş kaldı\\)$",
 "Load more ($1 jobs left)"
+],
+[
+"^Daha fazla yükle \\((1) sipariş kaldı\\)$",
+"Load more ($1 order left)"
 ],
 [
 "^Daha fazla yükle \\((\\d+) sipariş kaldı\\)$",
 "Load more ($1 orders left)"
 ],
 [
+"^(1) takip$",
+"$1 follow-up"
+],
+[
 "^(\\d+) takip$",
 "$1 follow-ups"
 ],
 [
+"^(1) görev$",
+"$1 task"
+],
+[
 "^(\\d+) görev$",
 "$1 tasks"
+],
+[
+"^(1) temas \\(bugün\\)$",
+"$1 contact (today)"
 ],
 [
 "^(\\d+) temas \\(bugün\\)$",
@@ -3420,7 +3409,7 @@ window.ZK_DIL_EN = {
 ],
 [
 "^(.+) istasyonunda aktif iş yok\\.$",
-"No active jobs at the $1 station."
+"No active jobs in the $1 room."
 ],
 [
 "^Gülüş: (.+)$",
@@ -3439,16 +3428,32 @@ window.ZK_DIL_EN = {
 "The server did not respond within $1 seconds. Check your connection and try again."
 ],
 [
+"^(1) bekleyen işlem gönderildi\\.$",
+"$1 pending operation was sent."
+],
+[
 "^(\\d+) bekleyen işlem gönderildi\\.$",
 "$1 pending operations were sent."
+],
+[
+"^(1) işlem sunucu tarafından reddedildi — alttaki çipe dokun\\.$",
+"$1 operation was rejected by the server — tap the chip below."
 ],
 [
 "^(\\d+) işlem sunucu tarafından reddedildi — alttaki çipe dokun\\.$",
 "$1 operations were rejected by the server — tap the chip below."
 ],
 [
+"^(1) işlem gönderilemedi · (\\d+) bekliyor — göster$",
+"$1 operation could not be sent · $2 waiting — show"
+],
+[
 "^(\\d+) işlem gönderilemedi · (\\d+) bekliyor — göster$",
 "$1 operations could not be sent · $2 waiting — show"
+],
+[
+"^(1) işlem gönderilemedi — göster$",
+"$1 operation could not be sent — show"
 ],
 [
 "^(\\d+) işlem gönderilemedi — göster$",
@@ -3508,7 +3513,7 @@ window.ZK_DIL_EN = {
 ],
 [
 "^Bu\\ kategoride\\ \"(.+?)\"\\ zaten\\ var$",
-"The \"$1\" already exists in this category"
+"\"$1\" already exists in this category"
 ],
 [
 "^Ödeme\\ kalan\\ tutarı\\ aşıyor\\ \\(kalan:\\ (.+?)\\ (.+?)\\)$",

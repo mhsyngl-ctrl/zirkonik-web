@@ -910,7 +910,8 @@
       var ok = confirm(metin);
       if (!ok) return;
       var typed = prompt('Onaylamak için "SİL" yazın:');
-      if (typed !== 'SİL') { zkToast('İptal edildi.'); return; }
+      // İngilizcede Türkçe «İ» yazılamaz: orada DELETE (büyük/küçük harf fark etmez) istenir.
+      if (window.ZkDil && ZkDil.en ? String(typed || '').trim().toUpperCase() !== 'DELETE' : typed !== 'SİL') { zkToast('İptal edildi.'); return; }
       ZirkonikData.deleteMyAccount().then(function (res) {
         if (res.error) { zkToast('Hesap silinemedi: ' + res.error.message); return; }
         alert('Hesabınız silindi.');
@@ -924,7 +925,7 @@
       var ok = confirm('Tüm iş geçmişi, faturalar, tahsilatlar, kasa teslimleri ve tedarikçi hareketleri kalıcı olarak silinecek. Doktorlar, personel ve kurulum (laboratuvar/oda/fiyat listesi) korunur. Önemli: Üretim ve iş kayıtlarının yasal saklama süresi olabilir (ısmarlama tıbbi cihaz kayıtları için birçok ülkede on yıla kadar). Silmeden önce kendi kayıtlarınızı dışa aktarmanızı öneririz. Silinen iş kayıtları, olası bir hata ya da uyuşmazlık için güvenlik amacıyla 5 yıl arşivde tutulur. Bu işlem GERİ ALINAMAZ. Devam edilsin mi?');
       if (!ok) return;
       var typed = prompt('Onaylamak için "SIFIRLA" yazın:');
-      if (typed !== 'SIFIRLA') { zkToast('İptal edildi.'); return; }
+      if (window.ZkDil && ZkDil.en ? String(typed || '').trim().toUpperCase() !== 'RESET' : typed !== 'SIFIRLA') { zkToast('İptal edildi.'); return; }
       ZirkonikData.resetOrganizationData(pfOrgId).then(function (res) {
         if (res.error) { zkToast('Sıfırlanamadı: ' + res.error.message); return; }
         alert('Veriler sıfırlandı.');

@@ -26,23 +26,24 @@
     var k = cekirdek.replace(/\s+/g, ' ');
     var r = tek(k);
     // « · », « — », « → » ile birleştirilmiş metin ("Ayşe Kaya · Zirkonyum · 3 diş", bildirim gövdeleri): parçalar ayrı çevrilir, çevrilmeyen (ad, kod) aynen kalır.
-    if (r === undefined && /( · | — | → )/.test(k)) {
-      // Parçalar soldan sağa EN UZUN eşleşmeyle çevrilir (bitişik parçalar birleştirilip denenir): «Çevrimdışı — son görülen veriler gösteriliyor» tek giriş olabilir.
-      var par = k.split(/( · | — | → )/), degisti = false, cev = [], i = 0;
-      if (par.length <= 25) {
-        while (i < par.length) {
-          if (i % 2) { cev.push(par[i]); i++; continue; }
-          var bul = false;
-          for (var j = par.length - 1 - ((par.length - 1 - i) % 2); j >= i; j -= 2) {
-            var c = tek(par.slice(i, j + 1).join(''));
-            if (c !== undefined) { cev.push(c); degisti = true; i = j + 1; bul = true; break; }
-          }
-          if (!bul) { cev.push(par[i]); i++; }
-        }
-        if (degisti) r = cev.join('');
-      }
-    }
+    if (r === undefined) r = bol(k, 0);
     return r === undefined ? s : m[1] + r + m[3];
+  }
+  /** « · », « — », « → » ile birleşik metin: parçalar soldan sağa EN UZUN eşleşmeyle çevrilir (bitişik parçalar birleştirilip denenir: «Çevrimdışı — son görülen veriler gösteriliyor» tek giriş olabilir). Hiç parça çevrilmezse undefined. */
+  function bol(k, derin) {
+    if (!/( · | — | → )/.test(k)) return undefined;
+    var par = k.split(/( · | — | → )/), degisti = false, cev = [], i = 0;
+    if (par.length > 25) return undefined;
+    while (i < par.length) {
+      if (i % 2) { cev.push(par[i]); i++; continue; }
+      var bul = false;
+      for (var j = par.length - 1 - ((par.length - 1 - i) % 2); j >= i; j -= 2) {
+        var c = tek(par.slice(i, j + 1).join(''), derin);
+        if (c !== undefined) { cev.push(c); degisti = true; i = j + 1; bul = true; break; }
+      }
+      if (!bul) { cev.push(par[i]); i++; }
+    }
+    return degisti ? cev.join('') : undefined;
   }
   function tek(k, derin) {   // derin: özyineleme sayısı (en çok 2 kademe: «Yüklenemedi: Bağlantı: Sunucu …»)
     if (Object.prototype.hasOwnProperty.call(E, k)) return E[k];
@@ -50,7 +51,7 @@
       var m = P[i][0].exec(k);
       if (!m) continue;
       // Desen sonucu: yakalanan parçalar da (ör. «Yüklenemedi: <sunucu hatası>») sözlükte varsa çevrilir; bir kademe derinlik (sonsuz özyineleme yok).
-      return P[i][1].replace(/\$(\d)/g, function (_, n) { var g = m[+n]; if (g == null) return ''; var c = (derin || 0) >= 2 ? undefined : tek(g, (derin || 0) + 1); return c === undefined ? g : c; });
+      return P[i][1].replace(/\$(\d)/g, function (_, n) { var g = m[+n]; if (g == null) return ''; var d = (derin || 0) + 1, c = d > 2 ? undefined : tek(g, d); if (c === undefined && d <= 2) c = bol(g, d); return c === undefined ? g : c; });
     }
     return undefined;
   }
