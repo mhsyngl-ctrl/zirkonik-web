@@ -529,7 +529,7 @@
             </div>
           </details>
 
-          <details class="rounded-theme border border-border bg-card" ontoggle="zkNudgeScroll(this)">
+          <details id="kv-izin" class="rounded-theme border border-border bg-card" ontoggle="zkNudgeScroll(this)">
             <summary class="flex items-center gap-3 px-4 py-3.5">
               <iconify-icon icon="lucide:calendar-clock" class="shrink-0 text-lg text-primary"></iconify-icon>
               <span class="flex-1 text-sm font-bold">İzin talebi nasıl açılır?</span>
@@ -685,6 +685,8 @@
       ZirkonikAuth.getSession().then(function (s) { location.href = s ? 'profil.html' : 'giris.html'; }, function () { location.href = 'giris.html'; });
     }
     // Kurulum durumu: hangi adımların tamamlandığını canlı veriden gösterir (yalnız oturumu olana; üye olmayan ziyaretçide kart gizli).
+    // İzin bölümü yalnız izin özelliğinin açık olduğu (Türkiye bölge ayarı) laboratuvarlarda görünür; oturumsuz ziyaretçide kalır.
+    ZirkonikAuth.getSession().then(function (s) { if (!s) return; return ZirkonikAuth.me().then(function (me) { if (window.zkIzinAcik && !window.zkIzinAcik(me)) { var k = document.getElementById('kv-izin'); if (k) k.style.display = 'none'; } }); }).catch(function () {});
     ZirkonikAuth.getSession().then(function (session) {
       if (!session) { document.getElementById('kv-kurulum-karti').style.display = 'none'; return; }
       var client = ZirkonikAuth.client();
