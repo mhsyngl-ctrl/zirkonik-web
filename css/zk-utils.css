@@ -921,3 +921,25 @@ body { animation: zkPageIn .2s ease both; }
 .zk-rozet-bek { color: var(--color-accent); background: rgba(240, 160, 60, 0.15); }
 .zk-rozet-bek::before { content: ''; width: 6px; height: 6px; border-radius: 9999px; background: var(--color-accent); flex: none; }
 
+
+/* 7 Kasım 2026 — arı kovanı "bir tık" daha canlı (Murat'ın isteği). Açılışta petekler sırayla belirir; yoğun (sıcak) ve "gelen iş" olan petek yavaşça nefes alır;
+   dokununca petek hafifçe basılır; bir petekteki sayı değişince sayı küçük bir vurgu yapar. Yapı değişmeden yenilemede DOM korunduğundan giriş animasyonu
+   her yenilemede tekrar oynamaz. Nefes yalnız opaklık (ucuz); "hareketi azalt" açıksa HİÇBİRİ çalışmaz. */
+@media (prefers-reduced-motion: no-preference) {
+  .zk-hive-row:nth-child(2) { --r: 1; } .zk-hive-row:nth-child(3) { --r: 2; } .zk-hive-row:nth-child(4) { --r: 3; } .zk-hive-row:nth-child(5) { --r: 4; }
+  .zk-hive-row .zk-hex:nth-child(2) { --c: 1; } .zk-hive-row .zk-hex:nth-child(3) { --c: 2; }
+  .zk-hive .zk-hex { transition: transform .16s ease;
+    animation: zk-hex-gel .55s cubic-bezier(.2, .9, .3, 1.15) calc(var(--r, 0) * 70ms + var(--c, 0) * 45ms) backwards; }
+  .zk-hive .zk-hex:active { transform: scale(.95); }
+  .zk-hive .zk-hex-hot::after, .zk-hive .zk-hex-alert::after { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0;
+    background: radial-gradient(circle at 50% 38%, rgba(255, 170, 100, .24), rgba(255, 170, 100, 0) 70%); animation: zk-hex-nefes 2.8s ease-in-out 1s infinite; }
+  .zk-hive .zk-hex-alert:not(.zk-hex-hot)::after { background: radial-gradient(circle at 50% 38%, rgba(245, 183, 107, .17), rgba(245, 183, 107, 0) 70%); }
+  .zk-hex-tik .zk-hex-count { animation: zk-sayi-tik .5s ease-out; }
+}
+@keyframes zk-hex-gel { from { opacity: 0; transform: scale(.55); } to { opacity: 1; transform: scale(1); } }
+@keyframes zk-hex-nefes { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+@keyframes zk-sayi-tik { 0% { transform: scale(1.35); } 100% { transform: scale(1); } }
+
+/* 7 Kasım 2026: statik Tailwind'de olmayan iki küçük yardımcı (bağlantı altı çizgisi, 3 sütun kaplama) */
+.underline { text-decoration: underline; }
+.col-span-3 { grid-column: span 3 / span 3; }

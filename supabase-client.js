@@ -732,6 +732,11 @@
     saveRoute: function (itemId, roomIds) {
       return client().rpc('zk_rota_kaydet', { p_item: itemId, p_rota: roomIds && roomIds.length ? roomIds : [] });
     },
+    // 7 Kasım 2026: yeni çalışma türü (kalem) FİYATSIZ eklenir (zk_calisma_turu_ekle; yönetici + Lider Teknisyen). Fiyat satırını sunucu açar,
+    // kalem Finans > Fiyat listesinde fiyatı boş görünür, rakam orada girilir. Dönüş: data = yeni kalemin kimliği.
+    addWorkType: function (category, name, pricingUnit) {
+      return client().rpc('zk_calisma_turu_ekle', { p_category: category, p_name: name, p_pricing_unit: pricingUnit === 'piece' ? 'piece' : 'tooth' });
+    },
     // Tek kalemli işlerde diş/çalışma türü/adet düzeltir — fiyata dokunmaz.
     // Birden fazla kalemli işlerde sunucu reddeder (yalnız yönetici düzenler).
     fixJobItem: function (jobId, teeth, priceItemId, unitCount) {
@@ -1743,6 +1748,26 @@
         });
     },
 
+    // ---- Personel hesapları (7 Kasım 2026): aylık maaş + diş başı hakediş + düzeltme + ödenen + kalan ----
+    // Yazma YALNIZ sunucu işlevleriyle (yönetici + Muhasebeci); okuma tablolardan (RLS: para yöneticisi hepsini, personel yalnız kendisininkini görür).
+    // Ödeme kimliği (p_id) istemcide üretilir ve tekrar denemede AYNI kalır: ilk deneme kaydolmuşsa ikinci istek ikinci kayıt açmaz.
+    payMonthPrepare: function (ay) { return client().rpc('zk_personel_hesap_hazirla', { p_ay: ay }); },
+    payMonthLock: function (ay, kilit) { return client().rpc('zk_personel_hesap_kilitle', { p_ay: ay, p_kilit: !!kilit }); },
+    payStatements: function (ay) {
+      return client().from('staff_pay_statements')
+        .select('*, app_users(full_name, position, role), staff_pay_payments(id, amount, currency, paid_at, method, note, created_at, cancelled_at)')
+        .eq('period', ay).order('created_at');
+    },
+    payEarningDetails: function (userId, ay, currency) {
+      return client().from('staff_earnings').select('id, tooth_count, unit_rate, amount, currency, status, jobs(job_number, restoration_type)')
+        .eq('user_id', userId).eq('period', ay).eq('currency', currency).neq('status', 'cancelled').order('created_at');
+    },
+    payAdjust: function (statementId, tutar, not) { return client().rpc('zk_personel_hesap_duzelt', { p_id: statementId, p_tutar: tutar, p_not: not || null }); },
+    payAddPayment: function (paymentId, statementId, tutar, tarih, yontem, not) {
+      return client().rpc('zk_personel_odeme_ekle', { p_id: paymentId, p_statement: statementId, p_tutar: tutar, p_tarih: tarih, p_yontem: yontem || null, p_not: not || null });
+    },
+    payCancelPayment: function (paymentId) { return client().rpc('zk_personel_odeme_iptal', { p_id: paymentId }); },
+
     listStaffEarnings: function (period) {
       var q = client().from('staff_earnings').select('*, app_users!staff_earnings_user_id_fkey(full_name)').order('period', { ascending: false });
       if (period) q = q.eq('period', period);
@@ -1900,6 +1925,8 @@
   window.ZirkonikAuth = Auth;
   // 7 Kasım 2026: Lider Teknisyen = operasyon yöneticisi, parayla işi yok (role 'personel' + position 'Lider Teknisyen'). Sunucu kapıları zk_lider_mi / zk_ops_admin.
   window.zkLiderMi = function (me) { return !!me && me.role === 'personel' && me.position === 'Lider Teknisyen'; };
+  // 7 Kasım 2026: Muhasebeci = yalnız PARA (Lider'in tersi). Sunucu kapısı zk_muhasebeci_mi / zk_para_admin; burası yalnız ekranı sadeleştirir.
+  window.zkMuhasebeciMi = function (me) { return !!me && me.role === 'personel' && me.position === 'Muhasebeci'; };
   window.ZirkonikData = Data;
 
   // ---- Para birimi ----

@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://cuujupeindodpsdjcivm.supabase.co wss://cuujupeindodpsdjcivm.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <title>Personel Hesapları — Zirkonik</title>
+  <script src="js/zk-guard-core.js"></script>
+  <script src="js/zk-erken-koruma.js"></script>
+
+  <link rel="stylesheet" href="css/tailwind.css">
+  <link rel="stylesheet" href="css/ipad.css">
+  <link rel="stylesheet" href="css/zk-utils.css">
+  <script src="js/zk-tema.js"></script>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#FFFFFF">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <script src="vendor/lucide-icons.js"></script>
+  <script src="vendor/iconify-icon.min.js" defer></script>
+  <link rel="stylesheet" href="css/fonts.css">
+
+  <style>
+  :root {
+    --color-background: #0E1013;
+    --color-foreground: #F2F4F7;
+    --color-primary: #3D7CDC;
+    --color-primary-foreground: #FFFFFF;
+    --color-secondary: #232732;
+    --color-secondary-foreground: #C6CBD6;
+    --color-accent: #F0A03C;
+    --color-accent-foreground: #FFFFFF;
+    --color-muted: #1B1E24;
+    --color-muted-foreground: #98A0AD;
+    --color-card: #15171C;
+    --color-card-foreground: #F2F4F7;
+    --color-border: #262A32;
+    --color-input: #1B1E24;
+    --color-destructive: #EF5350;
+    --color-destructive-foreground: #FFFFFF;
+    --color-success: #10B981;
+    --color-success-foreground: #FFFFFF;
+    --font-heading: 'Plus Jakarta Sans', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --radius: 12px;
+  }
+  html { overflow-x: hidden; }
+  body { font-family: var(--font-body); -webkit-font-smoothing: antialiased; margin: 0; padding: 0; overflow-x: hidden; overscroll-behavior-x: none; }
+  </style>
+</head>
+<body data-page="personel-hesap" class="bg-background text-foreground m-0 p-0">
+  <div class="h-screen w-screen overflow-y-auto">
+    <div class="min-h-screen w-full bg-background text-foreground font-body pb-32">
+      <header class="border-b border-border bg-card px-5 pb-5 pt-12" style="padding-top:max(3rem,calc(env(safe-area-inset-top) + 12px));">
+        <div class="flex items-center justify-between">
+          <button onclick="history.length > 1 ? history.back() : location.href='finans.html'" aria-label="Geri" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-card text-card-foreground">
+            <iconify-icon icon="lucide:arrow-left" class="text-xl"></iconify-icon>
+          </button>
+          <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Yönetici ve Muhasebeci</p>
+          <div class="h-10 w-10"></div>
+        </div>
+        <div class="mt-6">
+          <h1 class="font-heading text-2xl font-bold tracking-tight">Personel Hesapları</h1>
+          <p class="mt-1 text-sm text-muted-foreground">Aylık maaş, diş başı hakediş, düzeltme (prim / kesinti / avans), ödenen ve kalan. Kişiye dokunarak ayrıntıyı görün, ödeme ekleyin.</p>
+        </div>
+        <div class="mt-5 flex items-center justify-between gap-2">
+          <button id="ay-geri" type="button" aria-label="Önceki ay" class="flex h-11 w-11 items-center justify-center rounded-theme border border-border bg-input text-card-foreground"><iconify-icon icon="lucide:chevron-left" class="text-xl"></iconify-icon></button>
+          <p id="ay-etiket" class="font-heading text-lg font-bold">—</p>
+          <button id="ay-ileri" type="button" aria-label="Sonraki ay" class="flex h-11 w-11 items-center justify-center rounded-theme border border-border bg-input text-card-foreground"><iconify-icon icon="lucide:chevron-right" class="text-xl"></iconify-icon></button>
+        </div>
+      </header>
+
+      <main class="px-5 pt-5">
+        <section id="ph-ozet"></section>
+        <div id="ph-eylemler" class="mt-3 hidden gap-2">
+          <button id="ph-yenile" type="button" class="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-theme border border-border bg-input text-xs font-bold text-primary"><iconify-icon icon="lucide:refresh-cw" class="text-base"></iconify-icon>Hesabı yenile</button>
+          <button id="ph-kilit" type="button" class="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-theme border border-border bg-input text-xs font-bold text-primary"></button>
+        </div>
+        <p id="ph-kilit-notu" class="mt-2 hidden text-xs text-muted-foreground"></p>
+        <div id="ph-liste" class="mt-5 space-y-3"><p class="text-xs text-muted-foreground">Yükleniyor…</p></div>
+        <p class="mt-6 text-[11px] leading-4 text-muted-foreground">Maaş, Ekip › kişi › «Ücret ve hakediş» ekranındaki ücret modelinden gelir. Diş başı hakediş, o ay tamamlanan işlerden otomatik yazılır (iptaller hariç). Elle girilen düzeltme yenilemede korunur; kapatılan ayın tutarları değişmez, ödeme yine eklenebilir.</p>
+      </main>
+    </div>
+  </div>
+
+  <!-- Kişi ayrıntısı -->
+  <div id="ph-sheet" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="phKapat()"></div>
+    <div class="absolute bottom-0 left-0 flex max-h-[85vh] w-full flex-col rounded-t-2xl bg-card p-5 pb-8">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <h2 id="ph-s-ad" class="font-heading text-lg font-bold">—</h2>
+          <p id="ph-s-alt" class="mt-0.5 text-xs text-muted-foreground"></p>
+        </div>
+        <button type="button" onclick="phKapat()" aria-label="Kapat" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-theme border border-border bg-input"><iconify-icon icon="lucide:x" class="text-lg"></iconify-icon></button>
+      </div>
+      <div id="ph-s-govde" class="mt-4 min-h-0 flex-1 overflow-y-auto"></div>
+    </div>
+  </div>
+
+  <div id="zk-toast" style="position:fixed;left:50%;bottom:96px;transform:translate(-50%,16px);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;background:#17242C;color:#fff;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;padding:10px 16px;border-radius:12px;z-index:9999;max-width:86%;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.18);"></div>
+  <script>
+    function escapeHtml(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+    function zkToast(msg) {
+      var el = document.getElementById('zk-toast');
+      if (!el) return;
+      el.textContent = msg;
+      el.style.opacity = '1'; el.style.transform = 'translate(-50%,0)';
+      clearTimeout(el._t);
+      el._t = setTimeout(function () { el.style.opacity = '0'; el.style.transform = 'translate(-50%,16px)'; }, 3200);
+    }
+  </script>
+  <!-- 28 Eylul 2026: js/zk-erken-koruma.js govdeyi gizli birakmis olabilir - gorunur icerik burada bitiyor, ag'a bagimli betikler (supabase-js vb.)
+       asagida basliyor. Onlari beklemeden, kilitli bolumleri simdi gizleyip govdeyi ac. -->
+  <script>
+    (function () {
+      if (!window.__zkErkenGizliP) return;
+      if (window.ZkGuardCore) ZkGuardCore.hideUi(window.__zkErkenGizliP);
+      document.documentElement.style.visibility = '';
+    })();
+  </script>
+
+  <script src="vendor/supabase-js.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="js/net-guard.js"></script>
+  <script src="supabase-client.js"></script>
+  <script src="js/zk-guard.js"></script>
+  <script src="js/zk-hiz.js"></script>
+  <script src="js/zk-ptr.js"></script>
+  <script src="js/zk-yenile.js"></script>
+  <script src="js/zk-surum.js"></script>
+  <script>
+    /* Personel hesapları (7 Kasım 2026): ay × kişi × para birimi hesap satırı = maaş + diş başı hakediş + düzeltme; ödemeler satıra bağlıdır, silinmez İPTAL edilir.
+     * Yazma yalnız sunucu işlevleriyle (zk_personel_*; yönetici + Muhasebeci). Ödeme kimliği istemcide üretilir, tekrar denemede AYNI kalır (çift kayıt olmaz). */
+    var ZK_YONTEM = { nakit: 'Nakit', havale: 'Havale / EFT', diger: 'Diğer' };
+    var me = null, yoneticiMi = false, ay = null, satirlar = [], seciliId = null, istek = 0, odemeKimligi = null, detayOnbellek = {};
+
+    function pad(n) { return n < 10 ? '0' + n : '' + n; }
+    function bugunAy() { var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-01'; }
+    function bugun() { var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+    function ayKaydir(a, n) { var p = a.split('-'); var d = new Date(Number(p[0]), Number(p[1]) - 1 + n, 1); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-01'; }
+    function ayEtiket(a) { var p = a.split('-'); return new Date(Number(p[0]), Number(p[1]) - 1, 1).toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' }); }
+    function say(x) { return Number(x) || 0; }
+    function para(t, c) { return ZirkonikMoney.format(t, c, 2); }
+    function odenen(s) { return (s.staff_pay_payments || []).filter(function (p) { return !p.cancelled_at; }).reduce(function (t, p) { return t + say(p.amount); }, 0); }
+    function kalan(s) { return Math.round((say(s.total_amount) - odenen(s)) * 100) / 100; }
+    function durum(s) {
+      var k = kalan(s), o = odenen(s), t = say(s.total_amount);
+      if (k < -0.004) return { y: 'Fazla ödenmiş', c: 'bg-destructive/10 text-destructive' };
+      if (t <= 0 && o <= 0) return { y: 'Tutar yok', c: 'bg-muted text-muted-foreground' };
+      if (k <= 0.004) return { y: 'Ödendi', c: 'bg-success/10 text-success' };
+      if (o > 0) return { y: 'Kısmen ödendi', c: 'bg-accent/10 text-accent' };
+      return { y: 'Bekliyor', c: 'bg-muted text-muted-foreground' };
+    }
+    function model(s) { return say(s.salary_amount) > 0 && say(s.piece_amount) > 0 ? 'Maaş + diş başı' : (say(s.salary_amount) > 0 ? 'Maaşlı' : (say(s.piece_amount) > 0 ? 'Diş başı' : 'Düzeltme')); }
+    function kilitli() { return satirlar.length > 0 && satirlar.every(function (s) { return !!s.locked_at; }); }
+    function hataMetni(e) {
+      if (!e) return 'Bilinmeyen hata';
+      if (window.NetGuard && NetGuard.isNetworkError(e)) return 'Bağlantı sorunu: ' + (e.message || '');
+      return (e.message || String(e)).replace(/^P0001: /, '');
+    }
+
+    ZirkonikAuth.requireAuth().then(function (session) {
+      if (!session) return;
+      ZirkonikAuth.me().then(function (m) {
+        me = m;
+        yoneticiMi = !!m && m.role === 'yonetici';
+        if (!yoneticiMi && !(window.zkMuhasebeciMi && zkMuhasebeciMi(m))) { location.replace('finans.html'); return; }
+        ay = bugunAy();
+        document.getElementById('ay-geri').addEventListener('click', function () { ay = ayKaydir(ay, -1); ayAc(); });
+        document.getElementById('ay-ileri').addEventListener('click', function () { if (ay < bugunAy()) { ay = ayKaydir(ay, 1); ayAc(); } });
+        document.getElementById('ph-yenile').addEventListener('click', function () { hazirla(this); });
+        document.getElementById('ph-kilit').addEventListener('click', function () { kilitle(this); });
+        ayAc();
+      });
+    });
+
+    function ayAc() {
+      var bu = ++istek;
+      document.getElementById('ay-etiket').textContent = ayEtiket(ay);
+      document.getElementById('ay-ileri').style.opacity = ay >= bugunAy() ? '.35' : '';
+      document.getElementById('ph-liste').innerHTML = '<p class="text-xs text-muted-foreground">Yükleniyor…</p>';
+      detayOnbellek = {};
+      ZirkonikData.payStatements(ay).then(function (r) {
+        if (r.error) throw r.error;
+        // İçinde bulunulan ay her açılışta tazelenir; geçmiş ay yalnız hiç hazırlanmamışsa ilk kez hazırlanır (kayıtlı ayları kendiliğinden değiştirmez).
+        if (ay === bugunAy() || !(r.data || []).length) {
+          return ZirkonikData.payMonthPrepare(ay).then(function (h) { if (h.error) throw h.error; return ZirkonikData.payStatements(ay); });
+        }
+        return r;
+      }).then(function (r) {
+        if (bu !== istek) return;
+        if (r.error) throw r.error;
+        satirlar = r.data || [];
+        ciz();
+      }, function (e) {
+        if (bu !== istek) return;
+        document.getElementById('ph-liste').innerHTML = '<p class="text-xs text-destructive">Yüklenemedi: ' + escapeHtml(hataMetni(e)) + '</p>' +
+          '<button type="button" onclick="ayAc()" class="mt-3 h-10 rounded-theme border border-border bg-input px-4 text-xs font-bold text-primary">Tekrar dene</button>';
+      });
+    }
+
+    function yenidenOku() {
+      return ZirkonikData.payStatements(ay).then(function (r) {
+        if (r.error) throw r.error;
+        satirlar = r.data || [];
+        ciz();
+        if (seciliId) { if (satirlar.some(function (s) { return s.id === seciliId; })) sheetCiz(); else phKapat(); }
+        return r;
+      });
+    }
+
+    function hazirla(btn) {
+      var bitir = window.ZKHiz ? ZKHiz.mesgul(btn, 'Yenileniyor…') : function () {};
+      ZirkonikData.payMonthPrepare(ay).then(function (h) { if (h.error) throw h.error; detayOnbellek = {}; return yenidenOku(); })
+        .then(function () { bitir(); zkToast('Hesap yenilendi.'); }, function (e) { bitir(); zkToast('Yenilenemedi: ' + hataMetni(e)); });
+    }
+
+    function kilitle(btn) {
+      var kapat = !kilitli();
+      if (kapat && !confirm(ayEtiket(ay) + ' ayı kapatılsın mı?\n\nKapatılınca maaş, hakediş ve düzeltme tutarları DEĞİŞMEZ. Ödeme eklemek ve iptal etmek yine yapılabilir. Ayı yalnız yönetici yeniden açabilir.')) return;
+      var bitir = window.ZKHiz ? ZKHiz.mesgul(btn, kapat ? 'Kapatılıyor…' : 'Açılıyor…') : function () {};
+      ZirkonikData.payMonthLock(ay, kapat).then(function (r) { if (r.error) throw r.error; return yenidenOku(); })
+        .then(function () { bitir(); zkToast(kapat ? 'Ay kapatıldı.' : 'Ay yeniden açıldı.'); }, function (e) { bitir(); zkToast('Yapılamadı: ' + hataMetni(e)); });
+    }
+
+    function ciz() {
+      // Özet: para birimi başına hesaplanan / ödenen / kalan
+      var oz = {};
+      satirlar.forEach(function (s) {
+        var o = oz[s.currency] = oz[s.currency] || { t: 0, o: 0 };
+        o.t += say(s.total_amount); o.o += odenen(s);
+      });
+      var kur = Object.keys(oz).sort(function (a, b) { return ZirkonikMoney.SYMBOLS.indexOf(a) - ZirkonikMoney.SYMBOLS.indexOf(b); });
+      document.getElementById('ph-ozet').innerHTML = kur.length ? kur.map(function (c) {
+        var o = oz[c], k = Math.round((o.t - o.o) * 100) / 100;
+        return '<div class="mb-2 rounded-theme border border-border bg-card p-4"><div class="grid grid-cols-3 gap-2">' +
+          '<div><p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Hesaplanan</p><p class="mt-1 text-sm font-bold tabular-nums">' + escapeHtml(para(o.t, c)) + '</p></div>' +
+          '<div><p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Ödenen</p><p class="mt-1 text-sm font-bold tabular-nums">' + escapeHtml(para(o.o, c)) + '</p></div>' +
+          '<div><p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Kalan</p><p class="mt-1 text-sm font-bold tabular-nums ' + (k > 0.004 ? 'text-accent' : (k < -0.004 ? 'text-destructive' : 'text-success')) + '">' + escapeHtml(para(k, c)) + '</p></div>' +
+          '</div></div>';
+      }).join('') : '';
+      var ek = document.getElementById('ph-eylemler'); ek.classList.remove('hidden'); ek.classList.add('flex');
+      var kb = document.getElementById('ph-kilit'), kl = kilitli();
+      kb.innerHTML = '<iconify-icon icon="lucide:' + (kl ? 'lock-open' : 'lock') + '" class="text-base"></iconify-icon>' + (kl ? 'Ayı yeniden aç' : 'Ayı kapat');
+      kb.style.display = (!satirlar.length || (kl && !yoneticiMi)) ? 'none' : '';
+      document.getElementById('ph-yenile').style.display = kl ? 'none' : '';
+      var nt = document.getElementById('ph-kilit-notu');
+      nt.classList.toggle('hidden', !kl);
+      nt.textContent = kl ? 'Bu ay kapatıldı: tutarlar değişmez' + (yoneticiMi ? '.' : '; yeniden açmayı yönetici yapar.') : '';
+
+      var liste = document.getElementById('ph-liste');
+      if (!satirlar.length) {
+        liste.innerHTML = '<div class="rounded-theme border border-border bg-card p-5 text-center"><p class="text-sm font-bold">Bu ay için hesaplanacak maaş ya da hakediş yok</p>' +
+          '<p class="mt-1.5 text-xs leading-5 text-muted-foreground">Maaş için Ekip › kişi › «Ücret ve hakediş» ekranından ücret modelini tanımlayın. Diş başı hakediş, işler tamamlandıkça kendiliğinden yazılır.</p></div>';
+        return;
+      }
+      var kisi = {}, sira = [];
+      satirlar.forEach(function (s) { if (!kisi[s.user_id]) { kisi[s.user_id] = []; sira.push(s.user_id); } kisi[s.user_id].push(s); });
+      sira.sort(function (a, b) { return String((kisi[a][0].app_users || {}).full_name || '').localeCompare(String((kisi[b][0].app_users || {}).full_name || ''), 'tr'); });
+      liste.innerHTML = sira.map(function (uid) {
+        var ss = kisi[uid], u = ss[0].app_users || {};
+        return '<section class="rounded-theme border border-border bg-card p-4"><p class="font-heading text-sm font-bold">' + escapeHtml(u.full_name || '—') + '</p>' +
+          '<p class="mt-0.5 text-[11px] text-primary">' + escapeHtml(u.position || '') + '</p><div class="mt-2 divide-y divide-border">' + ss.map(function (s) {
+            var d = durum(s), k = kalan(s);
+            return '<button type="button" data-sid="' + escapeHtml(s.id) + '" class="flex w-full items-center justify-between gap-3 py-2.5 text-left">' +
+              '<div class="min-w-0"><p class="text-xs font-semibold">' + escapeHtml(s.currency) + ' · ' + escapeHtml(model(s)) + '</p>' +
+              '<p class="mt-0.5 text-[11px] text-muted-foreground tabular-nums">Ödenen ' + escapeHtml(para(odenen(s), s.currency)) + ' · Kalan ' + escapeHtml(para(k, s.currency)) + '</p></div>' +
+              '<div class="shrink-0 text-right"><p class="text-sm font-bold tabular-nums">' + escapeHtml(para(s.total_amount, s.currency)) + '</p>' +
+              '<span class="mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ' + d.c + '">' + escapeHtml(d.y) + '</span></div></button>';
+          }).join('') + '</div></section>';
+      }).join('');
+      Array.prototype.forEach.call(liste.querySelectorAll('[data-sid]'), function (b) { b.addEventListener('click', function () { phAc(b.getAttribute('data-sid')); }); });
+    }
+
+    // ---- Kişi ayrıntısı ----
+    function seciliSatir() { for (var i = 0; i < satirlar.length; i++) if (satirlar[i].id === seciliId) return satirlar[i]; return null; }
+    function phAc(id) {
+      seciliId = id; odemeKimligi = ZirkonikData.kimlikUret();
+      document.getElementById('ph-sheet').classList.remove('hidden');
+      sheetCiz();
+    }
+    function phKapat() { seciliId = null; document.getElementById('ph-sheet').classList.add('hidden'); }
+
+    function sat(etiket, deger, kalin, sinif) {
+      return '<div class="flex items-start justify-between gap-3 py-1.5"><span class="text-xs ' + (kalin ? 'font-bold' : 'text-muted-foreground') + '">' + etiket + '</span>' +
+        '<span class="text-right text-xs tabular-nums ' + (kalin ? 'font-bold' : 'font-semibold') + (sinif ? ' ' + sinif : '') + '">' + deger + '</span></div>';
+    }
+
+    function sheetCiz() {
+      var s = seciliSatir(); if (!s) return;
+      var u = s.app_users || {}, kl = !!s.locked_at, k = kalan(s), c = s.currency;
+      document.getElementById('ph-s-ad').textContent = u.full_name || '—';
+      document.getElementById('ph-s-alt').textContent = ayEtiket(ay) + ' · ' + c + ' · ' + model(s) + (kl ? ' · ay kapalı' : '');
+      var d = durum(s), duz = say(s.adjustment_amount);
+      var h = '<div class="rounded-theme border border-border bg-background px-4 py-2 divide-y divide-border">' +
+        (say(s.salary_amount) > 0 ? sat('Maaş', escapeHtml(para(s.salary_amount, c))) : '') +
+        (say(s.piece_amount) > 0 ? sat('Diş başı hakediş (' + s.piece_count + ' diş/adet) <button type="button" id="ph-isler-btn" class="ml-1 text-[11px] font-bold text-primary underline">işleri göster</button>', escapeHtml(para(s.piece_amount, c))) : '') +
+        (duz !== 0 ? sat('Düzeltme' + (s.adjustment_note ? ' (' + escapeHtml(s.adjustment_note) + ')' : ''), escapeHtml((duz > 0 ? '+' : '') + para(duz, c)), false, duz < 0 ? 'text-destructive' : '') : '') +
+        sat('Toplam', escapeHtml(para(s.total_amount, c)), true) +
+        sat('Ödenen', escapeHtml(para(odenen(s), c))) +
+        sat('Kalan', escapeHtml(para(k, c)) + ' <span class="ml-1 rounded-full px-2 py-0.5 text-[10px] font-bold ' + d.c + '">' + escapeHtml(d.y) + '</span>', true, k > 0.004 ? 'text-accent' : '') +
+        '</div><div id="ph-isler" class="mt-2 hidden"></div>';
+
+      // Düzeltme
+      h += '<div class="mt-4"><p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Düzeltme (prim / kesinti / avans)</p>';
+      if (kl) h += '<p class="mt-1.5 text-xs text-muted-foreground">Ay kapalı: düzeltme için önce yönetici ayı yeniden açmalı.</p>';
+      else h += '<div class="mt-2 grid grid-cols-5 gap-2"><select id="duz-isaret" aria-label="Düzeltme türü" class="col-span-2 h-11 rounded-theme border border-border bg-input px-2 text-xs"><option value="1"' + (duz >= 0 ? ' selected' : '') + '>Ekle (+ prim)</option><option value="-1"' + (duz < 0 ? ' selected' : '') + '>Düş (− kesinti/avans)</option></select>' +
+        '<input id="duz-tutar" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Tutar" value="' + (duz !== 0 ? Math.abs(duz) : '') + '" class="col-span-3 h-11 rounded-theme border border-border bg-input px-3 text-sm tabular-nums"></div>' +
+        '<input id="duz-not" type="text" maxlength="200" placeholder="Not (ör. Ekim avansı)" value="' + escapeHtml(s.adjustment_note || '') + '" class="mt-2 h-11 w-full rounded-theme border border-border bg-input px-3 text-sm">' +
+        '<button type="button" id="duz-kaydet" class="mt-2 h-11 w-full rounded-theme border border-border bg-input text-xs font-bold text-primary">Düzeltmeyi kaydet</button>';
+      h += '</div>';
+
+      // Ödemeler
+      var odemeler = (s.staff_pay_payments || []).slice().sort(function (a, b) { return String(b.paid_at).localeCompare(String(a.paid_at)) || String(b.created_at).localeCompare(String(a.created_at)); });
+      h += '<div class="mt-4"><p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Ödemeler</p>';
+      h += odemeler.length ? '<div class="mt-2 divide-y divide-border rounded-theme border border-border bg-background px-4">' + odemeler.map(function (p) {
+        var iptal = !!p.cancelled_at;
+        return '<div class="flex items-center justify-between gap-3 py-2.5"><div class="min-w-0"><p class="text-xs font-semibold' + (iptal ? ' text-muted-foreground' : '') + '" style="' + (iptal ? 'text-decoration:line-through' : '') + '">' +
+          escapeHtml(new Date(p.paid_at + 'T00:00:00').toLocaleDateString('tr-TR')) + ' · ' + escapeHtml(ZK_YONTEM[p.method] || 'Belirtilmedi') + '</p>' +
+          (p.note ? '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + escapeHtml(p.note) + '</p>' : '') +
+          (iptal ? '<p class="mt-0.5 text-[11px] font-semibold text-destructive">İptal edildi</p>' : '') + '</div>' +
+          '<div class="shrink-0 text-right"><p class="text-xs font-bold tabular-nums" style="' + (iptal ? 'text-decoration:line-through;opacity:.6' : '') + '">' + escapeHtml(para(p.amount, c)) + '</p>' +
+          (iptal ? '' : '<button type="button" data-iptal="' + escapeHtml(p.id) + '" class="mt-0.5 text-[11px] font-bold text-destructive underline">İptal et</button>') + '</div></div>';
+      }).join('') + '</div>' : '<p class="mt-1.5 text-xs text-muted-foreground">Henüz ödeme yok.</p>';
+      h += '</div>';
+
+      // Ödeme ekle
+      h += '<div class="mt-4"><p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Ödeme ekle</p>';
+      if (k <= 0.004) h += '<p class="mt-1.5 text-xs text-muted-foreground">Bu satırda ödenecek tutar kalmadı.</p>';
+      else h += '<div class="mt-2 grid grid-cols-2 gap-2"><input id="od-tutar" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Tutar" value="' + k + '" class="h-11 rounded-theme border border-border bg-input px-3 text-sm tabular-nums">' +
+        '<input id="od-tarih" type="date" max="' + bugun() + '" value="' + bugun() + '" class="h-11 rounded-theme border border-border bg-input px-3 text-sm"></div>' +
+        '<select id="od-yontem" aria-label="Ödeme yöntemi" class="mt-2 h-11 w-full rounded-theme border border-border bg-input px-3 text-sm"><option value="havale">Havale / EFT</option><option value="nakit">Nakit</option><option value="diger">Diğer</option></select>' +
+        '<input id="od-not" type="text" maxlength="200" placeholder="Not (isteğe bağlı)" class="mt-2 h-11 w-full rounded-theme border border-border bg-input px-3 text-sm">' +
+        '<p id="od-hata" class="mt-2 hidden text-xs font-semibold text-destructive"></p>' +
+        '<button type="button" id="od-kaydet" class="mt-2 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Ödemeyi kaydet</button>';
+      h += '</div>';
+      document.getElementById('ph-s-govde').innerHTML = h;
+
+      var ib = document.getElementById('ph-isler-btn'); if (ib) ib.addEventListener('click', function () { islerGoster(s); });
+      var db = document.getElementById('duz-kaydet'); if (db) db.addEventListener('click', function () { duzeltKaydet(s, db); });
+      var ob = document.getElementById('od-kaydet'); if (ob) ob.addEventListener('click', function () { odemeKaydet(s, ob); });
+      Array.prototype.forEach.call(document.querySelectorAll('[data-iptal]'), function (b) { b.addEventListener('click', function () { odemeIptal(b.getAttribute('data-iptal'), b); }); });
+    }
+
+    function islerGoster(s) {
+      var kap = document.getElementById('ph-isler');
+      if (!kap.classList.contains('hidden')) { kap.classList.add('hidden'); return; }
+      kap.classList.remove('hidden');
+      kap.innerHTML = '<p class="text-xs text-muted-foreground">Yükleniyor…</p>';
+      var on = detayOnbellek[s.id];
+      (on ? Promise.resolve(on) : ZirkonikData.payEarningDetails(s.user_id, ay, s.currency).then(function (r) { if (r.error) throw r.error; return (detayOnbellek[s.id] = r.data || []); }))
+        .then(function (rows) {
+          kap.innerHTML = rows.length ? '<div class="divide-y divide-border rounded-theme border border-border bg-background px-4">' + rows.map(function (e) {
+            var j = e.jobs || {};
+            return '<div class="flex items-center justify-between gap-3 py-2"><span class="min-w-0 text-[11px]"><b>' + escapeHtml(j.job_number || '—') + '</b> <span class="text-muted-foreground">' + escapeHtml(j.restoration_type || '') + '</span></span>' +
+              '<span class="shrink-0 text-[11px] tabular-nums text-muted-foreground">' + escapeHtml(String(e.tooth_count)) + ' × ' + escapeHtml(para(e.unit_rate, s.currency)) + ' = <b class="text-card-foreground">' + escapeHtml(para(e.amount, s.currency)) + '</b></span></div>';
+          }).join('') + '</div>' : '<p class="text-xs text-muted-foreground">Bu satır için iş ayrıntısı yok.</p>';
+        }, function (e) { kap.innerHTML = '<p class="text-xs text-destructive">Yüklenemedi: ' + escapeHtml(hataMetni(e)) + '</p>'; });
+    }
+
+    function duzeltKaydet(s, btn) {
+      var isaret = Number(document.getElementById('duz-isaret').value) || 1;
+      var t = Number(document.getElementById('duz-tutar').value);
+      if (document.getElementById('duz-tutar').value !== '' && (!isFinite(t) || t < 0)) { zkToast('Geçerli bir tutar girin.'); return; }
+      var deger = (document.getElementById('duz-tutar').value === '' ? 0 : t) * isaret;
+      var bitir = window.ZKHiz ? ZKHiz.mesgul(btn, 'Kaydediliyor…') : function () {};
+      ZirkonikData.payAdjust(s.id, deger, document.getElementById('duz-not').value).then(function (r) { if (r.error) throw r.error; return yenidenOku(); })
+        .then(function () { bitir(); zkToast('Düzeltme kaydedildi.'); }, function (e) { bitir(); zkToast('Kaydedilemedi: ' + hataMetni(e)); });
+    }
+
+    function odemeKaydet(s, btn) {
+      var errEl = document.getElementById('od-hata');
+      errEl.classList.add('hidden');
+      var tutar = Math.round(Number(document.getElementById('od-tutar').value) * 100) / 100;
+      var tarih = document.getElementById('od-tarih').value || bugun();
+      function hata(m) { errEl.textContent = m; errEl.classList.remove('hidden'); }
+      if (!isFinite(tutar) || tutar <= 0) { hata('Geçerli bir tutar girin.'); return; }
+      if (tutar > kalan(s) + 0.004) { hata('Tutar kalan tutarı (' + para(kalan(s), s.currency) + ') aşıyor.'); return; }
+      if (tarih > bugun()) { hata('Ödeme tarihi bugünden ileri olamaz.'); return; }
+      var id = odemeKimligi, bitir = window.ZKHiz ? ZKHiz.mesgul(btn, 'Kaydediliyor…') : function () {};
+      ZirkonikData.payAddPayment(id, s.id, tutar, tarih, document.getElementById('od-yontem').value, document.getElementById('od-not').value).then(function (r) {
+        if (r.error) throw r.error;
+        return yenidenOku();
+      }).then(function () {
+        bitir();
+        // Aynı kimlikle önceki bir denemede farklı tutar kaydolmuşsa (bağlantı koptuğunda) sessizce "kaydedildi" denmez.
+        var yeni = seciliSatir(), kayit = null;
+        if (yeni) (yeni.staff_pay_payments || []).forEach(function (p) { if (p.id === id) kayit = p; });
+        if (kayit && Math.abs(say(kayit.amount) - tutar) > 0.004) { zkToast('Dikkat: bu ödeme önceki denemede ' + para(kayit.amount, s.currency) + ' olarak kaydolmuş. Listeyi kontrol edin.'); }
+        else zkToast('Ödeme kaydedildi.');
+        odemeKimligi = ZirkonikData.kimlikUret();
+      }, function (e) {
+        bitir();
+        hata(window.NetGuard && NetGuard.isNetworkError(e)
+          ? 'Bağlantı koptu. Ödeme kaydolmuş olabilir: listeyi kontrol edin; yoksa aynı düğmeye tekrar basın (çift kayıt açılmaz).'
+          : 'Kaydedilemedi: ' + hataMetni(e));
+        if (window.NetGuard && NetGuard.isNetworkError(e)) yenidenOku().catch(function () {});
+      });
+    }
+
+    function odemeIptal(pid, btn) {
+      if (!confirm('Bu ödeme iptal edilsin mi?\n\nKayıt silinmez, «İptal edildi» olarak kalır; kalan tutar geri artar.')) return;
+      btn.disabled = true;
+      ZirkonikData.payCancelPayment(pid).then(function (r) { if (r.error) throw r.error; return yenidenOku(); })
+        .then(function () { zkToast('Ödeme iptal edildi.'); }, function (e) { btn.disabled = false; zkToast('İptal edilemedi: ' + hataMetni(e)); });
+    }
+  </script>
+</body>
+</html>

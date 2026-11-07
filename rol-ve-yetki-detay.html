@@ -131,6 +131,7 @@
                 <option value="Tasarımcı Teknisyen">Tasarımcı Teknisyen</option>
                 <option value="Lider Teknisyen" data-yalniz-yonetici="1">Lider Teknisyen (operasyon yöneticisi, para yok)</option>
                 <option value="Resepsiyon Sorumlusu" data-yalniz-yonetici="1">Resepsiyon Sorumlusu</option>
+                <option value="Muhasebeci" data-yalniz-yonetici="1">Muhasebeci (yalnız para, üretim yok)</option>
                 <option value="Satış Pazarlama Sorumlusu" data-zk-crm data-yalniz-yonetici="1">Satış Pazarlama Sorumlusu</option>
                 <option value="Yönetici" data-yalniz-yonetici="1">Yönetici (tam yetki)</option>
                 <option value="İşveren" data-yalniz-yonetici="1">İşveren (tam yetki)</option>
@@ -372,14 +373,14 @@
       return !kural || kural.izinli.indexOf(key) >= 0;
     }
     // Pozisyon değişince etkisiz anahtarlar kapanır ve liste yeniden çizilir.
-    var ZK_POZ_ACIKLAMA = {"Lider Teknisyen": "Üretim sürecini ve teknisyenleri yönetir: tüm odalar ve işler, rota, ekip, izin onayı. Para (fiyat, fatura, tahsilat, maaş, hakediş) hiç görünmez; iptal ve yeniden açma yönetici'de kalır. İzinleri sabittir, aşağıda anahtar yoktur.", "Teknisyen": "Yetkili olduğu odalardaki işleri görür ve durumunu ilerletir. Fiyat ve finans görmez (yönetici yetki vermedikçe).", "Tasarımcı Teknisyen": "Teknisyen gibi çalışır; yalnız kendisi tasarımcı seçilmiş işleri ve siparişleri, ve yalnız kendisine yetki verilen odalarda görür.", "Resepsiyon Sorumlusu": "Siparişleri ve doktor işlerini yönetir (sipariş onayı, doktor kayıtları). Finans ve Doktor Havuzu ekranlarına giremez.", "Satış Pazarlama Sorumlusu": "Yalnız Doktor Havuzu'nu (aday doktorlar) kullanır; işleri ve finansı görmez. Yalnız Plus ve Tek paketinde bulunur.", "Yönetici": "Her şeyi görür ve yönetir (tam yetki).", "İşveren": "Her şeyi görür ve yönetir (tam yetki)."};
+    var ZK_POZ_ACIKLAMA = {"Muhasebeci": "Yalnız PARA ile ilgilenir (Lider'in tersi): doktor cari, tahsilat, fatura, tedarikçi, gider, kasa, ciro, fiyat listesi, personel ücreti ve hakediş — görür ve düzenler. Üretim (iş, oda, rota, sipariş) hiç görünmez; silme ve iptal yönetici'de kalır. İzinleri sabittir.", "Lider Teknisyen": "Üretim sürecini ve teknisyenleri yönetir: tüm odalar ve işler, rota, ekip, izin onayı. Para (fiyat, fatura, tahsilat, maaş, hakediş) hiç görünmez; iptal ve yeniden açma yönetici'de kalır. İzinleri sabittir, aşağıda anahtar yoktur.", "Teknisyen": "Yetkili olduğu odalardaki işleri görür ve durumunu ilerletir. Fiyat ve finans görmez (yönetici yetki vermedikçe).", "Tasarımcı Teknisyen": "Teknisyen gibi çalışır; yalnız kendisi tasarımcı seçilmiş işleri ve siparişleri, ve yalnız kendisine yetki verilen odalarda görür.", "Resepsiyon Sorumlusu": "Siparişleri ve doktor işlerini yönetir (sipariş onayı, doktor kayıtları). Finans ve Doktor Havuzu ekranlarına giremez.", "Satış Pazarlama Sorumlusu": "Yalnız Doktor Havuzu'nu (aday doktorlar) kullanır; işleri ve finansı görmez. Yalnız Plus ve Tek paketinde bulunur.", "Yönetici": "Her şeyi görür ve yönetir (tam yetki).", "İşveren": "Her şeyi görür ve yönetir (tam yetki)."};
     function zkPozisyonNotu() {
       var v = zkSeciliPozisyon();
       document.getElementById('pi-position-note').textContent = ZK_POZ_ACIKLAMA[v] || 'Kendi yazdığınız pozisyon Teknisyen gibi başlar; ne göreceğini kişinin yetki ekranından siz seçersiniz.';
     }
     // Lider'in izinleri sunucuda SABİT (operasyon açık, para kapalı): izin anahtarları ve oda/lab seçimi gösterilmez.
     function zkLiderBolumleri() {
-      var lid = zkSeciliPozisyon() === 'Lider Teknisyen';
+      var lid = zkSeciliPozisyon() === 'Lider Teknisyen' || zkSeciliPozisyon() === 'Muhasebeci'; // izinleri sunucuda SABİT (Lider: üretim açık/para kapalı; Muhasebeci: para açık/üretim kapalı)
       var ps = document.getElementById('permissions-section'); if (ps) ps.style.display = lid ? 'none' : '';
       var ac = document.getElementById('access-section'); if (ac) ac.style.opacity = lid ? '.5' : '';
     }
@@ -407,6 +408,8 @@
         viewerMe = me;
         // 7 Kasım 2026: görüntüleyen Lider Teknisyen ise yalnız operasyon izinleri, yalnız iki teknisyen pozisyonu, ücret bölümü YOK (sunucu da zorlar).
         window.zkLiderBakis = !!(me && me.role === 'personel' && me.position === 'Lider Teknisyen');
+        // 7 Kasım 2026: görüntüleyen Muhasebeci ise sayfa YALNIZ ücret içindir: kişi bilgisi/pozisyon/izin/erişim salt okunur ya da gizli, kayıt yalnız user_compensation'a gider (sunucu da böyle zorlar).
+        window.zkMuhBakis = !!(window.zkMuhasebeciMi && zkMuhasebeciMi(me));
         if (window.zkLiderBakis) {
           PERMS = PERMS.filter(function (x) { return LIDER_OPS_IZIN.indexOf(x.key) >= 0; });
           Array.prototype.slice.call(document.querySelectorAll('#pi-position option[data-yalniz-yonetici]')).forEach(function (o) { o.remove(); });
@@ -430,6 +433,10 @@
           return;
         }
         var u = r.data;
+        if (window.zkMuhBakis && u.role === 'doktor') {
+          document.querySelector('main').innerHTML = '<p class="p-5 text-sm text-destructive">Bu ekran personel ücreti içindir; doktor bilgisi Doktorlar sekmesindedir.</p>';
+          return;
+        }
         if (window.zkLiderBakis && (u.id === viewerMe.id || u.role !== 'personel' || ['Teknisyen', 'Tasarımcı Teknisyen'].indexOf(u.position) < 0)) {
           document.querySelector('main').innerHTML = '<p class="p-5 text-sm text-destructive">Bu kişinin yetkilerini yalnız yönetici düzenleyebilir.</p>';
           return;
@@ -461,6 +468,17 @@
           document.getElementById('pi-email').value = u.email || '';
           // Ücret bilgisi ayrı tabloda (30 Ekim 2026): yalnız yönetici/işveren okur ve yazar.
           window.zkKullaniciKurulusId = u.organization_id;
+          if (window.zkMuhBakis) {
+            // Kişi bilgisi alanları kilitlenir; yalnız ücret bloğu düzenlenir.
+            Array.prototype.slice.call(document.querySelectorAll('#personal-info-section input, #personal-info-section select, #personal-info-section button')).forEach(function (el) {
+              if (el.id && /^pi-comp-/.test(el.id)) return;
+              if (el.type === 'button' || el.tagName === 'BUTTON') { el.style.display = 'none'; } else { el.disabled = true; el.style.opacity = '.6'; }
+            });
+            var mn = document.createElement('p');
+            mn.className = 'mx-5 mt-5 rounded-theme border border-border bg-card p-4 text-xs text-muted-foreground';
+            mn.textContent = 'Muhasebeci olarak bu kişinin yalnız ücret ve hakediş ayarını düzenleyebilirsiniz; yetki, pozisyon ve oda erişimini yönetici belirler.';
+            document.querySelector('main').insertBefore(mn, document.querySelector('main').firstChild);
+          }
           Promise.resolve(window.zkLiderBakis ? { data: null } : ZirkonikAuth.client().from('user_compensation').select('*').eq('user_id', userId).maybeSingle()).then(function (cr) {
             if (cr && cr.error) window.zkUcretOkunamadi = true; // okunamadıysa boş form kayıtlı ücreti silmesin (kaydetmede atlanır)
             var c = (cr && cr.data) || {};
@@ -511,12 +529,15 @@
           document.querySelector('main').insertBefore(dn, document.querySelector('main').firstChild);
           var saveBtn = document.getElementById('save-btn');
           if (saveBtn && saveBtn.parentElement) saveBtn.parentElement.style.display = 'none';
+        } else if (window.zkMuhBakis) {
+          document.getElementById('permissions-section').style.display = 'none';
+          document.getElementById('access-section').style.display = 'none';
         } else {
           document.getElementById('access-section').classList.remove('hidden');
           loadAccess();
         }
 
-        if (u.role !== 'doktor') {
+        if (u.role !== 'doktor' && !window.zkMuhBakis) {
           // 2026-09-12: user_permissions.user_id BİRİNCİL ANAHTAR, yani ilişki
           // tekil — PostgREST dizi değil NESNE döndürüyor. [0] her zaman
           // undefined kalıyor, {} devreye giriyor ve bütün yetkiler "Kapalı"
@@ -661,6 +682,31 @@
       var errEl = document.getElementById('save-error');
       errEl.classList.add('hidden');
 
+      // 7 Kasım 2026: Muhasebeci yalnız ÜCRETİ kaydeder (user_compensation; kişi bilgisi/pozisyon/izin/erişim yönetici işidir ve sunucuda kapalıdır).
+      if (window.zkMuhBakis) {
+        if (window.zkUcretOkunamadi) { errEl.textContent = 'Ücret bilgisi okunamadı; sayfayı yenileyip tekrar deneyin.'; errEl.classList.remove('hidden'); return; }
+        saveBtnEl.disabled = true;
+        var mct = document.getElementById('pi-comp-type').value || null;
+        Promise.resolve(ZirkonikAuth.client().from('user_compensation').upsert({
+          user_id: userId,
+          organization_id: window.zkKullaniciKurulusId,
+          compensation_type: mct,
+          per_tooth_rate: (mct === 'dis_basi' || mct === 'maas_dis') ? (Number(document.getElementById('pi-comp-rate').value) || null) : null,
+          monthly_salary: (mct === 'maas' || mct === 'maas_dis') ? (Number(document.getElementById('pi-comp-salary').value) || null) : null,
+          per_tooth_currency: ZirkonikMoney.normalize(document.getElementById('pi-comp-rate-cur').value),
+          salary_currency: ZirkonikMoney.normalize(document.getElementById('pi-comp-salary-cur').value)
+        }, { onConflict: 'user_id' })).then(function (res) {
+          if (res.error) throw res.error;
+          zkToast('Ücret kaydedildi.');
+          setTimeout(function () { if (history.length > 1) history.back(); else location.href = 'ekip.html'; }, 700);
+        }).catch(function (err) {
+          saveBtnEl.disabled = false;
+          errEl.textContent = 'Kaydedilemedi: ' + ((err && err.message) || 'bağlantı hatası');
+          errEl.classList.remove('hidden');
+        });
+        return;
+      }
+
       var infoVisible = !document.getElementById('personal-info-section').classList.contains('hidden');
       if (infoVisible && !document.getElementById('pi-name').value.trim()) {
         errEl.textContent = 'Ad soyad zorunludur.';
@@ -672,7 +718,7 @@
       // yönetici/işveren zaten tüm laboratuvarları görür. Liste yüklenmediyse boş kayıt mevcut erişimi silerdi.
       var erisimGorunur = !document.getElementById('access-section').classList.contains('hidden');
       var yeniPoz = infoVisible ? document.getElementById('pi-position').value : '';
-      if (erisimGorunur && yeniPoz !== 'Yönetici' && yeniPoz !== 'İşveren' && yeniPoz !== 'Lider Teknisyen' && !document.querySelector('.acc-lab-cb:checked')) {
+      if (erisimGorunur && yeniPoz !== 'Yönetici' && yeniPoz !== 'İşveren' && yeniPoz !== 'Lider Teknisyen' && yeniPoz !== 'Muhasebeci' && !document.querySelector('.acc-lab-cb:checked')) {
         errEl.textContent = document.querySelector('.acc-lab-cb') ? 'Personel için en az bir laboratuvar seçin.'
           : (/Henüz laboratuvar yok/.test(document.getElementById('access-labs').textContent) ? 'Önce Laboratuvarlar sekmesinden bir laboratuvar ekleyin.' : 'Laboratuvar listesi henüz yüklenmedi, birkaç saniye sonra tekrar deneyin.');
         errEl.classList.remove('hidden');

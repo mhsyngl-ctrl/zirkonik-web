@@ -176,6 +176,11 @@
             </div>
             <span id="stat-earnings-total" class="font-heading text-lg font-bold tabular-nums">—</span>
           </div>
+          <!-- 7 Kasım 2026: aylık maaş + diş başı hakediş + ödenen + kalan hesabı (yönetici ve Muhasebeci) -->
+          <a id="personel-hesap-baglanti" href="personel-hesap.html" class="mt-3 hidden items-center justify-between rounded-theme border border-primary/40 bg-primary/10 px-4 py-3 text-sm font-bold text-primary">
+            <span class="flex items-center gap-2"><iconify-icon icon="lucide:calculator" class="text-lg"></iconify-icon>Personel hesapları: aylık maaş, hakediş, ödeme</span>
+            <iconify-icon icon="lucide:chevron-right" class="text-lg"></iconify-icon>
+          </a>
           <div id="earnings-list" class="mt-3 rounded-theme border border-border bg-card">
             <p class="p-4 text-xs text-muted-foreground">Yükleniyor…</p>
           </div>
@@ -982,7 +987,10 @@
       // önceki kuralıyla tutarlı: sadece yönetici, can_view_finance ile
       // genişletilmiyor (22 Eylül 2026).
       ZirkonikAuth.me().then(function (me) {
-        if (me && me.role === 'yonetici') {
+        // 7 Kasım 2026: Personel hesapları bağlantısı yalnız yönetici ve Muhasebeci'ye (sayfa ve sunucu kapısı da böyle)
+        if (me && (me.role === 'yonetici' || (window.zkMuhasebeciMi && zkMuhasebeciMi(me)))) { var phb = document.getElementById('personel-hesap-baglanti'); if (phb) { phb.classList.remove('hidden'); phb.classList.add('flex'); } }
+        // 7 Kasım 2026: Muhasebeci de görür/düzenler (sunucuda recur_exp_all = zk_para_admin).
+        if (me && (me.role === 'yonetici' || (window.zkMuhasebeciMi && zkMuhasebeciMi(me)))) {
           document.getElementById('fixed-expense-section').classList.remove('hidden');
           loadFixedExpenses();
           document.getElementById('cash-flow-section').classList.remove('hidden');

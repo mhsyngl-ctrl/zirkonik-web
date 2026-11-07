@@ -12,7 +12,7 @@
   var PUBLIC = { giris: 1, 'sifre-sifirla': 1, index: 1, 'hesap-kilitli': 1, onay: 1, kilavuz: 1 }; // 7 Kasım 2026: kılavuz üye olmayana da açık (girişteki "Uygulama hakkında daha çok bilgi edinin" bağlantısı)
 
   // Bunlar hiçbir izinle personele açılmaz — organizasyon/kadro ayarı, yönetici işi.
-  var ADMIN_PAGES = { ekip: 1, laboratuvarlar: 1, 'rol-ve-yetki-detay': 1 };
+  var ADMIN_PAGES = { ekip: 1, laboratuvarlar: 1, 'rol-ve-yetki-detay': 1, 'personel-hesap': 1 }; // personel-hesap: yönetici + Muhasebeci (7 Kasım 2026); sunucu kapısı zk_para_admin
   // 15 Ekim 2026: 3B görüntüleyici (3b-goster) doktora açık — kendi işinin STL/tasarımını görür (Güneş bulgusu).
   var DOCTOR_PAGES = { 'doktor-siparis': 1, profil: 1, bildirimler: 1, '3b-goster': 1 };
   // 25 Eylül 2026, sahibinin kuralı: bu iki pozisyon uygulamanın yalnız kendi
@@ -23,7 +23,10 @@
   // can_manage_orders yetkisiyle açılabilir (sayfa içinde fiyat kutusu gizlenir).
   // 7 Kasım 2026: Lider Teknisyen = operasyon yöneticisi, PARAYLA İŞİ YOK. Bu sayfalar ona hiçbir şekilde açılmaz; geri kalan her sayfa (ekip, laboratuvarlar, yetki ekranı dahil) açıktır.
   // Asıl kapı sunucudadır (zk_lider_mi / zk_ops_admin); burası yalnız ekranı sadeleştirir.
-  var LIDER_KAPALI = { finans: 1, ciro: 1, 'fiyat-listesi': 1, 'aday-havuzu': 1, 'doktor-siparis': 1 };
+  var LIDER_KAPALI = { finans: 1, ciro: 1, 'fiyat-listesi': 1, 'personel-hesap': 1, 'aday-havuzu': 1, 'doktor-siparis': 1 };
+  // 7 Kasım 2026: Muhasebeci = yalnız PARA (Lider'in tersi). Üretim ekranları (ana ekran, işler, detay, laboratuvarlar, sipariş, aday havuzu) ona hiçbir şekilde açılmaz;
+  // açık sayfalar: Finans, Ciro, Fiyat Listesi, Doktorlar (salt okunur), Ekip (yalnız ücret ve hakediş) + kendi profili. Asıl kapı sunucudadır (zk_muhasebeci_mi / zk_para_admin).
+  var MUHASEBECI_ACIK = { finans: 1, ciro: 1, 'fiyat-listesi': 1, doktorlar: 1, ekip: 1, 'personel-hesap': 1, 'rol-ve-yetki-detay': 1, profil: 1, bildirimler: 1, izinlerim: 1, kilavuz: 1, onay: 1 };
   var RECEPTION_PAGES = { retim: 1, isler: 1, detay: 1, siparisler: 1, doktorlar: 1, 'yeni-giri-i': 1, profil: 1, bildirimler: 1, izinlerim: 1, kilavuz: 1, '3b-goster': 1 };
 
   // 30 Ekim 2026 — Doktor CRM ve aday havuzu yalnız Plus (ve lab↔lab çalışan Tek) pakette. Kurumsal ('standart'/'kurumsal') kapalı.
@@ -53,6 +56,10 @@
       if (LIDER_KAPALI[pg]) { location.replace('retim.html'); return true; }
       return false;
     }
+    if (p.position === 'Muhasebeci') {
+      if (!MUHASEBECI_ACIK[pg]) { location.replace('finans.html'); return true; }
+      return false;
+    }
     if (p.position === 'Satış Pazarlama Sorumlusu' && !crmKapali(p) && !PROSPECT_ONLY_PAGES[pg]) {
       // Aday havuzu yetkisi kapalıysa aday-havuzu ↔ retim arasında sonsuz döngü oluşuyordu (Güneş bulgusu); profil'e düş.
       location.replace(p.can_manage_prospects ? 'aday-havuzu.html' : 'profil.html'); return true;
@@ -79,11 +86,13 @@
   function hideUi(p) {
     // Alt menü sekmeleri
     var lider = p.position === 'Lider Teknisyen'; // 7 Kasım 2026: Lider = Ekip + Laboratuvarlar + Doktorlar açık, Finans kapalı
+    var muh = p.position === 'Muhasebeci'; // 7 Kasım 2026: Muhasebeci = Finans + Ekip (ücret/hakediş) + Doktorlar açık; Üretim ve Laboratuvarlar kapalı
     var TABS = {
-      'Finans': lider ? false : !!p.can_view_finance, // 25 Eylül 2026: "Finans yetkisi" kutusuna bağlı.
+      'Üretim': !muh,
+      'Finans': lider ? false : (muh ? true : !!p.can_view_finance), // 25 Eylül 2026: "Finans yetkisi" kutusuna bağlı.
       'Laboratuvarlar': lider,
-      'Ekip': lider,
-      'Doktorlar': lider ? true : !!p.can_view_doctors
+      'Ekip': lider || muh,
+      'Doktorlar': (lider || muh) ? true : !!p.can_view_doctors
     };
     var tabs = document.querySelectorAll('[data-fv-tab]');
     var gorunen = 0;
@@ -124,16 +133,15 @@
       }
     }
     // Yönetici sayfalarına götüren kısayollar
-    var sel = lider ? 'a[href="#zk-lider-yok"]' : ('a[href*="laboratuvarlar"],[onclick*="laboratuvarlar"],' +
-              'a[href*="ekip"],[onclick*="ekip.html"]');
+    var sel = lider ? 'a[href="#zk-lider-yok"]' : ('a[href*="laboratuvarlar"],[onclick*="laboratuvarlar"]' + (muh ? '' : ',a[href*="ekip"],[onclick*="ekip.html"]'));
     // Finans/Ciro: "Finans yetkisi" kutusuna bağlı (25 Eylül 2026). Lider: HER ZAMAN kapalı.
     if (lider || !p.can_view_finance) sel += ',a[href*="finans"],[onclick*="finans"],a[href*="ciro"],[onclick*="ciro"]';
-    if (!lider && !p.can_view_doctors) sel += ',a[href*="doktorlar"],[onclick*="doktorlar"]';
+    if (!lider && !muh && !p.can_view_doctors) sel += ',a[href*="doktorlar"],[onclick*="doktorlar"]';
     // Siparişler + Yeni İş Oluştur: can_manage_orders (25 Eylül 2026). Lider: açık.
     if (!lider && !p.can_manage_orders) sel += ',a[href*="siparisler"],[onclick*="siparisler"],a[href*="yeni-giri-i"],[onclick*="yeni-giri-i"]';
     // Fiyat Listesi: "Fiyatları görebilir" yetkisine bağlı (30 Eylül 2026). Lider: HER ZAMAN kapalı.
     if (lider || !p.can_view_prices) sel += ',a[href*="fiyat-listesi"],[onclick*="fiyat-listesi"]';
-    if (lider || !p.can_manage_prospects) sel += ',a[href*="aday-havuzu"],[onclick*="aday-havuzu"]';
+    if (lider || muh || !p.can_manage_prospects) sel += ',a[href*="aday-havuzu"],[onclick*="aday-havuzu"]';
     var links = document.querySelectorAll(sel);
     for (var k = 0; k < links.length; k++) links[k].style.display = 'none';
   }

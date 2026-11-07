@@ -517,8 +517,8 @@
         var adimlar = [
           { n: r[0].count || 0, baslik: 'Laboratuvar bilgilerinizi tamamlayın', aciklama: 'Laboratuvarınızın adını ve bilgilerini kendi laboratuvarınıza göre düzenleyin.', dugme: 'Laboratuvarlara git', git: 'laboratuvarlar.html' },
           { n: r[1].count || 0, baslik: 'Odalarınızı ekleyin', aciklama: 'İş, tanımladığınız odalardan sırayla geçer.', dugme: 'Laboratuvarlara git', git: 'laboratuvarlar.html' },
-          { n: fiyatlar.length, baslik: 'Fiyat listesini girin', aciklama: 'Yaptığınız işleri ve birim fiyatlarını ekleyin. Fatura ve cari bu listeden hesaplanır.', dugme: 'Fiyat listesine git', git: 'fiyat-listesi.html' },
-          { n: fiyatlar.filter(function (p) { return p.route_room_ids && p.route_room_ids.length; }).length, baslik: 'Bir kalemin üretim rotasını belirleyin', aciklama: 'İşin hangi odalardan hangi sırayla geçeceğini seçin. Rotası olmayan kalemde iş hiçbir odaya girmez.', dugme: 'Fiyat listesine git', git: 'fiyat-listesi.html' },
+          { n: fiyatlar.length, baslik: 'Çalışma türlerini ekleyin', aciklama: 'Yaptığınız işleri (kalemleri) Laboratuvarlar ekranından ekleyin; fiyatlarını sonra Finans › Fiyat listesinde girersiniz. Fatura ve cari bu listeden hesaplanır.', dugme: 'Laboratuvarlara git', git: 'laboratuvarlar.html' },
+          { n: fiyatlar.filter(function (p) { return p.route_room_ids && p.route_room_ids.length; }).length, baslik: 'Bir çalışma türünün üretim rotasını belirleyin', aciklama: 'Laboratuvarlar ekranında işin hangi odalardan hangi sırayla geçeceğini seçin. Rotası olmayan kalemde iş hiçbir odaya girmez.', dugme: 'Laboratuvarlara git', git: 'laboratuvarlar.html' },
           { n: Math.max(0, (r[3].count || 0) - 1), istege: true },
           { n: r[4].count || 0, baslik: 'Çalıştığınız hekimleri kaydedin', aciklama: 'İsteyen hekime portal hesabı açabilirsiniz; hekim kendi telefonundan sipariş verir.', dugme: 'Doktorlara git', git: 'doktorlar.html', yok: tek },
           { n: r[5].count || 0, baslik: 'İlk işinizi açın', aciklama: 'Hekimi, hasta adını ve protokol numarasını girin; iş ilk odaya düşer.', dugme: 'Yeni iş oluştur', git: 'yeni-giri-i.html', yok: tek }

@@ -177,7 +177,7 @@
           <div class="rounded-theme border border-border bg-card p-4">
             <div class="flex items-start justify-between gap-3">
               <div>
-                <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Sadece yönetici görür</p>
+                <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Yönetici ve Muhasebeci görür</p>
                 <h2 class="mt-1 font-heading text-lg font-bold">Net / Brüt Maaş Hesapla</h2>
                 <p id="sc-desc-kart" class="mt-1 text-xs leading-5 text-muted-foreground">SGK primi ve gelir vergisi dilimlerine göre yaklaşık hesaplama</p>
               </div>
@@ -288,6 +288,7 @@
           <option value="Tasarımcı Teknisyen">Tasarımcı Teknisyen</option>
           <option value="Lider Teknisyen" data-yalniz-yonetici="1">Lider Teknisyen (operasyon yöneticisi, para yok)</option>
           <option value="Resepsiyon Sorumlusu" data-yalniz-yonetici="1">Resepsiyon Sorumlusu</option>
+          <option value="Muhasebeci" data-yalniz-yonetici="1">Muhasebeci (yalnız para, üretim yok)</option>
           <option value="Satış Pazarlama Sorumlusu" data-zk-crm data-yalniz-yonetici="1">Satış Pazarlama Sorumlusu</option>
           <option value="Yönetici" data-yalniz-yonetici="1">Yönetici (tam yetki)</option>
           <option value="İşveren" data-yalniz-yonetici="1">İşveren (tam yetki)</option>
@@ -409,10 +410,12 @@
     }
     // Hız hissi (24 Eylül 2026): render mantığı ayrı fonksiyona çıkarıldı ki
     // önbellekten anında çizim ile sunucu cevabı birebir aynı kodu kullansın.
-    var ZK_STANDART_POZISYON = ['Teknisyen', 'Tasarımcı Teknisyen', 'Lider Teknisyen', 'Resepsiyon Sorumlusu', 'Satış Pazarlama Sorumlusu', 'Yönetici', 'İşveren'];
+    var ZK_STANDART_POZISYON = ['Teknisyen', 'Tasarımcı Teknisyen', 'Lider Teknisyen', 'Resepsiyon Sorumlusu', 'Muhasebeci', 'Satış Pazarlama Sorumlusu', 'Yönetici', 'İşveren'];
     var zkOzelPozisyonlar = [];
     // 7 Kasım 2026: Lider Teknisyen bu ekranı açabilir ama YALNIZ Teknisyen / Tasarımcı Teknisyen kartlarında yetki ve çıkarma düğmesi görür (sunucu da böyle zorlar).
     var zkLiderBakis = (function () { try { var g = JSON.parse(localStorage.getItem('zk-guard') || 'null'); return !!g && g.role === 'personel' && g.position === 'Lider Teknisyen'; } catch (e) { return false; } })();
+    // 7 Kasım 2026: Muhasebeci bu ekranı YALNIZ ücret ve hakediş için açar: personel ekleme/çıkarma/yetki yok (sunucu da zorlar), kart tıklaması ücret ekranına gider.
+    var zkMuhBakis = (function () { try { var g = JSON.parse(localStorage.getItem('zk-guard') || 'null'); return !!g && g.role === 'personel' && g.position === 'Muhasebeci'; } catch (e) { return false; } })();
     function zkLiderYonetebilir(s) { return !zkLiderBakis || (s.role === 'personel' && (s.position === 'Teknisyen' || s.position === 'Tasarımcı Teknisyen')); }
     function paintTeam(allStaff, counts) {
           zkOzelPozisyonlar = allStaff.map(function (s) { return s.position; }).filter(function (p, i, a) { return p && ZK_STANDART_POZISYON.indexOf(p) < 0 && a.indexOf(p) === i; });
@@ -426,7 +429,7 @@
             var statusBadge = active
               ? '<span class="flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-1 text-[10px] font-bold text-success"><span class="h-1.5 w-1.5 rounded-full bg-success"></span>Aktif</span>'
               : '<span class="flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-[10px] font-bold text-muted-foreground"><span class="h-1.5 w-1.5 rounded-full bg-muted-foreground"></span>Pasif</span>';
-            var toggleBtn = !zkLiderYonetebilir(s) ? '' : active
+            var toggleBtn = (zkMuhBakis || !zkLiderYonetebilir(s)) ? '' : active
               ? '<button onclick="zkRemoveStaff(\'' + s.id + '\',\'' + escapeHtml(s.full_name).replace(/'/g, "\\'") + '\')" class="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-destructive/10 py-2.5 text-xs font-bold text-destructive"><iconify-icon icon="lucide:user-x" class="text-base"></iconify-icon>Ekipten çıkar</button>'
               : '<button onclick="zkRestoreStaff(\'' + s.id + '\',\'' + escapeHtml(s.full_name).replace(/'/g, "\\'") + '\')" class="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-success/10 py-2.5 text-xs font-bold text-success"><iconify-icon icon="lucide:user-check" class="text-base"></iconify-icon>Yeniden etkinleştir</button>';
             return '<div class="rounded-theme border border-border bg-card p-4' + (active ? '' : ' opacity-70') + '">' +
@@ -441,7 +444,7 @@
               '<div><p class="text-[11px] text-muted-foreground">Aktif işler</p><p class="mt-1 text-xs font-bold tabular-nums">' + (counts[s.id] || 0) + ' iş</p></div>' +
               '</div>' +
               (zkLiderYonetebilir(s) ? '<button onclick="location.href=\'rol-ve-yetki-detay.html?user=' + s.id + '\'" class="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-muted py-2.5 text-xs font-bold text-primary">' +
-              '<iconify-icon icon="lucide:key-round" class="text-base"></iconify-icon>Yetkileri düzenle</button>' : '') +
+              '<iconify-icon icon="lucide:' + (zkMuhBakis ? 'wallet-cards' : 'key-round') + '" class="text-base"></iconify-icon>' + (zkMuhBakis ? 'Ücret ve hakediş' : 'Yetkileri düzenle') + '</button>' : '') +
               toggleBtn + '</div>';
           }
 
@@ -485,7 +488,7 @@
         });
       });
 
-      if (!zkLiderBakis) client.from('doctors').select('id', { count: 'exact', head: true }).eq('status', 'pending').then(function (r) {
+      if (!zkLiderBakis && !zkMuhBakis) client.from('doctors').select('id', { count: 'exact', head: true }).eq('status', 'pending').then(function (r) {
         document.getElementById('stat-pending-doctors').textContent = r.count || 0;
       });
     }
@@ -500,6 +503,15 @@
           // Doktor onayı ve ekip performansı/maaş (para) bölümleri Lider'de HİÇ açılmaz.
           document.getElementById('stat-pending-card').classList.add('hidden');
           document.getElementById('doktor-uyelik-section').classList.add('hidden');
+        }
+        if (window.zkMuhasebeciMi && zkMuhasebeciMi(me)) {
+          // Muhasebeci: ekip performansı (üretim) ve doktor onayı YOK; ücret/hakediş kartları (kişiye dokununca) ve maaş hesaplayıcı var.
+          if (!zkMuhBakis) { zkMuhBakis = true; loadTeam(); }
+          document.getElementById('stat-pending-card').classList.add('hidden');
+          document.getElementById('doktor-uyelik-section').classList.add('hidden');
+          var ekleBtn = document.querySelector('button[aria-label="Personel ekle"]'); if (ekleBtn) ekleBtn.style.display = 'none';
+          document.getElementById('salary-calc-section').classList.remove('hidden');
+          zkLoadPayrollParams(me);
         }
         if (me && me.role === 'yonetici') {
           document.getElementById('team-performance-section').classList.remove('hidden');
@@ -980,6 +992,7 @@
       }
       if (kisi && kisi.role === 'doktor') return 'Doktor portalı';
       if (kisi && kisi.position === 'Lider Teknisyen') return 'Operasyon yöneticisi';
+      if (kisi && kisi.position === 'Muhasebeci') return 'Muhasebe · yalnız para';
       var perms = (kisi && kisi.user_permissions) || {};
       perms = (perms && perms[0]) || perms || {};
       if (perms.can_change_job_status) return 'Üretim durumu';
@@ -1169,7 +1182,7 @@
       zkYeniPozisyonGoster();
       zkLoadStaffLabOptions();
     }
-    var ZK_POZ_ACIKLAMA = {"Lider Teknisyen": "Üretim sürecini ve teknisyenleri yönetir: tüm odalar ve işler, rota, ekip, izin onayı. Para (fiyat, fatura, tahsilat, maaş, hakediş) hiç görünmez; iptal ve yeniden açma yönetici'de kalır.", "Teknisyen": "Yetkili olduğu odalardaki işleri görür ve durumunu ilerletir. Fiyat ve finans görmez (yönetici yetki vermedikçe).", "Tasarımcı Teknisyen": "Teknisyen gibi çalışır; yalnız kendisi tasarımcı seçilmiş işleri ve siparişleri, ve yalnız kendisine yetki verilen odalarda görür.", "Resepsiyon Sorumlusu": "Siparişleri ve doktor işlerini yönetir (sipariş onayı, doktor kayıtları). Finans ve Doktor Havuzu ekranlarına giremez.", "Satış Pazarlama Sorumlusu": "Yalnız Doktor Havuzu'nu (aday doktorlar) kullanır; işleri ve finansı görmez. Yalnız Plus ve Tek paketinde bulunur.", "Yönetici": "Her şeyi görür ve yönetir (tam yetki).", "İşveren": "Her şeyi görür ve yönetir (tam yetki)."};
+    var ZK_POZ_ACIKLAMA = {"Muhasebeci": "Yalnız PARA ile ilgilenir (Lider'in tersi): doktor cari, tahsilat, fatura, tedarikçi, gider, kasa, ciro, fiyat listesi, personel ücreti ve hakediş — görür ve düzenler. Üretim (iş, oda, rota, sipariş) hiç görünmez; silme ve iptal yönetici'de kalır.", "Lider Teknisyen": "Üretim sürecini ve teknisyenleri yönetir: tüm odalar ve işler, rota, ekip, izin onayı. Para (fiyat, fatura, tahsilat, maaş, hakediş) hiç görünmez; iptal ve yeniden açma yönetici'de kalır.", "Teknisyen": "Yetkili olduğu odalardaki işleri görür ve durumunu ilerletir. Fiyat ve finans görmez (yönetici yetki vermedikçe).", "Tasarımcı Teknisyen": "Teknisyen gibi çalışır; yalnız kendisi tasarımcı seçilmiş işleri ve siparişleri, ve yalnız kendisine yetki verilen odalarda görür.", "Resepsiyon Sorumlusu": "Siparişleri ve doktor işlerini yönetir (sipariş onayı, doktor kayıtları). Finans ve Doktor Havuzu ekranlarına giremez.", "Satış Pazarlama Sorumlusu": "Yalnız Doktor Havuzu'nu (aday doktorlar) kullanır; işleri ve finansı görmez. Yalnız Plus ve Tek paketinde bulunur.", "Yönetici": "Her şeyi görür ve yönetir (tam yetki).", "İşveren": "Her şeyi görür ve yönetir (tam yetki)."};
     function zkYeniPozisyonGoster() {
       var v = document.getElementById('ns-position').value;
       document.getElementById('ns-position-yeni').classList.toggle('hidden', v !== '__yeni');
@@ -1238,6 +1251,10 @@
         // bazlı kapı var); can_view_doctors artık verilmiyor.
         return { can_view_jobs: false, can_change_job_status: false, can_view_doctors: false, can_manage_prospects: true };
       }
+      if (position === 'Muhasebeci') {
+        // 7 Kasım 2026: para + doktor listesi açık, üretim/satış/stok kapalı (sunucu bu değerleri zaten kendisi ayarlar).
+        return { can_view_jobs: false, can_change_job_status: false, can_manage_orders: false, can_edit_room_orders: false, can_view_doctors: true, can_view_finance: true, can_view_prices: true, can_view_payroll: true };
+      }
       if (position === 'Lider Teknisyen') {
         // 7 Kasım 2026: operasyon yetkileri açık, para/satış kapalı (sunucu bu değerleri zaten kendisi ayarlar).
         return { can_view_jobs: true, can_change_job_status: true, can_manage_orders: true, can_edit_room_orders: true, can_view_doctors: true };
@@ -1280,7 +1297,7 @@
       }
 
       // 4 Kasım 2026 (sahibinin kararı): personel için en az bir laboratuvar zorunlu (yönetici/işveren zaten tüm laboratuvarlara erişir).
-      if (position !== 'Yönetici' && position !== 'İşveren' && !labIds.length) {
+      if (position !== 'Yönetici' && position !== 'İşveren' && position !== 'Muhasebeci' && !labIds.length) {
         errEl.textContent = document.querySelector('.ns-lab-cb') ? 'Personel için en az bir laboratuvar seçin.' : 'Önce Laboratuvarlar sekmesinden bir laboratuvar ekleyin.';
         errEl.classList.remove('hidden');
         return;

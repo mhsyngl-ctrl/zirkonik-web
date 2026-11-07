@@ -1464,7 +1464,12 @@
           var st2 = hexState(b);
           if (hiveLastHex[b] !== st2.inner) {
             var innerEl = btns[b].querySelector('.zk-hex-inner');
-            if (innerEl) innerEl.innerHTML = st2.inner;
+            if (innerEl) {
+              innerEl.innerHTML = st2.inner;
+              // Sayı değişince küçük bir vurgu (zk-sayi-tik); animasyon bitince sınıf kalkar, sonraki değişimde yeniden oynar.
+              innerEl.classList.remove('zk-hex-tik'); void innerEl.offsetWidth; innerEl.classList.add('zk-hex-tik');
+              innerEl.addEventListener('animationend', function () { this.classList.remove('zk-hex-tik'); }, { once: true });
+            }
             hiveLastHex[b] = st2.inner;
           }
           if (btns[b].getAttribute('class') !== st2.cls) btns[b].setAttribute('class', st2.cls);

@@ -86,6 +86,16 @@
       </main>
     </div>
   </div>
+  <!-- 28 Eylul 2026: js/zk-erken-koruma.js govdeyi gizli birakmis olabilir (onbellekli personel, ör. Lider Teknisyen) - gorunur icerik burada bitiyor,
+       ag'a bagimli betikler asagida basliyor. Kilitli bolumleri simdi gizleyip govdeyi ac. (7 Kasim 2026: bu satir eksikti, onbellekli Lider'de sayfa bos kaliyordu) -->
+  <script>
+    (function () {
+      if (!window.__zkErkenGizliP) return;
+      if (window.ZkGuardCore) ZkGuardCore.hideUi(window.__zkErkenGizliP);
+      document.documentElement.style.visibility = '';
+    })();
+  </script>
+
   <script src="vendor/supabase-js.min.js"></script>
   <script src="supabase-config.js"></script>
   <script src="js/net-guard.js"></script>
