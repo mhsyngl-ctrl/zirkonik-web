@@ -664,7 +664,8 @@
         // 7 Kasım 2026: Lider Teknisyen izin kuyruğunu (yalnız teknisyen talepleri; sunucu süzer) görür; İş/Ciro performansı PARA içerir, yalnız yönetici.
         zkLider = !!(me && me.role === 'personel' && me.position === 'Lider Teknisyen');
         zkMeId = me && me.id;
-        if (zkIsAdmin || zkLider) {
+        zkIzinOn = window.zkIzinAcik ? window.zkIzinAcik(me) : true;
+        if ((zkIsAdmin || zkLider) && zkIzinOn) {
           document.getElementById('leave-admin-section').classList.remove('hidden');
           loadLeaveQueue();
         }
@@ -1087,12 +1088,13 @@
       loadDashboard();
       zkLoadNotifBadge();
       loadAcceptAlerts();
-      if (zkIsAdmin || zkLider) loadLeaveQueue();
+      if ((zkIsAdmin || zkLider) && zkIzinOn) loadLeaveQueue();
       setTimeout(function () { icon.classList.remove('animate-spin'); }, 700);
     }
 
     // ---- İzin talepleri onay kuyruğu (yalnız yönetici/işveren) ----
     var zkIsAdmin = false;
+    var zkIzinOn = true;   // izin kuyruğu yalnız Türkiye bölge ayarında (window.zkIzinAcik)
     var zkLider = false, zkMeId = null;
     var LEAVE_TYPE_NAMES = { yillik: 'Yıllık izin', mazeret: 'Mazeret izni', raporlu: 'Raporlu (sağlık)', ucretsiz: 'Ücretsiz izin' };
 

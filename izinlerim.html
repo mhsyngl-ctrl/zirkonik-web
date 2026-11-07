@@ -321,6 +321,7 @@
       if (!session) return;
       ZirkonikAuth.me().then(function (me) {
         currentMe = me;
+        if (window.zkIzinAcik && !window.zkIzinAcik(me)) { location.replace('profil.html'); return; }   // izin özelliği yalnız Türkiye bölge ayarında
         loadLeaves();
         loadAnnualSummary();
       });

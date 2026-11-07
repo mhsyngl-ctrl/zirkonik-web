@@ -409,6 +409,7 @@
         viewerMe = me;
         // 7 Kasım 2026: görüntüleyen Lider Teknisyen ise yalnız operasyon izinleri, yalnız iki teknisyen pozisyonu, ücret bölümü YOK (sunucu da zorlar).
         window.zkLiderBakis = !!(me && me.role === 'personel' && me.position === 'Lider Teknisyen');
+        window.zkIzinKapali = !!(window.zkIzinAcik && !window.zkIzinAcik(me));   // izin özelliği yalnız Türkiye bölge ayarında
         // 7 Kasım 2026: görüntüleyen Muhasebeci ise sayfa YALNIZ ücret içindir: kişi bilgisi/pozisyon/izin/erişim salt okunur ya da gizli, kayıt yalnız user_compensation'a gider (sunucu da böyle zorlar).
         window.zkMuhBakis = !!(window.zkMuhasebeciMi && zkMuhasebeciMi(me));
         if (window.zkLiderBakis) {
@@ -466,6 +467,11 @@
           document.getElementById('pi-phone').value = u.phone || '';
           document.getElementById('pi-hire').value = u.hire_date || '';
           document.getElementById('pi-birth').value = u.birth_date || '';
+          // Doğum tarihi ve yıllık izin notu yalnız izin özelliğinin açık olduğu (Türkiye) laboratuvarda görünür; işe giriş tarihi maaş hesabı için kalır.
+          if (window.zkIzinKapali) {
+            var dl = document.getElementById('pi-birth').closest('label'); if (dl) dl.style.display = 'none';
+            var nt = document.getElementById('pi-birth').closest('label').parentNode.nextElementSibling; if (nt && /Yıllık izin hakkı/.test(nt.textContent)) nt.style.display = 'none';
+          }
           document.getElementById('pi-email').value = u.email || '';
           // Ücret bilgisi ayrı tabloda (30 Ekim 2026): yalnız yönetici/işveren okur ve yazar.
           window.zkKullaniciKurulusId = u.organization_id;

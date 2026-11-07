@@ -416,7 +416,7 @@
 
         // İzin talebi yalnız çalışan (personel) içindir — işveren/yönetici
         // talepleri ana ekrandaki kuyruktan yönetir, kendisi talep açmaz.
-        if (me.role === 'personel') {
+        if (me.role === 'personel' && window.zkIzinAcik && window.zkIzinAcik(me)) {
           document.getElementById('pf-leave-section').classList.remove('hidden');
         }
         // Sifre degistirme yalniz laboratuvar sahibinde.

@@ -1927,6 +1927,9 @@
   window.zkLiderMi = function (me) { return !!me && me.role === 'personel' && me.position === 'Lider Teknisyen'; };
   // 7 Kasım 2026: Muhasebeci = yalnız PARA (Lider'in tersi). Sunucu kapısı zk_muhasebeci_mi / zk_para_admin; burası yalnız ekranı sadeleştirir.
   window.zkMuhasebeciMi = function (me) { return !!me && me.role === 'personel' && me.position === 'Muhasebeci'; };
+  // 7 Kasım 2026 (Murat): izin talebi ve yıllık izin hakkı hesabı Türkiye'ye özgüdür (İş Kanunu md.53; başka ülkelerin kuralını bilmiyoruz).
+  // Yalnız bölge ayarı (organizations.country) Türkiye olan laboratuvarda açık; ülke boşsa (eski kuruluşlar) Türkiye sayılır. Veri silinmez, yalnız ekranlar gizlenir.
+  window.zkIzinAcik = function (me) { var o = me && (me.organizations || me.organization); var c = o && o.country; return !c || String(c).toUpperCase() === 'TR'; };
   window.ZirkonikData = Data;
 
   // ---- Para birimi ----
