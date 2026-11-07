@@ -1939,7 +1939,94 @@ window.ZK_DIL_EN = {
 "Laboratuvar adayı:":"Laboratory prospect:",
 "detayındaki":"on the details",
 "ile kodunuzu paylaşırsınız; karşı laboratuvar kabul edince aday müşteriye döner.":"you share your code; when the other laboratory accepts, the prospect becomes a customer.",
-"ile iptal edebilirsiniz.":"."
+"ile iptal edebilirsiniz.":".",
+"Onay e-postasını Gelen kutunuzda, Gereksiz (spam) ve Promosyonlar klasöründe arayın; bulamazsanız aşağıdan yeniden gönderin.":"Look for the confirmation email in your Inbox, Junk (spam) and Promotions folders; if you cannot find it, resend it below.",
+"kaydetmeden önce not alın.":"note it down before saving.",
+"Bu şifre çok yaygın kullanıldığı için kabul edilmiyor. \"Şifre öner\" düğmesiyle güçlü bir şifre oluşturabilirsiniz.":"This password is not accepted because it is very commonly used. You can create a strong password with the \"Suggest password\" button.",
+"Yalnızca rakamdan oluşan şifreler kabul edilmiyor. Harf ve sembol de ekleyin.":"Passwords made only of digits are not accepted. Add letters and symbols too.",
+"Devam etmek için kutuyu işaretleyerek Gizlilik Politikası ve KVKK Aydınlatma Metni'ni okuduğunuzu, Veri İşleme Sözleşmesi'ni kabul ettiğinizi ve 18 yaşından büyük olduğunuzu belirtmeniz gerekir.":"To continue, tick the box to state that you have read the Privacy Policy and KVKK Disclosure Notice, accept the Data Processing Agreement and are over 18 years old.",
+"Önce e-posta adresinizi yazın.":"Enter your email address first.",
+"Onay e-postası yeniden gönderildi. Birkaç dakika içinde gelmezse Gereksiz (spam) klasörüne bakın.":"The confirmation email was resent. If it does not arrive within a few minutes, check your Junk (spam) folder.",
+"Bu onay bağlantısı geçersiz: süresi dolmuş ya da daha önce kullanılmış olabilir. E-postanız zaten onaylandıysa şifrenizle giriş yapın; onaylanmadıysa e-posta adresinizi yazıp aşağıdan yeniden gönderin.":"This confirmation link is invalid: it may have expired or been used before. If your email is already confirmed, sign in with your password; if not, enter your email address and resend it below.",
+"E-postanıza bir sıfırlama bağlantısı gönderdik. Telefonunuzda gelen bağlantıya dokunun.":"We sent a reset link to your email. Tap the link that arrives on your phone.",
+"Verileriniz güvende — silinmedi. Devam etmek için bizimle iletişime geçin.":"Your data is safe — it was not deleted. Contact us to continue.",
+"Laboratuvarınızın":"Your laboratory's",
+"Tümü okundu olarak işaretlendi.":"All marked as read.",
+"Bugün teslim edilecek işler":"Jobs to be delivered today",
+"Teslim tarihi geçmiş işler":"Jobs past their delivery date",
+"Kalite kontroldeki işler":"Jobs in quality control",
+"Rapor oluşturulacak iş yok.":"There are no jobs to include in the report.",
+"PDF oluşturucu yüklenemedi — internet bağlantınızı kontrol edip sayfayı yenileyin.":"The PDF generator could not be loaded — check your internet connection and refresh the page.",
+"Rapor paylaşımı yalnızca iOS uygulamasında çalışır.":"Sharing reports works only in the iOS app.",
+"Aktif İşler Raporu":"Active Jobs Report",
+"Tamamlanan İşler Raporu":"Completed Jobs Report",
+"Oluşturulma:":"Created:",
+"İş No":"Job No.",
+"Diş":"Tooth",
+"Tamamlanma":"Completed",
+"Teslim":"Delivery",
+"Ödeme vadesi geçmiş faturalar":"Overdue invoices",
+"Atanmamış":"Unassigned",
+"İzin onaylandı.":"Leave approved.",
+"İzin reddedildi.":"Leave rejected.",
+"Son tamamlanan işler":"Recently completed jobs",
+"Bekleyen sipariş yok.":"No pending orders.",
+"Sonuçlanmış sipariş yok.":"No resolved orders.",
+"Fiyat tanımlı değil":"No price defined",
+"Bu kalem için fiyat yok; iş faturasız oluşur, sonradan fatura eklenemez.":"There is no price for this item; the job is created without an invoice and an invoice cannot be added later.",
+"· anlaşmalı fiyat":"· agreed price",
+"Sipariş onaylandı, iş oluşturuldu.":"Order approved; job created.",
+"Bu siparişi reddetmek istediğinize emin misiniz?":"Are you sure you want to reject this order?",
+"Sipariş reddedildi.":"Order rejected.",
+"az önce":"just now",
+"Bağlantı yavaş — son görülen veriler gösteriliyor":"Connection slow — showing last seen data",
+"Çevrimdışı — son görülen veriler gösteriliyor":"Offline — showing last seen data",
+"ağ hatası":"network error",
+"İnternet bağlantısı yok.":"No internet connection.",
+"Sunucuya ulaşılamıyor. Bağlantını kontrol et.":"Cannot reach the server. Check your connection.",
+"Bağlantı geri geldi.":"Connection restored.",
+"Bağlantı geri geldi, yenileniyor…":"Connection restored, refreshing…",
+"İnternet bağlantısı yok (istek gönderilmedi).":"No internet connection (request not sent).",
+"Sunucuya ulaşılamadı. Bağlantını kontrol edip tekrar dene.":"Could not reach the server. Check your connection and try again.",
+"Kaydedildi — internet gelince gönderilecek.":"Saved — will be sent when the internet is back.",
+"Sunucu hatası":"Server error",
+"Gönderildi, onay bekliyor":"Sent, awaiting approval",
+"Üretimde":"In production",
+"Hazır, teslim alınacak":"Ready, to be received",
+"Tarih seçin":"Select date",
+"Yenilemek için bırakın":"Release to refresh",
+"Yenilemek için aşağı çekin":"Pull down to refresh",
+"PLY başlığı okunamadı":"Could not read the PLY header",
+"PLY dosyası bozuk":"The PLY file is corrupted",
+"PLY biçimi desteklenmiyor":"The PLY format is not supported",
+"PLY dosyası eksik":"The PLY file is incomplete",
+"PLY alan türü tanınmıyor":"PLY field type not recognized",
+"PLY modeli çok büyük":"The PLY model is too large",
+"PLY dosyasında yüzey bulunamadı":"No surface found in the PLY file",
+"PLY yüz listesi bozuk":"The PLY face list is corrupted",
+"Dosya geçerli bir STL değil":"The file is not a valid STL",
+"Metin STL okunamadı":"Could not read the text STL",
+"Dosyada geçersiz koordinat var":"The file contains an invalid coordinate",
+"ZKM1 başlığı yok":"No ZKM1 header",
+"ZKM1 indeksi geçersiz":"The ZKM1 index is invalid",
+"Bilinmeyen işçi komutu":"Unknown worker command",
+"supabase-js yüklenmedi — CDN script etiketini kontrol et.":"supabase-js did not load — check the CDN script tag.",
+"E-posta veya şifre hatalı.":"Incorrect email or password.",
+"E-posta adresiniz henüz doğrulanmamış.":"Your email address has not been verified yet.",
+"Şifre çok kısa — en az 6 karakter olmalı.":"The password is too short — it must be at least 6 characters.",
+"Bu şifre çok yaygın/zayıf, daha güçlü bir şifre seçin.":"This password is too common/weak; choose a stronger one.",
+"Güvenlik nedeniyle yeni bir e-posta için 60 saniye beklemeniz gerekir.":"For security reasons you must wait 60 seconds before requesting another email.",
+"Çok fazla deneme yapıldı, birkaç dakika sonra tekrar deneyin.":"Too many attempts; try again in a few minutes.",
+"Bu hesap kapatılmış. Laboratuvar yöneticinizle görüşün.":"This account has been closed. Talk to your laboratory manager.",
+"Bağlantının süresi dolmuş, yeni bir bağlantı isteyin.":"The link has expired; request a new one.",
+"İnternet bağlantısı kurulamadı, bağlantınızı kontrol edin.":"Could not connect to the internet; check your connection.",
+"Sunucu zamanında cevap vermedi. Bağlantınızı kontrol edip tekrar deneyin.":"The server did not respond in time. Check your connection and try again.",
+"E-posta adresi geçersiz.":"The email address is invalid.",
+"Bilinmeyen bir hata oluştu.":"An unknown error occurred.",
+"Temas kaydı":"Contact record",
+"Görev tamamlama":"Task completion",
+"İş ilerletme":"Job advancement",
+"Fiyat satırı bulunamadı ya da yetkiniz yok.":"Price row not found, or you do not have permission."
 },
 "p":[
 [
@@ -2877,6 +2964,114 @@ window.ZK_DIL_EN = {
 [
 "^Kod kopyalandı: (.+)$",
 "Code copied: $1"
+],
+[
+"^Giriş başarısız: (.+)$",
+"Sign-in failed: $1"
+],
+[
+"^Kayıt başarısız: (.+)$",
+"Registration failed: $1"
+],
+[
+"^Önerilen şifre: (.+)$",
+"Suggested password: $1"
+],
+[
+"^Hesap oluşturuldu\\. Onay bağlantısını (.+) adresine gönderdik\\. Birkaç dakika içinde gelmezse Gereksiz \\(spam\\) ve Promosyonlar klasörüne de bakın\\. Onayladıktan sonra giriş yapabilirsiniz\\.$",
+"Account created. We sent the confirmation link to $1. If it does not arrive within a few minutes, also check your Junk (spam) and Promotions folders. You can sign in after confirming."
+],
+[
+"^Tekrar için (\\d+) sn bekleyin$",
+"Wait $1 s to retry"
+],
+[
+"^(.+) laboratuvarının$",
+"The $1 laboratory's"
+],
+[
+"^(\\d+) dk önce$",
+"$1 min ago"
+],
+[
+"^(\\d+) sa önce$",
+"$1 h ago"
+],
+[
+"^Daha fazla yükle \\((\\d+) iş kaldı\\)$",
+"Load more ($1 jobs left)"
+],
+[
+"^Daha fazla yükle \\((\\d+) sipariş kaldı\\)$",
+"Load more ($1 orders left)"
+],
+[
+"^(\\d+) takip$",
+"$1 follow-ups"
+],
+[
+"^(\\d+) görev$",
+"$1 tasks"
+],
+[
+"^(\\d+) temas \\(bugün\\)$",
+"$1 contacts (today)"
+],
+[
+"^Pazarlama özeti yüklenemedi: (.+)$",
+"Could not load the marketing summary: $1"
+],
+[
+"^İş/Ciro performansı yüklenemedi: (.+)$",
+"Could not load job/revenue performance: $1"
+],
+[
+"^(.+) istasyonunda aktif iş yok\\.$",
+"No active jobs at the $1 station."
+],
+[
+"^Gülüş: (.+)$",
+"Smile: $1"
+],
+[
+"^(.+) \\(anlaşmalı\\)$",
+"$1 (agreed)"
+],
+[
+"^Bağlantı: (.+)$",
+"Connection: $1"
+],
+[
+"^Sunucu (\\d+) saniye içinde cevap vermedi\\. Bağlantını kontrol edip tekrar dene\\.$",
+"The server did not respond within $1 seconds. Check your connection and try again."
+],
+[
+"^(\\d+) bekleyen işlem gönderildi\\.$",
+"$1 pending operations were sent."
+],
+[
+"^(\\d+) işlem sunucu tarafından reddedildi — alttaki çipe dokun\\.$",
+"$1 operations were rejected by the server — tap the chip below."
+],
+[
+"^(\\d+) işlem gönderilemedi · (\\d+) bekliyor — göster$",
+"$1 operations could not be sent · $2 waiting — show"
+],
+[
+"^(\\d+) işlem gönderilemedi — göster$",
+"$1 operations could not be sent — show"
+],
+[
+"^karşı iş no (.+)$",
+"other job no. $1"
+],
+[
+"^şu an: (.+)$",
+"now: $1"
+],
+[
+"^Bu kayıt önceki denemede farklı bilgilerle kaydedilmiş(.*)$",
+"This record was saved with different details in the previous attempt$1"
 ]
 ],
 "y":[

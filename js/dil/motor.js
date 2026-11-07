@@ -27,14 +27,31 @@
     var r = tek(k);
     // « · », « — », « → » ile birleştirilmiş metin ("Ayşe Kaya · Zirkonyum · 3 diş", bildirim gövdeleri): parçalar ayrı çevrilir, çevrilmeyen (ad, kod) aynen kalır.
     if (r === undefined && /( · | — | → )/.test(k)) {
-      var degisti = false, cev = k.split(/( · | — | → )/).map(function (p, i) { if (i % 2) return p; var c = tek(p); if (c === undefined) return p; degisti = true; return c; });
-      if (degisti) r = cev.join('');
+      // Parçalar soldan sağa EN UZUN eşleşmeyle çevrilir (bitişik parçalar birleştirilip denenir): «Çevrimdışı — son görülen veriler gösteriliyor» tek giriş olabilir.
+      var par = k.split(/( · | — | → )/), degisti = false, cev = [], i = 0;
+      if (par.length <= 25) {
+        while (i < par.length) {
+          if (i % 2) { cev.push(par[i]); i++; continue; }
+          var bul = false;
+          for (var j = par.length - 1 - ((par.length - 1 - i) % 2); j >= i; j -= 2) {
+            var c = tek(par.slice(i, j + 1).join(''));
+            if (c !== undefined) { cev.push(c); degisti = true; i = j + 1; bul = true; break; }
+          }
+          if (!bul) { cev.push(par[i]); i++; }
+        }
+        if (degisti) r = cev.join('');
+      }
     }
     return r === undefined ? s : m[1] + r + m[3];
   }
-  function tek(k) {
+  function tek(k, derin) {   // derin: özyineleme sayısı (en çok 2 kademe: «Yüklenemedi: Bağlantı: Sunucu …»)
     if (Object.prototype.hasOwnProperty.call(E, k)) return E[k];
-    for (var i = 0; i < P.length; i++) { if (P[i][0].test(k)) return k.replace(P[i][0], P[i][1]); }
+    for (var i = 0; i < P.length; i++) {
+      var m = P[i][0].exec(k);
+      if (!m) continue;
+      // Desen sonucu: yakalanan parçalar da (ör. «Yüklenemedi: <sunucu hatası>») sözlükte varsa çevrilir; bir kademe derinlik (sonsuz özyineleme yok).
+      return P[i][1].replace(/\$(\d)/g, function (_, n) { var g = m[+n]; if (g == null) return ''; var c = (derin || 0) >= 2 ? undefined : tek(g, (derin || 0) + 1); return c === undefined ? g : c; });
+    }
     return undefined;
   }
   /** Çok satırlı metin (alert/confirm): satır satır çevirir, satır sonlarını korur. */

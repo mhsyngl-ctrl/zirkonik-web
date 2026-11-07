@@ -65,7 +65,8 @@
           version: ZK_APP_VERSION,
           rpc: 'log_client_error',
           getClient: function () { return _client; },
-          context: function () { return {}; }   // kuruluş sunucuda app_users'tan bulunur
+          context: function () { return {}; },   // kuruluş sunucuda app_users'tan bulunur
+          t: function (m) { return (window.ZkDil && window.ZkDil.en && window.ZkDil.t) ? window.ZkDil.t(m) : m; }   // bağlantı bandı/hata metinleri arayüz diliyle
         });
       }
     }

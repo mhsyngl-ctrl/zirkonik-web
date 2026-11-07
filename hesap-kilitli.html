@@ -101,7 +101,7 @@
         if (durum.trial_ends_at) {
           var tarih = new Date(durum.trial_ends_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
           document.getElementById('hk-body').innerHTML =
-            '<span id="hk-org">' + (durum.org_name || 'Laboratuvarınızın') + ' laboratuvarının</span> erişim süresi ' + tarih + ' tarihinde sona erdi. ' +
+            '<span id="hk-org">' + (durum.org_name ? durum.org_name + ' laboratuvarının' : 'Laboratuvarınızın') + '</span> erişim süresi ' + tarih + ' tarihinde sona erdi. ' +
             'Verileriniz güvende — silinmedi. Devam etmek için bizimle iletişime geçin.';
         }
       });

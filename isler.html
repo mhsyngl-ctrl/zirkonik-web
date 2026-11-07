@@ -412,17 +412,20 @@
       var doc = new jsPDFCtor();
       // Türkçe karakterler (ı, ş, ğ, İ) için Unicode yazı tipi; yüklenemezse varsayılan kalır.
       var PF = (window.ZkPdfFont && ZkPdfFont.uygula(doc)) ? 'Roboto' : undefined;
-      var title = currentTab === 'active' ? 'Aktif İşler Raporu' : 'Tamamlanan İşler Raporu';
-      var docLabel = document.getElementById('f-doctor').selectedOptions[0].textContent;
-      var staffLabel = document.getElementById('f-staff').selectedOptions[0].textContent;
+      // PDF metinleri DOM'a girmez, motor göremez: İngilizcede ZkDil.t ile çevrilir. «Tüm doktorlar/çalışanlar» denetimi yazıya değil değere bakar (İngilizcede yazı değişir).
+      var zt = function (x) { return (window.ZkDil && window.ZkDil.en) ? window.ZkDil.t(x) : x; };
+      var title = zt(currentTab === 'active' ? 'Aktif İşler Raporu' : 'Tamamlanan İşler Raporu');
+      var docSel = document.getElementById('f-doctor'), staffSel = document.getElementById('f-staff');
+      var docLabel = docSel.value ? docSel.selectedOptions[0].textContent : '';
+      var staffLabel = staffSel.value ? staffSel.selectedOptions[0].textContent : '';
 
       doc.setFontSize(14);
       doc.text(title, 14, 16);
       doc.setFontSize(9);
       doc.setTextColor(120);
-      doc.text('Oluşturulma: ' + new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
-        + (docLabel !== 'Tüm doktorlar' ? ' · Doktor: ' + docLabel : '')
-        + (staffLabel !== 'Tüm çalışanlar' ? ' · Çalışan: ' + staffLabel : ''), 14, 22);
+      doc.text(zt('Oluşturulma:') + ' ' + new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
+        + (docLabel ? ' · ' + zt('Doktor') + ': ' + docLabel : '')
+        + (staffLabel ? ' · ' + zt('Çalışan') + ': ' + staffLabel : ''), 14, 22);
 
       var totalTeeth = currentJobs.reduce(function (s, j) { return s + Number(j.unit_count || 0); }, 0);
       var rows = currentJobs.map(function (j) {
@@ -438,11 +441,11 @@
 
       doc.autoTable({
         startY: 28,
-        head: [['İş No', 'Doktor', 'Restorasyon', 'Diş', currentTab === 'completed' ? 'Tamamlanma' : 'Teslim']],
+        head: [['İş No', 'Doktor', 'Restorasyon', 'Diş', currentTab === 'completed' ? 'Tamamlanma' : 'Teslim'].map(zt)],
         body: rows,
         styles: Object.assign({ fontSize: 8 }, PF ? { font: PF } : {}),
         headStyles: { fillColor: [18, 59, 74] },
-        foot: [['Toplam', '', '', String(totalTeeth) + ' diş', String(currentJobs.length) + ' iş']],
+        foot: [[zt('Toplam'), '', '', zt(String(totalTeeth) + ' diş'), zt(String(currentJobs.length) + ' iş')]],
         footStyles: { fillColor: [231, 236, 238], textColor: [23, 36, 44], fontStyle: 'bold' }
       });
 
