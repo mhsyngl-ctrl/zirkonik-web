@@ -2412,7 +2412,10 @@ window.ZK_DIL_EN = {
 "Ödeme bulunamadı.":"Payment not found.",
 "Geçersiz çalışma şekli":"Invalid working arrangement",
 "Vade günü 0 ile 365 arasında olmalı":"The payment term must be between 0 and 365 days",
-"Geçersiz dil":"Invalid language"
+"Geçersiz dil":"Invalid language",
+"Diğer ülke (şehir ve ilçeyi elle yazın)":"Other country (type the city and district)",
+"Şehir / il":"City / province",
+"İlçe / bölge":"District / area"
 },
 "p":[
 [
