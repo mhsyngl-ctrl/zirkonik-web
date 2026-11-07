@@ -748,7 +748,7 @@
         for (var i = 0; i < 7; i++) buckets.push({ label: dayNames[i], rows: [] });
         keyFn = function (r) { return Math.round((new Date(r.date) - rangeStart) / 86400000); };
       } else if (period === 'year') {
-        var monthNames = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+        var monthNames = (window.ZkDil && ZkDil.en ? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] : ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara']);   // İngilizcede ay kısaltması koddan (sözlükteki «Ara» = Arama düğmesi ile çakışmasın)
         for (var m = 0; m < 12; m++) buckets.push({ label: monthNames[m], rows: [] });
         keyFn = function (r) { return new Date(r.date).getMonth(); };
       } else {

@@ -642,7 +642,7 @@
     // ki geleceği anlarız", 23 Eylül 2026 — Medicamine'deki gelir+gider
     // birleşik grafiğinin Zirkonik'e uyarlanmış hali. Farklı para birimleri
     // toplanmaz; grafik en çok geçen para birimine göre çizilir.
-    var CF_MONTH_NAMES = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+    var CF_MONTH_NAMES = (window.ZkDil && ZkDil.en ? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] : ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara']);   // İngilizcede ay kısaltması koddan (sözlükteki «Ara» = Arama düğmesi ile çakışmasın)
     function cfRenderStackedCols(containerId, months, mainCurrency) {
       var maxVal = Math.max(1, Math.max.apply(null, months.map(function (m) {
         return Math.max(m.totalExpense[mainCurrency] || 0, (m.incomeAmount && m.incomeAmount[mainCurrency]) || 0);
