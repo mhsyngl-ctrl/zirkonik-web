@@ -1768,6 +1768,8 @@
       return client().rpc('zk_personel_odeme_ekle', { p_id: paymentId, p_statement: statementId, p_tutar: tutar, p_tarih: tarih, p_yontem: yontem || null, p_not: not || null });
     },
     payCancelPayment: function (paymentId) { return client().rpc('zk_personel_odeme_iptal', { p_id: paymentId }); },
+    // 8 Kasım 2026: doktorun fatura ayarı (çalışma şekli + ödeme vadesi günü) — yönetici + Muhasebeci; yalnız bu iki sütun (SQL 20261108100000).
+    doctorFaturaAyari: function (doctorId, billingMode, vadeGunu) { return client().rpc('zk_doktor_fatura_ayari', { p_doctor: doctorId, p_billing_mode: billingMode || null, p_payment_terms_days: (vadeGunu === '' || vadeGunu == null) ? null : Number(vadeGunu) }); },
 
     listStaffEarnings: function (period) {
       var q = client().from('staff_earnings').select('*, app_users!staff_earnings_user_id_fkey(full_name)').order('period', { ascending: false });
@@ -1930,6 +1932,22 @@
   window.zkMuhasebeciMi = function (me) { return !!me && me.role === 'personel' && me.position === 'Muhasebeci'; };
   // 7 Kasım 2026 (Murat): izin talebi ve yıllık izin hakkı hesabı Türkiye'ye özgüdür (İş Kanunu md.53; başka ülkelerin kuralını bilmiyoruz).
   // Yalnız bölge ayarı (organizations.country) Türkiye olan laboratuvarda açık; ülke boşsa (eski kuruluşlar) Türkiye sayılır. Veri silinmez, yalnız ekranlar gizlenir.
+  // 8 Kasım 2026: kullanıcının seçtiği arayüz dilini sunucuya yazar (zk_dil_kaydet) — telefona düşen bildirimler (send-push) o dilde gider. Yalnız kullanıcı dil SEÇMİŞSE (localStorage zk_dil) ve bu hesap için eşitlenmemişse çalışır.
+  window.zkDilEsle = function () {
+    return new Promise(function (ok) {
+      try {
+        var d = window.localStorage.getItem('zk_dil');
+        if (d !== 'en' && d !== 'tr') return ok();
+        Auth.getSession().then(function (s) {
+          if (!s || !s.user) return ok();
+          var imza = d + ':' + s.user.id;
+          if (window.localStorage.getItem('zk_dil_esit') === imza) return ok();
+          return client().rpc('zk_dil_kaydet', { p_lang: d }).then(function (r) { if (!r.error) { try { window.localStorage.setItem('zk_dil_esit', imza); } catch (e) {} } ok(); });
+        }).catch(function () { ok(); });
+      } catch (e) { ok(); }
+    });
+  };
+  setTimeout(function () { window.zkDilEsle(); }, 1500);
   window.zkIzinAcik = function (me) { var o = me && (me.organizations || me.organization); var c = o && o.country; return !c || String(c).toUpperCase() === 'TR'; };
   window.ZirkonikData = Data;
 

@@ -26,7 +26,7 @@
   var LIDER_KAPALI = { finans: 1, ciro: 1, 'fiyat-listesi': 1, 'personel-hesap': 1, 'aday-havuzu': 1, 'doktor-siparis': 1 };
   // 7 Kasım 2026: Muhasebeci = yalnız PARA (Lider'in tersi). Üretim ekranları (ana ekran, işler, detay, laboratuvarlar, sipariş, aday havuzu) ona hiçbir şekilde açılmaz;
   // açık sayfalar: Finans, Ciro, Fiyat Listesi, Doktorlar (salt okunur), Ekip (yalnız ücret ve hakediş) + kendi profili. Asıl kapı sunucudadır (zk_muhasebeci_mi / zk_para_admin).
-  var MUHASEBECI_ACIK = { finans: 1, ciro: 1, 'fiyat-listesi': 1, doktorlar: 1, ekip: 1, 'personel-hesap': 1, 'rol-ve-yetki-detay': 1, profil: 1, bildirimler: 1, izinlerim: 1, kilavuz: 1, onay: 1 };
+  var MUHASEBECI_ACIK = { detay: 1, finans: 1, ciro: 1, 'fiyat-listesi': 1, doktorlar: 1, ekip: 1, 'personel-hesap': 1, 'rol-ve-yetki-detay': 1, profil: 1, bildirimler: 1, izinlerim: 1, kilavuz: 1, onay: 1 };
   var RECEPTION_PAGES = { retim: 1, isler: 1, detay: 1, siparisler: 1, doktorlar: 1, 'yeni-giri-i': 1, profil: 1, bildirimler: 1, izinlerim: 1, kilavuz: 1, '3b-goster': 1 };
 
   // 30 Ekim 2026 — Doktor CRM ve aday havuzu yalnız Plus (ve lab↔lab çalışan Tek) pakette. Kurumsal ('standart'/'kurumsal') kapalı.

@@ -277,6 +277,34 @@
     </div>
   </div>
 
+  <!-- 8 Kasım 2026 (Murat): Muhasebeci doktorun YALNIZ fatura ayarını (çalışma şekli + ödeme vadesi) değiştirir; başka alanı değiştiremez (sunucu: zk_doktor_fatura_ayari). -->
+  <div id="fatura-ayar-sheet" class="fixed inset-0 z-40 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="zkCloseFaturaAyari()"></div>
+    <div class="absolute bottom-0 left-0 w-full rounded-t-theme bg-card p-5 pb-8">
+      <div class="flex items-center justify-between gap-3">
+        <div class="min-w-0"><p class="font-heading text-lg font-bold">Fatura ayarı</p><p id="fa-ad" class="truncate text-xs text-muted-foreground"></p></div>
+        <button onclick="zkCloseFaturaAyari()" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-theme bg-muted text-muted-foreground" aria-label="Kapat">✕</button>
+      </div>
+      <div class="mt-4 space-y-3">
+        <label class="block">
+          <span class="mb-1.5 block text-xs font-bold">Çalışma şekli</span>
+          <select id="fa-billing" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+            <option value="faturali">Faturalı çalışılıyor</option>
+            <option value="faturasiz">Faturasız çalışılıyor</option>
+          </select>
+          <span class="mt-1 block text-xs text-muted-foreground">Faturasız seçilse de alacak ve tahsilat kaydı tutulmaya devam eder; yalnızca kayıtlar "fatura" yerine "borç kaydı" olarak adlandırılır.</span>
+        </label>
+        <label class="block">
+          <span class="mb-1.5 block text-xs font-bold">Ödeme vadesi (gün)</span>
+          <input id="fa-vade" type="number" inputmode="numeric" min="0" max="365" step="1" placeholder="30" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+          <span class="mt-1 block text-xs text-muted-foreground">Yeni faturalarda vade bu kadar gün sonradır. Eski faturalar değişmez.</span>
+        </label>
+      </div>
+      <p id="fa-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
+      <button id="fa-kaydet" onclick="zkSubmitFaturaAyari()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
+    </div>
+  </div>
+
   <!-- Doktor bilgilerini düzenle sheet -->
   <div id="edit-doctor-sheet" class="fixed inset-0 z-40 hidden">
     <div class="absolute inset-0 bg-black/40" onclick="zkCloseEditDoctor()"></div>
@@ -597,6 +625,7 @@
     }
 
     function renderApprovedRow(d) {
+      if (docReadOnly && zkMuhViewer) return zkMuhDoktorSatiri(d);
       if (docReadOnly) {
         var contact = [d.phone, d.email].filter(Boolean);
         return '<div class="flex items-center gap-3 rounded-theme border border-border bg-card p-3">' +
@@ -730,6 +759,46 @@
         zkToast(verdict === 'approved' ? 'Doktor onaylandı.' : 'Doktor reddedildi.');
         loadDoctors();
       });
+    }
+
+    // ---- Muhasebeci: doktor fatura ayarı (8 Kasım 2026) ----
+    var zkMuhViewer = false, faturaAyarId = null;
+    function zkMuhDoktorSatiri(d) {
+      var nameEsc = escapeHtml(ZirkonikData.musteriAdi(d)).replace(/'/g, "\\'");
+      return '<div onclick="zkOpenDoctorCari(\'' + d.id + '\',\'' + nameEsc + '\')" class="rounded-theme border border-border bg-card p-3 active:opacity-70">' +
+        '<div class="flex items-center gap-3">' +
+        '<div class="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground">' + escapeHtml((d.full_name || '?').charAt(0)) + '</div>' +
+        '<div class="min-w-0 flex-1"><p class="truncate text-sm font-bold">' + escapeHtml(ZirkonikData.musteriAdi(d)) + '</p>' +
+        '<p class="truncate text-xs text-muted-foreground">' + escapeHtml(d.clinic_name || '—') +
+          (d.billing_mode === 'faturasiz' ? ' <span class="font-bold text-accent">· Faturasız</span>' : '') + '</p></div>' +
+        '<button onclick="event.stopPropagation();zkOpenFaturaAyari(\'' + d.id + '\')" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-label="Fatura ayarı" title="Fatura ayarı"><iconify-icon icon="lucide:receipt" class="text-sm"></iconify-icon></button>' +
+        '<button onclick="event.stopPropagation();zkOpenStatement(\'' + d.id + '\',\'' + nameEsc + '\')" class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-primary" aria-label="Ekstre gönder"><iconify-icon icon="lucide:send" class="text-sm"></iconify-icon></button>' +
+        '</div></div>';
+    }
+    function zkOpenFaturaAyari(id) {
+      var d = null; allDoctorsCache.forEach(function (x) { if (x.id === id) d = x; });
+      if (!d) return;
+      faturaAyarId = id;
+      document.getElementById('fa-ad').textContent = ZirkonikData.musteriAdi(d);
+      document.getElementById('fa-billing').value = d.billing_mode || 'faturali';
+      document.getElementById('fa-vade').value = d.payment_terms_days != null ? d.payment_terms_days : '';
+      document.getElementById('fa-error').classList.add('hidden');
+      document.getElementById('fatura-ayar-sheet').classList.remove('hidden');
+    }
+    function zkCloseFaturaAyari() { document.getElementById('fatura-ayar-sheet').classList.add('hidden'); }
+    function zkSubmitFaturaAyari() {
+      var errEl = document.getElementById('fa-error'), btn = document.getElementById('fa-kaydet');
+      errEl.classList.add('hidden');
+      var vade = document.getElementById('fa-vade').value.trim();
+      if (vade !== '' && (!/^\d+$/.test(vade) || Number(vade) > 365)) { errEl.textContent = 'Ödeme vadesi 0 ile 365 gün arasında bir sayı olmalı.'; errEl.classList.remove('hidden'); return; }
+      var bitir = (window.ZKHiz && ZKHiz.mesgul) ? ZKHiz.mesgul(btn, 'Kaydediliyor…') : function () {};
+      ZirkonikData.doctorFaturaAyari(faturaAyarId, document.getElementById('fa-billing').value, vade).then(function (res) {
+        bitir();
+        if (res.error) { errEl.textContent = 'Kaydedilemedi: ' + res.error.message; errEl.classList.remove('hidden'); return; }
+        zkCloseFaturaAyari();
+        zkToast('Fatura ayarı güncellendi.');
+        loadDoctors();
+      }, function (e) { bitir(); errEl.textContent = 'Kaydedilemedi: ' + ((e && e.message) || ''); errEl.classList.remove('hidden'); });
     }
 
     // ---- Doktor bilgilerini düzenle ----
@@ -896,6 +965,7 @@
       return ZirkonikAuth.me().then(function (me) {
         tekPaket = !!(me && me.organizations && me.organizations.plan === 'tek');
         docReadOnly = !me || me.role !== 'yonetici';
+        zkMuhViewer = !!(window.zkMuhasebeciMi && window.zkMuhasebeciMi(me));
         if (docReadOnly) {
           var addBtn = document.querySelector('[onclick="zkOpenAddDoctor()"]');
           if (addBtn) addBtn.style.display = 'none';

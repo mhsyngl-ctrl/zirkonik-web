@@ -17,7 +17,13 @@
     /** Dil seçenekleri (Profil, Giriş) çeviri TAMAMLANINCA görünür: true yapmak = herkese açmak. Kapalıyken yalnız İngilizce seçmiş cihazlar (test) seçeneği görür. */
     hazir: false,
     /** Dil seç ('tr' | 'en') ve sayfayı yenile. */
-    sec: function (yeni) { try { global.localStorage.setItem(ANAHTAR, yeni === 'en' ? 'en' : 'tr'); } catch (e) {} global.location.reload(); },
+    sec: function (yeni) {
+      try { global.localStorage.setItem(ANAHTAR, yeni === 'en' ? 'en' : 'tr'); } catch (e) {}
+      // Sunucuya da yaz (bildirim dili); en çok 1 sn beklenir, sonra sayfa yenilenir.
+      var bitti = false, yenile = function () { if (!bitti) { bitti = true; global.location.reload(); } };
+      try { if (global.zkDilEsle) global.zkDilEsle().then(yenile, yenile); } catch (e) {}
+      setTimeout(yenile, 1000);
+    },
     /** JS içinden üretilen metinler için: İngilizcede çevirir, Türkçede aynen döner. Motor yüklenince değişir. */
     t: function (s) { return s; },
     eksikler: function () { return []; }

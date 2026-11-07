@@ -539,6 +539,12 @@
         window.zkCanSeePrices = myRole === 'yonetici' || !!perms.can_view_prices;
         var editBtn = document.getElementById('edit-job-icon-btn');
         if (editBtn) editBtn.classList.toggle('hidden', !canFixJob);
+        // 8 Kasım 2026 (Murat): Muhasebeci doktorla hesap kitap yaparken iş detayını görebilmeli — SALT OKUNUR: ilerletme çubuğu, altyapı siparişi ve 3B yükleme gizli (sunucu da yazdırmaz).
+        if (window.zkMuhasebeciMi && window.zkMuhasebeciMi(me)) {
+          window.zkSaltOkunur = true;
+          var abtn = document.getElementById('advance-btn'); if (abtn && abtn.parentNode) abtn.parentNode.style.display = 'none';
+          ['dosya-3b-card', 'altyapi-ver-btn'].forEach(function (id) { var x = document.getElementById(id); if (x) x.style.display = 'none'; });
+        }
         loadJob();
       });
     });
