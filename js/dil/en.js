@@ -788,7 +788,175 @@ window.ZK_DIL_EN = {
 "teslim aldıysanız işi açıp \"Teslim aldım\"a basın.":"if you have received it, open the job and press \"I received it\".",
 "teslim alındıysa işi açıp \"Teslim aldım\"a basın.":"if it has been received, open the job and press \"I received it\".",
 "3B tasarımı uygulamadan görüntüleyebilirsiniz":"you can view the 3D design in the app",
-"ayrıntı Profil > Hata günlüğü":"details in Profile > Error log"
+"ayrıntı Profil > Hata günlüğü":"details in Profile > Error log",
+"Rol ve Yetki Detayı — Zirkonik":"Role and Permission Details — Zirkonik",
+"Geri dön":"Go back",
+"Erişim yönetimi":"Access management",
+"Sistem ayarları":"System settings",
+"Rol ve yetki detayı":"Role and permission details",
+"Erişim matrisi":"Access matrix",
+"Kullanıcı":"User",
+"Yönetici/işveren her şeye yetkilidir: tüm laboratuvarlar, tüm odalar ve tüm finans. Yetki ve oda ayarı gerektirmez, bu yüzden burada gösterilmez. Kişisel bilgiler ve şifre aşağıdan düzenlenebilir.":"The manager/employer has authority over everything: all laboratories, all rooms and all finance. No permission or room settings are needed, so they are not shown here. Personal information and password can be edited below.",
+"Kişisel bilgiler":"Personal information",
+"Ad soyad ve telefon güncelleyin.":"Update full name and phone.",
+"Pozisyon":"Position",
+"Yönetici (tam yetki)":"Manager (full access)",
+"İşveren (tam yetki)":"Employer (full access)",
+"Her şeyi görür ve yönetir (tam yetki).":"Sees and manages everything (full access).",
+"Yönetici/İşveren her şeyi görür. Diğer pozisyonlar aşağıdaki yetki anahtarlarına ve oda kapsamına tabidir; pozisyonda etkisiz anahtarlar gri görünür.":"Manager/Employer sees everything. Other positions are subject to the permission switches and room scope below; switches that have no effect for the position appear grey.",
+"Pozisyon şablonunu uygula":"Apply position template",
+"İşe giriş tarihi":"Hire date",
+"Doğum tarihi":"Date of birth",
+"Yıllık izin hakkı işe giriş tarihine göre hesaplanır (1-5 yıl: 14, 5-15: 20, 15+: 26 gün; 18 yaş altı / 50 üstü en az 20).":"Annual leave entitlement is calculated from the hire date (1-5 years: 14, 5-15: 20, 15+: 26 days; under 18 / over 50: at least 20).",
+"Ücretlendirme":"Compensation",
+"Tanımlanmadı":"Not defined",
+"Diş başı (otomatik hesaplanır)":"Per tooth (calculated automatically)",
+"Maaş + diş başı (ikisi birden)":"Salary + per tooth (both)",
+"Maaşlı (sabit aylık)":"Salaried (fixed monthly)",
+"Diş başı ücret":"Per-tooth rate",
+"Bu kişi bir işin herhangi bir aşamasını teslim aldığında, işin diş sayısı × bu ücret otomatik hakedişe yazılır.":"When this person receives any stage of a job, the job's tooth count × this rate is written to earnings automatically.",
+"Aylık maaş":"Monthly salary",
+"E-posta (giriş adresi)":"Email (sign-in address)",
+"Giriş e-postası buradan değiştirilemez; hesap bu adresle açılmıştır.":"The sign-in email cannot be changed here; the account was created with this address.",
+"Şifreyi sıfırla":"Reset password",
+"Yetki kapsamı":"Permission scope",
+"Bu kullanıcının erişebileceği işlemler.":"Actions this user can access.",
+"Durum ilerletme":"Advance status",
+"İşi/kalemi bir sonraki odaya taşıma":"Move the job/item to the next room",
+"Kapalı":"Off",
+"Açık":"On",
+"Sipariş düzenleme":"Order editing",
+"Kendi odasındaki işte hasta adı, protokol, teslim tarihi, çalışma türü düzeltme — fiyat ve durum hariç":"Correcting patient name, protocol, delivery date and work type on jobs in their own room — excluding price and status",
+"Ofis":"Office",
+"Sipariş yönetimi":"Order management",
+"Siparişler ve Yeni İş sayfaları: gelen siparişi onaylama/reddetme":"Orders and New Job pages: approve/reject incoming orders",
+"Doktorları görme":"View doctors",
+"Doktorlar sekmesini açar (liste ve iletişim). Sadece ekran; sunucuda ayrıca kısıtlamaz.":"Opens the Doctors tab (list and contact). Screen only; not additionally restricted on the server.",
+"Para":"Money",
+"Fiyatları görebilir":"Can see prices",
+"Görebildiği işlerin tutarı, katalog ve fiyat listesi. Yalnız görme; fiyat düzenleme finans yetkisiyle.":"Amounts of the jobs they can see, the catalog and the price list. View only; editing prices requires the finance permission.",
+"Finans yetkisi":"Finance permission",
+"Tahsilat, ödeme, fatura, kasa teslimi YAZAR; Finans ve Ciro sayfaları. Salt-okunur değil.":"WRITES collections, payments, invoices and cash handovers; Finance and Revenue pages. Not read-only.",
+"Satış":"Sales",
+"Aday/doktor kazanım süreci":"Prospect/doctor acquisition process",
+"Doktor Havuzu ve Bölgeler: aday ekleme, aşama ilerletme, temas kaydı":"Doctor Pool and Regions: adding prospects, advancing stages, recording contacts",
+"Laboratuvar ve oda erişimi":"Laboratory and room access",
+"Bu personelin görüp işlem yapabileceği yerler.":"Places this staff member can see and act in.",
+"(birden fazla seçilebilir, en az biri zorunlu)":"(several can be selected, at least one required)",
+"Odalar":"Rooms",
+"Önce laboratuvar seçin.":"Select a laboratory first.",
+"Değişiklikleri kaydet":"Save changes",
+"Yeni şifreyi kişiye kendiniz iletin — bu ekranda bir daha görünmez.":"Pass the new password to the person yourself — it will not appear on this screen again.",
+"Üret":"Generate",
+"Şifreyi Değiştir":"Change Password",
+"Yalnız PARA ile ilgilenir (Lider'in tersi): doktor cari, tahsilat, fatura, tedarikçi, gider, kasa, ciro, fiyat listesi, personel ücreti ve hakediş — görür ve düzenler. Üretim (iş, oda, rota, sipariş) hiç görünmez; silme ve iptal yönetici'de kalır. İzinleri sabittir.":"Deals with MONEY only (the opposite of the Lead): doctor accounts, collections, invoices, suppliers, expenses, cash box, revenue, price list, staff pay and earnings — sees and edits them. Production (jobs, rooms, routes, orders) is not visible at all; deleting and cancelling stay with the manager. Permissions are fixed.",
+"Üretim sürecini ve teknisyenleri yönetir: tüm odalar ve işler, rota, ekip, izin onayı. Para (fiyat, fatura, tahsilat, maaş, hakediş) hiç görünmez; iptal ve yeniden açma yönetici'de kalır. İzinleri sabittir, aşağıda anahtar yoktur.":"Manages the production process and technicians: all rooms and jobs, routes, team, leave approval. Money (prices, invoices, collections, salary, earnings) is not visible at all; cancelling and reopening stay with the manager. Permissions are fixed; there are no switches below.",
+"Muhasebeci olarak bu kişinin yalnız ücret ve hakediş ayarını düzenleyebilirsiniz; yetki, pozisyon ve oda erişimini yönetici belirler.":"As an accountant you can only edit this person's pay and earnings settings; the manager determines permissions, position and room access.",
+"Doktor hesabı: yalnız kendi siparişlerini ve işlerinin üretim durumunu takip eder. Yetki ve oda ayarı gerektirmez.":"Doctor account: only follows their own orders and the production status of their jobs. No permission or room settings are needed.",
+"Ücret bilgisi okunamadı; sayfayı yenileyip tekrar deneyin.":"Pay information could not be read; refresh the page and try again.",
+"Ücret kaydedildi.":"Pay saved.",
+"Laboratuvar listesi henüz yüklenmedi, birkaç saniye sonra tekrar deneyin.":"The laboratory list has not loaded yet; try again in a few seconds.",
+"Yetkiler yazılamadı (yetkiniz olmayabilir).":"Permissions could not be written (you may not have the authority).",
+"Değişiklikler kaydedildi.":"Changes saved.",
+"Personel ekle":"Add staff",
+"Görev dağılımı ve yetkilendirme":"Task distribution and authorization",
+"Aktif personel":"Active staff",
+"Ekip görünümü":"Team view",
+"Personel listesi":"Staff list",
+"Görev kapsamı":"Scope of duties",
+"Aktif işler":"Active jobs",
+"Yetkileri düzenle":"Edit permissions",
+"Ekipten çıkar":"Remove from team",
+"Ekip Performansı":"Team Performance",
+"Bu dönemin yıldızı":"Star of this period",
+"Üretim hakedişi — çalışan bazlı":"Production earnings — by employee",
+"Kim sipariş aldığına değil, kim ürettiğine göre (işin tutarı, aşama başına payıyla).":"Based on who produced the work, not who took the order (job amount, with a share per stage).",
+"Çalışan bazlı üretim hakedişi":"Production earnings by employee",
+"Tamamlanan üretim aşaması sayısına göre sıralı (teslim alıp onaylanan işler)":"Sorted by number of completed production stages (jobs received and approved)",
+"Bu dönemde tamamlanan aşama yok.":"No completed stages in this period.",
+"Sipariş performansı — kim aldı":"Order performance — who took it",
+"Bu dönemde sisteme yeni girilen siparişlerin toplam tutarı, kim işlediyse.":"Total amount of orders newly entered into the system in this period, by whoever processed them.",
+"Sipariş performansı, çalışan bazlı":"Order performance by employee",
+"Bu dönemde yeni sipariş yok.":"No new orders in this period.",
+"Pazarlama performansı — temsilci bazlı":"Marketing performance — by representative",
+"Aday doktorlara yapılan ziyaret, arama ve WhatsApp temasları. Takip uyumu: dönemde vadesi gelen görevlerden vade günü içinde kapananlar.":"Visits, calls and WhatsApp contacts made to prospect doctors. Follow-up compliance: tasks that fell due in the period and were closed within their due day.",
+"Pazarlama temsilcisi bazlı temas sayısı":"Contact count by marketing representative",
+"Ziyaret edilen klinik":"Clinics visited",
+"bu dönemde farklı klinik":"different clinics in this period",
+"Hekim / yetkiliyle":"With doctor / authorized person",
+"görüşülen kişi girilmemiş":"contact person not entered",
+"Takip uyumu":"Follow-up compliance",
+"Gecikmiş görev":"Overdue tasks",
+"şu an açık ve vadesi geçmiş":"currently open and overdue",
+"İlerleme":"Progress",
+"Çalışanların dönemsel ilerlemesi":"Employees' progress over time",
+"Bu aralıkta tamamlanan aşama yok.":"No completed stages in this range.",
+"Yönetici ve Muhasebeci görür":"Visible to manager and accountant",
+"Net / Brüt Maaş Hesapla":"Net / Gross Salary Calculator",
+"TR 2026 SGK primi ve gelir vergisi dilimlerine göre yaklaşık hesaplama":"Approximate calculation based on TR 2026 SGK premium and income tax brackets",
+"SGK primi ve gelir vergisi dilimlerine göre yaklaşık hesaplama":"Approximate calculation based on SGK premium and income tax brackets",
+"Hesap makinesini aç":"Open calculator",
+"Yönetici onayı":"Manager approval",
+"Doktor üyelikleri":"Doctor memberships",
+"Onay bekleyen doktor kayıtlarını Doktorlar sekmesinden yönetin.":"Manage doctor records awaiting approval from the Doctors tab.",
+"Doktorlar sekmesine git":"Go to the Doctors tab",
+"Net'ten Brüt'e":"Net to Gross",
+"Brüt'ten Net'e":"Gross to Net",
+"Tutar (₺) *":"Amount (₺) *",
+"Brüt tutar (₺) *":"Gross amount (₺) *",
+"Yılın kaçıncı ayı (kümülatif vergi dilimi için)":"Month of the year (for the cumulative tax bracket)",
+"Hesapla":"Calculate",
+"Brüt maaş":"Gross salary",
+"Gelir vergisi":"Income tax",
+"Damga vergisi":"Stamp tax",
+"Net maaş":"Net salary",
+"Yaklaşık işverene maliyet":"Approximate cost to employer",
+"TR 2026 (gömülü)":"TR 2026 (built-in)",
+"Bu ülke için bordro parametreleri tanımlı değil":"Payroll parameters are not defined for this country",
+"Bu ülke için bordro parametreleri tanımlı değil.":"Payroll parameters are not defined for this country.",
+"Geçerli bir tutar girin.":"Enter a valid amount.",
+"Giriş bilgilerini siz belirlersiniz, personele iletirsiniz.":"You set the sign-in details and pass them on to the staff member.",
+"Teknisyen":"Technician",
+"Tasarımcı Teknisyen":"Designer Technician",
+"Lider Teknisyen (operasyon yöneticisi, para yok)":"Lead Technician (operations manager, no money access)",
+"Resepsiyon Sorumlusu":"Reception Manager",
+"Muhasebeci (yalnız para, üretim yok)":"Accountant (money only, no production)",
+"Muhasebeci":"Accountant",
+"Lider Teknisyen":"Lead Technician",
+"＋ Yeni pozisyon ekle…":"＋ Add new position…",
+"Yeni pozisyonun adı":"Name of the new position",
+"E-posta *":"Email *",
+"Şifre * (en az 6 karakter)":"Password * (at least 6 characters)",
+"Oluştur":"Create",
+"İşe giriş tarihi (yıllık izin hakkı bundan hesaplanır)":"Hire date (annual leave entitlement is calculated from this)",
+"Laboratuvar erişimi":"Laboratory access",
+"(en az biri zorunlu)":"(at least one required)",
+"Oda erişimi":"Room access",
+"Hesabı oluştur":"Create account",
+"Yönetici · Tam yetki":"Manager · Full access",
+"İşveren":"Employer",
+"İsimsiz":"Unnamed",
+"Doktor portalı":"Doctor portal",
+"Operasyon yöneticisi":"Operations manager",
+"Muhasebe":"Accounting",
+"yalnız para":"money only",
+"Üretim durumu":"Production status",
+"Görüntüleme":"View",
+"üretim hakedişi":"production earnings",
+"ilk temas ve sonrası":"first contact and beyond",
+"Yetkili olduğu odalardaki işleri görür ve durumunu ilerletir. Fiyat ve finans görmez (yönetici yetki vermedikçe).":"Sees jobs in the rooms they are authorized for and advances their status. Does not see prices or finance (unless the manager grants it).",
+"Üretim sürecini ve teknisyenleri yönetir: tüm odalar ve işler, rota, ekip, izin onayı. Para (fiyat, fatura, tahsilat, maaş, hakediş) hiç görünmez; iptal ve yeniden açma yönetici'de kalır.":"Manages the production process and technicians: all rooms and jobs, routes, team, leave approval. Money (prices, invoices, collections, salary, earnings) is not visible at all; cancelling and reopening stay with the manager.",
+"Yalnız PARA ile ilgilenir (Lider'in tersi): doktor cari, tahsilat, fatura, tedarikçi, gider, kasa, ciro, fiyat listesi, personel ücreti ve hakediş — görür ve düzenler. Üretim (iş, oda, rota, sipariş) hiç görünmez; silme ve iptal yönetici'de kalır.":"Deals with MONEY only (the opposite of the Lead): doctor accounts, collections, invoices, suppliers, expenses, cash box, revenue, price list, staff pay and earnings — sees and edits them. Production (jobs, rooms, routes, orders) is not visible at all; deleting and cancelling stay with the manager.",
+"Teknisyen gibi çalışır; yalnız kendisi tasarımcı seçilmiş işleri ve siparişleri, ve yalnız kendisine yetki verilen odalarda görür.":"Works like a technician; sees only the jobs and orders where they are chosen as designer, and only in the rooms they are authorized for.",
+"Siparişleri ve doktor işlerini yönetir (sipariş onayı, doktor kayıtları). Finans ve Doktor Havuzu ekranlarına giremez.":"Manages orders and doctor jobs (order approval, doctor records). Cannot access the Finance and Doctor Pool screens.",
+"Yalnız Doktor Havuzu'nu (aday doktorlar) kullanır; işleri ve finansı görmez. Yalnız Plus ve Tek paketinde bulunur.":"Uses only the Doctor Pool (prospect doctors); does not see jobs or finance. Available only in the Plus and Single plans.",
+"Kendi yazdığınız pozisyon Teknisyen gibi başlar; ne göreceğini kişinin yetki ekranından siz seçersiniz.":"A position you write yourself starts like a Technician; you choose what they see from the person's permission screen.",
+"Ad soyad, e-posta ve şifre zorunludur.":"Full name, email and password are required.",
+"Şifre en az 6 karakter olmalı.":"The password must be at least 6 characters.",
+"Yeni pozisyonun adını yazın.":"Enter the name of the new position.",
+"Personel için en az bir laboratuvar seçin.":"Select at least one laboratory for the staff member.",
+"Önce Laboratuvarlar sekmesinden bir laboratuvar ekleyin.":"First add a laboratory from the Laboratories tab.",
+"Pasif personel (":"Inactive staff ("
 },
 "p":[
 [
@@ -1322,6 +1490,102 @@ window.ZK_DIL_EN = {
 [
 "^([^·—→]+) kalan: (.+)$",
 "$1 remaining: $2"
+],
+[
+"^Pasif personel \\((\\d+)\\)$",
+"Inactive staff ($1)"
+],
+[
+"^(\\d+) temas$",
+"$1 contacts"
+],
+[
+"^(\\d+) temas ·$",
+"$1 contacts ·"
+],
+[
+"^(\\d+) görev vadesi geldi$",
+"$1 tasks due"
+],
+[
+"^Huni: (\\d+) atanan → (\\d+) ilk temas ve sonrası → (\\d+) deneme → (\\d+) aktif$",
+"Funnel: $1 assigned → $2 first contact and beyond → $3 trial → $4 active"
+],
+[
+"^Son (\\d+) ay, çalışan bazlı üretim hakedişi\\.$",
+"Last $1 months, production earnings by employee."
+],
+[
+"^Son (\\d+) hafta, çalışan bazlı üretim hakedişi\\.$",
+"Last $1 weeks, production earnings by employee."
+],
+[
+"^Son (\\d+) yıl, çalışan bazlı üretim hakedişi\\.$",
+"Last $1 years, production earnings by employee."
+],
+[
+"^SGK primi \\(%([\\d.,]+)\\)$",
+"SGK premium ($1%)"
+],
+[
+"^İşsizlik sigortası \\(%([\\d.,]+)\\)$",
+"Unemployment insurance ($1%)"
+],
+[
+"^TR (\\d{4}) asgari ücret istisnası, SGK primi \\(%([\\d.,]+)\\) ve gelir vergisi dilimlerine göre yaklaşık tahmindir — resmi bordro yerine geçmez\\.$",
+"This is an approximate estimate based on the TR $1 minimum wage exemption, SGK premium ($2%) and income tax brackets — it does not replace an official payroll."
+],
+[
+"^İşverene maliyet, teşviksiz standart SGK işveren oranıyla \\(%([\\d.,]+)\\) hesaplanmıştır; işletmenize özel teşvikler gerçek maliyeti düşürebilir\\.$",
+"Employer cost is calculated with the standard SGK employer rate ($1%) without incentives; incentives specific to your business may reduce the real cost."
+],
+[
+"^(\\d+) aşama$",
+"$1 stages"
+],
+[
+"^(\\d+) farklı iş$",
+"$1 different jobs"
+],
+[
+"^(.+) ekipten çıkarılsın mı\\? Giriş yapamaz olur\\. Hiç iş/kasa/hakediş geçmişi yoksa hesap tamamen silinir; geçmişi varsa hesap kapatılır, geçmiş kayıtlardaki adı korunur ve e-postası serbest kalır \\(başka bir laboratuvarda ya da kendi hesabında kullanabilir\\)\\. İstediğiniz zaman yeniden etkinleştirebilirsiniz\\.$",
+"Remove $1 from the team? They will no longer be able to sign in. If they have no job/cash/earnings history the account is deleted completely; if they have history the account is closed, their name is kept in past records and their email is freed (it can be used at another laboratory or for their own account). You can reactivate them at any time."
+],
+[
+"^(.+) ekipten çıkarıldı\\.$",
+"$1 was removed from the team."
+],
+[
+"^(.+) yeniden etkinleştirildi — oda/lab erişimini \"Yetkileri düzenle\"den yeniden verin\\.$",
+"$1 was reactivated — grant room/lab access again via \"Edit permissions\"."
+],
+[
+"^Ekip performansı yüklenemedi: (.+)$",
+"Could not load team performance: $1"
+],
+[
+"^Pazarlama performansı yüklenemedi: (.+)$",
+"Could not load marketing performance: $1"
+],
+[
+"^Hesap oluşturuldu\\. Giriş bilgilerini personele iletin — E-posta: (.+) · Şifre: (.+)$",
+"Account created. Pass the sign-in details to the staff member — Email: $1 · Password: $2"
+],
+[
+"^Oluşturulamadı: (.+)$",
+"Could not create: $1"
+],
+[
+"^(.+) şablonu uygulandı — kaydetmeyi unutmayın\\.$",
+"$1 template applied — don't forget to save."
+],
+[
+"^Şifre değiştirildi: (.+) — bunu kişiye şimdi iletin\\.$",
+"Password changed: $1 — pass this to the person now."
+],
+[
+"^(.+) bu sayfalara pozisyon gereği giremez\\.$",
+"$1 cannot access these pages due to their position."
 ]
 ],
 "y":[
@@ -1335,6 +1599,7 @@ window.ZK_DIL_EN = {
 "^05xx xxx xx xx$",
 "^\\+?\\d[\\d\\s()-]{6,}$",
 "^(Instagram|WhatsApp)$",
+"^[A-ZÇĞİÖŞÜ]{1,3}$",
 "^(Dr\\. )?(Test Yönetici|Merkez Lab|Ayşe Kaya|Mehmet Demir|Can Öztürk)( — (Kaya Klinik|Demir Diş)| · Kaya Klinik)?$",
 "^(Test Yönetici|Merkez Lab|Ayşe Kaya|Mehmet Demir|Can Öztürk|Dr\\. Ayşe Kaya|Dr\\. Can Öztürk)\\b.*$",
 "^Hasta \\d+.*$",
