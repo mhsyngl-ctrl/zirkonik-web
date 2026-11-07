@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="css/ipad.css">
   <link rel="stylesheet" href="css/zk-utils.css">
   <script src="js/zk-tema.js"></script>
+  <script src="js/zk-dil.js"></script>
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
@@ -96,6 +97,17 @@
           </button>
           <p class="mt-2 text-[11px] leading-4 text-muted-foreground">Kurulum adımları ve ekran ekran kullanım: iş akışı, fiyatlar, doktorlar, ekip, finans, stok.</p>
         </section>
+
+        <!-- 7 Kasım 2026: dil seçimi (Türkçe / English). Seçim bu cihazda saklanır; sayfa yenilenir. -->
+        <section id="pf-dil" style="display:none" class="mt-5 rounded-theme border border-border bg-card p-4">
+          <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Dil</p>
+          <div class="mt-3 grid grid-cols-2 gap-2">
+            <button id="pf-dil-tr" type="button" onclick="ZkDil.sec('tr')" class="flex h-11 items-center justify-center rounded-theme border border-border bg-input text-sm font-bold">Türkçe</button>
+            <button id="pf-dil-en" type="button" onclick="ZkDil.sec('en')" class="flex h-11 items-center justify-center rounded-theme border border-border bg-input text-sm font-bold">English</button>
+          </div>
+          <p class="mt-2 text-[11px] leading-4 text-muted-foreground">Uygulamanın dili bu cihazda değişir. Seçim anında uygulanır.</p>
+        </section>
+        <script>(function () { var k = document.getElementById('pf-dil'); if (k && window.ZkDil && (ZkDil.hazir || ZkDil.en)) k.style.display = ''; var a = document.getElementById(window.ZkDil && ZkDil.en ? 'pf-dil-en' : 'pf-dil-tr'); if (a) { a.className = a.className.replace('border-border bg-input', 'border-primary bg-primary text-primary-foreground'); a.setAttribute('aria-pressed', 'true'); } })();</script>
 
         <section id="pf-work-stats" class="mt-5 hidden rounded-theme border border-border bg-card p-4">
           <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Yapılan işler</p>
