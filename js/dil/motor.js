@@ -24,9 +24,18 @@
     var cekirdek = m[2];
     if (!cekirdek) return s;
     var k = cekirdek.replace(/\s+/g, ' ');
-    var r = Object.prototype.hasOwnProperty.call(E, k) ? E[k] : undefined;
-    if (r === undefined) { for (var i = 0; i < P.length; i++) { if (P[i][0].test(k)) { r = k.replace(P[i][0], P[i][1]); break; } } }
+    var r = tek(k);
+    // « · », « — », « → » ile birleştirilmiş metin ("Ayşe Kaya · Zirkonyum · 3 diş", bildirim gövdeleri): parçalar ayrı çevrilir, çevrilmeyen (ad, kod) aynen kalır.
+    if (r === undefined && /( · | — | → )/.test(k)) {
+      var degisti = false, cev = k.split(/( · | — | → )/).map(function (p, i) { if (i % 2) return p; var c = tek(p); if (c === undefined) return p; degisti = true; return c; });
+      if (degisti) r = cev.join('');
+    }
     return r === undefined ? s : m[1] + r + m[3];
+  }
+  function tek(k) {
+    if (Object.prototype.hasOwnProperty.call(E, k)) return E[k];
+    for (var i = 0; i < P.length; i++) { if (P[i][0].test(k)) return k.replace(P[i][0], P[i][1]); }
+    return undefined;
   }
   /** Çok satırlı metin (alert/confirm): satır satır çevirir, satır sonlarını korur. */
   function cevirCokSatir(s) {
