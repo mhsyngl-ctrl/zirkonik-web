@@ -66,7 +66,7 @@
           <!-- 30 Eylül 2026, sahibinin bildirdiği hata: geri düğmesi Ayarlar'ı YENİ sayfa olarak
                açıyordu; Ayarlar'ın geri düğmesi (history.back) tekrar Yardım'a dönüyor, ana
                sayfaya ulaşılamıyordu. Artık gerçek geri; geçmiş yoksa Ayarlar'a düşer. -->
-          <button onclick="history.length > 1 ? history.back() : location.href='profil.html'" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-background text-primary" aria-label="Geri dön">
+          <button onclick="zkKilavuzGeri()" class="flex h-10 w-10 items-center justify-center rounded-theme border border-border bg-background text-primary" aria-label="Geri dön">
             <iconify-icon icon="lucide:arrow-left" class="text-xl"></iconify-icon>
           </button>
           <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Yardım</p>
@@ -104,7 +104,7 @@
         </section>
 
         <!-- KURULUM DURUMU -->
-        <section class="mt-5 rounded-theme border border-border bg-card p-4">
+        <section id="kv-kurulum-karti" class="mt-5 rounded-theme border border-border bg-card p-4">
           <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Nerede kaldınız?</p>
           <div id="kv-progress-list" class="mt-3 space-y-2">
             <p class="text-xs text-muted-foreground">Yükleniyor…</p>
@@ -376,7 +376,7 @@
             <div class="border-t border-border px-4 py-3.5 text-xs leading-5 text-muted-foreground">
               <p>Bir çalışanın ne göreceği üç sorunun cevabıyla belirlenir. Yönetici ve İşveren bu üç katmanın dışındadır; her şeyi görür.</p>
               <p class="mt-2"><b class="text-card-foreground">Pozisyonlar ne yapar?</b></p>
-              <ul class="mt-1 list-disc space-y-1 pl-5"><li><b class="text-card-foreground">Teknisyen:</b> Yetkili olduğu odalardaki işleri görür ve durumunu ilerletir. Fiyat ve finans görmez (yönetici yetki vermedikçe).</li><li><b class="text-card-foreground">Tasarımcı Teknisyen:</b> Teknisyen gibi çalışır; yalnız kendisi tasarımcı seçilmiş işleri ve siparişleri, ve yalnız kendisine yetki verilen odalarda görür.</li><li><b class="text-card-foreground">Resepsiyon Sorumlusu:</b> Siparişleri ve doktor işlerini yönetir (sipariş onayı, doktor kayıtları). Finans ve Doktor Havuzu ekranlarına giremez.</li><li><b class="text-card-foreground">Satış Pazarlama Sorumlusu:</b> Yalnız Doktor Havuzu'nu (aday doktorlar) kullanır; işleri ve finansı görmez. Yalnız Plus ve Tek paketinde bulunur.</li><li><b class="text-card-foreground">Yönetici:</b> Her şeyi görür ve yönetir (tam yetki).</li><li><b class="text-card-foreground">İşveren:</b> Her şeyi görür ve yönetir (tam yetki).</li></ul>
+              <ul class="mt-1 list-disc space-y-1 pl-5"><li><b class="text-card-foreground">Teknisyen:</b> Yetkili olduğu odalardaki işleri görür ve durumunu ilerletir. Fiyat ve finans görmez (yönetici yetki vermedikçe).</li><li><b class="text-card-foreground">Tasarımcı Teknisyen:</b> Teknisyen gibi çalışır; yalnız kendisi tasarımcı seçilmiş işleri ve siparişleri, ve yalnız kendisine yetki verilen odalarda görür.</li><li><b class="text-card-foreground">Lider Teknisyen:</b> Üretim sürecini ve teknisyenleri yönetir: tüm odalar ve işler, üretim rotaları, teknisyen ekleme/çıkarma, oda erişimi, izin onayı, sipariş onayı. Para ile işi yoktur: fiyat, fatura, tahsilat, maaş ve hakediş (kendi hakedişi hariç) hiç görünmez. İş iptali ve yeniden açma yöneticide kalır.</li><li><b class="text-card-foreground">Resepsiyon Sorumlusu:</b> Siparişleri ve doktor işlerini yönetir (sipariş onayı, doktor kayıtları). Finans ve Doktor Havuzu ekranlarına giremez.</li><li><b class="text-card-foreground">Satış Pazarlama Sorumlusu:</b> Yalnız Doktor Havuzu'nu (aday doktorlar) kullanır; işleri ve finansı görmez. Yalnız Plus ve Tek paketinde bulunur.</li><li><b class="text-card-foreground">Yönetici:</b> Her şeyi görür ve yönetir (tam yetki).</li><li><b class="text-card-foreground">İşveren:</b> Her şeyi görür ve yönetir (tam yetki).</li></ul>
               <p class="mt-2">Tasarımcı seçimi isteğe bağlıdır: yeni iş ya da sipariş girerken (doktor da dahil) listeden tasarımcı seçilir; seçimi sonradan yalnız Yönetici veya İşveren değiştirebilir. Listede yalnız aktif «Tasarımcı Teknisyen»ler görünür: işten çıkan listeden kalkar, yeni eklenen kendiliğinden eklenir. Yönetici ve İşveren, Personel ekle ekranında «Yeni pozisyon ekle» ile kendi pozisyon adını da yazabilir; bu pozisyonun yetkilerini kişinin yetki ekranından siz seçersiniz.</p>
               <figure class="mt-3">
                 <svg viewBox="0 0 700 150" role="img" aria-label="Pozisyon yetkilere şablon verir, yetkiler işlemleri belirler, laboratuvar ve oda seçimi hangi işlerin görüleceğini daraltır." style="max-width:100%;height:auto;display:block;color:currentColor">
@@ -402,7 +402,7 @@
                   </g>
                 </svg>
               </figure>
-              <p class="mt-3"><b class="text-card-foreground">Pozisyon</b> anahtarlara başlangıç şablonu verir ve bazı sayfaları baştan kapatır: Satış Pazarlama yalnız Doktor Havuzu'nu açar; Resepsiyon Finans ve Doktor Havuzu'na giremez. Pozisyonda etkisiz anahtarlar gri ve kilitli görünür.</p>
+              <p class="mt-3"><b class="text-card-foreground">Pozisyon</b> anahtarlara başlangıç şablonu verir ve bazı sayfaları baştan kapatır: Satış Pazarlama yalnız Doktor Havuzu'nu açar; Resepsiyon Finans ve Doktor Havuzu'na giremez; Lider Teknisyen Finans, Ciro ve Fiyat Listesi'ne hiçbir şekilde giremez (izinleri sabittir, anahtar yoktur). Pozisyonda etkisiz anahtarlar gri ve kilitli görünür.</p>
               <p class="mt-2.5"><b class="text-card-foreground">Anahtarlar</b></p>
               <ul class="mt-1 space-y-1">
                 <li>• <b class="text-card-foreground">Durum ilerletme</b> — işi sonraki odaya taşır (teknisyende varsayılan açık).</li>
@@ -420,6 +420,48 @@
             </div>
           </details>
 
+          <!-- 7 Kasım 2026: Lider Teknisyen pozisyonu (operasyon yöneticisi, parasız). -->
+          <details class="rounded-theme border border-border bg-card" ontoggle="zkNudgeScroll(this)">
+            <summary class="flex items-center gap-3 px-4 py-3.5">
+              <iconify-icon icon="lucide:users-round" class="shrink-0 text-lg text-primary"></iconify-icon>
+              <span class="flex-1 text-sm font-bold">Lider Teknisyen: neler yapabilir?</span>
+              <iconify-icon icon="lucide:chevron-right" class="kv-ok shrink-0 text-base text-muted-foreground"></iconify-icon>
+            </summary>
+            <div class="border-t border-border px-4 py-3.5 text-xs leading-5 text-muted-foreground">
+              <p>Lider Teknisyen, üretim sürecini ve teknisyenleri yönetir; <b class="text-card-foreground">paraya hiç dokunmaz</b>. Yönetici gibi bütün odaları ve işleri görür, ama fiyat, fatura, tahsilat, kasa ve maaş bilgisi ona hiçbir ekranda görünmez.</p>
+              <p class="mt-2.5"><b class="text-card-foreground">Ana ekran</b></p>
+              <ul class="mt-1 list-disc space-y-1 pl-5">
+                <li>Teknisyenlerin izin taleplerini görür ve onaylar (kendi iznini onaylayamaz).</li>
+                <li>İş/Ciro performans kartı para içerdiği için yalnız yöneticide görünür.</li>
+              </ul>
+              <p class="mt-2.5"><b class="text-card-foreground">İşler</b></p>
+              <ul class="mt-1 list-disc space-y-1 pl-5">
+                <li>Bütün odalardaki işleri görür; oda ataması gerekmez.</li>
+                <li>Teslim alınmadığı için takılan işi kendisi ilerletir.</li>
+                <li>Yeni iş açar, gelen siparişi rakamsız onaylar; iş notunu ve tasarımcıyı değiştirir.</li>
+                <li>Son odada işi bitirir. İş iptali ve tamamlanmış işi yeniden açmak yöneticide kalır.</li>
+                <li>Doktor listesini yalnız görür; doktor eklemez, düzenlemez.</li>
+              </ul>
+              <p class="mt-2.5"><b class="text-card-foreground">Laboratuvarlar</b></p>
+              <ul class="mt-1 list-disc space-y-1 pl-5">
+                <li>Oda ekler, siler, adını ve sırasını değiştirir; oda doluluğunu ve iş ilerleme günlüğünü görür.</li>
+                <li>Laboratuvar ekleme ve düzenleme kapalıdır.</li>
+                <li><b class="text-card-foreground">Üretim rotaları:</b> her çalışma türünün hangi odalardan, hangi sırayla geçeceğini belirler. Fiyat gösterilmez. Yeni açılan işler bu rotayla başlar, devam eden işler değişmez. Yeni çalışma türü eklemek ve silmek yöneticide kalır (fiyat girmek gerekir).</li>
+              </ul>
+              <p class="mt-2.5"><b class="text-card-foreground">Ekip</b></p>
+              <ul class="mt-1 list-disc space-y-1 pl-5">
+                <li>Yalnız Teknisyen ve Tasarımcı Teknisyen kartlarında düğme görür.</li>
+                <li>Bu iki pozisyondaki kişileri ekler ve çıkarır, şifrelerini sıfırlar, laboratuvar ve oda erişimini verir.</li>
+                <li>Yetki ekranında yalnız dört operasyon iznini açıp kapatır: durum ilerletme, sipariş düzenleme, sipariş yönetimi, doktorları görme. Ücretlendirme bölümü ve finans/fiyat izinleri yoktur.</li>
+                <li>Giriş e-postasını değiştiremez; Yönetici, İşveren, Resepsiyon, Satış ve başka bir Lider'e dokunamaz.</li>
+                <li>Doktor onayı, ekip hakediş grafiği ve maaş hesaplayıcı görünmez.</li>
+              </ul>
+              <p class="mt-2.5"><b class="text-card-foreground">Bildirimler:</b> yeni sipariş, elle açılan iş, odaya yönlendirilmeyi bekleyen iş ve teknisyen izin talepleri ona da gelir. Tahsilat, ödeme ve stok bildirimleri yalnız yöneticiye gider.</p>
+              <p class="mt-2.5"><b class="text-card-foreground">Kapalı sayfalar:</b> Finans, Ciro, Fiyat Listesi ve Aday Havuzu açılmaz. Kendi hakedişini (kendi ücretini) görmeye devam eder, başkasınınkini görmez.</p>
+              <p class="mt-2.5"><b class="text-card-foreground">Nasıl atanır?</b> Yönetici: Ekip → kişi → Pozisyon → "Lider Teknisyen" → Kaydet. Lider'in izinleri sabittir, anahtar gösterilmez. Zirkonik'in her paketinde kullanılır.</p>
+            </div>
+          </details>
+
           <details class="rounded-theme border border-border bg-card" ontoggle="zkNudgeScroll(this)">
             <summary class="flex items-center gap-3 px-4 py-3.5">
               <iconify-icon icon="lucide:circle-help" class="shrink-0 text-lg text-primary"></iconify-icon>
@@ -433,6 +475,7 @@
               <p class="mt-2.5"><b class="text-card-foreground">Şifre nasıl değişir?</b><br>Ayarlar → Şifre. Personel ve doktorun şifresini siz de sıfırlarsınız.</p>
               <p class="mt-2.5"><b class="text-card-foreground">Personel finansı görmüyor.</b><br>Ekip → kişi → "Finans yetkisi" anahtarı (resepsiyon pozisyonunda kapalıdır).</p>
               <p class="mt-2.5"><b class="text-card-foreground">Personel fiyatı görmüyor.</b><br>Ekip → kişi → "Fiyatları görebilir" anahtarı. Yalnız görebildiği işlerin fiyatı açılır.</p>
+              <p class="mt-2.5"><b class="text-card-foreground">Lider Teknisyen finansı görmüyor.</b><br>Doğru, böyle tasarlandı: Lider yalnız süreci yönetir, para ekranları ona hiçbir zaman açılmaz. İş iptali ve yeniden açma da yöneticidedir.</p>
               <p class="mt-2.5"><b class="text-card-foreground">Verimi başkası görür mü?</b><br>Hayır. Her laboratuvar ayrı hesaptır.</p>
             </div>
           </details>
@@ -587,9 +630,14 @@
   <script src="js/zk-yenile.js"></script>
   <script src="js/zk-surum.js"></script>
   <script>
-    // Kurulum durumu: hangi adımların tamamlandığını canlı veriden gösterir.
-    ZirkonikAuth.requireAuth().then(function (session) {
-      if (!session) return;
+    // 7 Kasım 2026: kılavuz üye olmayana da açık. Geri: geçmiş varsa geri; yoksa üye ise Ayarlar, değilse giriş.
+    function zkKilavuzGeri() {
+      if (history.length > 1) { history.back(); return; }
+      ZirkonikAuth.getSession().then(function (s) { location.href = s ? 'profil.html' : 'giris.html'; }, function () { location.href = 'giris.html'; });
+    }
+    // Kurulum durumu: hangi adımların tamamlandığını canlı veriden gösterir (yalnız oturumu olana; üye olmayan ziyaretçide kart gizli).
+    ZirkonikAuth.getSession().then(function (session) {
+      if (!session) { document.getElementById('kv-kurulum-karti').style.display = 'none'; return; }
       var client = ZirkonikAuth.client();
       return Promise.all([
         client.from('laboratories').select('id', { count: 'exact', head: true }),

@@ -129,10 +129,11 @@
               <select id="pi-position" onchange="zkPozisyonDegisti()" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
                 <option value="Teknisyen">Teknisyen</option>
                 <option value="Tasarımcı Teknisyen">Tasarımcı Teknisyen</option>
-                <option value="Resepsiyon Sorumlusu">Resepsiyon Sorumlusu</option>
-                <option value="Satış Pazarlama Sorumlusu" data-zk-crm>Satış Pazarlama Sorumlusu</option>
-                <option value="Yönetici">Yönetici (tam yetki)</option>
-                <option value="İşveren">İşveren (tam yetki)</option>
+                <option value="Lider Teknisyen" data-yalniz-yonetici="1">Lider Teknisyen (operasyon yöneticisi, para yok)</option>
+                <option value="Resepsiyon Sorumlusu" data-yalniz-yonetici="1">Resepsiyon Sorumlusu</option>
+                <option value="Satış Pazarlama Sorumlusu" data-zk-crm data-yalniz-yonetici="1">Satış Pazarlama Sorumlusu</option>
+                <option value="Yönetici" data-yalniz-yonetici="1">Yönetici (tam yetki)</option>
+                <option value="İşveren" data-yalniz-yonetici="1">İşveren (tam yetki)</option>
               </select>
               <span id="pi-position-note" class="mt-1 block text-[11px] font-semibold leading-4 text-card-foreground"></span>
               <span class="mt-1 block text-[11px] text-muted-foreground">Yönetici/İşveren her şeyi görür. Diğer pozisyonlar aşağıdaki yetki anahtarlarına ve oda kapsamına tabidir; pozisyonda etkisiz anahtarlar gri görünür.</span>
@@ -354,7 +355,9 @@
     // Pozisyon şablonları: "varsayilan" şablon uygulanınca açılır; "izinli" bu
     // pozisyonda anlamlı anahtarlar (js/zk-guard-core.js sayfa kapılarıyla tutarlı:
     // Resepsiyon Finans/Doktor Havuzu'na, Satış-Pazarlama Doktor Havuzu dışına giremez).
+    var LIDER_OPS_IZIN = ['can_change_job_status', 'can_edit_room_orders', 'can_manage_orders', 'can_view_doctors'];
     var POS_KURAL = {
+      'Lider Teknisyen': { varsayilan: LIDER_OPS_IZIN, izinli: LIDER_OPS_IZIN },
       'Teknisyen': { varsayilan: ['can_change_job_status'], izinli: ['can_change_job_status', 'can_edit_room_orders', 'can_manage_orders', 'can_view_doctors', 'can_view_prices', 'can_view_finance', 'can_manage_prospects'] },
       'Tasarımcı Teknisyen': { varsayilan: ['can_change_job_status'], izinli: ['can_change_job_status', 'can_edit_room_orders', 'can_manage_orders', 'can_view_doctors', 'can_view_prices', 'can_view_finance', 'can_manage_prospects'] },
       'Resepsiyon Sorumlusu': { varsayilan: ['can_manage_orders', 'can_view_doctors'], izinli: ['can_change_job_status', 'can_edit_room_orders', 'can_manage_orders', 'can_view_doctors', 'can_view_prices'] },
@@ -369,13 +372,20 @@
       return !kural || kural.izinli.indexOf(key) >= 0;
     }
     // Pozisyon değişince etkisiz anahtarlar kapanır ve liste yeniden çizilir.
-    var ZK_POZ_ACIKLAMA = {"Teknisyen": "Yetkili olduğu odalardaki işleri görür ve durumunu ilerletir. Fiyat ve finans görmez (yönetici yetki vermedikçe).", "Tasarımcı Teknisyen": "Teknisyen gibi çalışır; yalnız kendisi tasarımcı seçilmiş işleri ve siparişleri, ve yalnız kendisine yetki verilen odalarda görür.", "Resepsiyon Sorumlusu": "Siparişleri ve doktor işlerini yönetir (sipariş onayı, doktor kayıtları). Finans ve Doktor Havuzu ekranlarına giremez.", "Satış Pazarlama Sorumlusu": "Yalnız Doktor Havuzu'nu (aday doktorlar) kullanır; işleri ve finansı görmez. Yalnız Plus ve Tek paketinde bulunur.", "Yönetici": "Her şeyi görür ve yönetir (tam yetki).", "İşveren": "Her şeyi görür ve yönetir (tam yetki)."};
+    var ZK_POZ_ACIKLAMA = {"Lider Teknisyen": "Üretim sürecini ve teknisyenleri yönetir: tüm odalar ve işler, rota, ekip, izin onayı. Para (fiyat, fatura, tahsilat, maaş, hakediş) hiç görünmez; iptal ve yeniden açma yönetici'de kalır. İzinleri sabittir, aşağıda anahtar yoktur.", "Teknisyen": "Yetkili olduğu odalardaki işleri görür ve durumunu ilerletir. Fiyat ve finans görmez (yönetici yetki vermedikçe).", "Tasarımcı Teknisyen": "Teknisyen gibi çalışır; yalnız kendisi tasarımcı seçilmiş işleri ve siparişleri, ve yalnız kendisine yetki verilen odalarda görür.", "Resepsiyon Sorumlusu": "Siparişleri ve doktor işlerini yönetir (sipariş onayı, doktor kayıtları). Finans ve Doktor Havuzu ekranlarına giremez.", "Satış Pazarlama Sorumlusu": "Yalnız Doktor Havuzu'nu (aday doktorlar) kullanır; işleri ve finansı görmez. Yalnız Plus ve Tek paketinde bulunur.", "Yönetici": "Her şeyi görür ve yönetir (tam yetki).", "İşveren": "Her şeyi görür ve yönetir (tam yetki)."};
     function zkPozisyonNotu() {
       var v = zkSeciliPozisyon();
       document.getElementById('pi-position-note').textContent = ZK_POZ_ACIKLAMA[v] || 'Kendi yazdığınız pozisyon Teknisyen gibi başlar; ne göreceğini kişinin yetki ekranından siz seçersiniz.';
     }
+    // Lider'in izinleri sunucuda SABİT (operasyon açık, para kapalı): izin anahtarları ve oda/lab seçimi gösterilmez.
+    function zkLiderBolumleri() {
+      var lid = zkSeciliPozisyon() === 'Lider Teknisyen';
+      var ps = document.getElementById('permissions-section'); if (ps) ps.style.display = lid ? 'none' : '';
+      var ac = document.getElementById('access-section'); if (ac) ac.style.opacity = lid ? '.5' : '';
+    }
     function zkPozisyonDegisti() {
       zkPozisyonNotu();
+      zkLiderBolumleri();
       PERMS.forEach(function (p) { if (!zkIzinliMi(p.key)) currentPerms[p.key] = false; });
       renderPermissions();
     }
@@ -395,6 +405,15 @@
       if (!session) return;
       ZirkonikAuth.me().then(function (me) {
         viewerMe = me;
+        // 7 Kasım 2026: görüntüleyen Lider Teknisyen ise yalnız operasyon izinleri, yalnız iki teknisyen pozisyonu, ücret bölümü YOK (sunucu da zorlar).
+        window.zkLiderBakis = !!(me && me.role === 'personel' && me.position === 'Lider Teknisyen');
+        if (window.zkLiderBakis) {
+          PERMS = PERMS.filter(function (x) { return LIDER_OPS_IZIN.indexOf(x.key) >= 0; });
+          Array.prototype.slice.call(document.querySelectorAll('#pi-position option[data-yalniz-yonetici]')).forEach(function (o) { o.remove(); });
+          ['pi-comp-type'].forEach(function (id) { var l = document.getElementById(id); if (l && l.closest('label')) l.closest('label').style.display = 'none'; });
+          ['pi-comp-rate-wrap', 'pi-comp-salary-wrap'].forEach(function (id) { var e = document.getElementById(id); if (e) e.style.display = 'none'; });
+          window.zkUcretOkunamadi = true; // ücret bilgisi Lider'e kapalı: ne okunur ne yazılır
+        }
         if (!userId) userId = me.id;
         loadUser();
       });
@@ -411,6 +430,10 @@
           return;
         }
         var u = r.data;
+        if (window.zkLiderBakis && (u.id === viewerMe.id || u.role !== 'personel' || ['Teknisyen', 'Tasarımcı Teknisyen'].indexOf(u.position) < 0)) {
+          document.querySelector('main').innerHTML = '<p class="p-5 text-sm text-destructive">Bu kişinin yetkilerini yalnız yönetici düzenleyebilir.</p>';
+          return;
+        }
         document.getElementById('user-name').textContent = u.full_name;
         document.getElementById('user-role-badge').textContent = u.role === 'yonetici' ? 'Yönetici' : (u.role === 'personel' ? 'Personel' : 'Doktor');
 
@@ -431,13 +454,14 @@
             });
           }
           zkPozisyonNotu();
+          zkLiderBolumleri();
           document.getElementById('pi-phone').value = u.phone || '';
           document.getElementById('pi-hire').value = u.hire_date || '';
           document.getElementById('pi-birth').value = u.birth_date || '';
           document.getElementById('pi-email').value = u.email || '';
           // Ücret bilgisi ayrı tabloda (30 Ekim 2026): yalnız yönetici/işveren okur ve yazar.
           window.zkKullaniciKurulusId = u.organization_id;
-          Promise.resolve(ZirkonikAuth.client().from('user_compensation').select('*').eq('user_id', userId).maybeSingle()).then(function (cr) {
+          Promise.resolve(window.zkLiderBakis ? { data: null } : ZirkonikAuth.client().from('user_compensation').select('*').eq('user_id', userId).maybeSingle()).then(function (cr) {
             if (cr && cr.error) window.zkUcretOkunamadi = true; // okunamadıysa boş form kayıtlı ücreti silmesin (kaydetmede atlanır)
             var c = (cr && cr.data) || {};
             document.getElementById('pi-comp-type').value = c.compensation_type || '';
@@ -454,7 +478,7 @@
           // aslında BAŞKA bir çalışanın özetini de görebilirdi. Bu ekranın
           // istenen kapsamı "çalışanın kendisi + işveren" olduğu için burada
           // görüntüleyeni de kısıtlıyoruz.
-          var viewerCanSeeStats = viewerMe && (viewerMe.role === 'yonetici' || viewerMe.id === u.id);
+          var viewerCanSeeStats = viewerMe && (viewerMe.role === 'yonetici' || window.zkLiderBakis || viewerMe.id === u.id);
           if (viewerCanSeeStats) {
             document.getElementById('work-stats-section').classList.remove('hidden');
             ZirkonikData.getStaffJobStats(u.id).then(function (statRes) {
@@ -648,7 +672,7 @@
       // yönetici/işveren zaten tüm laboratuvarları görür. Liste yüklenmediyse boş kayıt mevcut erişimi silerdi.
       var erisimGorunur = !document.getElementById('access-section').classList.contains('hidden');
       var yeniPoz = infoVisible ? document.getElementById('pi-position').value : '';
-      if (erisimGorunur && yeniPoz !== 'Yönetici' && yeniPoz !== 'İşveren' && !document.querySelector('.acc-lab-cb:checked')) {
+      if (erisimGorunur && yeniPoz !== 'Yönetici' && yeniPoz !== 'İşveren' && yeniPoz !== 'Lider Teknisyen' && !document.querySelector('.acc-lab-cb:checked')) {
         errEl.textContent = document.querySelector('.acc-lab-cb') ? 'Personel için en az bir laboratuvar seçin.'
           : (/Henüz laboratuvar yok/.test(document.getElementById('access-labs').textContent) ? 'Önce Laboratuvarlar sekmesinden bir laboratuvar ekleyin.' : 'Laboratuvar listesi henüz yüklenmedi, birkaç saniye sonra tekrar deneyin.');
         errEl.classList.remove('hidden');

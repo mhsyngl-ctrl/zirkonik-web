@@ -41,7 +41,7 @@
 // hiç dönmezse tam ekran "İnternet yok" uyarısı + Tekrar Dene gösterir.
 (function () {
   var page = (location.pathname.split('/').pop() || 'index.html').toLowerCase().replace('.html', '') || 'index';
-  var PUBLIC = { giris: 1, 'sifre-sifirla': 1, index: 1, 'hesap-kilitli': 1, onay: 1 };
+  var PUBLIC = { giris: 1, 'sifre-sifirla': 1, index: 1, 'hesap-kilitli': 1, onay: 1, kilavuz: 1 };
   if (PUBLIC[page] || !window.ZirkonikAuth || !window.ZirkonikAuth.getSession) return;
 
   var settled = false;
@@ -87,7 +87,7 @@
 })();
 
 (function () {
-  var PUBLIC = { giris: 1, 'sifre-sifirla': 1, index: 1, 'hesap-kilitli': 1, onay: 1 };
+  var PUBLIC = { giris: 1, 'sifre-sifirla': 1, index: 1, 'hesap-kilitli': 1, onay: 1, kilavuz: 1 };
   var page = (location.pathname.split('/').pop() || 'index.html').toLowerCase().replace('.html', '') || 'index';
   if (PUBLIC[page] || !window.ZirkonikAuth || !window.ZirkonikAuth.me) return;
   // 4 Kasım 2026: KVKK onay kapısı perdesi. Bu cihazda onay henüz doğrulanmadıysa içerik, kontrol bitene kadar görünmez

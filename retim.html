@@ -660,9 +660,14 @@
       loadAcceptAlerts();
       ZirkonikAuth.me().then(function (me) {
         zkIsAdmin = !!(me && me.role === 'yonetici');
-        if (zkIsAdmin) {
+        // 7 Kasım 2026: Lider Teknisyen izin kuyruğunu (yalnız teknisyen talepleri; sunucu süzer) görür; İş/Ciro performansı PARA içerir, yalnız yönetici.
+        zkLider = !!(me && me.role === 'personel' && me.position === 'Lider Teknisyen');
+        zkMeId = me && me.id;
+        if (zkIsAdmin || zkLider) {
           document.getElementById('leave-admin-section').classList.remove('hidden');
           loadLeaveQueue();
+        }
+        if (zkIsAdmin) {
           document.getElementById('job-performance-section').classList.remove('hidden');
           loadJobPerformance();
           document.getElementById('pazarlama-ozeti-section').classList.remove('hidden');
@@ -1081,12 +1086,13 @@
       loadDashboard();
       zkLoadNotifBadge();
       loadAcceptAlerts();
-      if (zkIsAdmin) loadLeaveQueue();
+      if (zkIsAdmin || zkLider) loadLeaveQueue();
       setTimeout(function () { icon.classList.remove('animate-spin'); }, 700);
     }
 
     // ---- İzin talepleri onay kuyruğu (yalnız yönetici/işveren) ----
     var zkIsAdmin = false;
+    var zkLider = false, zkMeId = null;
     var LEAVE_TYPE_NAMES = { yillik: 'Yıllık izin', mazeret: 'Mazeret izni', raporlu: 'Raporlu (sağlık)', ucretsiz: 'Ücretsiz izin' };
 
     function loadLeaveQueue() {
@@ -1094,6 +1100,8 @@
         var el = document.getElementById('leave-queue');
         if (!el || r.error) return;
         var list = r.data || [];
+        // Lider kendi talebini onaylayamaz (sunucu da reddeder): kuyruğunda yalnız teknisyen talepleri görünür.
+        if (zkLider) list = list.filter(function (l) { return l.user_id !== zkMeId; });
         if (!list.length) {
           el.innerHTML = '<p class="text-xs text-muted-foreground">Bekleyen izin talebi yok.</p>';
           return;
@@ -1272,7 +1280,7 @@
         // 25 Eylül 2026: job_items artık ODA bazlı görünür (yalnız yetkili
         // olunan oda) — yönetici zaten tüm odaları görür, personel için bir
         // önceki odadan gelmekte olan işin YALNIZ numarasını bu RPC verir.
-        zkIsAdmin ? Promise.resolve({ data: [] }) : ZirkonikData.gelenIsNumaralari(lab.id)
+        (zkIsAdmin || zkLider) ? Promise.resolve({ data: [] }) : ZirkonikData.gelenIsNumaralari(lab.id)
       ]).then(function (results) {
         var rooms = results[0].data || [];
         hiveIncomingNumbers = {};

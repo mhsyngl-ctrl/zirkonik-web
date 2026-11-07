@@ -117,7 +117,7 @@
       });
     }
     ZirkonikAuth.me().then(function(me){
-      if(!me||me.role!=='yonetici'){location.replace('retim.html');return;}
+      if(!me||(me.role!=='yonetici'&&!(me.role==='personel'&&me.position==='Lider Teknisyen'))){location.replace('retim.html');return;} // 7 Kasım 2026: Lider de görür (rapor para içermez)
       document.querySelectorAll('#pi-donem button').forEach(function(b){b.onclick=function(){yukle(+b.getAttribute('data-g'));};});
       yukle(90);
     });

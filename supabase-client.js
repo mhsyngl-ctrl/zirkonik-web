@@ -728,6 +728,10 @@
     listWorkTypes: function () {
       return client().rpc('zk_calisma_turleri_listele');
     },
+    // 7 Kasım 2026: hizmet türünün üretim rotasını (oda sırası) FİYAT görmeden kaydeder — yönetici ve Lider Teknisyen (zk_rota_kaydet).
+    saveRoute: function (itemId, roomIds) {
+      return client().rpc('zk_rota_kaydet', { p_item: itemId, p_rota: roomIds && roomIds.length ? roomIds : [] });
+    },
     // Tek kalemli işlerde diş/çalışma türü/adet düzeltir — fiyata dokunmaz.
     // Birden fazla kalemli işlerde sunucu reddeder (yalnız yönetici düzenler).
     fixJobItem: function (jobId, teeth, priceItemId, unitCount) {
@@ -1894,6 +1898,8 @@
   };
 
   window.ZirkonikAuth = Auth;
+  // 7 Kasım 2026: Lider Teknisyen = operasyon yöneticisi, parayla işi yok (role 'personel' + position 'Lider Teknisyen'). Sunucu kapıları zk_lider_mi / zk_ops_admin.
+  window.zkLiderMi = function (me) { return !!me && me.role === 'personel' && me.position === 'Lider Teknisyen'; };
   window.ZirkonikData = Data;
 
   // ---- Para birimi ----
