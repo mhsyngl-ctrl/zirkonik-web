@@ -1932,16 +1932,19 @@
   window.zkMuhasebeciMi = function (me) { return !!me && me.role === 'personel' && me.position === 'Muhasebeci'; };
   // 7 Kasım 2026 (Murat): izin talebi ve yıllık izin hakkı hesabı Türkiye'ye özgüdür (İş Kanunu md.53; başka ülkelerin kuralını bilmiyoruz).
   // Yalnız bölge ayarı (organizations.country) Türkiye olan laboratuvarda açık; ülke boşsa (eski kuruluşlar) Türkiye sayılır. Veri silinmez, yalnız ekranlar gizlenir.
-  // 8 Kasım 2026: kullanıcının seçtiği arayüz dilini sunucuya yazar (zk_dil_kaydet) — telefona düşen bildirimler (send-push) o dilde gider. Yalnız kullanıcı dil SEÇMİŞSE (localStorage zk_dil) ve bu hesap için eşitlenmemişse çalışır.
+  // 8 Kasım 2026: arayüz dilini sunucuya yazar (zk_dil_kaydet) — telefona düşen bildirimler (send-push) o dilde gider. Dil, kullanıcının seçimidir (localStorage zk_dil); seçim yoksa telefonun dilidir (ZkDil.dil).
+  // Bu hesap için aynı dil zaten yazılmışsa çalışmaz. Seçim yok + Türkçe telefon + daha önce hiç yazılmamışsa da yazmaz: sunucunun varsayılanı zaten Türkçedir.
   window.zkDilEsle = function () {
     return new Promise(function (ok) {
       try {
-        var d = window.localStorage.getItem('zk_dil');
+        var sec = window.localStorage.getItem('zk_dil'), secili = sec === 'en' || sec === 'tr';
+        var d = secili ? sec : (window.ZkDil && window.ZkDil.dil);
         if (d !== 'en' && d !== 'tr') return ok();
         Auth.getSession().then(function (s) {
           if (!s || !s.user) return ok();
-          var imza = d + ':' + s.user.id;
-          if (window.localStorage.getItem('zk_dil_esit') === imza) return ok();
+          var imza = d + ':' + s.user.id, onceki = window.localStorage.getItem('zk_dil_esit');
+          if (onceki === imza) return ok();
+          if (!secili && d === 'tr' && !onceki) return ok();
           return client().rpc('zk_dil_kaydet', { p_lang: d }).then(function (r) { if (!r.error) { try { window.localStorage.setItem('zk_dil_esit', imza); } catch (e) {} } ok(); });
         }).catch(function () { ok(); });
       } catch (e) { ok(); }
