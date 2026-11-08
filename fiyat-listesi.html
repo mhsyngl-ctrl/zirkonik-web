@@ -74,6 +74,13 @@
           </select>
         </label>
         <p id="pl-scope-hint" class="mt-2 hidden text-xs text-muted-foreground">Bu kapsamda girilen fiyat yalnız o doktor/lokasyon için geçerlidir; boş bırakılan kalemlerde genel liste fiyatı uygulanır. Alanı temizlemek özel fiyatı kaldırır.</p>
+        <!-- 8 Kasım 2026 (Murat): doktora özel kapsamda doktorun KDV oranı (doktor kartındaki alanla AYNI kayıt). 0 = faturasız; boş = laboratuvarın oranı. Yalnız yönetici + Muhasebeci yazar. -->
+        <div id="pl-kdv" class="mt-3 hidden rounded-theme border border-border bg-card p-3">
+          <label class="block"><span class="mb-1.5 block text-xs font-bold">KDV oranı (%)</span>
+            <input id="pl-kdv-input" type="text" inputmode="decimal" autocomplete="off" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-sm"></label>
+          <p class="mt-1 text-xs text-muted-foreground"><span>Laboratuvar oranı</span> <b id="pl-kdv-lab">%10</b></p>
+          <p class="mt-1 text-xs text-muted-foreground">0 yazarsanız bu doktorla faturasız çalışılır (KDV eklenmez). Boş bırakırsanız laboratuvarın oranı geçerli olur. Oran fatura kesilirken faturaya yazılır; eski faturalar değişmez.</p>
+        </div>
       </header>
 
       <main id="pl-main" class="px-5 pt-5"></main>
@@ -145,6 +152,7 @@
     var overrides = [];
     var scopeDoctorId = null;
     var scopeLabId = null;
+    var kdvLab = 10, kdvDuzenle = false, docRows = {};
 
     ZirkonikAuth.requireAuth().then(function (session) {
       if (!session) return;
@@ -156,6 +164,7 @@
         // is_org_admin istiyor. Finans yetkisi olan personele dugmeyi
         // gostermek sessiz basarisizlik olurdu.
         canDelete = me.role === 'yonetici';
+        kdvLab = ZkKdv.laboratuvar(me.organizations); kdvDuzenle = ZkKdv.paraYoneticisi(me);
 
         var client = ZirkonikAuth.client();
         var sel = document.getElementById('pl-scope');
@@ -165,6 +174,7 @@
           og.label = 'Doktora özel';
           r.data.forEach(function (d) {
             var o = document.createElement('option');
+            docRows[d.id] = d;
             o.value = 'doc:' + d.id; o.textContent = ZirkonikData.musteriAdi(d);
             og.appendChild(o);
           });
@@ -186,12 +196,35 @@
           scopeDoctorId = v.indexOf('doc:') === 0 ? v.slice(4) : null;
           scopeLabId = v.indexOf('lab:') === 0 ? v.slice(4) : null;
           document.getElementById('pl-scope-hint').classList.toggle('hidden', !v);
+          zkKdvGoster();
           loadList();
         });
+        document.getElementById('pl-kdv-input').addEventListener('change', zkKdvKaydet);
 
         loadList();
       });
     });
+
+    // KDV satırı: yalnız doktora özel kapsamda; yazma yalnız yönetici + Muhasebeci (kutu diğerlerinde salt okunur); sunucu zk_doktor_fatura_ayari da böyle kilitli.
+    function zkKdvGoster() {
+      var kutu = document.getElementById('pl-kdv'), inp = document.getElementById('pl-kdv-input'), d = scopeDoctorId ? docRows[scopeDoctorId] : null;
+      if (!d) { kutu.classList.add('hidden'); return; }
+      document.getElementById('pl-kdv-lab').textContent = '%' + ZkKdv.metin(kdvLab);
+      inp.value = ZkKdv.ilk(d, kdvLab); inp.setAttribute('data-kayitli', inp.value); inp.disabled = !kdvDuzenle;
+      kutu.classList.remove('hidden');
+    }
+    function zkKdvKaydet() {
+      var inp = document.getElementById('pl-kdv-input');
+      if (!kdvDuzenle || !scopeDoctorId || inp.value === inp.getAttribute('data-kayitli')) return;
+      var k = ZkKdv.coz(inp.value, kdvLab), id = scopeDoctorId;
+      if (k.d === 'gecersiz') { zkToast(ZkKdv.hata); inp.value = inp.getAttribute('data-kayitli'); return; }
+      ZirkonikData.doctorFaturaAyari(id, k.d === 'deger' ? { oran: k.v } : { izle: true }, null).then(function (res) {
+        if (res.error) { zkToast('Kaydedilemedi: ' + res.error.message); inp.value = inp.getAttribute('data-kayitli'); return; }
+        docRows[id].vat_rate = k.d === 'deger' ? k.v : null;
+        if (id === scopeDoctorId) { inp.value = ZkKdv.ilk(docRows[id], kdvLab); inp.setAttribute('data-kayitli', inp.value); }
+        zkToast('KDV oranı kaydedildi.');
+      });
+    }
 
     function scopeOverrideFor(itemId) {
       return overrides.find(function (o) {

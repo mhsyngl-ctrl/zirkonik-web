@@ -2424,7 +2424,18 @@ window.ZK_DIL_EN = {
 "Geçersiz dil":"Invalid language",
 "Diğer ülke (şehir ve ilçeyi elle yazın)":"Other country (type the city and district)",
 "Şehir / il":"City / province",
-"İlçe / bölge":"District / area"
+"İlçe / bölge":"District / area",
+"KDV oranı (%)":"VAT rate (%)",
+"KDV oranı":"VAT rate",
+"Laboratuvar oranı":"Laboratory rate",
+"Oran 0 ise doktorla faturasız çalışılır: alacak ve tahsilat kaydı tutulmaya devam eder, yalnızca kayıtlar \"fatura\" yerine \"borç kaydı\" olarak adlandırılır. 0'dan büyük bir oran faturalı çalışmadır; KDV, fatura kesilirken faturaya yazılır ve eski faturalar değişmez. Boş bırakırsanız laboratuvarın oranı geçerli olur.":"If the rate is 0, you work with this doctor without invoices: receivable and payment records are still kept, but records are called \"debt records\" instead of \"invoices\". A rate above 0 means working with invoices; VAT is written to the invoice when it is issued and existing invoices do not change. If you leave it empty, the laboratory rate applies.",
+"0 yazarsanız bu doktorla faturasız çalışılır (KDV eklenmez). Boş bırakırsanız laboratuvarın oranı geçerli olur. Oran fatura kesilirken faturaya yazılır; eski faturalar değişmez.":"If you enter 0, you work with this doctor without invoices (no VAT is added). If you leave it empty, the laboratory rate applies. The rate is written to the invoice when it is issued; existing invoices do not change.",
+"Faturalı çalışılan doktorların yeni faturalarına eklenir; her doktor için doktor kartından ayrıca ayarlanabilir. Oran 0 ise KDV eklenmez. Boş bırakırsanız ülkenin varsayılanı kullanılır (Türkiye %10). Eski faturalar değişmez.":"Added to the new invoices of doctors you work with on an invoiced basis; it can also be set per doctor on the doctor card. If the rate is 0, no VAT is added. If you leave it empty, the country default is used (Türkiye 10%). Existing invoices do not change.",
+"KDV oranı 0 ile 100 arasında bir sayı olmalı.":"The VAT rate must be a number between 0 and 100.",
+"KDV oranı kaydedildi.":"VAT rate saved.",
+". KDV oranını siz yazarsınız: laboratuvarın oranı Profil'deki KDV oranı bölümünde (varsayılan %10), doktora özel oran doktor kartında ya da Fiyat listesinde doktora özel kapsamda. Oran 0'dan büyükse fatura kesilirken KDV fiyatın":". You enter the VAT rate yourself: the laboratory rate in the VAT rate section of Profile (default 10%), and a doctor-specific rate on the doctor card or in the doctor-specific scope of the Price list. If the rate is above 0, VAT is added",
+"eklenir; oranı 0 olan doktorda KDV yoktur (faturasız).":"the price when the invoice is issued; for a doctor whose rate is 0 there is no VAT (no invoices).",
+"KDV, fatura oluşurken sunucuda hesaplanır; eski faturalar değişmez. Doktorun KDV oranı (0 yazılırsa faturasız) doktor kartından ve Fiyat listesinde doktora özel kapsamda ayarlanır.":"VAT is calculated on the server when the invoice is created; old invoices do not change. The doctor's VAT rate (a doctor set to 0 is treated as non-invoiced) is set on the doctor card and in the doctor-specific scope of the Price list."
 },
 "p":[
 [

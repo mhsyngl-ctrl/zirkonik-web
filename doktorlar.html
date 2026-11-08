@@ -263,13 +263,11 @@
         <select id="nd-lab" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
           <option value="">Sorumlu laboratuvar (opsiyonel)</option>
         </select>
-        <label class="block">
-          <span class="mb-1.5 block text-xs font-bold">Çalışma şekli</span>
-          <select id="nd-billing" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
-            <option value="faturali">Faturalı çalışılıyor</option>
-            <option value="faturasiz">Faturasız çalışılıyor</option>
-          </select>
-          <span class="mt-1 block text-xs text-muted-foreground">Faturasız seçilse de alacak ve tahsilat kaydı tutulmaya devam eder; yalnızca kayıtlar "fatura" yerine "borç kaydı" olarak adlandırılır.</span>
+        <label class="zk-kdv-blok block">
+          <span class="mb-1.5 block text-xs font-bold">KDV oranı (%)</span>
+          <input id="nd-kdv" type="text" inputmode="decimal" autocomplete="off" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+          <span class="mt-1 block text-xs text-muted-foreground"><span>Laboratuvar oranı</span> <b class="zk-kdv-lab">%10</b></span>
+          <span class="mt-1 block text-xs text-muted-foreground">Oran 0 ise doktorla faturasız çalışılır: alacak ve tahsilat kaydı tutulmaya devam eder, yalnızca kayıtlar "fatura" yerine "borç kaydı" olarak adlandırılır. 0'dan büyük bir oran faturalı çalışmadır; KDV, fatura kesilirken faturaya yazılır ve eski faturalar değişmez. Boş bırakırsanız laboratuvarın oranı geçerli olur.</span>
         </label>
       </div>
       <p id="nd-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
@@ -286,13 +284,11 @@
         <button onclick="zkCloseFaturaAyari()" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-theme bg-muted text-muted-foreground" aria-label="Kapat">✕</button>
       </div>
       <div class="mt-4 space-y-3">
-        <label class="block">
-          <span class="mb-1.5 block text-xs font-bold">Çalışma şekli</span>
-          <select id="fa-billing" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
-            <option value="faturali">Faturalı çalışılıyor</option>
-            <option value="faturasiz">Faturasız çalışılıyor</option>
-          </select>
-          <span class="mt-1 block text-xs text-muted-foreground">Faturasız seçilse de alacak ve tahsilat kaydı tutulmaya devam eder; yalnızca kayıtlar "fatura" yerine "borç kaydı" olarak adlandırılır.</span>
+        <label class="zk-kdv-blok block">
+          <span class="mb-1.5 block text-xs font-bold">KDV oranı (%)</span>
+          <input id="fa-kdv" type="text" inputmode="decimal" autocomplete="off" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+          <span class="mt-1 block text-xs text-muted-foreground"><span>Laboratuvar oranı</span> <b class="zk-kdv-lab">%10</b></span>
+          <span class="mt-1 block text-xs text-muted-foreground">Oran 0 ise doktorla faturasız çalışılır: alacak ve tahsilat kaydı tutulmaya devam eder, yalnızca kayıtlar "fatura" yerine "borç kaydı" olarak adlandırılır. 0'dan büyük bir oran faturalı çalışmadır; KDV, fatura kesilirken faturaya yazılır ve eski faturalar değişmez. Boş bırakırsanız laboratuvarın oranı geçerli olur.</span>
         </label>
         <label class="block">
           <span class="mb-1.5 block text-xs font-bold">Ödeme vadesi (gün)</span>
@@ -323,13 +319,11 @@
         <input id="ed-clinic" type="text" placeholder="Klinik adı" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         <input id="ed-phone" type="tel" placeholder="Telefon" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         <input id="ed-email" type="email" placeholder="E-posta" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
-        <label class="block">
-          <span class="mb-1.5 block text-xs font-bold">Çalışma şekli</span>
-          <select id="ed-billing" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
-            <option value="faturali">Faturalı çalışılıyor</option>
-            <option value="faturasiz">Faturasız çalışılıyor</option>
-          </select>
-          <span class="mt-1 block text-xs text-muted-foreground">Faturasız seçilse de alacak ve tahsilat kaydı tutulmaya devam eder; yalnızca kayıtlar "fatura" yerine "borç kaydı" olarak adlandırılır.</span>
+        <label class="zk-kdv-blok block">
+          <span class="mb-1.5 block text-xs font-bold">KDV oranı (%)</span>
+          <input id="ed-kdv" type="text" inputmode="decimal" autocomplete="off" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
+          <span class="mt-1 block text-xs text-muted-foreground"><span>Laboratuvar oranı</span> <b class="zk-kdv-lab">%10</b></span>
+          <span class="mt-1 block text-xs text-muted-foreground">Oran 0 ise doktorla faturasız çalışılır: alacak ve tahsilat kaydı tutulmaya devam eder, yalnızca kayıtlar "fatura" yerine "borç kaydı" olarak adlandırılır. 0'dan büyük bir oran faturalı çalışmadır; KDV, fatura kesilirken faturaya yazılır ve eski faturalar değişmez. Boş bırakırsanız laboratuvarın oranı geçerli olur.</span>
         </label>
       </div>
 
@@ -780,7 +774,7 @@
       if (!d) return;
       faturaAyarId = id;
       document.getElementById('fa-ad').textContent = ZirkonikData.musteriAdi(d);
-      document.getElementById('fa-billing').value = d.billing_mode || 'faturali';
+      document.getElementById('fa-kdv').value = ZkKdv.ilk(d, kdvLab);
       document.getElementById('fa-vade').value = d.payment_terms_days != null ? d.payment_terms_days : '';
       document.getElementById('fa-error').classList.add('hidden');
       document.getElementById('fatura-ayar-sheet').classList.remove('hidden');
@@ -791,8 +785,10 @@
       errEl.classList.add('hidden');
       var vade = document.getElementById('fa-vade').value.trim();
       if (vade !== '' && (!/^\d+$/.test(vade) || Number(vade) > 365)) { errEl.textContent = 'Ödeme vadesi 0 ile 365 gün arasında bir sayı olmalı.'; errEl.classList.remove('hidden'); return; }
+      var kdv = ZkKdv.coz(document.getElementById('fa-kdv').value, kdvLab);
+      if (kdv.d === 'gecersiz') { errEl.textContent = ZkKdv.hata; errEl.classList.remove('hidden'); return; }
       var bitir = (window.ZKHiz && ZKHiz.mesgul) ? ZKHiz.mesgul(btn, 'Kaydediliyor…') : function () {};
-      ZirkonikData.doctorFaturaAyari(faturaAyarId, document.getElementById('fa-billing').value, vade).then(function (res) {
+      ZirkonikData.doctorFaturaAyari(faturaAyarId, kdv.d === 'deger' ? { oran: kdv.v } : { izle: true }, vade).then(function (res) {
         bitir();
         if (res.error) { errEl.textContent = 'Kaydedilemedi: ' + res.error.message; errEl.classList.remove('hidden'); return; }
         zkCloseFaturaAyari();
@@ -835,7 +831,7 @@
       document.getElementById('ed-clinic').value = d.clinic_name || '';
       document.getElementById('ed-phone').value = d.phone || '';
       document.getElementById('ed-email').value = d.email || '';
-      document.getElementById('ed-billing').value = d.billing_mode || 'faturali';
+      document.getElementById('ed-kdv').value = ZkKdv.ilk(d, kdvLab);
       if (!edRegions.length) loadEdRegions();
       document.getElementById('ed-region').value = d.region_id || '';
       document.getElementById('ed-assistant-name').value = d.assistant_name || '';
@@ -867,12 +863,13 @@
       errEl.classList.add('hidden');
       var name = document.getElementById('ed-name').value.trim();
       if (!name) { errEl.textContent = 'Ad Soyad zorunludur.'; errEl.classList.remove('hidden'); return; }
-      ZirkonikData.updateDoctor(editDoctorId, {
+      var edKdv = ZkKdv.coz(document.getElementById('ed-kdv').value, kdvLab);
+      if (kdvDuzenle && edKdv.d === 'gecersiz') { errEl.textContent = ZkKdv.hata; errEl.classList.remove('hidden'); return; }
+      var edAlanlar = {
         full_name: name,
         clinic_name: document.getElementById('ed-clinic').value.trim() || null,
         phone: document.getElementById('ed-phone').value.trim() || null,
         email: document.getElementById('ed-email').value.trim() || null,
-        billing_mode: document.getElementById('ed-billing').value || 'faturali',
         region_id: document.getElementById('ed-region').value || null,
         assistant_name: document.getElementById('ed-assistant-name').value.trim() || null,
         assistant_phone: document.getElementById('ed-assistant-phone').value.trim() || null,
@@ -882,7 +879,9 @@
         has_intraoral_scanner: document.getElementById('ed-scanner').checked,
         scanner_brand: document.getElementById('ed-scanner-brand').value.trim() || null,
         priority_driver: document.getElementById('ed-priority-driver').value || null
-      }).then(function (res) {
+      };
+      if (kdvDuzenle) edAlanlar.vat_rate = edKdv.d === 'deger' ? edKdv.v : null;   // yalnız yönetici/Muhasebeci KDV yazar; boş = laboratuvarı izle (null)
+      ZirkonikData.updateDoctor(editDoctorId, edAlanlar).then(function (res) {
         if (res.error) { errEl.textContent = 'Kaydedilemedi: ' + res.error.message; errEl.classList.remove('hidden'); return; }
         zkCloseEditDoctor();
         zkToast('Doktor bilgileri güncellendi.');
@@ -918,7 +917,7 @@
       });
     }
 
-    function zkOpenAddDoctor() { document.getElementById('add-doctor-sheet').classList.remove('hidden'); }
+    function zkOpenAddDoctor() { document.getElementById('nd-kdv').value = ZkKdv.metin(kdvLab); document.getElementById('add-doctor-sheet').classList.remove('hidden'); }
     function zkCloseAddDoctor() { document.getElementById('add-doctor-sheet').classList.add('hidden'); }
 
     function zkSubmitAddDoctor() {
@@ -930,17 +929,20 @@
         errEl.classList.remove('hidden');
         return;
       }
+      var ndKdv = ZkKdv.coz(document.getElementById('nd-kdv').value, kdvLab);
+      if (kdvDuzenle && ndKdv.d === 'gecersiz') { errEl.textContent = ZkKdv.hata; errEl.classList.remove('hidden'); return; }
       ZirkonikAuth.me().then(function (me) {
         tekPaket = !!(me && me.organizations && me.organizations.plan === 'tek');
-        return ZirkonikData.createDoctor({
+        var yeniDoktor = {
           organization_id: me.organization_id,
           full_name: name,
           clinic_name: document.getElementById('nd-clinic').value.trim() || null,
           phone: document.getElementById('nd-phone').value.trim() || null,
           email: document.getElementById('nd-email').value.trim() || null,
-          primary_laboratory_id: document.getElementById('nd-lab').value || null,
-          billing_mode: document.getElementById('nd-billing').value || 'faturali'
-        });
+          primary_laboratory_id: document.getElementById('nd-lab').value || null
+        };
+        if (kdvDuzenle && ndKdv.d === 'deger') yeniDoktor.vat_rate = ndKdv.v;   // yalnız laboratuvardan farklıysa yazılır; boş = laboratuvarı izler
+        return ZirkonikData.createDoctor(yeniDoktor);
       }).then(function (res) {
         if (res.error) throw res.error;
         zkCloseAddDoctor();
@@ -959,6 +961,13 @@
     // Salt-görüntüleme: "Doktorları görme" izinli personel liste + iletişimi
     // görür; ekleme/onay/hesap/düzenleme/ekstre yalnız yönetici.
     var docReadOnly = false;
+    // KDV (8 Kasım 2026): laboratuvarın oranı + bu kişi KDV yazabilir mi (yalnız yönetici ve Muhasebeci; sunucu da kilitler)
+    var kdvLab = 10, kdvDuzenle = false;
+    function zkKdvKur(me) {
+      kdvLab = ZkKdv.laboratuvar(me && me.organizations); kdvDuzenle = ZkKdv.paraYoneticisi(me);
+      document.querySelectorAll('.zk-kdv-lab').forEach(function (e) { e.textContent = '%' + ZkKdv.metin(kdvLab); });
+      document.querySelectorAll('.zk-kdv-blok').forEach(function (e) { e.classList.toggle('hidden', !kdvDuzenle); });
+    }
 
     ZirkonikAuth.requireAuth().then(function (session) {
       if (!session) return;
@@ -966,6 +975,7 @@
         tekPaket = !!(me && me.organizations && me.organizations.plan === 'tek');
         docReadOnly = !me || me.role !== 'yonetici';
         zkMuhViewer = !!(window.zkMuhasebeciMi && window.zkMuhasebeciMi(me));
+        zkKdvKur(me);
         if (docReadOnly) {
           var addBtn = document.querySelector('[onclick="zkOpenAddDoctor()"]');
           if (addBtn) addBtn.style.display = 'none';

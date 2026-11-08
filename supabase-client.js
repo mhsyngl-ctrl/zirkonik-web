@@ -1768,8 +1768,15 @@
       return client().rpc('zk_personel_odeme_ekle', { p_id: paymentId, p_statement: statementId, p_tutar: tutar, p_tarih: tarih, p_yontem: yontem || null, p_not: not || null });
     },
     payCancelPayment: function (paymentId) { return client().rpc('zk_personel_odeme_iptal', { p_id: paymentId }); },
-    // 8 Kasım 2026: doktorun fatura ayarı (çalışma şekli + ödeme vadesi günü) — yönetici + Muhasebeci; yalnız bu iki sütun (SQL 20261108100000).
-    doctorFaturaAyari: function (doctorId, billingMode, vadeGunu) { return client().rpc('zk_doktor_fatura_ayari', { p_doctor: doctorId, p_billing_mode: billingMode || null, p_payment_terms_days: (vadeGunu === '' || vadeGunu == null) ? null : Number(vadeGunu) }); },
+    // 8 Kasım 2026: doktorun fatura ayarı (KDV oranı + ödeme vadesi günü) — yalnız yönetici + Muhasebeci (SQL 20261108200000; eski çalışma şekli seçimi kalktı).
+    // kdv: { oran: 12.5 } → doktora özel oran (0 = faturasız) · { izle: true } → boş, laboratuvarın oranını izler · verilmezse oran değişmez (yalnız vade).
+    doctorFaturaAyari: function (doctorId, kdv, vadeGunu) {
+      var p = { p_doctor: doctorId, p_payment_terms_days: (vadeGunu === '' || vadeGunu == null) ? null : Number(vadeGunu) };
+      if (kdv && kdv.oran != null) p.p_vat_rate = kdv.oran; else if (kdv && kdv.izle) p.p_vat_temizle = true;
+      return client().rpc('zk_doktor_fatura_ayari', p);
+    },
+    // Laboratuvarın KDV oranı (yönetici + Muhasebeci; sunucu kilitler). null = ülkenin varsayılanı (TR %10, diğer %0).
+    kdvOraniAyarla: function (oran) { return client().rpc('zk_kdv_orani_ayarla', { p_oran: oran == null ? null : oran }); },
 
     listStaffEarnings: function (period) {
       var q = client().from('staff_earnings').select('*, app_users!staff_earnings_user_id_fkey(full_name)').order('period', { ascending: false });
@@ -1952,6 +1959,25 @@
   };
   setTimeout(function () { window.zkDilEsle(); }, 1500);
   window.zkIzinAcik = function (me) { var o = me && (me.organizations || me.organization); var c = o && o.country; return !c || String(c).toUpperCase() === 'TR'; };
+  // 8 Kasım 2026 (Murat): KDV oranı SERBEST — laboratuvar geneli (Profil › KDV oranı) + doktor başına (doktor kartı, Fiyat listesi › doktora özel). Oran 0 = faturasız; boş = laboratuvarı izle.
+  window.ZkKdv = {
+    varsayilan: function (ulke) { return String(ulke || 'TR').toUpperCase() === 'TR' ? 10 : 0; },
+    laboratuvar: function (org) { var v = org && org.vat_rate; return (v != null && v !== '') ? Number(v) : window.ZkKdv.varsayilan(org && org.country); },
+    metin: function (n) { n = Number(n); if (n === Math.round(n)) return String(n); var s = n.toFixed(2).replace(/0+$/, ''); return (window.ZkDil && window.ZkDil.en) ? s : s.replace('.', ','); },
+    ilk: function (doktor, lab) { return window.ZkKdv.metin(doktor && doktor.vat_rate != null ? doktor.vat_rate : lab); },
+    // Yazılanı çözer: {d:'gecersiz'} | {d:'izle'} (boş ya da laboratuvarla aynı) | {d:'deger', v}
+    coz: function (girdi, lab) {
+      var t = String(girdi == null ? '' : girdi).trim().replace(',', '.').replace('%', '');
+      if (t === '') return { d: 'izle' };
+      if (!/^\d+(\.\d+)?$/.test(t)) return { d: 'gecersiz' };
+      var v = Math.round(Number(t) * 100) / 100;
+      if (v < 0 || v > 100) return { d: 'gecersiz' };
+      return Math.abs(v - lab) < 0.005 ? { d: 'izle' } : { d: 'deger', v: v };
+    },
+    // KDV oranını yalnız yönetici (laboratuvar sahibi dahil) ve Muhasebeci değiştirir; sunucu da böyle kilitli.
+    paraYoneticisi: function (me) { return !!me && (me.role === 'yonetici' || !!(window.zkMuhasebeciMi && window.zkMuhasebeciMi(me))); },
+    hata: 'KDV oranı 0 ile 100 arasında bir sayı olmalı.'
+  };
   window.ZirkonikData = Data;
 
   // ---- Para birimi ----

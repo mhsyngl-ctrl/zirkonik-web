@@ -308,6 +308,15 @@
           <button onclick="zkSaveBolge()" id="pf-bolge-btn" class="mt-3 flex h-11 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
         </section>
 
+        <!-- 8 Kasım 2026 (Murat): laboratuvarın KDV oranı SERBEST yazılır; yalnız yönetici (laboratuvar sahibi dahil) ve Muhasebeci. Her doktor için ayrıca doktor kartından değiştirilir. -->
+        <section id="pf-kdv-section" class="mt-5 hidden rounded-theme border border-border bg-card p-4">
+          <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">KDV oranı</p>
+          <label class="mt-3 block"><span class="mb-1 block text-[11px] font-bold">KDV oranı (%)</span>
+            <input id="pf-kdv-input" type="text" inputmode="decimal" autocomplete="off" class="h-11 w-full rounded-theme border border-border bg-input px-3 text-sm"></label>
+          <p class="mt-2 text-xs leading-5 text-muted-foreground">Faturalı çalışılan doktorların yeni faturalarına eklenir; her doktor için doktor kartından ayrıca ayarlanabilir. Oran 0 ise KDV eklenmez. Boş bırakırsanız ülkenin varsayılanı kullanılır (Türkiye %10). Eski faturalar değişmez.</p>
+          <button onclick="zkSaveKdv()" id="pf-kdv-btn" class="mt-3 flex h-11 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
+        </section>
+
         <section id="pf-abonelik-section" class="mt-5 hidden rounded-theme border border-border bg-card p-4">
           <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Abonelik</p>
           <p id="pf-abonelik-plan" class="mt-1 font-heading text-sm font-bold">—</p>
@@ -434,6 +443,7 @@
           zkLoadErrorLog();
           zkLoadBolge(me.organizations || {});
         }
+        if (ZkKdv.paraYoneticisi(me)) zkLoadKdv(me.organizations || {});   // yönetici + Muhasebeci
         if (me.role === 'doktor') {
           // Doktor retim.html'e giremiyor (zk-guard geri atar); geri dugmesi
           // kendi paneline gitmeli.
@@ -563,6 +573,27 @@
         ll.style.display = org.lab_lab_enabled ? 'block' : '';
         document.getElementById('pf-lablab-billing').value = org.lab_lab_billing || 'faturasiz';
       }
+    }
+    /* Laboratuvarın KDV oranı (yönetici + Muhasebeci): boş ya da ülke varsayılanıyla aynı → null (ülke varsayılanı). Sunucu zk_kdv_orani_ayarla yetkisizi reddeder. */
+    var pfKdvIlk = '', pfKdvUlke = 'TR';
+    function zkLoadKdv(org) {
+      var sec = document.getElementById('pf-kdv-section'); if (!sec) return;
+      pfKdvUlke = org.country || 'TR';
+      var inp = document.getElementById('pf-kdv-input'); inp.value = ZkKdv.metin(ZkKdv.laboratuvar(org)); pfKdvIlk = inp.value;
+      sec.classList.remove('hidden');
+    }
+    function zkSaveKdv() {
+      var inp = document.getElementById('pf-kdv-input'), btn = document.getElementById('pf-kdv-btn');
+      var k = ZkKdv.coz(inp.value, ZkKdv.varsayilan(pfKdvUlke));
+      if (k.d === 'gecersiz') { zkToast(ZkKdv.hata); return; }
+      if (inp.value === pfKdvIlk) { zkToast('KDV oranı kaydedildi.'); return; }
+      btn.disabled = true;
+      ZirkonikData.kdvOraniAyarla(k.d === 'deger' ? k.v : null).then(function (r) {
+        btn.disabled = false;
+        if (r.error) { zkToast('Kaydedilemedi: ' + r.error.message); return; }
+        zkToast('KDV oranı kaydedildi.');
+        setTimeout(function () { location.reload(); }, 600);
+      });
     }
     function zkSaveBolge() {
       if (!pfOrgId) return;
