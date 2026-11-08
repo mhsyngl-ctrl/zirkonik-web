@@ -2435,12 +2435,24 @@ window.ZK_DIL_EN = {
 "KDV oranı kaydedildi.":"VAT rate saved.",
 ". KDV oranını siz yazarsınız: laboratuvarın oranı Profil'deki KDV oranı bölümünde (varsayılan %10), doktora özel oran doktor kartında ya da Fiyat listesinde doktora özel kapsamda. Oran 0'dan büyükse fatura kesilirken KDV fiyatın":". You enter the VAT rate yourself: the laboratory rate in the VAT rate section of Profile (default 10%), and a doctor-specific rate on the doctor card or in the doctor-specific scope of the Price list. If the rate is above 0, VAT is added",
 "eklenir; oranı 0 olan doktorda KDV yoktur (faturasız).":"the price when the invoice is issued; for a doctor whose rate is 0 there is no VAT (no invoices).",
-"KDV, fatura oluşurken sunucuda hesaplanır; eski faturalar değişmez. Doktorun KDV oranı (0 yazılırsa faturasız) doktor kartından ve Fiyat listesinde doktora özel kapsamda ayarlanır.":"VAT is calculated on the server when the invoice is created; old invoices do not change. The doctor's VAT rate (a doctor set to 0 is treated as non-invoiced) is set on the doctor card and in the doctor-specific scope of the Price list."
+"KDV, fatura oluşurken sunucuda hesaplanır; eski faturalar değişmez. Doktorun KDV oranı (0 yazılırsa faturasız) doktor kartından ve Fiyat listesinde doktora özel kapsamda ayarlanır.":"VAT is calculated on the server when the invoice is created; old invoices do not change. The doctor's VAT rate (a doctor set to 0 is treated as non-invoiced) is set on the doctor card and in the doctor-specific scope of the Price list.",
+"Asistan paneli":"Assistant panel",
+"bekliyor":"pending",
+"İlk iş":"First job",
+"Bu ay":"This month",
+"SGK primi":"Social security contribution",
+"İşsizlik sigortası":"Unemployment insurance",
+"Asgari ücret istisnası, SGK primi ve gelir vergisi dilimlerine göre yaklaşık tahmindir — resmi bordro yerine geçmez.":"This is an approximate estimate based on the minimum wage exemption, social security contribution and income tax brackets — it does not replace official payroll.",
+"İşverene maliyet, teşviksiz standart SGK işveren oranıyla hesaplanmıştır; işletmenize özel teşvikler gerçek maliyeti düşürebilir.":"The employer cost is calculated with the standard social security employer rate without incentives; incentives specific to your business may reduce the actual cost."
 },
 "p":[
 [
 "^1 iş$",
 "1 job"
+],
+[
+"^(1) iş$",
+"$1 job"
 ],
 [
 "^(\\d+) iş$",
@@ -2451,12 +2463,20 @@ window.ZK_DIL_EN = {
 "1 tooth"
 ],
 [
+"^(1) diş$",
+"$1 tooth"
+],
+[
 "^(\\d+) diş$",
 "$1 teeth"
 ],
 [
 "^1 doktor$",
 "1 doctor"
+],
+[
+"^(1) doktor$",
+"$1 doctor"
 ],
 [
 "^(\\d+) doktor$",
@@ -2467,12 +2487,20 @@ window.ZK_DIL_EN = {
 "1 day"
 ],
 [
+"^(1) gün$",
+"$1 day"
+],
+[
 "^(\\d+) gün$",
 "$1 days"
 ],
 [
 "^1 kayıt$",
 "1 record"
+],
+[
+"^(1) kayıt$",
+"$1 record"
 ],
 [
 "^(\\d+) kayıt$",
@@ -2519,20 +2547,48 @@ window.ZK_DIL_EN = {
 "1 job · 1 tooth"
 ],
 [
+"^1 iş · (1) diş$",
+"1 job · $1 tooth"
+],
+[
 "^1 iş · (\\d+) diş$",
 "1 job · $1 teeth"
+],
+[
+"^(1) iş · 1 diş$",
+"$1 job · 1 tooth"
 ],
 [
 "^(\\d+) iş · 1 diş$",
 "$1 jobs · 1 tooth"
 ],
 [
+"^(1) iş · (1) diş$",
+"$1 job · $2 tooth"
+],
+[
+"^(1) iş · (\\d+) diş$",
+"$1 job · $2 teeth"
+],
+[
+"^(\\d+) iş · (1) diş$",
+"$1 jobs · $2 tooth"
+],
+[
 "^(\\d+) iş · (\\d+) diş$",
 "$1 jobs · $2 teeth"
 ],
 [
+"^(1) gün kaldı$",
+"$1 day left"
+],
+[
 "^(.+) gün kaldı$",
 "$1 days left"
+],
+[
+"^(1) gün izin talep ediyorsunuz\\.$",
+"You are requesting $1 day of leave."
 ],
 [
 "^(.+) gün izin talep ediyorsunuz\\.$",
@@ -2543,8 +2599,16 @@ window.ZK_DIL_EN = {
 "Manager's note: $1"
 ],
 [
+"^(1) ay$",
+"$1 month"
+],
+[
 "^(\\d+) ay$",
 "$1 months"
+],
+[
+"^(1) yıl$",
+"$1 year"
 ],
 [
 "^(\\d+) yıl$",
@@ -2557,6 +2621,10 @@ window.ZK_DIL_EN = {
 [
 "^Para birimi güncellendi: yeni siparişlerde (.+) geçerli\\.$",
 "Currency updated: $1 applies to new orders."
+],
+[
+"^Reçete kaydedildi \\((1) malzeme\\)\\.$",
+"Recipe saved ($1 material)."
 ],
 [
 "^Reçete kaydedildi \\((1) malzeme\\)\\.$",
@@ -2579,6 +2647,10 @@ window.ZK_DIL_EN = {
 "Could not get the link: $1"
 ],
 [
+"^(1) üçgen$",
+"$1 triangle"
+],
+[
 "^([\\d.,]+) üçgen$",
 "$1 triangles"
 ],
@@ -2593,6 +2665,10 @@ window.ZK_DIL_EN = {
 [
 "^(.+) ayı kapatılsın mı\\?$",
 "Close the month of $1?"
+],
+[
+"^Diş başı hakediş \\((1) diş/adet\\)$",
+"Per-tooth earnings ($1 tooth/pieces)"
 ],
 [
 "^Diş başı hakediş \\((\\d+) diş/adet\\)$",
@@ -2631,8 +2707,16 @@ window.ZK_DIL_EN = {
 "Uploading… $1%"
 ],
 [
+"^Tarama / model dosyaları \\(\\.stl, \\.ply\\) ya da paket \\(\\.zip\\), her biri en fazla 50 MB; en çok (1) dosya\\. Birden fazla seçebilirsiniz\\.$",
+"Scan / model files (.stl, .ply) or package (.zip), up to 50 MB each; at most $1 file. You can select several."
+],
+[
 "^Tarama / model dosyaları \\(\\.stl, \\.ply\\) ya da paket \\(\\.zip\\), her biri en fazla 50 MB; en çok (\\d+) dosya\\. Birden fazla seçebilirsiniz\\.$",
 "Scan / model files (.stl, .ply) or package (.zip), up to 50 MB each; at most $1 files. You can select several."
+],
+[
+"^(\\d+)/(1) adım$",
+"$1/$2 step"
 ],
 [
 "^(\\d+)/(\\d+) adım$",
@@ -2641,6 +2725,10 @@ window.ZK_DIL_EN = {
 [
 "^Bu pakete sahipsiniz: (.+)\\.$",
 "Your plan: $1."
+],
+[
+"^Deneme süresi \\((1) gün kaldı\\)\\.$",
+"Trial period ($1 day left)."
 ],
 [
 "^Deneme süresi \\((1) gün kaldı\\)\\.$",
@@ -2687,6 +2775,10 @@ window.ZK_DIL_EN = {
 "$1 doctor in total"
 ],
 [
+"^Toplam (1) doktor$",
+"$1 doctor in total"
+],
+[
 "^Toplam (\\d+) doktor$",
 "$1 doctors in total"
 ],
@@ -2701,6 +2793,10 @@ window.ZK_DIL_EN = {
 [
 "^Gönderen: (.+)$",
 "Sent by: $1"
+],
+[
+"^(1) görev sorumlu pazarlamacıya gönderilecek\\. Onaylıyor musun\\?$",
+"$1 task will be sent to the responsible marketer. Do you approve?"
 ],
 [
 "^(1) görev sorumlu pazarlamacıya gönderilecek\\. Onaylıyor musun\\?$",
@@ -2831,6 +2927,10 @@ window.ZK_DIL_EN = {
 "$1 (1 tooth)"
 ],
 [
+"^([^·—→]+) \\((1) diş\\)$",
+"$1 ($2 tooth)"
+],
+[
 "^([^·—→]+) \\((\\d+) diş\\)$",
 "$1 ($2 teeth)"
 ],
@@ -2843,8 +2943,16 @@ window.ZK_DIL_EN = {
 "$1 (1 day)"
 ],
 [
+"^([^·—→]+) \\((1) gün\\)$",
+"$1 ($2 day)"
+],
+[
 "^([^·—→]+) \\((\\d+) gün\\)$",
 "$1 ($2 days)"
+],
+[
+"^([^·—→]+) TL vadesi geçmiş bakiyeniz bulunuyor \\((1) fatura\\)\\. Laboratuvar ile iletişime geçebilirsiniz\\.$",
+"You have an overdue balance of $1 TL ($2 invoice). You can contact the laboratory."
 ],
 [
 "^([^·—→]+) TL vadesi geçmiş bakiyeniz bulunuyor \\((\\d+) fatura\\)\\. Laboratuvar ile iletişime geçebilirsiniz\\.$",
@@ -2855,8 +2963,16 @@ window.ZK_DIL_EN = {
 "A total of $2 TL is overdue across $1 doctor."
 ],
 [
+"^(1) doktorda toplam (.+) TL vadesi geçmiş bakiye var\\.$",
+"A total of $2 TL is overdue across $1 doctor."
+],
+[
 "^(\\d+) doktorda toplam (.+) TL vadesi geçmiş bakiye var\\.$",
 "A total of $2 TL is overdue across $1 doctors."
+],
+[
+"^(1) tedarikçiye toplam (.+) TL vadesi geçmiş borç var\\.$",
+"A total of $2 TL is overdue to $1 supplier."
 ],
 [
 "^(1) tedarikçiye toplam (.+) TL vadesi geçmiş borç var\\.$",
@@ -2907,8 +3023,16 @@ window.ZK_DIL_EN = {
 "see the Doctor Pool."
 ],
 [
+"^Son 24 saatte (1) laboratuvardan: (\\d+) kod hatası, (\\d+) zaman aşımı, (\\d+) reddedilen iş, (\\d+) sıraya alma, (\\d+) ağ kaydı\\.$",
+"In the last 24 hours, from $1 laboratory: $2 code errors, $3 timeouts, $4 rejected operations, $5 queued, $6 network records."
+],
+[
 "^Son 24 saatte (\\d+) laboratuvardan: (\\d+) kod hatası, (\\d+) zaman aşımı, (\\d+) reddedilen iş, (\\d+) sıraya alma, (\\d+) ağ kaydı\\.$",
 "In the last 24 hours, from $1 laboratories: $2 code errors, $3 timeouts, $4 rejected operations, $5 queued, $6 network records."
+],
+[
+"^Son 24 saatte (1) laboratuvardan: (\\d+) kod hatası, (\\d+) zaman aşımı, (\\d+) reddedilen iş, (\\d+) sıraya alma\\.$",
+"In the last 24 hours, from $1 laboratory: $2 code errors, $3 timeouts, $4 rejected operations, $5 queued."
 ],
 [
 "^Son 24 saatte (\\d+) laboratuvardan: (\\d+) kod hatası, (\\d+) zaman aşımı, (\\d+) reddedilen iş, (\\d+) sıraya alma\\.$",
@@ -3011,6 +3135,10 @@ window.ZK_DIL_EN = {
 "$1 contact"
 ],
 [
+"^(1) temas$",
+"$1 contact"
+],
+[
 "^(\\d+) temas$",
 "$1 contacts"
 ],
@@ -3019,8 +3147,16 @@ window.ZK_DIL_EN = {
 "$1 contact ·"
 ],
 [
+"^(1) temas ·$",
+"$1 contact ·"
+],
+[
 "^(\\d+) temas ·$",
 "$1 contacts ·"
+],
+[
+"^(1) görev vadesi geldi$",
+"$1 task due"
 ],
 [
 "^(1) görev vadesi geldi$",
@@ -3039,6 +3175,10 @@ window.ZK_DIL_EN = {
 "Last $1 month, production earnings by employee."
 ],
 [
+"^Son (1) ay, çalışan bazlı üretim hakedişi\\.$",
+"Last $1 month, production earnings by employee."
+],
+[
 "^Son (\\d+) ay, çalışan bazlı üretim hakedişi\\.$",
 "Last $1 months, production earnings by employee."
 ],
@@ -3047,8 +3187,16 @@ window.ZK_DIL_EN = {
 "Last $1 week, production earnings by employee."
 ],
 [
+"^Son (1) hafta, çalışan bazlı üretim hakedişi\\.$",
+"Last $1 week, production earnings by employee."
+],
+[
 "^Son (\\d+) hafta, çalışan bazlı üretim hakedişi\\.$",
 "Last $1 weeks, production earnings by employee."
+],
+[
+"^Son (1) yıl, çalışan bazlı üretim hakedişi\\.$",
+"Last $1 year, production earnings by employee."
 ],
 [
 "^Son (1) yıl, çalışan bazlı üretim hakedişi\\.$",
@@ -3073,6 +3221,10 @@ window.ZK_DIL_EN = {
 [
 "^İşverene maliyet, teşviksiz standart SGK işveren oranıyla \\(%([\\d.,]+)\\) hesaplanmıştır; işletmenize özel teşvikler gerçek maliyeti düşürebilir\\.$",
 "Employer cost is calculated with the standard SGK employer rate ($1%) without incentives; incentives specific to your business may reduce the real cost."
+],
+[
+"^(1) aşama$",
+"$1 stage"
 ],
 [
 "^(1) aşama$",
@@ -3159,6 +3311,10 @@ window.ZK_DIL_EN = {
 "$1 job without invoice"
 ],
 [
+"^(1) faturasız iş$",
+"$1 job without invoice"
+],
+[
 "^(\\d+) faturasız iş$",
 "$1 jobs without invoice"
 ],
@@ -3215,12 +3371,24 @@ window.ZK_DIL_EN = {
 "Substructure order went into production ($1"
 ],
 [
+"^Tam ağız \\((1) diş\\)$",
+"Full mouth ($1 tooth)"
+],
+[
 "^Tam ağız \\((\\d+) diş\\)$",
 "Full mouth ($1 teeth)"
 ],
 [
+"^Üst çene \\((1) diş\\)$",
+"Upper jaw ($1 tooth)"
+],
+[
 "^Üst çene \\((\\d+) diş\\)$",
 "Upper jaw ($1 teeth)"
+],
+[
+"^Alt çene \\((1) diş\\)$",
+"Lower jaw ($1 tooth)"
 ],
 [
 "^Alt çene \\((\\d+) diş\\)$",
@@ -3285,6 +3453,10 @@ window.ZK_DIL_EN = {
 [
 "^(\\d+) aktif iş$",
 "$1 active jobs"
+],
+[
+"^(1) odaları$",
+"$1 room"
 ],
 [
 "^(.+) odaları$",
@@ -3375,8 +3547,16 @@ window.ZK_DIL_EN = {
 "Load more ($1 job left)"
 ],
 [
+"^Daha fazla yükle \\((1) iş kaldı\\)$",
+"Load more ($1 job left)"
+],
+[
 "^Daha fazla yükle \\((\\d+) iş kaldı\\)$",
 "Load more ($1 jobs left)"
+],
+[
+"^Daha fazla yükle \\((1) sipariş kaldı\\)$",
+"Load more ($1 order left)"
 ],
 [
 "^Daha fazla yükle \\((1) sipariş kaldı\\)$",
@@ -3391,6 +3571,10 @@ window.ZK_DIL_EN = {
 "$1 follow-up"
 ],
 [
+"^(1) takip$",
+"$1 follow-up"
+],
+[
 "^(\\d+) takip$",
 "$1 follow-ups"
 ],
@@ -3399,8 +3583,16 @@ window.ZK_DIL_EN = {
 "$1 task"
 ],
 [
+"^(1) görev$",
+"$1 task"
+],
+[
 "^(\\d+) görev$",
 "$1 tasks"
+],
+[
+"^(1) temas \\(bugün\\)$",
+"$1 contact (today)"
 ],
 [
 "^(1) temas \\(bugün\\)$",
@@ -3435,6 +3627,10 @@ window.ZK_DIL_EN = {
 "Connection: $1"
 ],
 [
+"^Sunucu (1) saniye içinde cevap vermedi\\. Bağlantını kontrol edip tekrar dene\\.$",
+"The server did not respond within $1 second. Check your connection and try again."
+],
+[
 "^Sunucu (\\d+) saniye içinde cevap vermedi\\. Bağlantını kontrol edip tekrar dene\\.$",
 "The server did not respond within $1 seconds. Check your connection and try again."
 ],
@@ -3451,6 +3647,10 @@ window.ZK_DIL_EN = {
 "$1 operation was rejected by the server — tap the chip below."
 ],
 [
+"^(1) işlem sunucu tarafından reddedildi — alttaki çipe dokun\\.$",
+"$1 operation were rejected by the server — tap the chip below."
+],
+[
 "^(\\d+) işlem sunucu tarafından reddedildi — alttaki çipe dokun\\.$",
 "$1 operations were rejected by the server — tap the chip below."
 ],
@@ -3459,8 +3659,16 @@ window.ZK_DIL_EN = {
 "$1 operation could not be sent · $2 waiting — show"
 ],
 [
+"^(1) işlem gönderilemedi · (\\d+) bekliyor — göster$",
+"$1 operation could not be sent · $2 waiting — show"
+],
+[
 "^(\\d+) işlem gönderilemedi · (\\d+) bekliyor — göster$",
 "$1 operations could not be sent · $2 waiting — show"
+],
+[
+"^(1) işlem gönderilemedi — göster$",
+"$1 operation could not be sent — show"
 ],
 [
 "^(1) işlem gönderilemedi — göster$",
@@ -3561,6 +3769,8 @@ window.ZK_DIL_EN = {
 "^T$",
 "^(Öztürk Diş · Kadıköy|Kaya Klinik|Demir Diş|Dr\\. Zeynep Yıldız)$",
 "^Zirkonyum Kron$",
+"^(Personel Deneme|Doktor Dokuz|Asistan Deneme)$",
+"^05321112233 · ayse@example\\.invalid$",
 "^(Mustafakemalpaşa|Marmaraereğlisi|Şereflikoçhisar|Afyonkarahisar|Kazımkarabekir|Yenişarbademli|Şebinkarahisar|Gaziosmanpaşa|Kahramankazan|Kahramanmaraş|Çağlayancerit|Şarkikaraağaç|Bahçelievler|Büyükçekmece|Dernekpazarı|Dulkadiroğlu|Gümüşhacıköy|Küçükçekmece|Kızılcahamam|Merkezefendi|Süleymanpaşa|Akdağmadeni|Atkaracalar|Beytüşşebap|Ceylanpınar|Doğubayazıt|Karakoyunlu|Kavaklıdere|Pehlivanköy|Sarıveliler|Seferihisar|Sultanbeyli|Sultanhisar|Yenimahalle|Zeytinburnu|Çamlıhemşin|Çatalzeytin|Çavdarhisar|Altunhisar|Altınyayla|Arnavutköy|Bahçesaray|Battalgazi|Bayrampaşa|Bayramören|Başakşehir|Başçiftlik|Beylikdüzü|Boğazlıyan|Büyükorhan|Cihanbeyli|Derepazarı|Diyarbakır|Doğanhisar|Doğanşehir|Dumlupınar|Döşemealtı|Eyüpsultan|Gölmarmara|Güneysınır|Gürgentepe|Güzelbahçe|Güçlükonak|Hacıbektaş|Halkapınar|Hasanbeyli|Kalkandere|Karabağlar|Karakeçili|Karamürsel|Karapürçek|Kovancılar|Koyulhisar|Kurucaşile|Kırklareli|Kızılırmak|Lüleburgaz|Mihalıççık|Odunpazarı|Onikişubat|Palandöken|Pınarhisar|Safranbolu|Salıpazarı|Sancaktepe|Sarıcakaya|Serinhisar|Seydikemer|Seydişehir|Sivrihisar|Sultandağı|Sultangazi|Sultanhanı|Toprakkale|Tufanbeyli|Vakfıkebir|Vezirköprü|Viranşehir|Yenifakılı|Yeşilhisar|Yumurtalık|Çamlıyayla|Çatalpınar|Çemişgezek|Çiftlikköy|İncirliova|İskenderun|Şehitkamil|Şehzadeler|Adapazarı|Adilcevaz|Akıncılar|Alacakaya|Altıeylül|Altınekin|Altınordu|Aydıntepe|Balıkesir|Başiskele|Beylikova|Beypazarı|Beşikdüzü|Boğazkale|Buharkent|Burhaniye|Derebucak|Derinkuyu|Devrekani|Doğankent|Doğanyurt|Dursunbey|Dörtdivan|Eskipazar|Eskişehir|Etimesgut|Gaziantep|Gelendost|Germencik|Gölpazarı|Gümüşhane|Gündoğmuş|Güzelyurt|Harmancık|Hasankeyf|Hayrabolu|Kadınhanı|Kadışehri|Karaburun|Karacabey|Karahallı|Karaisalı|Karakoçan|Karaköprü|Karamanlı|Karapınar|Karaçoban|Karşıyaka|Kastamonu|Kayapınar|Kağıthane|Kemalpaşa|Keçiborlu|Kocasinan|Konyaaltı|Korkuteli|Köprübaşı|Kıbrıscık|Kırıkkale|Kızıltepe|Kızılören|Mahmudiye|Malazgirt|Melikgazi|Mihalgazi|Muratpaşa|Musabeyli|Narlıdere|Orhangazi|Ortahisar|Osmangazi|Otlukbeli|Pamukkale|Pazaryeri|Pazaryolu|Pursaklar|Pınarbaşı|Saimbeyli|Saraydüzü|Saraykent|Saruhanlı|Sarıkamış|Sarıoğlan|Sarıyahşi|Savaştepe|Senirkent|Seyitgazi|Sinanpaşa|Sulakyurt|Sulusaray|Uzunköprü|Uğurludağ|Yalıhüyük|Yayladağı|Yayladere|Yağlıdere|Yenipazar|Yenişehir|Yeşilyurt|Yunusemre|Yüksekova|Yıldızeli|Zonguldak|Çamlıdere|Çanakkale|Çarşıbaşı|Çayıralan|Çerkezköy|Çiçekdağı|İhsangazi|İscehisar|Şalpazarı|Şanlıurfa|19\\ Mayıs|Acıpayam|Adıyaman|Akçaabat|Akçakale|Akçakent|Akçakoca|Alaşehir|Altındağ|Altınova|Altıntaş|Altınözü|Aslanapa|Ataşehir|Aydıncık|Ağaçören|Babaeski|Bakırköy|Balışeyh|Bandırma|Bayraklı|Bayramiç|Bayındır|Bağcılar|Başmakçı|Başyayla|Beyşehir|Beşiktaş|Bolvadin|Bozcaada|Bozdoğan|Bulancak|Cumayeri|Dargeçit|Demirköy|Demirözü|Dilovası|Doğanyol|Doğanşar|Elbistan|Eleşkirt|Emirgazi|Erzincan|Esenyurt|Eyyübiye|Felahiye|Fındıklı|Gaziemir|Gazipaşa|Gelibolu|Gökçeada|Gökçebey|Gölhisar|Göynücek|Gülşehir|Gümüşova|Güngören|Güroymak|Gürpınar|Haliliye|Hamamözü|Hekimhan|Hisarcık|Karacasu|Karayazı|Karkamış|Karlıova|Karpuzlu|Kaynarca|Kaynaşlı|Kağızman|Kemaliye|Keçiören|Kuluncak|Kurtalan|Kurşunlu|Kuşadası|Köprüköy|Köyceğiz|Kırkağaç|Kırıkhan|Kırşehir|Lalapaşa|Manavgat|Marmaris|Mazıdağı|Mecitözü|Menderes|Merzifon|Mesudiye|Muradiye|Nallıhan|Nazımiye|Nevşehir|Nusaybin|Orhaneli|Osmancık|Osmaneli|Osmaniye|Pamukova|Pasinler|Pazarcık|Pazarlar|Perşembe|Polateli|Refahiye|Reyhanlı|Reşadiye|Samandağ|Sandıklı|Sarayköy|Sarayönü|Sarıkaya|Selçuklu|Serdivan|Seydiler|Sungurlu|Susurluk|Sütçüler|Sındırgı|Tavşanlı|Taşköprü|Taşlıçay|Tekirdağ|Tekkeköy|Tepebaşı|Tirebolu|Toroslar|Turgutlu|Tuzlukçu|Türkoğlu|Uluborlu|Ulukışla|Uzundere|Yahşihan|Yakakent|Yakutiye|Yapraklı|Yavuzeli|Yeniçağa|Yeşilova|Yusufeli|Yıldırım|Çaldıran|Çarşamba|Çayırova|Çekmeköy|Çelikhan|Çeltikçi|Çifteler|Çobanlar|Çukurova|Çınarcık|Ümraniye|İhsaniye|İkizdere|İmamoğlu|İpekyolu|İslahiye|İstanbul|Şabanözü|Şahinbey|Şarkışla|Şefaatli|Şemdinli|Şenpazar|Ahmetli|Akdeniz|Akhisar|Akkışla|Akpınar|Aksaray|Akçadağ|Akşehir|Andırın|Antakya|Antalya|Arapgir|Ardahan|Ardanuç|Ardeşen|Arguvan|Arifiye|Armutlu|Arpaçay|Artuklu|Asarcık|Avcılar|Ayancık|Aybastı|Ayrancı|Ayvacık|Ayvalık|Azdavay|Aziziye|Ağlasun|Babadağ|Bahşılı|Balçova|Bayburt|Başkale|Bekilli|Bergama|Beyağaç|Beyoğlu|Bigadiç|Bilecik|Birecik|Bornova|Boyabat|Bozkurt|Boztepe|Bozyazı|Bozüyük|Bulanık|Dalaman|Darende|Dazkırı|Demirci|Denizli|Derbent|Derecik|Derince|Divriği|Diyadin|Dodurga|Domaniç|Durağan|Dörtyol|Eceabat|Edremit|Ekinözü|Elbeyli|Eldivan|Elmadağ|Emirdağ|Erdemli|Erenler|Erfelek|Ermenek|Erzurum|Esenler|Evciler|Eynesil|Eğirdir|Ferizli|Fethiye|Gemerek|Giresun|Gölbaşı|Gölyaka|Gülağaç|Gülyalı|Güneysu|Günyüzü|Hacılar|Hakkari|Halfeti|Haymana|Hocalar|Horasan|Isparta|Kabadüz|Kabataş|Kadirli|Kadıköy|Kalecik|Kandıra|Kapaklı|Karabük|Karaman|Karatay|Karataş|Kartepe|Kayseri|Kilimli|Kocaali|Kocaeli|Kocaköy|Kozaklı|Koçarlı|Kumluca|Kuyucak|Kütahya|Lapseki|Malatya|Malkara|Maltepe|Marmara|Mazgirt|Menemen|Menteşe|Mezitli|Mudanya|Mudurnu|Muratlı|Nazilli|Nilüfer|Nurdağı|Ortaköy|Oğuzeli|Oğuzlar|Pervari|Piraziz|Polatlı|Pozantı|Pülümür|Pütürge|Sakarya|Salihli|Sapanca|Sarıgöl|Sarıyer|Sarıçam|Selendi|Silifke|Silivri|Sivaslı|Siverek|Sivrice|Suluova|Suşehri|Söğütlü|Süloğlu|Sürmene|Taraklı|Taşkent|Tefenni|Tomarza|Torbalı|Trabzon|Tunceli|Tuzluca|Türkeli|Uludere|Yahyalı|Yatağan|Yazıhan|Yeşilli|Yüreğir|Yığılca|Çamardı|Çamoluk|Çanakçı|Çankaya|Çankırı|Çatalca|Çaybaşı|Çaycuma|Çaykara|Çayırlı|Çekerek|Çiftlik|Çilimli|Çukurca|Özvatan|Üsküdar|İlkadım|İmranlı|İnebolu|İnhisar|İskilip|İvrindi|İyidere|Şaphane|Şenkaya|Acıgöl|Adaklı|Adalar|Ahırlı|Akseki|Akyaka|Akyazı|Akyurt|Akören|Aladağ|Alanya|Alaplı|Alaçam|Aliağa|Alucra|Amasra|Amasya|Anamur|Ankara|Araban|Araklı|Aralık|Arhavi|Artova|Artvin|Arıcak|Atabey|Atakum|Avanos|Aşkale|Baklan|Bartın|Baskil|Batman|Baykan|Bağlar|Beydağ|Beykoz|Beşiri|Bingöl|Bismil|Bitlis|Bodrum|Borçka|Bozkır|Bozova|Buldan|Burdur|Bünyan|Ceyhan|Darıca|Delice|Dereli|Develi|Devrek|Dikili|Dikmen|Düziçi|Düzköy|Edirne|Efeler|Eflani|Elazığ|Elmalı|Ereğli|Ergani|Ergene|Espiye|Finike|Gemlik|Gercüş|Gerede|Gerger|Göksun|Gölcük|Gölköy|Gölova|Gördes|Görele|Göynük|Gülnar|Hanönü|Harran|Hasköy|Havran|Hayrat|Hemşin|Hendek|Hilvan|Kangal|Karasu|Karesi|Kartal|Kelkit|Kepsut|Keskin|Kestel|Kofçaz|Korgan|Korgun|Korkut|Kozluk|Körfez|Kürtün|Manisa|Manyas|Mardin|Mengen|Merkez|Mersin|Midyat|Murgul|Narman|Niksar|Nurhak|Ortaca|Ovacık|Patnos|Pendik|Pertek|Samsat|Samsun|Selçuk|Seyhan|Silopi|Silvan|Sincan|Sincik|Solhan|Sorgun|Sumbas|Tarsus|Tatvan|Taşova|Tekman|Tercan|Termal|Tortum|Turhal|Ulubey|Yalova|Yalvaç|Yedisu|Yenice|Yerköy|Yozgat|Çameli|Çandır|Çardak|Çavdır|Çayeli|Çelebi|Çeltik|Çerkeş|Çermik|Çivril|Çüngüş|Çıldır|Ödemiş|Ömerli|Üzümlü|İbradı|İkizce|İncesu|İnegöl|İpsala|Şarköy|Şavşat|Şirvan|Şırnak|Abana|Adana|Afşin|Ahlat|Akkuş|Alaca|Almus|Arsin|Arsuz|Aydın|Bafra|Bahçe|Balya|Banaz|Bayat|Belen|Besni|Bucak|Bursa|Canik|Cizre|Daday|Damal|Datça|Defne|Demre|Derik|Dicle|Didim|Digor|Dinar|Düzce|Erbaa|Erciş|Erdek|Erzin|Eskil|Evren|Ezine|Fatih|Fatsa|Gebze|Gediz|Gerze|Gevaş|Geyve|Gömeç|Gönen|Güdül|Güney|Gürsu|Gürün|Hadim|Hafik|Hamur|Hanak|Hassa|Hatay|Havsa|Havza|Hazro|Hizan|Honaz|Hozat|Hüyük|Hınıs|Ilgaz|Ilgın|Iğdır|Kahta|Kaman|Kargı|Kavak|Keban|Keles|Kemah|Kemer|Kepez|Keşan|Keşap|Kilis|Kiraz|Konak|Konya|Kozan|Kozlu|Kumlu|Kumru|Kınık|Ladik|Laçin|Maden|Mamak|Maçka|Meram|Meriç|Milas|Mucur|Mutki|Muğla|Nizip|Niğde|Payas|Pazar|Posof|Saray|Sarız|Sason|Savur|Seben|Selim|Serik|Siirt|Simav|Sinop|Sivas|Suruç|Susuz|Söğüt|Talas|Tavas|Terme|Tillo|Tokat|Tonya|Torul|Tosya|Tutak|Tuzla|Tuşba|Varto|Yomra|Yunak|Çamaş|Çatak|Çeşme|Çiğli|Çorlu|Çorum|Çubuk|Çumra|Çınar|Özalp|Ürgüp|İnönü|İspir|İzmir|İzmit|İznik|Şiran|Şişli|Şuhut|Aksu|Alpu|Araç|Ayaş|Ağlı|Ağrı|Ağın|Bala|Biga|Bolu|Buca|Cide|Emet|Enez|Eruh|Eğil|Eşme|Feke|Foça|Genç|Göle|Güce|Hani|Hopa|Kale|Kars|Kiğı|Kula|Kulp|Kulu|Köse|Köşk|Küre|Lice|Oltu|Olur|Ordu|Orta|Palu|Rize|Soma|Söke|Tire|Ulaş|Ulus|Urla|Uşak|Vize|Zara|Zile|Çine|Ünye|İdil|İliç|Şile|Bor|Han|Kaş|Mut|Muş|Sur|Tut|Ula|Van|Çal|Çan|Çat|Çay|Of)$"
 ]
 };
