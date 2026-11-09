@@ -46,6 +46,8 @@
   }
 
   function uzanti(ad) { var m = /\.([a-z0-9]+)$/i.exec(ad || ''); return m ? m[1].toLowerCase() : ''; }
+  // Paket dosyası: .zip ve .rar aynı 'zip' türünde saklanır (içi açılmaz, yalnız indirilir).
+  function paketMi(ad) { var u = uzanti(ad); return u === 'zip' || u === 'rar'; }
 
   // Dosya türü denetimi — sunucuya gitmeden önce.
   function dogrula(file, tur) {
@@ -53,13 +55,13 @@
     if (file.size > SINIR) return 'Dosya 50 MB sınırını aşıyor (' + boyut(file.size) + ').';
     if (file.size === 0) return 'Dosya boş.';
     var u = uzanti(file.name);
-    if (tur === 'stl' && u !== 'stl' && u !== 'ply' && u !== 'zip') return 'STL, PLY ya da ZIP dosyası seçin (.stl, .ply, .zip).';
+    if (tur === 'stl' && u !== 'stl' && u !== 'ply' && !paketMi(file.name)) return 'STL, PLY, ZIP ya da RAR dosyası seçin (.stl, .ply, .zip, .rar).';
     if (tur === 'html' && u !== 'html' && u !== 'htm') return 'exocad HTML dosyası seçin (.html).';
     return null;
   }
 
-  // Seçici 'stl' kolundan gelen .zip dosyası 'zip' türü olarak kaydedilir; diğerleri istenen türde kalır.
-  function kayitTuru(ad, tur) { return (tur === 'stl' && uzanti(ad) === 'zip') ? 'zip' : tur; }
+  // Seçici 'stl' kolundan gelen .zip / .rar dosyası 'zip' türü olarak kaydedilir; diğerleri istenen türde kalır.
+  function kayitTuru(ad, tur) { return (tur === 'stl' && paketMi(ad)) ? 'zip' : tur; }
 
   function erisimJetonu() {
     return client().auth.getSession().then(function (r) {
@@ -300,7 +302,7 @@
 
   /*
    * yukle({ file, tur:'stl'|'html', jobId | orderId, orgId, rol:'doktor'|'laboratuvar', durum(metin, oran) })
-   * ZIP ayrı bir düğme/tür istemez: tur 'stl' verilip dosya .zip ise kayıt türü 'zip' olur (içi açılmaz, 3B gösterilmez, yalnız indirilir).
+   * ZIP / RAR ayrı bir düğme/tür istemez: tur 'stl' verilip dosya .zip ya da .rar ise kayıt türü 'zip' olur (içi açılmaz, 3B gösterilmez, yalnız indirilir).
    * → Promise<job_files satırı>
    */
   function yukle(o) {
@@ -314,7 +316,7 @@
     // Yol SUNUCUDA üretilir (15 Ekim 2026 güvenlik düzeltmesi); buradaki değer yalnız
     // eski sunucu sürümüyle uyum için gönderilir, dönen satırdaki yol esas alınır.
     var klasor = o.orgId + '/' + (o.jobId || o.orderId) + '/';
-    var yol = klasor + id + '.' + (tur === 'stl' ? 'stl' : (tur === 'zip' ? 'zip' : 'html'));
+    var yol = klasor + id + '.' + (tur === 'stl' ? 'stl' : (tur === 'zip' ? uzanti(o.file.name) : 'html'));
     var sikYol = null;
     var satirYazildi = false, yuklenen = [];
     var sik = null, meta = {};
@@ -473,7 +475,7 @@
     var tur = o.tur, dosyalar = [], mevcut = o.mevcut || 0, kilitli = false;
     var inpId = 'zk3b-inp-' + kimlik().slice(0, 8);
     el.innerHTML =
-      '<input id="' + inpId + '" type="file" accept=".stl,.ply,.zip" multiple class="hidden">' +
+      '<input id="' + inpId + '" type="file" accept=".stl,.ply,.zip,.rar" multiple class="hidden">' +
       '<div data-rol="liste" class="space-y-2"></div>' +
       '<label data-rol="ekle" for="' + inpId + '" class="mt-2 flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-theme border border-border bg-background text-xs font-bold text-primary">' +
         '<iconify-icon icon="lucide:box" class="text-base"></iconify-icon><span data-rol="ekle-yazi"></span></label>' +
@@ -484,7 +486,7 @@
     function ciz() {
       liste.innerHTML = dosyalar.map(function (f, i) {
         return '<div class="flex items-center gap-2.5 rounded-theme border border-border bg-background px-3 py-2.5">' +
-          '<iconify-icon icon="' + (uzanti(f.name) === 'zip' ? 'lucide:file-archive' : 'lucide:box') + '" class="shrink-0 text-lg text-primary"></iconify-icon>' +
+          '<iconify-icon icon="' + (paketMi(f.name) ? 'lucide:file-archive' : 'lucide:box') + '" class="shrink-0 text-lg text-primary"></iconify-icon>' +
           '<div class="min-w-0 flex-1"><p class="truncate text-sm font-bold">' + kacis(f.name) + '</p>' +
           '<p class="text-[11px] text-muted-foreground">' + boyut(f.size) + ' · orijinal dosya olduğu gibi yüklenir</p></div>' +
           '<button type="button" data-kaldir="' + i + '" class="shrink-0 text-xs font-bold text-destructive"' + (kilitli ? ' disabled' : '') + '>Kaldır</button></div>';
@@ -492,8 +494,8 @@
       var dolu = mevcut + dosyalar.length >= DOSYA_SAYISI;
       ekle.classList.toggle('hidden', dolu);
       ekle.style.opacity = kilitli ? '.5' : ''; ekle.style.pointerEvents = kilitli ? 'none' : '';
-      el.querySelector('[data-rol="ekle-yazi"]').textContent = dosyalar.length ? 'Başka dosya ekle' : (o.etiket || 'STL / PLY / ZIP dosyası seç');
-      el.querySelector('[data-rol="not"]').textContent = 'Tarama / model dosyaları (.stl, .ply) ya da paket (.zip), her biri en fazla 50 MB; en çok ' + DOSYA_SAYISI + ' dosya. Birden fazla seçebilirsiniz.';
+      el.querySelector('[data-rol="ekle-yazi"]').textContent = dosyalar.length ? 'Başka dosya ekle' : (o.etiket || 'STL / PLY / ZIP / RAR dosyası seç');
+      el.querySelector('[data-rol="not"]').textContent = 'Tarama / model dosyaları (.stl, .ply) ya da paket (.zip, .rar), her biri en fazla 50 MB; en çok ' + DOSYA_SAYISI + ' dosya. Birden fazla seçebilirsiniz.';
       if (o.degisti) o.degisti(dosyalar.slice());
     }
     inp.addEventListener('change', function () {
@@ -534,15 +536,15 @@
   function secici(el, o) {
     if (o.coklu && o.tur === 'stl') return seciciCoklu(el, o);
     var tur = o.tur, file = null;
-    var kabul = tur === 'stl' ? '.stl,.ply,.zip' : '.html,.htm';
+    var kabul = tur === 'stl' ? '.stl,.ply,.zip,.rar' : '.html,.htm';
     var inpId = 'zk3b-inp-' + kimlik().slice(0, 8);
     el.innerHTML =
       '<input id="' + inpId + '" type="file" accept="' + kabul + '" class="hidden">' +
       '<div data-rol="bos">' +
         '<label for="' + inpId + '" class="flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-theme border border-border bg-background text-xs font-bold text-primary">' +
-          '<iconify-icon icon="' + (tur === 'stl' ? 'lucide:box' : 'lucide:file-code') + '" class="text-base"></iconify-icon>' + kacis(o.etiket || (tur === 'stl' ? 'STL / PLY / ZIP dosyası seç' : 'exocad HTML dosyası seç')) +
+          '<iconify-icon icon="' + (tur === 'stl' ? 'lucide:box' : 'lucide:file-code') + '" class="text-base"></iconify-icon>' + kacis(o.etiket || (tur === 'stl' ? 'STL / PLY / ZIP / RAR dosyası seç' : 'exocad HTML dosyası seç')) +
         '</label>' +
-        '<p class="mt-1.5 text-[11px] text-muted-foreground">' + (tur === 'stl' ? 'Tarama / model dosyası (.stl, .ply) ya da paket (.zip), en fazla 50 MB.' : 'exocad webview çıktısı (.html), en fazla 50 MB.') + '</p>' +
+        '<p class="mt-1.5 text-[11px] text-muted-foreground">' + (tur === 'stl' ? 'Tarama / model dosyası (.stl, .ply) ya da paket (.zip, .rar), en fazla 50 MB.' : 'exocad webview çıktısı (.html), en fazla 50 MB.') + '</p>' +
       '</div>' +
       '<div data-rol="dolu" class="hidden flex items-center gap-2.5 rounded-theme border border-border bg-background px-3 py-2.5">' +
         '<iconify-icon icon="' + (tur === 'stl' ? 'lucide:box' : 'lucide:file-code') + '" class="shrink-0 text-lg text-primary"></iconify-icon>' +
@@ -558,7 +560,7 @@
       dolu.classList.toggle('hidden', !file);
       if (file) {
         el.querySelector('[data-rol="ad"]').textContent = file.name;
-        el.querySelector('[data-rol="boyut"]').textContent = boyut(file.size) + (tur === 'stl' && uzanti(file.name) !== 'zip' ? ' · yüklenirken küçültülür' : '');
+        el.querySelector('[data-rol="boyut"]').textContent = boyut(file.size) + (tur === 'stl' && !paketMi(file.name) ? ' · yüklenirken küçültülür' : '');
       }
       if (o.degisti) o.degisti(file);
     }
@@ -611,7 +613,7 @@
       var rozet = html ? (s.sent_to_doctor_at
         ? '<span class="shrink-0 whitespace-nowrap rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-secondary-foreground">Doktora gönderildi</span>'
         : '<span class="shrink-0 whitespace-nowrap rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-accent">Doktora gönderilmedi</span>') : '';
-      // ZIP'in içi açılıp gösterilmez: "3B göster" yok, yalnız İndir (her sayfada indirme eylemi bulunduğundan yetki.indir kapalı olsa da çıkar).
+      // ZIP / RAR'ın içi açılıp gösterilmez: "3B göster" yok, yalnız İndir (her sayfada indirme eylemi bulunduğundan yetki.indir kapalı olsa da çıkar).
       var dugmeler = zip ? '' : '<a href="' + gosterUrl(s, geri) + '" class="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-theme bg-primary text-xs font-bold text-primary-foreground"><iconify-icon icon="lucide:rotate-3d" class="text-sm"></iconify-icon>3B göster</a>';
       if (yetki.indir || zip) dugmeler += '<button type="button" data-3b-eylem="indir" data-3b-id="' + s.id + '" class="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-theme border border-border bg-background text-xs font-bold text-primary"><iconify-icon icon="lucide:download" class="text-sm"></iconify-icon>İndir</button>';
       var gonderSatiri = '';
@@ -620,7 +622,7 @@
       return '<div class="rounded-theme border border-border bg-background px-3 py-2.5">' +
         '<div class="flex items-center gap-2.5">' +
           '<iconify-icon icon="' + (stl ? 'lucide:box' : (zip ? 'lucide:file-archive' : 'lucide:file-code')) + '" class="shrink-0 text-lg text-primary"></iconify-icon>' +
-          '<div class="min-w-0 flex-1"><p class="break-words text-sm font-bold">' + kacis(zip ? 'ZIP Paketi' : (stl ? (uzanti(s.file_name) === 'ply' ? 'PLY Tarama' : 'STL Tarama') : 'HTML Tarama')) + ' <span class="font-normal text-muted-foreground">· ' + kacis(s.file_name) + '</span></p>' +
+          '<div class="min-w-0 flex-1"><p class="break-words text-sm font-bold">' + kacis(zip ? (uzanti(s.file_name) === 'rar' ? 'RAR Paketi' : 'ZIP Paketi') : (stl ? (uzanti(s.file_name) === 'ply' ? 'PLY Tarama' : 'STL Tarama') : 'HTML Tarama')) + ' <span class="font-normal text-muted-foreground">· ' + kacis(s.file_name) + '</span></p>' +
           '<p class="mt-0.5 text-[11px] text-muted-foreground">' + kacis(alt) + '</p></div>' + rozet +
         '</div>' +
         '<div class="mt-2.5 flex gap-2">' + dugmeler + '</div>' + gonderSatiri +

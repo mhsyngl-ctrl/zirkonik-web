@@ -1421,7 +1421,7 @@
       var secim = document.getElementById('dosya-3b-secim');
       var dugmeler = [];
       // Tek düğme (4.3, native ile aynı): dosya türü seçilen dosyanın uzantısından anlaşılır.
-      if (y.htmlYukle || y.stlEkle) dugmeler.push('<button type="button" onclick="zk3BHepsiSec()" class="flex h-11 w-full items-center justify-center gap-1.5 rounded-theme border border-border bg-background text-xs font-bold text-primary"><iconify-icon icon="lucide:upload" class="text-base"></iconify-icon>' + (y.stlEkle && y.htmlYukle ? 'STL / PLY / ZIP / HTML ekle' : (y.stlEkle ? 'STL / PLY / ZIP ekle' : 'HTML ekle')) + '</button>');
+      if (y.htmlYukle || y.stlEkle) dugmeler.push('<button type="button" onclick="zk3BHepsiSec()" class="flex h-11 w-full items-center justify-center gap-1.5 rounded-theme border border-border bg-background text-xs font-bold text-primary"><iconify-icon icon="lucide:upload" class="text-base"></iconify-icon>' + (y.stlEkle && y.htmlYukle ? 'STL / PLY / ZIP / RAR / HTML ekle' : (y.stlEkle ? 'STL / PLY / ZIP / RAR ekle' : 'HTML ekle')) + '</button>');
       secim.innerHTML = dugmeler.length ? '<div class="flex gap-2">' + dugmeler.join('') + '</div>' : '';
       secim.classList.toggle('hidden', !dugmeler.length || !!dosya3B.tur);
       document.getElementById('dosya-3b-yukle').classList.toggle('hidden', !dosya3B.tur);
@@ -1430,7 +1430,7 @@
 
     function zk3BSec(tur) {
       dosya3B.tur = tur;
-      document.getElementById('dosya-3b-yukle-baslik').textContent = tur === 'html' ? 'exocad tasarım dosyası (HTML)' : 'STL / PLY / ZIP dosyası';
+      document.getElementById('dosya-3b-yukle-baslik').textContent = tur === 'html' ? 'exocad tasarım dosyası (HTML)' : 'STL / PLY / ZIP / RAR dosyası';
       document.getElementById('dosya-3b-ilerleme').classList.add('hidden');
       dosya3B.secici = ZK3B.secici(document.getElementById('dosya-3b-secici'), {
         tur: tur,
@@ -1444,11 +1444,11 @@
       });
       ciz3B();
     }
-    // Tek "ekle" düğmesi: .stl/.ply/.zip → STL kolu (ZIP kendiliğinden 'zip' türü olur), .html/.htm → exocad HTML. Tanınmayan ya da yetkisiz dosya yüklenmez, hata görünür.
+    // Tek "ekle" düğmesi: .stl/.ply/.zip/.rar → STL kolu (ZIP / RAR kendiliğinden 'zip' türü olur), .html/.htm → exocad HTML. Tanınmayan ya da yetkisiz dosya yüklenmez, hata görünür.
     function zk3BHepsiSec() {
       if (dosya3B.yukleniyor) return;
       var inp = document.createElement('input');
-      inp.type = 'file'; inp.multiple = true; inp.accept = '.stl,.ply,.zip,.html,.htm'; inp.style.display = 'none';
+      inp.type = 'file'; inp.multiple = true; inp.accept = '.stl,.ply,.zip,.rar,.html,.htm'; inp.style.display = 'none';
       document.body.appendChild(inp);
       inp.addEventListener('change', function () {
         var f = [].slice.call(inp.files || []);
@@ -1460,11 +1460,11 @@
     function zk3BHepsiYukle(dosyalar) {
       var y = dosya3B.yetki, hataEl = document.getElementById('dosya-3b-hata');
       function uz(f) { return (String(f.name).split('.').pop() || '').toLowerCase(); }
-      var stl = dosyalar.filter(function (f) { return uz(f) === 'stl' || uz(f) === 'ply' || uz(f) === 'zip'; });
+      var stl = dosyalar.filter(function (f) { return uz(f) === 'stl' || uz(f) === 'ply' || uz(f) === 'zip' || uz(f) === 'rar'; });
       var html = dosyalar.filter(function (f) { return uz(f) === 'html' || uz(f) === 'htm'; });
       var hata = null;
-      if (stl.length + html.length !== dosyalar.length) hata = 'STL, PLY, ZIP ya da HTML dosyası seçin (.stl, .ply, .zip, .html).';
-      else if (stl.length && !y.stlEkle) hata = 'STL / PLY / ZIP ekleme yetkiniz yok.';
+      if (stl.length + html.length !== dosyalar.length) hata = 'STL, PLY, ZIP, RAR ya da HTML dosyası seçin (.stl, .ply, .zip, .rar, .html).';
+      else if (stl.length && !y.stlEkle) hata = 'STL / PLY / ZIP / RAR ekleme yetkiniz yok.';
       else if (html.length && !y.htmlYukle) hata = 'HTML ekleme yetkiniz yok.';
       else if (html.length > 1) hata = 'Tek seferde bir exocad HTML dosyası seçin.';
       if (hata) { hataEl.textContent = hata; hataEl.classList.remove('hidden'); return; }
