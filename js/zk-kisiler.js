@@ -1,14 +1,13 @@
 /* Kişi adları (H: hasta · Dr. doktor · Dt. teknisyen) — iş kartı NEREDE varsa laboratuvar ayarıyla gelir.
    10 Kasım 2026 (sahibinin kararı): ayar (laboratories.show_people_on_job_cards) yalnız İşler sayfasında değil, iş kartının çıktığı her yerde geçerli.
    Kullanım (sayfa): <script src="js/zk-kisiler.js"> → sayfa açılışında bir kez ZKKisiler.hazir(yenidenCiz);
-   kart çizerken: ZKKisiler.kartSatirlari(is, isKimligi) → ayar açıksa '<p>…</p>' satırları, kapalıysa ''; ZKKisiler.acik(is.laboratory_id).
-   Teknisyen adları ayrı sorguyla gelir: çizimden sonra ZKKisiler.teknisyenleriYukle([isKimlikleri], yenidenCiz).
+   kart çizerken: ZKKisiler.kartSatirlari(is) → ayar açıksa '<p>…</p>' satırları, kapalıysa ''; ZKKisiler.acik(is.laboratory_id).
+   Teknisyen adı iş satırıyla AYNI sorguda gelir: iş seçimine `zk_son_teknisyen` eklenir (SQL 20261110120000; hesaplanan sütun, ayar kapalıysa ya da erişim yoksa boş döner) — gecikmesiz ve odadan bağımsız.
    'select *': sütun SQL'den önce istenmesin (yoksa ayar kapalı sayılır). Ayar geç gelirse hazir(fn) kartları yeniden çizdirir (İşler'deki "ad çıkmadı" hatası). */
 (function (g) {
   'use strict';
   var ayar = {};            // laboratuvar kimliği → ayar açık mı
   var hazirMi = false, istendi = false, bekleyen = [];
-  var tekn = {};            // iş kimliği → son işleyen çalışanın adı ('' = yok ya da sorulmadı)
   var KES = 'display:inline-block;max-width:min(100%,22rem);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom';
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -41,24 +40,8 @@
     },
     acik: function (laboratuvarId) { return hazirMi && !!laboratuvarId && ayar[laboratuvarId] === true; },
     unvanli: unvanli,
-    teknisyen: function (isId) { return tekn[isId] || ''; },
-    /* Ayarı açık laboratuvarların işleri için "son işleyen çalışan" (aşama geçmişindeki en son handled_by); tek sorgu. Yeni ad geldiyse bitince() çağrılır. */
-    teknisyenleriYukle: function (isKimlikleri, bitince) {
-      var c = istemci();
-      var yeni = (isKimlikleri || []).filter(function (id, i, a) { return id && !(id in tekn) && a.indexOf(id) === i; });
-      if (!c || !yeni.length) return;
-      yeni.forEach(function (id) { tekn[id] = ''; });   // aynı işi iki kez isteme
-      c.from('job_stage_history').select('job_id, handled_by, entered_at, app_users:handled_by(full_name)')
-        .in('job_id', yeni).order('entered_at', { ascending: false }).then(function (r) {
-          var gorulen = {}, yeniAd = false;
-          (r.data || []).forEach(function (h) {
-            if (!gorulen[h.job_id] && h.handled_by && h.app_users && h.app_users.full_name) { gorulen[h.job_id] = true; tekn[h.job_id] = h.app_users.full_name; yeniAd = true; }
-          });
-          if (yeniAd && bitince) bitince();
-        });
-    },
-    /* Kartın kişi satırları (ayar açıksa): 1) H: hasta (kalın)  2) Dr. doktor · Dt. teknisyen. İş: { laboratory_id, patient_name, doctors:{full_name, kind} }. */
-    kartSatirlari: function (j, isId) {
+    /* Kartın kişi satırları (ayar açıksa): 1) H: hasta (kalın)  2) Dr. doktor · Dt. teknisyen. İş: { laboratory_id, patient_name, zk_son_teknisyen, doctors:{full_name, kind} }. */
+    kartSatirlari: function (j) {
       if (!j || !g.ZKKisiler.acik(j.laboratory_id)) return '';
       var cikti = '';
       if (j.patient_name) cikti += '<p class="mt-0.5 text-[11px] text-muted-foreground"><span style="' + KES + '">H: <b class="font-bold text-card-foreground">' + esc(j.patient_name) + '</b></span></p>';
@@ -67,7 +50,7 @@
         var ad = (j.doctors.kind === 'laborator' && g.ZirkonikData && g.ZirkonikData.musteriAdi) ? g.ZirkonikData.musteriAdi(j.doctors) : unvanli('Dr.', j.doctors.full_name);
         e.push('<span style="' + KES + '">' + esc(ad) + '</span>');
       }
-      if (tekn[isId]) e.push('<span style="' + KES + '">' + esc(unvanli('Dt.', tekn[isId])) + '</span>');
+      if (j.zk_son_teknisyen) e.push('<span style="' + KES + '">' + esc(unvanli('Dt.', j.zk_son_teknisyen)) + '</span>');
       if (e.length) cikti += '<p class="mt-0.5 text-[11px] text-muted-foreground" style="display:flex;flex-wrap:wrap;align-items:baseline;column-gap:14px;row-gap:1px">' + e.join('') + '</p>';
       return cikti;
     }

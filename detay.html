@@ -735,17 +735,15 @@
       if (kisiAyari !== null || !j.laboratory_id) return;
       kisiAyari = false;       // aynı işi iki kez isteme; cevap gelince güncellenir
       var client = ZirkonikAuth.client();
-      client.from('laboratories').select('*').eq('id', j.laboratory_id).maybeSingle().then(function (r) {
+      // Ayar ile teknisyen adı PARALEL gelir (eskiden art arda iki istekti). Ad hesaplanan sütundan (zk_son_teknisyen): odadan bağımsız, ayar kapalıysa boş.
+      Promise.all([
+        client.from('laboratories').select('*').eq('id', j.laboratory_id).maybeSingle(),
+        client.from('jobs').select('zk_son_teknisyen').eq('id', jobId).maybeSingle()
+      ]).then(function (res) {
+        var r = res[0], t = res[1];
         if (!(r.data && r.data.show_people_on_job_cards === true)) return;
         kisiAyari = true;
-        client.from('job_stage_history').select('handled_by, entered_at, app_users:handled_by(full_name)')
-          .eq('job_id', jobId).order('entered_at', { ascending: false }).then(function (h) {
-            (h.data || []).some(function (x) {
-              if (x.handled_by && x.app_users && x.app_users.full_name) { kisiTeknisyen = x.app_users.full_name; return true; }
-              return false;
-            });
-            if (currentJob) kisiSatirlari(currentJob);
-          });
+        kisiTeknisyen = (t && t.data && t.data.zk_son_teknisyen) || '';
         if (currentJob) kisiSatirlari(currentJob);
       });
     }

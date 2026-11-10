@@ -796,7 +796,7 @@
       var fiyatli = includePrice !== false;
       var cols = fiyatli ? '*, job_item_prices(price, currency)' : Data.ITEM_COLS_NO_PRICE;
       var q = client().from('job_items')
-        .select(cols + ', jobs!inner(id, job_number, laboratory_id, doctor_id, is_priority, requested_delivery_at, patient_name, clinic_protocol_no, status, doctors(full_name))')
+        .select(cols + ', jobs!inner(id, job_number, laboratory_id, doctor_id, is_priority, requested_delivery_at, patient_name, zk_son_teknisyen, clinic_protocol_no, status, doctors(full_name, kind))')
         .eq('status', 'active').eq('jobs.status', 'active');
       if (laboratoryId) q = q.eq('jobs.laboratory_id', laboratoryId);
       if (!fiyatli) return q;

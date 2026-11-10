@@ -1053,7 +1053,7 @@
         return Promise.all([
           client.from('rooms').select('id, name'),
           client.from('job_stage_history')
-            .select('job_id, room_id, entered_at, jobs(job_number, restoration_type, laboratory_id, patient_name, doctors(full_name, kind))')
+            .select('job_id, room_id, entered_at, jobs(job_number, restoration_type, laboratory_id, patient_name, zk_son_teknisyen, doctors(full_name, kind))')
             .is('confirmed_at', null).is('exited_at', null),
           client.from('user_room_access').select('room_id')
         ]).then(function (res) {
@@ -1069,7 +1069,6 @@
         section.classList.remove('hidden');
         zkAcceptRows = rows; zkAcceptRoomName = roomName;
         zkCizAccept();
-        ZKKisiler.teknisyenleriYukle(rows.filter(function (s) { return ZKKisiler.acik(s.jobs.laboratory_id); }).map(function (s) { return s.job_id; }), zkCizAccept);
         });
       });
     }
@@ -1081,7 +1080,7 @@
       document.getElementById('accept-list').innerHTML = rows.map(function (s) {
           return '<button onclick="location.href=\'detay.html?id=' + s.job_id + '\'" class="flex w-full items-center justify-between gap-3 rounded-theme border border-border bg-card p-3 text-left">' +
             '<div class="min-w-0"><p class="text-xs font-bold">' + escapeHtml(s.jobs.job_number || '') + '</p>' +
-            '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + escapeHtml(roomName[s.room_id]) + (s.jobs.restoration_type ? ' · ' + escapeHtml(s.jobs.restoration_type) : '') + '</p>' + ZKKisiler.kartSatirlari(s.jobs, s.job_id) + '</div>' +
+            '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + escapeHtml(roomName[s.room_id]) + (s.jobs.restoration_type ? ' · ' + escapeHtml(s.jobs.restoration_type) : '') + '</p>' + ZKKisiler.kartSatirlari(s.jobs) + '</div>' +
             '<span class="flex shrink-0 items-center gap-1 rounded-lg bg-primary px-2.5 py-1.5 text-[11px] font-bold text-primary-foreground"><iconify-icon icon="lucide:hand" class="text-xs"></iconify-icon>Teslim Al</span>' +
             '</button>';
       }).join('');
@@ -1320,6 +1319,7 @@
             is_priority: p.is_priority,
             requested_delivery_at: p.requested_delivery_at,
             laboratory_id: p.laboratory_id,
+            zk_son_teknisyen: p.zk_son_teknisyen,
             patient_name: p.patient_name,
             clinic_protocol_no: p.clinic_protocol_no,
             doctors: p.doctors
@@ -1432,8 +1432,6 @@
       // Seçili istasyonun işleri
       var sel = hiveSections[hiveSelectedIdx];
       var selJobs = hiveJobs.filter(function (j) { return hiveJobInSection(j, sel); });
-      // Kişi adları (laboratuvar ayarı açıksa): teknisyen adları ayrı sorguyla gelir, gelince kartlar yeniden çizilir.
-      ZKKisiler.teknisyenleriYukle(selJobs.filter(function (j) { return ZKKisiler.acik(j.laboratory_id); }).map(function (j) { return j.job_id; }), renderHive);
       var jobsHtml;
       if (!selJobs.length) {
         jobsHtml = '<p class="mt-3 rounded-theme border border-border bg-card p-3.5 text-center text-xs text-muted-foreground">' + escapeHtml(sel.name) + ' istasyonunda aktif iş yok.</p>';
@@ -1461,7 +1459,7 @@
               // Hasta adı: giriş formunda toplanıyordu ama uygulamada hiçbir
               // ekran okumuyordu — teknisyen elindeki işin hangi hastaya ait
               // olduğunu göremiyordu. Ad yoksa protokol numarasına düşülür.
-              (ZKKisiler.acik(j.laboratory_id) ? ZKKisiler.kartSatirlari(j, j.job_id) : (function () {
+              (ZKKisiler.acik(j.laboratory_id) ? ZKKisiler.kartSatirlari(j) : (function () {
                 var hasta = j.patient_name || j.clinic_protocol_no || '';
                 var doktor = j.doctors ? j.doctors.full_name : '';
                 var alt = hasta && doktor ? hasta + ' · ' + doktor : (hasta || doktor);
@@ -1521,7 +1519,7 @@
 
     function loadCompletedList(lab, el) {
       var client = ZirkonikAuth.client();
-      client.from('jobs').select('id, job_number, restoration_type, completed_at, laboratory_id, patient_name, doctors(full_name, kind)')
+      client.from('jobs').select('id, job_number, restoration_type, completed_at, laboratory_id, patient_name, zk_son_teknisyen, doctors(full_name, kind)')
         .eq('laboratory_id', lab.id).eq('status', 'completed')
         .order('completed_at', { ascending: false }).limit(50)
         .then(function (r) {
@@ -1534,7 +1532,6 @@
           zkCompletedJobs = jobs; zkCompletedEl = el;
           zkCizCompleted();
           if (window.zkFlow) window.zkFlow.stagger(el.querySelector('.divide-y'));
-          ZKKisiler.teknisyenleriYukle(jobs.filter(function (j) { return ZKKisiler.acik(j.laboratory_id); }).map(function (j) { return j.id; }), zkCizCompleted);
         });
     }
     // Tamamlananlar kartları: kişi adları ayar/teknisyen adı geç gelince yeniden çizilebilsin diye ayrı işlev.
@@ -1545,7 +1542,7 @@
       el.innerHTML = '<div class="divide-y divide-border rounded-theme border border-border bg-card">' + jobs.map(function (j) {
         var kisi = ZKKisiler.acik(j.laboratory_id);
         return '<button onclick="location.href=\'detay.html?id=' + j.id + '\'" class="flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left">' +
-          '<div class="min-w-0"><p class="text-xs font-bold">' + escapeHtml(j.job_number) + '</p>' + ZKKisiler.kartSatirlari(j, j.id) +
+          '<div class="min-w-0"><p class="text-xs font-bold">' + escapeHtml(j.job_number) + '</p>' + ZKKisiler.kartSatirlari(j) +
           '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + escapeHtml(j.restoration_type || '') + (!kisi && j.doctors ? ' · ' + escapeHtml(j.doctors.full_name) : '') + '</p></div>' +
           '<span class="shrink-0 text-[10px] font-semibold text-success">' + (j.completed_at ? new Date(j.completed_at).toLocaleDateString('tr-TR') : '') + '</span>' +
           '</button>';

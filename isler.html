@@ -200,23 +200,10 @@
     var currentJobs = [];
     // 5 Kasım 2026 (sahibinin isteği): laboratuvar ayarı açıksa iş kartında numaranın yanında hasta, doktor ve işi yapan teknisyen adı görünür.
     var labKisiAyari = {};        // laboratuvar kimliği → ayar açık mı
-    var teknisyenOnbellek = {};   // iş kimliği → son işleyen çalışanın adı ('' = yok); yalnız ayarı açık laboratuvarların işleri için sorulur
     function kisiGoster(j) { return labKisiAyari[j.laboratory_id] === true; }
     // Kısaltmalar: H: hasta · Dr. doktor · Dt. teknisyen. Adın içinde zaten "Dr."/"Dt." varsa ("Uzman Diş Hekimi Dr. Çınar…") ikinci kez eklenmez.
     function unvanli(unvan, ad) { return /(^|\s)(dr|dt)\.?(\s|$)/i.test(ad) ? ad : unvan + ' ' + ad; }
-    function teknisyenleriYukle(isler) {
-      var yeni = isler.filter(function (j) { return kisiGoster(j) && !(j.id in teknisyenOnbellek); }).map(function (j) { return j.id; });
-      if (!yeni.length) return;
-      yeni.forEach(function (id) { teknisyenOnbellek[id] = ''; });   // aynı işi iki kez isteme
-      ZirkonikAuth.client().from('job_stage_history').select('job_id, handled_by, entered_at, app_users:handled_by(full_name)')
-        .in('job_id', yeni).order('entered_at', { ascending: false }).then(function (r) {
-          var gorulen = {};
-          (r.data || []).forEach(function (h) {
-            if (!gorulen[h.job_id] && h.handled_by && h.app_users && h.app_users.full_name) { gorulen[h.job_id] = true; teknisyenOnbellek[h.job_id] = h.app_users.full_name; }
-          });
-          renderJobs();
-        });
-    }
+    // Teknisyen adı iş satırıyla AYNI sorguda gelir (zk_son_teknisyen, SQL 20261110120000): gecikmesiz ve işin hangi odada olduğundan bağımsız.
 
     function zkSetTab(tab) {
       currentTab = tab;
@@ -315,7 +302,7 @@
             currentJobs = []; renderJobs(); return;
           }
           var q = client.from('jobs')
-            .select('id, job_number, restoration_type, unit_count, status, created_at, completed_at, requested_delivery_at, doctors(full_name, clinic_name, kind), laboratories(name), laboratory_id, patient_name', { count: 'exact' })
+            .select('id, job_number, restoration_type, unit_count, status, created_at, completed_at, requested_delivery_at, doctors(full_name, clinic_name, kind), laboratories(name), laboratory_id, patient_name, zk_son_teknisyen', { count: 'exact' })
             .eq('status', currentTab);
           if (labId) q = q.eq('laboratory_id', labId);
           if (doctorId) q = q.eq('doctor_id', doctorId);
@@ -368,7 +355,6 @@
         el.innerHTML = '<p class="p-4 text-center text-xs text-muted-foreground">Bu filtrelerle eşleşen iş yok.</p>';
         return;
       }
-      teknisyenleriYukle(currentJobs);
       el.innerHTML = currentJobs.map(function (j) {
         var kisi = kisiGoster(j), meta = '', ekip = '';
         if (kisi) {
@@ -379,7 +365,7 @@
           if (j.patient_name) p.push('<span style="' + kes + '">H: <b class="font-bold text-card-foreground">' + escapeHtml(j.patient_name) + '</b></span>');
           // Doktor ve teknisyen BİR ALT SATIRDA (sahibinin isteği): ilk satırda yalnız numara + hasta.
           if (j.doctors && j.doctors.full_name) e.push('<span style="' + kes + '">' + escapeHtml(j.doctors.kind === 'laborator' ? ZirkonikData.musteriAdi(j.doctors) : unvanli('Dr.', j.doctors.full_name)) + '</span>');
-          if (teknisyenOnbellek[j.id]) e.push('<span style="' + kes + '">' + escapeHtml(unvanli('Dt.', teknisyenOnbellek[j.id])) + '</span>');
+          if (j.zk_son_teknisyen) e.push('<span style="' + kes + '">' + escapeHtml(unvanli('Dt.', j.zk_son_teknisyen)) + '</span>');
           meta = p.join('<span aria-hidden="true">·</span>');
           ekip = e.join('');   // ayraç yok: satır kırılınca sonda yalnız '·' kalmasın; boşluk 14px
         }
