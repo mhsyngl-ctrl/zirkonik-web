@@ -236,6 +236,8 @@
           opt.value = l.id; opt.textContent = l.name;
           sel.appendChild(opt);
         });
+        // 10 Kasım 2026 (Ordent bulgusu): iş listesi bu ayardan ÖNCE gelmiş olabilir (yavaş ağda); adsız çizilen liste ayar gelince yeniden çizilir.
+        if (currentJobs.length) renderJobs();
       });
       client.from('doctors').select('id, full_name, clinic_name').eq('status', 'approved').eq('pipeline_stage', 'aktif').order('full_name').then(function (r) {
         var sel = document.getElementById('f-doctor');
