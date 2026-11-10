@@ -43,7 +43,7 @@
   }
 
   // Hata günlüğünde görünen uygulama sürümü; Xcode MARKETING_VERSION (2.2) ile elle aynı tutulur.
-  var ZK_APP_VERSION = '4.9';   // hata günlüğündeki sürüm etiketi — her mağaza sürümünde güncelle
+  var ZK_APP_VERSION = '5.0';   // hata günlüğündeki sürüm etiketi — her mağaza sürümünde güncelle
 
   function client() {
     if (!_client) {
@@ -1958,7 +1958,12 @@
     });
   };
   setTimeout(function () { window.zkDilEsle(); }, 1500);
-  window.zkIzinAcik = function (me) { var o = me && (me.organizations || me.organization); var c = o && o.country; return !c || String(c).toUpperCase() === 'TR'; };
+  // İzin özelliği: yalnız Türkiye bölge ayarında (7 Kasım) VE YALNIZ Plus pakette (10 Kasım, Murat: "izin tamamen ve sadece Plus'ta"; 'tek' paket de kapalı). Plan bilinmiyorsa açık kalır; asıl kapı sunucuda (zk_izin_acik).
+  window.zkIzinAcik = function (me) {
+    var o = me && (me.organizations || me.organization), c = o && o.country, p = o && o.plan;
+    if (c && String(c).toUpperCase() !== 'TR') return false;
+    return !(p && p !== 'plus');
+  };
   // 8 Kasım 2026 (Murat): KDV oranı SERBEST — laboratuvar geneli (Profil › KDV oranı) + doktor başına (doktor kartı, Fiyat listesi › doktora özel). Oran 0 = faturasız; boş = laboratuvarı izle.
   window.ZkKdv = {
     varsayilan: function (ulke) { return String(ulke || 'TR').toUpperCase() === 'TR' ? 10 : 0; },

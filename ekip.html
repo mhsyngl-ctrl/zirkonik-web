@@ -304,7 +304,7 @@
         </div>
         <input id="ns-phone" type="tel" placeholder="Telefon" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         <label class="block">
-          <span class="mb-1.5 block text-xs font-bold text-card-foreground">İşe giriş tarihi (yıllık izin hakkı bundan hesaplanır)</span>
+          <span id="ns-hire-etiket" class="mb-1.5 block text-xs font-bold text-card-foreground">İşe giriş tarihi (yıllık izin hakkı bundan hesaplanır)</span>
           <input id="ns-hire" type="date" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         </label>
         <div>
@@ -498,6 +498,8 @@
       if (!session) return;
       loadTeam();
       ZirkonikAuth.me().then(function (me) {
+        // İzin Plus pakette: izin kapalıyken işe giriş tarihi etiketi izinden söz etmez (tarih maaş kıstı için kalır).
+        if (window.zkIzinAcik && !zkIzinAcik(me)) { var he = document.getElementById('ns-hire-etiket'); if (he) he.textContent = 'İşe giriş tarihi'; }
         var lider = !!(me && me.role === 'personel' && me.position === 'Lider Teknisyen');
         if (lider !== zkLiderBakis) { zkLiderBakis = lider; loadTeam(); }
         if (lider) {
