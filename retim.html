@@ -529,7 +529,16 @@
       // Alacak: sunucuda kesin toplam (zk_finans_ozet.bekleyen — kısmi ödemeler
       // düşülmüş, para birimi başına ayrı). Eskiden açık faturalar + ödemeleri
       // indirilip JS'te toplanıyordu (1000 satırda sessiz kesinti).
-      var financePromise = client.rpc('zk_finans_ozet').then(function (r) { return (r && r.data) || {}; });
+      // 12 Kasım 2026 (performans taraması): «Bekleyen tahsilat» kartı Lider ve finans yetkisiz personelde GİZLİ (zk-guard-core.js);
+      // gizli kartın verisi için 200-300 ms sunucu işi harcanmaz (Ordent Lider açılışında ölçüldü). Kimlik okunamazsa eskisi gibi istenir.
+      var financePromise = ZirkonikAuth.me().catch(function () { return null; }).then(function (me) {
+        if (me && me.role === 'personel') {
+          var p = me.user_permissions || {};
+          if (Object.prototype.toString.call(p) === '[object Array]') p = p[0] || {};
+          if (me.position === 'Lider Teknisyen' || (me.position !== 'Muhasebeci' && !p.can_view_finance)) return {};
+        }
+        return client.rpc('zk_finans_ozet').then(function (r) { return (r && r.data) || {}; });
+      });
 
       Promise.all([
         client.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'active'),
