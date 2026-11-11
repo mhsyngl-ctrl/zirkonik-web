@@ -24,6 +24,9 @@
   <link rel="stylesheet" href="css/fonts.css">
 
   <style>
+    /* Çalışma süreleri yer tutucusu (11 Kasım 2026): sonradan beliren bölüm yok; rakam alanları soluk kutu olarak durur, veri gelince yerinde dolar. */
+    @keyframes zkIskeletNabiz { 0%, 100% { opacity: .55 } 50% { opacity: 1 } }
+    .zk-iskelet { background: var(--color-muted); border-radius: 12px; animation: zkIskeletNabiz 1.1s ease-in-out infinite }
   :root {
     --color-background: #0E1013;
     --color-foreground: #F2F4F7;
@@ -139,7 +142,7 @@
           </svg>
           <p class="mt-1 text-[11px] text-muted-foreground">Tamamlanan üretim aşaması sayısına göre sıralı (teslim alıp onaylanan işler)</p>
           <div id="team-performance-list" class="mt-2 space-y-2">
-            <p class="text-xs text-muted-foreground">Yükleniyor…</p>
+            <div class="zk-iskelet" style="height:120px"></div><div class="zk-iskelet" style="height:120px"></div>
           </div>
 
           <h3 class="mb-1 mt-4 text-sm font-bold text-foreground">Sipariş performansı — kim aldı</h3>
@@ -148,7 +151,7 @@
             <g id="tp-order-chart-bars"></g>
           </svg>
           <div id="tp-order-list" class="mt-2 space-y-2">
-            <p class="text-xs text-muted-foreground">Yükleniyor…</p>
+            <div class="zk-iskelet" style="height:48px"></div><div class="zk-iskelet" style="height:48px"></div>
           </div>
 
           <!-- 13 Ekim 2026, sahibinin isteği: pazarlamacının performansı da diğer personel gibi
@@ -160,7 +163,7 @@
               <g id="tp-mkt-chart-bars"></g>
             </svg>
             <div id="tp-mkt-list" class="mt-2 space-y-2">
-              <p class="text-xs text-muted-foreground">Yükleniyor…</p>
+              <div class="zk-iskelet" style="height:120px"></div>
             </div>
           </div>
 
@@ -173,6 +176,48 @@
           </svg>
           <div id="tp-progress-legend" class="mt-2 flex flex-wrap gap-3"></div>
         </section>
+
+        <!-- 11 Kasım 2026, sahibinin isteği: kişi/oda bazlı çalışma süresi. YALNIZ yönetici (sunucu is_org_admin ile kapar), ayar (Laboratuvarı düzenle)
+             kapalıyken ya da SQL canlıda değilken hiç görünmez. Süre = "Teslim Al" → "Sonraki aşamaya taşı". Hesap sunucuda (SQL 20261111120000). -->
+        <section id="calisma-sure-section" class="hidden pt-6" style="max-width:720px">
+          <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Sadece işveren ve yönetici görür</p>
+          <h2 class="mt-1 font-heading text-lg font-bold">Çalışma Süreleri</h2>
+          <p id="cs-info" class="mt-1 text-[11px] text-muted-foreground">Son 8 hafta · «Teslim Al»dan «Sonraki aşamaya taşı»ya kadar</p>
+          <div class="mt-3 grid grid-cols-2 gap-2">
+            <select id="cs-oda" onchange="csFiltre()" class="h-11 w-full min-w-0 rounded-theme border border-border bg-input px-3 text-sm" aria-label="Oda"></select>
+            <select id="cs-tur" onchange="csFiltre()" class="h-11 w-full min-w-0 rounded-theme border border-border bg-input px-3 text-sm" aria-label="İş türü"></select>
+          </div>
+          <p id="cs-olcum" class="mt-2 text-[11px] text-muted-foreground"><span class="zk-iskelet" style="display:block;width:60%;height:13px"></span></p>
+
+          <h3 class="mb-1 mt-4 text-sm font-bold text-foreground">Kişiye göre — diş başı dakika (ortanca)</h3>
+          <p class="mb-2 text-[11px] text-muted-foreground">Aynı oda ve aynı iş türünde kişiler yan yana. En az 5 ölçülmüş iş olmadan süre gösterilmez. Kişiye dokununca haftalık çizgisi ve işleri açılır.</p>
+          <div id="cs-kisiler" class="space-y-2"><div class="zk-iskelet" style="height:68px"></div><div class="zk-iskelet" style="height:68px"></div><div class="zk-iskelet" style="height:68px"></div></div>
+
+          <h3 class="mb-1 mt-4 text-sm font-bold text-foreground">Haftalık eğilim</h3>
+          <p class="mb-2 text-[11px] text-muted-foreground">Her nokta o haftanın ortancası. İçi boş nokta: o hafta 3'ten az iş var, rakamı zayıf say.</p>
+          <svg id="cs-grafik" viewBox="0 0 340 160" class="w-full zk-iskelet" style="max-width:560px;display:block" role="img" aria-label="Kişi bazlı haftalık diş başı dakika"></svg>
+          <div id="cs-grafik-lejant" class="mt-2 flex flex-wrap gap-3"></div>
+
+          <h3 class="mb-1 mt-4 text-sm font-bold text-foreground">İş türüne göre toplam süre</h3>
+          <p class="mb-2 text-[11px] text-muted-foreground">Ortanca değerler. Çalışma süresine yalnız tüm odaları ölçülmüş işler girer; bekleme, çalışma dışında geçen süredir (odalar arası, gece, hafta sonu).</p>
+          <div id="cs-toplam" class="space-y-2"><div class="zk-iskelet" style="height:150px"></div></div>
+        </section>
+
+        <div id="cs-kisi-sheet" class="fixed inset-0 z-40 hidden">
+          <div class="absolute inset-0 bg-black/40" onclick="csKisiKapat()"></div>
+          <div class="absolute bottom-0 left-0 w-full overflow-y-auto rounded-t-theme bg-card p-5 pb-8" style="max-height:85%">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <p id="cs-kisi-baslik" class="truncate font-heading text-base font-extrabold">—</p>
+                <p id="cs-kisi-alt" class="text-[11px] text-muted-foreground"></p>
+              </div>
+              <button type="button" onclick="csKisiKapat()" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-theme border border-border bg-input" aria-label="Kapat"><iconify-icon icon="lucide:x" class="text-base"></iconify-icon></button>
+            </div>
+            <svg id="cs-kisi-grafik" viewBox="0 0 340 160" class="mt-3 w-full" style="max-width:560px;display:block" role="img" aria-label="Kişinin haftalık diş başı dakikası"></svg>
+            <h3 class="mb-1 mt-3 text-sm font-bold text-foreground">Son işleri</h3>
+            <div id="cs-kisi-isler" class="space-y-2"><p class="text-xs text-muted-foreground">Yükleniyor…</p></div>
+          </div>
+        </div>
 
         <section id="salary-calc-section" class="hidden pt-6">
           <div class="rounded-theme border border-border bg-card p-4">
@@ -521,6 +566,7 @@
           loadTeamPerformance();
           loadMarketingPerformance();
           loadTeamProgress();
+          zkCalismaSureBaslat();
           document.getElementById('salary-calc-section').classList.remove('hidden');
           zkLoadPayrollParams(me);
         }
@@ -983,6 +1029,186 @@
         legendEl.innerHTML = html;
       }
     }
+
+    // ---- Çalışma süreleri (11 Kasım 2026) ----
+    // Tüm hesap sunucuda (zk_calisma_ozet / zk_calisma_isler); burada yalnız çizim. Bölüm, ayar kapalıyken / SQL canlıda değilken / yönetici değilken görünmez.
+    var csSon = null, csSecim = { oda: '', tur: '' }, csKisiSeq = 0;
+    function csFmt(dk) {
+      if (dk == null) return '—';
+      dk = Math.round(Number(dk));
+      if (dk < 60) return dk + ' dk';
+      if (dk < 1440) { var s = Math.floor(dk / 60), m = dk % 60; return s + ' sa' + (m ? ' ' + m + ' dk' : ''); }
+      var g = Math.floor(dk / 1440), sa = Math.round((dk % 1440) / 60);
+      if (sa === 24) { g += 1; sa = 0; }
+      return g + ' gün' + (sa ? ' ' + sa + ' sa' : '');
+    }
+    function csOnd(n) { return Number(n).toLocaleString('tr-TR', { maximumFractionDigits: 1 }); }
+    function csAdetEtiket(a) { return a === 1 ? '1 diş/adet' : a + ' diş'; }
+    function csHaftaAnahtarlari(hafta) {
+      var d0 = new Date(); d0.setUTCHours(0, 0, 0, 0);
+      d0.setUTCDate(d0.getUTCDate() - ((d0.getUTCDay() + 6) % 7));
+      var keys = [];
+      for (var i = hafta; i >= 0; i--) keys.push(new Date(d0.getTime() - i * 7 * 86400000).toISOString().slice(0, 10));
+      return keys;
+    }
+    function csHaftaEtiket(k) { return new Date(k + 'T00:00:00Z').toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', timeZone: 'UTC' }); }
+
+    // Hız hissi kuralı: önce son açılıştaki sonuç (önbellek), arkadan tazele; hiç bilinmiyorsa yer tutucu kutular. Ayarın KAPALI olduğu biliniyorsa bölüm hiç açılmaz.
+    function zkCalismaSureBaslat() {
+      var sec = document.getElementById('calisma-sure-section');
+      if (!sec || !window.ZirkonikData || !ZirkonikData.getCalismaOzet) return;
+      var c = window.ZKHiz && ZKHiz.cachePeek ? ZKHiz.cachePeek('cs_ozet') : null;
+      if (!(c && c.acik === false)) {
+        sec.classList.remove('hidden');
+        if (c && c.acik === true) { csSon = c; csCiz(c); }
+      }
+      zkLoadCalismaSure();
+    }
+    function zkLoadCalismaSure() {
+      var sec = document.getElementById('calisma-sure-section');
+      if (!sec || !window.ZirkonikData || !ZirkonikData.getCalismaOzet) return;
+      var varsayilan = !csSecim.oda && !csSecim.tur;
+      ZirkonikData.getCalismaOzet(csSecim.oda || null, csSecim.tur || null, 8).then(function (res) {
+        if (res.error || !res.data) { if (!csSon) sec.classList.add('hidden'); return; }   // SQL yok / yetki yok: hiç veri gösterilmediyse gizle
+        if (varsayilan && window.ZKHiz && ZKHiz.cachePut) ZKHiz.cachePut('cs_ozet', res.data);
+        if (res.data.acik !== true) { sec.classList.add('hidden'); return; }
+        csSon = res.data;
+        sec.classList.remove('hidden');
+        csCiz(res.data);
+      }, function () { if (!csSon) sec.classList.add('hidden'); });   // bağlantı yok: gösterilmiş veri varsa olduğu gibi kalır
+    }
+    function csFiltre() {
+      csSecim.oda = document.getElementById('cs-oda').value;
+      csSecim.tur = document.getElementById('cs-tur').value;
+      zkLoadCalismaSure();
+    }
+    function csSecenekler(selId, bos, liste, secili) {
+      var sel = document.getElementById(selId), html = '<option value="">' + escapeHtml(bos) + '</option>';
+      liste.forEach(function (o) { html += '<option value="' + escapeHtml(o.v) + '"' + (o.v === secili ? ' selected' : '') + '>' + escapeHtml(o.t) + '</option>'; });
+      sel.innerHTML = html;
+    }
+
+    function csCizgiCiz(svg, lejantEl, etiketler, seriler) {
+      var ns = 'http://www.w3.org/2000/svg', L = 28, R = 330, T = 10, B = 128, n = etiketler.length, mx = 1;
+      svg.classList.remove('zk-iskelet');
+      svg.innerHTML = '';
+      seriler.forEach(function (s) { s.v.forEach(function (x) { if (x != null && x > mx) mx = x; }); });
+      mx = mx * 1.15;
+      function X(i) { return n > 1 ? L + (i / (n - 1)) * (R - L) : (L + R) / 2; }
+      function Y(v) { return B - (v / mx) * (B - T); }
+      function el(tag, a) { var e = document.createElementNS(ns, tag); Object.keys(a).forEach(function (k) { e.setAttribute(k, a[k]); }); svg.appendChild(e); return e; }
+      [0, 0.5, 1].forEach(function (f) {
+        el('line', { x1: L, x2: R, y1: Y(mx * f), y2: Y(mx * f), stroke: 'var(--color-border)', 'stroke-width': 1 });
+        el('text', { x: L - 4, y: Y(mx * f) + 3, 'text-anchor': 'end', 'font-size': 9, fill: 'var(--color-muted-foreground)' }).textContent = Math.round(mx * f);
+      });
+      seriler.forEach(function (s) {
+        var pts = [];
+        s.v.forEach(function (v, i) { if (v != null) pts.push(X(i) + ',' + Y(v)); });
+        if (pts.length > 1) el('polyline', { points: pts.join(' '), fill: 'none', stroke: s.color, 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
+        s.v.forEach(function (v, i) {
+          if (v == null) return;
+          el('circle', { cx: X(i), cy: Y(v), r: 3.5, fill: s.az[i] ? 'var(--color-card)' : s.color, stroke: s.color, 'stroke-width': 1.5 });
+        });
+      });
+      etiketler.forEach(function (lb, i) {
+        el('text', { x: X(i), y: B + 16, 'text-anchor': 'middle', 'font-size': 9, fill: 'var(--color-muted-foreground)' }).textContent = lb;
+      });
+      if (!seriler.length) el('text', { x: 170, y: 70, 'text-anchor': 'middle', 'font-size': 11, fill: 'var(--color-muted-foreground)' }).textContent = 'Henüz yeterli ölçüm yok';
+      if (lejantEl) lejantEl.innerHTML = seriler.map(function (s) {
+        return '<span class="flex items-center gap-1.5 text-[11px] font-semibold text-foreground"><span class="h-2 w-2 rounded-full" style="background:' + escapeHtml(s.color) + '"></span>' + escapeHtml(s.label) + '</span>';
+      }).join('');
+    }
+    function csSeriler(d, kisiler) {
+      var keys = csHaftaAnahtarlari(d.hafta || 8);
+      var seriler = kisiler.map(function (k, i) {
+        var v = keys.map(function () { return null; }), az = keys.map(function () { return false; });
+        (d.haftalik || []).forEach(function (w) {
+          if (w.user_id !== k.user_id) return;
+          var ix = keys.indexOf(String(w.hafta).slice(0, 10));
+          if (ix >= 0) { v[ix] = w.dis_basi_dk; az[ix] = w.is < 3; }
+        });
+        return { label: k.ad, color: tpColorFor(i), v: v, az: az };
+      }).filter(function (s) { return s.v.some(function (x) { return x != null; }); });
+      return { etiketler: keys.map(csHaftaEtiket), seriler: seriler };
+    }
+
+    function csCiz(d) {
+      var odalar = (d.odalar || []).map(function (o) { return { v: o.id, t: o.ad }; });
+      var turler = (d.turler || []).map(function (t) { return { v: t, t: t }; });
+      csSecenekler('cs-oda', 'Tüm odalar', odalar, csSecim.oda);
+      csSecenekler('cs-tur', 'Tüm iş türleri', turler, csSecim.tur);
+      document.getElementById('cs-info').textContent = 'Son ' + (d.hafta || 8) + ' hafta · «Teslim Al»dan «Sonraki aşamaya taşı»ya kadar' +
+        (d.baslangic ? ' · ölçüm ' + new Date(d.baslangic).toLocaleDateString('tr-TR') + ' tarihinden beri' : '');
+      var o = d.olcum || { tam: 0, toplam: 0 };
+      document.getElementById('cs-olcum').textContent = o.toplam
+        ? 'Tamamlanan ' + o.toplam + ' işin ' + o.tam + '’i tüm odalarıyla ölçüldü.'
+        : 'Bu dönemde tamamlanan iş yok.';
+
+      var kis = d.kisiler || [];
+      var kEl = document.getElementById('cs-kisiler');
+      if (!kis.length) {
+        kEl.innerHTML = '<p class="rounded-theme border border-border bg-card p-3 text-xs text-muted-foreground">Henüz ölçülmüş iş yok. Ekip «Teslim Al»a işe başlarken basıp işi bitince taşıdıkça süreler burada birikir. Teslim Al ile taşımanın aynı anda yapıldığı işler «ölçülmedi» sayılır.</p>';
+      } else {
+        kEl.innerHTML = kis.map(function (k, i) {
+          var sag;
+          if (k.dis_basi_dk == null) {
+            sag = '<span class="block text-xs font-bold text-muted-foreground">yetersiz veri</span><span class="block text-[11px] text-muted-foreground">en az 5 iş gerekir</span>';
+          } else {
+            var e = k.ekibe_gore_yuzde, ek = e == null ? '' : (e === 0 ? 'ekip ortancası' : 'ekibe göre %' + Math.abs(e) + (e > 0 ? ' yavaş' : ' hızlı'));
+            var kg = k.kendine_gore_yuzde, ke;
+            if (kg == null) ke = 'önceki dönem için yeterli geçmiş yok';
+            else if (k.yon === 'yavasladi') ke = '<b class="text-accent">yavaşladı: %' + kg + ' ↑</b> (önceki ' + (d.hafta || 8) + ' haftaya göre)';
+            else if (k.yon === 'hizlandi') ke = '<b class="text-primary">hızlandı: %' + Math.abs(kg) + ' ↓</b> (önceki ' + (d.hafta || 8) + ' haftaya göre)';
+            else ke = 'önceki dönemle benzer';
+            sag = '<span class="block text-sm font-extrabold">' + csOnd(k.dis_basi_dk) + ' dk/diş</span><span class="block text-[11px] text-muted-foreground">' + ek + '</span><span class="block text-[11px] text-muted-foreground">' + ke + '</span>';
+          }
+          return '<button type="button" onclick="csKisiAc(' + i + ')" class="flex w-full items-center justify-between gap-3 rounded-theme border border-border bg-card p-3 text-left">' +
+            '<span class="min-w-0"><span class="block truncate text-sm font-bold">' + escapeHtml(k.ad) + '</span><span class="block text-[11px] text-muted-foreground">' + k.is + ' ölçülmüş iş</span></span>' +
+            '<span class="shrink-0 text-right">' + sag + '</span></button>';
+        }).join('');
+      }
+      var enAz5 = kis.filter(function (k) { return k.dis_basi_dk != null; });
+      var sr = csSeriler(d, enAz5);
+      csCizgiCiz(document.getElementById('cs-grafik'), document.getElementById('cs-grafik-lejant'), sr.etiketler, sr.seriler);
+
+      var tp = d.toplam || [];
+      document.getElementById('cs-toplam').innerHTML = tp.length ? tp.map(function (t) {
+        function satir(ad, v) { return '<div class="flex items-baseline justify-between gap-3 py-0.5"><span class="text-xs text-muted-foreground">' + ad + '</span><span class="text-sm font-bold">' + v + '</span></div>'; }
+        return '<div class="rounded-theme border border-border bg-card p-3"><p class="text-sm font-bold">' + escapeHtml(t.tur) + ' · ' + csAdetEtiket(t.adet) + ' <span class="text-[11px] font-normal text-muted-foreground">(' + t.is + ' iş)</span></p>' +
+          satir('Toplam çalışma süresi', t.tam > 0 ? csFmt(t.calisma_dk) : '—') +
+          satir('Bekleme (çalışma dışı)', t.tam > 0 ? csFmt(t.bekleme_dk) : '—') +
+          satir('Baştan sona geçen süre', csFmt(t.bastan_sona_dk)) +
+          satir('Diş başı toplam çalışma', t.tam > 0 ? csOnd(t.dis_basi_calisma_dk) + ' dk' : '—') +
+          '<p class="mt-1 text-[11px] text-muted-foreground">' + t.is + ' işin ' + t.tam + '’i tüm odalarıyla ölçüldü' + (t.tam < t.is ? '; ölçülmeyenler çalışma süresine katılmadı' : '') + '.</p></div>';
+      }).join('') : '<p class="text-xs text-muted-foreground">Bu dönemde tamamlanan iş yok.</p>';
+    }
+
+    function csKisiAc(i) {
+      var d = csSon, k = d && d.kisiler && d.kisiler[i];
+      if (!k) return;
+      var seq = ++csKisiSeq;
+      document.getElementById('cs-kisi-baslik').textContent = k.ad;
+      document.getElementById('cs-kisi-alt').textContent = k.dis_basi_dk == null ? k.is + ' ölçülmüş iş · yetersiz veri' : k.is + ' ölçülmüş iş · ' + csOnd(k.dis_basi_dk) + ' dk/diş (ortanca)';
+      var sr = csSeriler(d, [k]);
+      csCizgiCiz(document.getElementById('cs-kisi-grafik'), null, sr.etiketler, k.dis_basi_dk == null ? [] : sr.seriler);
+      var liste = document.getElementById('cs-kisi-isler');
+      liste.innerHTML = '<p class="text-xs text-muted-foreground">Yükleniyor…</p>';
+      document.getElementById('cs-kisi-sheet').classList.remove('hidden');
+      ZirkonikData.getCalismaIsler(k.user_id, csSecim.oda || null, csSecim.tur || null, 8).then(function (res) {
+        if (seq !== csKisiSeq) return;
+        var isler = (res && res.data) || [];
+        if (!isler.length) { liste.innerHTML = '<p class="text-xs text-muted-foreground">Bu dönemde iş yok.</p>'; return; }
+        liste.innerHTML = isler.map(function (j) {
+          var adim = (j.adimlar || []).map(function (a) {
+            return '<span class="block text-[11px] ' + (a.olculdu ? 'text-foreground' : 'text-muted-foreground') + '">' + escapeHtml(a.oda) + ' · ' + escapeHtml(a.kisi) + ' · ' + (a.olculdu ? csFmt(a.dk) : 'ölçülmedi') + '</span>';
+          }).join('');
+          return '<button type="button" onclick="location.href=\'detay.html?id=' + escapeHtml(j.job_id) + '\'" class="block w-full rounded-theme border border-border bg-background p-2.5 text-left">' +
+            '<span class="flex items-baseline justify-between gap-2"><span class="truncate text-xs font-bold">' + escapeHtml(j.is_no || '') + ' · ' + escapeHtml(j.tur || '') + ' · ' + csAdetEtiket(j.adet || 1) + '</span>' +
+            '<span class="shrink-0 text-[11px] text-muted-foreground">' + (j.tam ? 'çalışma ' + csFmt(j.calisma_dk) : 'eksik ölçüm') + (j.bastan_sona_dk != null ? ' · baştan sona ' + csFmt(j.bastan_sona_dk) : '') + '</span></span>' + adim + '</button>';
+        }).join('');
+      }, function () { if (seq === csKisiSeq) liste.innerHTML = '<p class="text-xs text-muted-foreground">İşler yüklenemedi.</p>'; });
+    }
+    function csKisiKapat() { csKisiSeq++; document.getElementById('cs-kisi-sheet').classList.add('hidden'); }
 
     /* 2026-09-19: bu fonksiyon YALNIZ izin bayraklarina bakiyordu, role hic
        bakmiyordu. Yonetici/isveren tanimi geregi tam yetkilidir —

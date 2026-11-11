@@ -1081,7 +1081,7 @@
           return '<button onclick="location.href=\'detay.html?id=' + s.job_id + '\'" class="flex w-full items-center justify-between gap-3 rounded-theme border border-border bg-card p-3 text-left">' +
             '<div class="min-w-0"><p class="text-xs font-bold">' + escapeHtml(s.jobs.job_number || '') + '</p>' +
             '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + escapeHtml(roomName[s.room_id]) + (s.jobs.restoration_type ? ' · ' + escapeHtml(s.jobs.restoration_type) : '') + '</p>' + ZKKisiler.kartSatirlari(s.jobs) + '</div>' +
-            '<span class="flex shrink-0 items-center gap-1 rounded-lg bg-primary px-2.5 py-1.5 text-[11px] font-bold text-primary-foreground"><iconify-icon icon="lucide:hand" class="text-xs"></iconify-icon>Teslim Al</span>' +
+            '<span class="flex shrink-0 items-center gap-1 rounded-lg bg-primary px-2.5 py-1.5 text-[11px] font-bold text-primary-foreground"><iconify-icon icon="lucide:hand" class="text-xs"></iconify-icon>' + escapeHtml(ZKKisiler.teslimAlYazi(s.jobs.laboratory_id)) + '</span>' +
             '</button>';
       }).join('');
     }

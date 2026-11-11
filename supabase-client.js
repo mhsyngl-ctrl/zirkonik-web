@@ -1450,6 +1450,16 @@
       });
     },
 
+    // ---- Çalışma süreleri (11 Kasım 2026, sahibinin isteği) ----
+    // Yalnız işveren/yönetici (sunucu is_org_admin ile kapar; Lider ve diğerleri "Bu işlem için yetkiniz yok" alır). Tüm hesap SUNUCUDA
+    // (SQL 20261111120000): web ve iPhone aynı rakamı gösterir. Ayar kapalıysa {acik:false}; SQL canlıda değilse hata döner (bölüm gizli kalır).
+    getCalismaOzet: function (odaId, tur, hafta) {
+      return client().rpc('zk_calisma_ozet', { p_oda: odaId || null, p_tur: tur || null, p_hafta: hafta || 8 });
+    },
+    getCalismaIsler: function (userId, odaId, tur, hafta) {
+      return client().rpc('zk_calisma_isler', { p_user: userId || null, p_oda: odaId || null, p_tur: tur || null, p_hafta: hafta || 8 });
+    },
+
     // ---- Ekip performansı (yönetici) ----
     // staff_earnings tablosu şu an hiç dolmuyor (0 satır, muhtemelen henüz
     // bağlanmamış bir özellik) — o yüzden gerçek, canlı veri olan
@@ -1635,81 +1645,33 @@
         });
     },
     getTeamPerformance: function (fromIso, toIso) {
-      var c = client();
-      return c.from('job_stage_history').select('confirmed_by, job_id').not('confirmed_by', 'is', null)
-        .gte('confirmed_at', fromIso).lt('confirmed_at', toIso).then(function (stageRes) {
-          var stages = stageRes.data || [];
-          var jobIds = [];
-          var seenJob = {};
-          stages.forEach(function (s) { if (s.job_id && !seenJob[s.job_id]) { seenJob[s.job_id] = true; jobIds.push(s.job_id); } });
-
-          return Promise.all([
-            Promise.resolve(stages),
-            // created_at'e göre sıralı — Medicamine'deki salon_members
-            // sırasıyla aynı mantık: grafik renkleri bu sıraya göre sabit
-            // atanır, bir dönemden diğerine veya sıralama değişince kaymaz.
-            c.from('app_users').select('id, full_name').neq('role', 'doktor').order('created_at'),
-            jobIds.length ? c.from('jobs').select('id, restoration_type, job_prices(price, currency)').in('id', jobIds) : Promise.resolve({ data: [] }),
-            // Bu işlerin TÜM ZAMANLARDAKİ onaylı aşama sayısı — pay hesabının
-            // paydası, "bu dönemde kaç aşama oldu" ile karıştırılmamalı.
-            jobIds.length ? c.from('job_stage_history').select('job_id').not('confirmed_by', 'is', null).in('job_id', jobIds) : Promise.resolve({ data: [] }),
-            c.from('jobs').select('created_by, job_prices(price, currency)').gte('created_at', fromIso).lt('created_at', toIso).is('cancelled_at', null)
-          ]);
-        }).then(function (res) {
-          var stages = res[0];
-          var staffList = res[1].data || [];
-          var nameById = {};
-          staffList.forEach(function (u) { nameById[u.id] = u.full_name; });
-          var jobById = {};
-          (res[2].data || []).forEach(function (j) { Data.fiyatDuzle(j, 'job_prices'); jobById[j.id] = j; });
-          var totalStagesByJob = {};
-          (res[3].data || []).forEach(function (s) { totalStagesByJob[s.job_id] = (totalStagesByJob[s.job_id] || 0) + 1; });
-          function stageValue(s) {
-            var job = jobById[s.job_id];
-            var total = totalStagesByJob[s.job_id];
-            if (!job || !job.price || !total) return null;
-            return { amount: Math.round((Number(job.price) || 0) / total), currency: normalizeCurrency(job.currency) };
-          }
-
-          // Üretim hakedişi çalışan bazlı hesaplanır (kim sipariş aldığı
-          // değil, kim ürettiği) — Medicamine'deki "hizmet cirosu" ile aynı
-          // mantık. restorationTypes, Medicamine'deki "hizmet dağılımı"
-          // chip'lerinin karşılığı: her onaylanan aşama, o işin restorasyon
-          // türüne (Kron, Köprü vb.) +1 yazar.
-          var byUser = {};
-          stages.forEach(function (s) {
-            var u = byUser[s.confirmed_by] || (byUser[s.confirmed_by] = { userId: s.confirmed_by, name: nameById[s.confirmed_by] || '—', stageCount: 0, jobIds: {}, earnings: {}, restorationTypes: {} });
-            u.stageCount++;
-            u.jobIds[s.job_id] = true;
-            var v = stageValue(s);
-            if (v) u.earnings[v.currency] = (u.earnings[v.currency] || 0) + v.amount;
-            var job = jobById[s.job_id];
-            var rt = (job && job.restoration_type) || 'Belirtilmedi';
-            u.restorationTypes[rt] = (u.restorationTypes[rt] || 0) + 1;
-          });
-          var rows = Object.keys(byUser).map(function (uid) {
-            var u = byUser[uid];
-            return { userId: uid, name: u.name, stageCount: u.stageCount, jobCount: Object.keys(u.jobIds).length, earnings: u.earnings, restorationTypes: u.restorationTypes };
-          });
-          rows.sort(function (a, b) { return b.stageCount - a.stageCount; });
-
-          var byOrderer = {};
-          (res[4].data || []).forEach(function (j) {
-            Data.fiyatDuzle(j, 'job_prices');
-            if (!j.created_by) return;
-            var u = byOrderer[j.created_by] || (byOrderer[j.created_by] = { userId: j.created_by, name: nameById[j.created_by] || '—', totals: {} });
-            var cur = normalizeCurrency(j.currency);
-            u.totals[cur] = (u.totals[cur] || 0) + (Number(j.price) || 0);
-          });
-          var orderRows = Object.keys(byOrderer).map(function (uid) { return byOrderer[uid]; });
-          orderRows.sort(function (a, b) {
-            var ta = Object.keys(a.totals).reduce(function (s, cur) { return s + a.totals[cur]; }, 0);
-            var tb = Object.keys(b.totals).reduce(function (s, cur) { return s + b.totals[cur]; }, 0);
-            return tb - ta;
-          });
-
-          return { rows: rows, orderRows: orderRows, staffList: staffList };
+      // 11 Kasım 2026: hesap SUNUCUDA (SQL 20261111180000 zk_ekip_performans): aynı mantık, tek istek (eski yol: ~6 istek ve yavaş aşama-geçmişi politikası, 3+ sn).
+      // Para birimi ham gelir, burada normalleştirilir. Yalnız yönetici (sunucu kapar).
+      return client().rpc('zk_ekip_performans', { p_bas: fromIso, p_son: toIso }).then(function (res) {
+        if (res.error) throw res.error;
+        var d = res.data || {};
+        var staffList = d.personel || [];
+        var nameById = {};
+        staffList.forEach(function (u) { nameById[u.id] = u.full_name; });
+        function tutarlar(liste) {
+          var o = {};
+          (liste || []).forEach(function (k) { var cur = normalizeCurrency(k.birim); o[cur] = (o[cur] || 0) + (Number(k.tutar) || 0); });
+          return o;
+        }
+        var rows = (d.satirlar || []).map(function (x) {
+          var rt = {};
+          (x.turler || []).forEach(function (t) { rt[t.tur] = t.n; });
+          return { userId: x.user_id, name: nameById[x.user_id] || '—', stageCount: x.asama, jobCount: x.is, earnings: tutarlar(x.kazanc), restorationTypes: rt };
         });
+        rows.sort(function (a, b) { return b.stageCount - a.stageCount; });
+        var orderRows = (d.siparisler || []).map(function (x) { return { userId: x.user_id, name: nameById[x.user_id] || '—', totals: tutarlar(x.toplam) }; });
+        orderRows.sort(function (a, b) {
+          var ta = Object.keys(a.totals).reduce(function (s, cur) { return s + a.totals[cur]; }, 0);
+          var tb = Object.keys(b.totals).reduce(function (s, cur) { return s + b.totals[cur]; }, 0);
+          return tb - ta;
+        });
+        return { rows: rows, orderRows: orderRows, staffList: staffList };
+      });
     },
 
     // İlerleme grafiği için ham veri — getTeamPerformance ile aynı pay
@@ -1717,36 +1679,17 @@
     // dönem toplamı yerine HER aşamayı kendi confirmed_at'iyle döndürür ki
     // arayan taraf bunları haftaya/aya/yıla göre kendi gruplayabilsin.
     getTeamProgressRaw: function (fromIso, toIso) {
-      var c = client();
-      return c.from('job_stage_history').select('confirmed_by, job_id, confirmed_at').not('confirmed_by', 'is', null)
-        .gte('confirmed_at', fromIso).lt('confirmed_at', toIso).then(function (stageRes) {
-          var stages = stageRes.data || [];
-          var jobIds = [];
-          var seenJob = {};
-          stages.forEach(function (s) { if (s.job_id && !seenJob[s.job_id]) { seenJob[s.job_id] = true; jobIds.push(s.job_id); } });
-          return Promise.all([
-            Promise.resolve(stages),
-            c.from('app_users').select('id, full_name').neq('role', 'doktor').order('created_at'),
-            jobIds.length ? c.from('jobs').select('id, job_prices(price, currency)').in('id', jobIds) : Promise.resolve({ data: [] }),
-            jobIds.length ? c.from('job_stage_history').select('job_id').not('confirmed_by', 'is', null).in('job_id', jobIds) : Promise.resolve({ data: [] })
-          ]);
-        }).then(function (res) {
-          var stages = res[0];
-          var jobById = {};
-          (res[2].data || []).forEach(function (j) { Data.fiyatDuzle(j, 'job_prices'); jobById[j.id] = j; });
-          var totalStagesByJob = {};
-          (res[3].data || []).forEach(function (s) { totalStagesByJob[s.job_id] = (totalStagesByJob[s.job_id] || 0) + 1; });
-          var stagesWithValue = stages.map(function (s) {
-            var job = jobById[s.job_id];
-            var total = totalStagesByJob[s.job_id];
-            var value = {};
-            if (job && job.price && total) {
-              value[normalizeCurrency(job.currency)] = Math.round((Number(job.price) || 0) / total);
-            }
-            return { confirmed_by: s.confirmed_by, confirmed_at: s.confirmed_at, value: value };
-          });
-          return { stages: stagesWithValue, staffList: res[1].data || [] };
+      // 11 Kasım 2026: sunucudan (zk_ekip_ilerleme); her aşama kendi tarihi ve payıyla gelir, para birimi burada normalleştirilir.
+      return client().rpc('zk_ekip_ilerleme', { p_bas: fromIso, p_son: toIso }).then(function (res) {
+        if (res.error) throw res.error;
+        var d = res.data || {};
+        var stagesWithValue = (d.asamalar || []).map(function (a) {
+          var value = {};
+          if (Number(a.deger) > 0) value[normalizeCurrency(a.birim)] = Number(a.deger);
+          return { confirmed_by: a.confirmed_by, confirmed_at: a.confirmed_at, value: value };
         });
+        return { stages: stagesWithValue, staffList: d.personel || [] };
+      });
     },
 
     // ---- Personel hesapları (7 Kasım 2026): aylık maaş + diş başı hakediş + düzeltme + ödenen + kalan ----

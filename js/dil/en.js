@@ -2445,7 +2445,44 @@ window.ZK_DIL_EN = {
 "SGK primi":"Social security contribution",
 "İşsizlik sigortası":"Unemployment insurance",
 "Asgari ücret istisnası, SGK primi ve gelir vergisi dilimlerine göre yaklaşık tahmindir — resmi bordro yerine geçmez.":"This is an approximate estimate based on the minimum wage exemption, social security contribution and income tax brackets — it does not replace official payroll.",
-"İşverene maliyet, teşviksiz standart SGK işveren oranıyla hesaplanmıştır; işletmenize özel teşvikler gerçek maliyeti düşürebilir.":"The employer cost is calculated with the standard social security employer rate without incentives; incentives specific to your business may reduce the actual cost."
+"İşverene maliyet, teşviksiz standart SGK işveren oranıyla hesaplanmıştır; işletmenize özel teşvikler gerçek maliyeti düşürebilir.":"The employer cost is calculated with the standard social security employer rate without incentives; incentives specific to your business may reduce the actual cost.",
+"Sadece işveren ve yönetici görür":"Only the employer and managers see this",
+"Çalışma Süreleri":"Work Times",
+"Tüm odalar":"All rooms",
+"Tüm iş türleri":"All work types",
+"Kişiye göre — diş başı dakika (ortanca)":"By person — minutes per tooth (median)",
+"Aynı oda ve aynı iş türünde kişiler yan yana. En az 5 ölçülmüş iş olmadan süre gösterilmez. Kişiye dokununca haftalık çizgisi ve işleri açılır.":"People side by side in the same room and work type. No time is shown without at least 5 measured jobs. Tap a person for their weekly trend and jobs.",
+"Haftalık eğilim":"Weekly trend",
+"Her nokta o haftanın ortancası. İçi boş nokta: o hafta 3'ten az iş var, rakamı zayıf say.":"Each point is that week's median. Hollow point: fewer than 3 jobs that week, treat the number as weak.",
+"İş türüne göre toplam süre":"Total time by work type",
+"Ortanca değerler. Çalışma süresine yalnız tüm odaları ölçülmüş işler girer; bekleme, çalışma dışında geçen süredir (odalar arası, gece, hafta sonu).":"Median values. Only jobs measured in all rooms count toward working time; waiting is the time spent outside work (between rooms, nights, weekends).",
+"Kişi bazlı haftalık diş başı dakika":"Weekly minutes per tooth by person",
+"Kişinin haftalık diş başı dakikası":"The person's weekly minutes per tooth",
+"Son işleri":"Recent jobs",
+"Bu dönemde iş yok.":"No jobs in this period.",
+"İşler yüklenemedi.":"Jobs could not be loaded.",
+"«Teslim Al»dan «Sonraki aşamaya taşı»ya kadar":"from “Receive” to “Move to next stage”",
+"Bu dönemde tamamlanan iş yok.":"No jobs were completed in this period.",
+"Henüz ölçülmüş iş yok. Ekip «Teslim Al»a işe başlarken basıp işi bitince taşıdıkça süreler burada birikir. Teslim Al ile taşımanın aynı anda yapıldığı işler «ölçülmedi» sayılır.":"No measured jobs yet. Times build up here as the team presses “Receive” when starting and moves the job on when done. Jobs where Receive and move happen at the same moment count as “not measured”.",
+"Henüz yeterli ölçüm yok":"Not enough measurements yet",
+"ekip ortancası":"team median",
+"önceki dönemle benzer":"similar to the previous period",
+"önceki dönem için yeterli geçmiş yok":"not enough history for the previous period",
+"yetersiz veri":"insufficient data",
+"en az 5 iş gerekir":"at least 5 jobs needed",
+"Toplam çalışma süresi":"Total working time",
+"Bekleme (çalışma dışı)":"Waiting (outside work)",
+"Baştan sona geçen süre":"Start-to-finish time",
+"Diş başı toplam çalışma":"Total working time per tooth",
+"ölçülmedi":"not measured",
+"eksik ölçüm":"incomplete measurement",
+"1 diş/adet":"1 tooth/piece",
+"Teslim Al · İşe Başla":"Receive · Start",
+"Çalışma sürelerini ölç (Ekip ekranında)":"Measure working times (on the Team screen)",
+"Ekip, «Teslim Al» ile işe başlar, «Sonraki aşamaya taşı» ile bitirir; süreler yalnız işveren ve yönetici tarafından Ekip ekranında görülür. Ekibe önce eğitim verin. Süreler bu ayarı ilk açtığınız andan itibaren sayılır.":"The team starts a job with “Receive” and finishes it with “Move to next stage”; times are seen only by the employer and managers on the Team screen. Train the team first. Times count from the moment you first turn this setting on.",
+"Doktorlara işlerinin toplam süresini göster":"Show doctors the total time of their jobs",
+"Doktor, kendi tamamlanan işinde işin laboratuvarda toplam ne kadar sürdüğünü görür (örn. 2 gün 3 saat). Kişi adı, dakika ve bekleme gösterilmez. Kapalıyken hiçbir şey görünmez.":"On their own completed job, the doctor sees how long the job took in the laboratory in total (e.g. 2 days 3 hours). No names, minutes or waiting are shown. When off, nothing is shown.",
+"Toplam süre":"Total time"
 },
 "p":[
 [
@@ -3739,6 +3776,238 @@ window.ZK_DIL_EN = {
 [
 "^Ödeme\\ kalan\\ tutarı\\ aşıyor\\ \\(kalan:\\ (.+?)\\ (.+?)\\)$",
 "The payment exceeds the remaining amount (remaining: $1 $2)"
+],
+[
+"^Son (1) hafta$",
+"Last $1 week"
+],
+[
+"^Son (\\d+) hafta$",
+"Last $1 weeks"
+],
+[
+"^ölçüm (.+) tarihinden beri$",
+"measured since $1"
+],
+[
+"^Tamamlanan (\\d+) işin (\\d+)’i tüm odalarıyla ölçüldü\\.$",
+"$2 of the $1 completed jobs were measured in all rooms."
+],
+[
+"^(1) işin (\\d+)’i tüm odalarıyla ölçüldü; ölçülmeyenler çalışma süresine katılmadı\\.$",
+"$2 of $1 job were measured in all rooms; unmeasured ones were not counted in working time."
+],
+[
+"^(\\d+) işin (\\d+)’i tüm odalarıyla ölçüldü; ölçülmeyenler çalışma süresine katılmadı\\.$",
+"$2 of $1 jobs were measured in all rooms; unmeasured ones were not counted in working time."
+],
+[
+"^(1) işin (\\d+)’i tüm odalarıyla ölçüldü\\.$",
+"$2 of $1 job were measured in all rooms."
+],
+[
+"^(\\d+) işin (\\d+)’i tüm odalarıyla ölçüldü\\.$",
+"$2 of $1 jobs were measured in all rooms."
+],
+[
+"^(\\d+) ölçülmüş iş$",
+"$1 measured jobs"
+],
+[
+"^\\((1) iş\\)$",
+"($1 job)"
+],
+[
+"^\\((\\d+) iş\\)$",
+"($1 jobs)"
+],
+[
+"^([\\d.,]+) dk$",
+"$1 min"
+],
+[
+"^([\\d.,]+) dk/diş$",
+"$1 min/tooth"
+],
+[
+"^([\\d.,]+) dk/diş \\(ortanca\\)$",
+"$1 min/tooth (median)"
+],
+[
+"^ekibe göre %(\\d+) yavaş$",
+"$1% slower than the team"
+],
+[
+"^ekibe göre %(\\d+) hızlı$",
+"$1% faster than the team"
+],
+[
+"^yavaşladı: %(\\d+) ↑$",
+"slowed down: $1% ↑"
+],
+[
+"^hızlandı: %(\\d+) ↓$",
+"sped up: $1% ↓"
+],
+[
+"^\\(önceki (1) haftaya göre\\)$",
+"(vs. the previous $1 week)"
+],
+[
+"^\\(önceki (\\d+) haftaya göre\\)$",
+"(vs. the previous $1 weeks)"
+],
+[
+"^(1) diş/adet$",
+"$1 tooth/pieces"
+],
+[
+"^(\\d+) diş/adet$",
+"$1 teeth/pieces"
+],
+[
+"^(\\d+) dk$",
+"$1 min"
+],
+[
+"^(\\d+) sa$",
+"$1 h"
+],
+[
+"^(\\d+) sa (\\d+) dk$",
+"$1 h $2 min"
+],
+[
+"^(\\d+) gün$",
+"$1 d"
+],
+[
+"^(\\d+) gün (\\d+) sa$",
+"$1 d $2 h"
+],
+[
+"^çalışma (\\d+) dk$",
+"working $1 min"
+],
+[
+"^çalışma (\\d+) sa$",
+"working $1 h"
+],
+[
+"^çalışma (\\d+) sa (\\d+) dk$",
+"working $1 h $2 min"
+],
+[
+"^çalışma (\\d+) gün$",
+"working $1 d"
+],
+[
+"^çalışma (\\d+) gün (\\d+) sa$",
+"working $1 d $2 h"
+],
+[
+"^baştan sona (\\d+) dk$",
+"start to finish $1 min"
+],
+[
+"^baştan sona (\\d+) sa$",
+"start to finish $1 h"
+],
+[
+"^baştan sona (\\d+) sa (\\d+) dk$",
+"start to finish $1 h $2 min"
+],
+[
+"^baştan sona (\\d+) gün$",
+"start to finish $1 d"
+],
+[
+"^baştan sona (\\d+) gün (\\d+) sa$",
+"start to finish $1 d $2 h"
+],
+[
+"^1 dakika$",
+"1 minute"
+],
+[
+"^(1) dakika$",
+"$1 minute"
+],
+[
+"^(\\d+) dakika$",
+"$1 minutes"
+],
+[
+"^1 saat$",
+"1 hour"
+],
+[
+"^(1) saat$",
+"$1 hour"
+],
+[
+"^(\\d+) saat$",
+"$1 hours"
+],
+[
+"^1 gün$",
+"1 day"
+],
+[
+"^(1) gün$",
+"$1 day"
+],
+[
+"^(\\d+) gün$",
+"$1 days"
+],
+[
+"^1 saat (1) dakika$",
+"1 hour $1 minute"
+],
+[
+"^1 saat (\\d+) dakika$",
+"1 hour $1 minutes"
+],
+[
+"^(1) saat (1) dakika$",
+"$1 hour $2 minute"
+],
+[
+"^(1) saat (\\d+) dakika$",
+"$1 hour $2 minutes"
+],
+[
+"^(\\d+) saat (1) dakika$",
+"$1 hours $2 minute"
+],
+[
+"^(\\d+) saat (\\d+) dakika$",
+"$1 hours $2 minutes"
+],
+[
+"^1 gün (1) saat$",
+"1 day $1 hour"
+],
+[
+"^1 gün (\\d+) saat$",
+"1 day $1 hours"
+],
+[
+"^(1) gün (1) saat$",
+"$1 day $2 hour"
+],
+[
+"^(1) gün (\\d+) saat$",
+"$1 day $2 hours"
+],
+[
+"^(\\d+) gün (1) saat$",
+"$1 days $2 hour"
+],
+[
+"^(\\d+) gün (\\d+) saat$",
+"$1 days $2 hours"
 ]
 ],
 "y":[

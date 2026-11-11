@@ -729,6 +729,7 @@
 
     // Kişi satırları: "H: hasta" (kalın) + "Dr. doktor · Dt. teknisyen". Ayar laboratuvar başına; 'select *' ile okunur ki sütun SQL'den önce istenmesin (yoksa ayar kapalı sayılır).
     var kisiAyari = null;      // null = henüz sorulmadı, true/false = laboratuvarın ayarı
+    var sureAyari = false;     // çalışma süresi ölçümü açık mı (track_work_times; 11 Kasım 2026): «Teslim Al» yazısı «Teslim Al · İşe Başla» olur
     var kisiTeknisyen = '';    // işin son işleyen çalışanı
     function unvanli(unvan, ad) { return /(^|\s)(dr|dt)\.?(\s|$)/i.test(ad) ? ad : unvan + ' ' + ad; }
     function kisiAyariYukle(j) {
@@ -741,6 +742,11 @@
         client.from('jobs').select('zk_son_teknisyen').eq('id', jobId).maybeSingle()
       ]).then(function (res) {
         var r = res[0], t = res[1];
+        if (r.data && r.data.track_work_times === true && !sureAyari) {
+          sureAyari = true;
+          var yz = document.getElementById('advance-label');
+          if (yz && yz.textContent === 'Teslim Al') yz.textContent = 'Teslim Al · İşe Başla';
+        }
         if (!(r.data && r.data.show_people_on_job_cards === true)) return;
         kisiAyari = true;
         kisiTeknisyen = (t && t.data && t.data.zk_son_teknisyen) || '';
@@ -1181,7 +1187,7 @@
 
       var currentIdx = rooms.findIndex(function (r) { return r.id === zkCurRoom(); });
       var isLast = currentIdx === rooms.length - 1;
-      label.textContent = needsAccept ? 'Teslim Al' : (isLast ? 'Teslimatı tamamla' : 'Sonraki aşamaya taşı');
+      label.textContent = needsAccept ? (sureAyari ? 'Teslim Al · İşe Başla' : 'Teslim Al') : (isLast ? 'Teslimatı tamamla' : 'Sonraki aşamaya taşı');
 
       // Personel sadece sorumlu olduğu (user_room_access) odalardaki işleri
       // ilerletebilir — buton, RLS'in zaten reddedeceği bir tıklamayı

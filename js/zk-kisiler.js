@@ -7,6 +7,7 @@
 (function (g) {
   'use strict';
   var ayar = {};            // laboratuvar kimliği → ayar açık mı
+  var sure = {};            // laboratuvar kimliği → çalışma süresi ölçümü açık mı (track_work_times; 11 Kasım 2026): «Teslim Al» yazısı «Teslim Al · İşe Başla» olur
   var hazirMi = false, istendi = false, bekleyen = [];
   var KES = 'display:inline-block;max-width:min(100%,22rem);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom';
 
@@ -21,7 +22,7 @@
     if (!c) return;
     istendi = true;
     c.from('laboratories').select('*').then(function (r) {
-      (r.data || []).forEach(function (l) { ayar[l.id] = l.show_people_on_job_cards === true; });
+      (r.data || []).forEach(function (l) { ayar[l.id] = l.show_people_on_job_cards === true; sure[l.id] = l.track_work_times === true; });
       bitir();
     }, bitir);
   }
@@ -39,6 +40,8 @@
       yukle();
     },
     acik: function (laboratuvarId) { return hazirMi && !!laboratuvarId && ayar[laboratuvarId] === true; },
+    /* «Teslim Al» düğmesinin yazısı: çalışma süresi ölçümü açıksa ekibe «süre başlıyor» demek için «Teslim Al · İşe Başla». */
+    teslimAlYazi: function (laboratuvarId) { return hazirMi && !!laboratuvarId && sure[laboratuvarId] === true ? 'Teslim Al · İşe Başla' : 'Teslim Al'; },
     unvanli: unvanli,
     /* Kartın kişi satırları (ayar açıksa): 1) H: hasta (kalın)  2) Dr. doktor · Dt. teknisyen. İş: { laboratory_id, patient_name, zk_son_teknisyen, doctors:{full_name, kind} }. */
     kartSatirlari: function (j) {
