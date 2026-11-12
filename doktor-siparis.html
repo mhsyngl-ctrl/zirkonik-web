@@ -1269,7 +1269,8 @@
       return Promise.all([ZirkonikData.asistanIs(jobId), client.from('rooms').select('id, name')]).then(function (x) {
         var a = x[0];
         if (a.error || !a.data) return [{ data: null, error: a.error || { message: 'İş açılamadı' } }, {}, {}, {}, {}];
-        var d = a.data, j = Object.assign({}, d.is, { laboratories: { name: d.is.laboratory_name }, rooms: { name: d.is.oda_adi } });
+        // toplam_sure_goster: laboratuvar ayarı (12 Kasım 2026, SQL 20261112090000); SQL'den önce yok → «Toplam süre» satırı çıkmaz.
+        var d = a.data, j = Object.assign({}, d.is, { laboratories: { name: d.is.laboratory_name, show_total_time_to_doctors: d.is.toplam_sure_goster === true }, rooms: { name: d.is.oda_adi } });
         return [
           { data: j, error: null },
           { data: (d.asamalar || []).map(function (h) { return { room_id: h.room_id, entered_at: h.entered_at, exited_at: h.exited_at, confirmed_at: h.confirmed_at, rooms: { name: h.oda_adi } }; }), error: null },
@@ -1341,7 +1342,7 @@
         row('Teslim tarihi', j.requested_delivery_at ? new Date(j.requested_delivery_at).toLocaleDateString('tr-TR') : null);
         row('Laboratuvar', j.laboratories ? j.laboratories.name : null);
         // Toplam süre (11 Kasım 2026): laboratuvar ayarı açıksa ve iş tamamlandıysa doktor YALNIZ kendi işinin toplam süresini görür (açılıştan tamamlanmaya).
-        // Kişi, dakika ve bekleme gösterilmez. Asistan yolunda (zk_asistan_is) bu alanlar yok → satır çıkmaz.
+        // Kişi, dakika ve bekleme gösterilmez. Asistan yolunda (zk_asistan_is) created_at + toplam_sure_goster sunucudan gelir (12 Kasım 2026).
         if (j.status === 'completed' && j.completed_at && j.created_at && j.laboratories && j.laboratories.show_total_time_to_doctors === true) {
           var toplamDk = (new Date(j.completed_at).getTime() - new Date(j.created_at).getTime()) / 60000;
           if (toplamDk >= 1) row('Toplam süre', zkSureYaz(toplamDk));
