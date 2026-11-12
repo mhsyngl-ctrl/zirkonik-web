@@ -529,6 +529,21 @@
             </div>
           </details>
 
+          <!-- 12 Kasım 2026: Çalışma saatleri ve tatiller (SQL 20261112120000) -->
+          <details id="kv-saat" class="rounded-theme border border-border bg-card" ontoggle="zkNudgeScroll(this)">
+            <summary class="flex items-center gap-3 px-4 py-3.5">
+              <iconify-icon icon="lucide:calendar-clock" class="shrink-0 text-lg text-primary"></iconify-icon>
+              <span class="flex-1 text-sm font-bold">Çalışma saatleri ve tatiller: süreler nasıl hesaplanır?</span>
+              <iconify-icon icon="lucide:chevron-right" class="kv-ok shrink-0 text-base text-muted-foreground"></iconify-icon>
+            </summary>
+            <div class="border-t border-border px-4 py-3.5 text-xs leading-5 text-muted-foreground">
+              <p><b class="text-card-foreground">Laboratuvarlar</b> sayfasında laboratuvarın yanındaki kalemle <b class="text-card-foreground">Laboratuvarı düzenle</b>'yi açın, <b class="text-card-foreground">Çalışma saatleri ve tatiller</b>'e girin (yalnız işveren ve yönetici). Bu adım isteğe bağlıdır.</p>
+              <p class="mt-2">Tanımlamazsanız süreler takvim saatiyle (7/24) hesaplanır: Cuma 17:00'de gelen iş Pazartesi 10:00'da bitince 65 saat görünür. Çalışma saatlerini tanımlarsanız yalnız <b class="text-card-foreground">açık saatler</b> sayılır. Örnek: Pazartesi–Cuma 09:00–18:00, Cumartesi 09:00–13:00 açıksa aynı iş Cuma 1 saat + Cumartesi 4 saat + Pazartesi 1 saat = 6 saat olur.</p>
+              <p class="mt-2"><b class="text-card-foreground">Resmî tatiller:</b> Türkiye resmî tatilleri (2026–2027) hazırdır; <b class="text-card-foreground">Resmî tatillerde kapalı</b> anahtarını kapatırsanız tatil günleri de çalışılır sayılır. Köprü günü gibi kendi günlerinizi <b class="text-card-foreground">Özel günler</b>'den ekleyin; bir resmî tatilde çalışıyorsanız o güne <b class="text-card-foreground">Açık gün</b> olarak ekleyin. Arife yarım günleri listede yoktur, gerekirse özel gün ekleyin.</p>
+              <p class="mt-2"><b class="text-card-foreground">Nerede etkiler:</b> Ekip ekranındaki Çalışma Süreleri (kişi ve oda dakikası, bekleme, baştan sona) ve doktora gösterilen <b class="text-card-foreground">Toplam çalışma süresi</b>. Saatleri sonradan değiştirirseniz geçmiş işlerin süreleri de yeni saatlere göre yeniden hesaplanır.</p>
+            </div>
+          </details>
+
           <details id="kv-izin" class="rounded-theme border border-border bg-card" ontoggle="zkNudgeScroll(this)">
             <summary class="flex items-center gap-3 px-4 py-3.5">
               <iconify-icon icon="lucide:calendar-clock" class="shrink-0 text-lg text-primary"></iconify-icon>
@@ -697,7 +712,9 @@
         client.from('price_list_items').select('id, route_room_ids'),
         client.from('app_users').select('id', { count: 'exact', head: true }),
         client.from('doctors').select('id', { count: 'exact', head: true }),
-        client.from('jobs').select('id', { count: 'exact', head: true })
+        client.from('jobs').select('id', { count: 'exact', head: true }),
+        // Çalışma saatleri (12 Kasım 2026, isteğe bağlı adım): sütun yoksa (SQL öncesi) hata döner → adım gösterilmez
+        client.from('laboratories').select('id, working_hours')
       ]).then(function (r) {
         var steps = [
           { ad: 'Laboratuvar', n: r[0].count || 0 },
@@ -708,6 +725,7 @@
           { ad: 'Doktorlar', n: r[5].count || 0 },
           { ad: 'İlk iş', n: r[6].count || 0 }
         ];
+        if (r[7] && !r[7].error) steps.push({ ad: 'Çalışma saatleri (isteğe bağlı)', n: (r[7].data || []).filter(function (l) { return l.working_hours; }).length });
         document.getElementById('kv-progress-list').innerHTML = steps.map(function (s) {
           var ok = s.n > 0;
           return '<div class="flex items-center gap-2.5">' +

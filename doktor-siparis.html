@@ -1271,6 +1271,7 @@
         if (a.error || !a.data) return [{ data: null, error: a.error || { message: 'İş açılamadı' } }, {}, {}, {}, {}];
         // toplam_sure_goster: laboratuvar ayarı (12 Kasım 2026, SQL 20261112090000); SQL'den önce yok → «Toplam süre» satırı çıkmaz.
         var d = a.data, j = Object.assign({}, d.is, { laboratories: { name: d.is.laboratory_name, show_total_time_to_doctors: d.is.toplam_sure_goster === true }, rooms: { name: d.is.oda_adi } });
+        j.zk_toplam_calisma_dk = d.is.toplam_calisma_dk;   // çalışma saatine göre süre (SQL 20261112120000); yoksa null
         return [
           { data: j, error: null },
           { data: (d.asamalar || []).map(function (h) { return { room_id: h.room_id, entered_at: h.entered_at, exited_at: h.exited_at, confirmed_at: h.confirmed_at, rooms: { name: h.oda_adi } }; }), error: null },
@@ -1290,6 +1291,13 @@
       if (sa === 24) { g += 1; sa = 0; }
       return g + ' gün' + (sa ? ' ' + sa + ' saat' : '');
     }
+    // Çalışma saatlerine göre süre (12 Kasım 2026): yalnız saat/dakika; «gün» yok (24 saatlik gün gibi okunmasın).
+    function zkCalismaSureYaz(dk) {
+      dk = Math.round(dk);
+      if (dk < 60) return dk + ' dakika';
+      var s = Math.floor(dk / 60), m = dk % 60;
+      return s + ' saat' + (m ? ' ' + m + ' dakika' : '');
+    }
     function zkDocOpenJob(jobId) {
       var sheet = document.getElementById('job-detail-sheet');
       var body = document.getElementById('jd-body');
@@ -1301,7 +1309,11 @@
       var client = ZirkonikAuth.client();
       (isAsistan ? zkAsistanIsYukle(client, jobId) : Promise.all([
         // laboratories(*): "Toplam süre" ayarı (show_total_time_to_doctors, 11 Kasım 2026) SQL'den önce istenmesin (sütun yoksa 400 vermesin).
-        client.from('jobs').select('*, job_prices(price, currency), laboratories(*), rooms:current_room_id(name)').eq('id', jobId).single(),
+        client.from('jobs').select('*, job_prices(price, currency), laboratories(*), rooms:current_room_id(name), zk_toplam_calisma_dk').eq('id', jobId).single().then(function (r) {
+          // Hesaplanan sütun (zk_toplam_calisma_dk, SQL 20261112120000) herhangi bir sebeple reddedilirse iş ayrıntısı AÇILMAMAZLIK etmesin: sütunsuz bir kez daha dene.
+          if (!r.error) return r;
+          return client.from('jobs').select('*, job_prices(price, currency), laboratories(*), rooms:current_room_id(name)').eq('id', jobId).single();
+        }),
         client.from('job_stage_history').select('room_id, entered_at, exited_at, confirmed_at, rooms(name)').eq('job_id', jobId).order('entered_at'),
         client.from('rooms').select('id, name'),
         // Kalemler: cene semasini kendi renkleriyle boyamak icin.
@@ -1343,7 +1355,10 @@
         row('Laboratuvar', j.laboratories ? j.laboratories.name : null);
         // Toplam süre (11 Kasım 2026): laboratuvar ayarı açıksa ve iş tamamlandıysa doktor YALNIZ kendi işinin toplam süresini görür (açılıştan tamamlanmaya).
         // Kişi, dakika ve bekleme gösterilmez. Asistan yolunda (zk_asistan_is) created_at + toplam_sure_goster sunucudan gelir (12 Kasım 2026).
-        if (j.status === 'completed' && j.completed_at && j.created_at && j.laboratories && j.laboratories.show_total_time_to_doctors === true) {
+        // Laboratuvar çalışma saati tanımladıysa sunucu yalnız AÇIK saatleri sayar (zk_toplam_calisma_dk; ayar kapalıysa/saat yoksa null) → «Toplam çalışma süresi».
+        if (j.status === 'completed' && j.zk_toplam_calisma_dk != null && Number(j.zk_toplam_calisma_dk) >= 1) {
+          row('Toplam çalışma süresi', zkCalismaSureYaz(Number(j.zk_toplam_calisma_dk)));
+        } else if (j.status === 'completed' && j.completed_at && j.created_at && j.laboratories && j.laboratories.show_total_time_to_doctors === true) {
           var toplamDk = (new Date(j.completed_at).getTime() - new Date(j.created_at).getTime()) / 60000;
           if (toplamDk >= 1) row('Toplam süre', zkSureYaz(toplamDk));
         }

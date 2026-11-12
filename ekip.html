@@ -1138,7 +1138,8 @@
       csSecenekler('cs-oda', 'Tüm odalar', odalar, csSecim.oda);
       csSecenekler('cs-tur', 'Tüm iş türleri', turler, csSecim.tur);
       document.getElementById('cs-info').textContent = 'Son ' + (d.hafta || 8) + ' hafta · «Teslim Al»dan «Sonraki aşamaya taşı»ya kadar' +
-        (d.baslangic ? ' · ölçüm ' + new Date(d.baslangic).toLocaleDateString('tr-TR') + ' tarihinden beri' : '');
+        (d.baslangic ? ' · ölçüm ' + new Date(d.baslangic).toLocaleDateString('tr-TR') + ' tarihinden beri' : '') +
+        (d.saat_ayarli === true ? ' · çalışma saatlerine göre' : '');   // 12 Kasım 2026: laboratuvar çalışma saatleri tanımlıysa süreler yalnız açık saatleri sayar
       var o = d.olcum || { tam: 0, toplam: 0 };
       document.getElementById('cs-olcum').textContent = o.toplam
         ? 'Tamamlanan ' + o.toplam + ' işin ' + o.tam + '’i tüm odalarıyla ölçüldü.'

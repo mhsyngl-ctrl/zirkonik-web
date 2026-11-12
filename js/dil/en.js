@@ -2482,7 +2482,50 @@ window.ZK_DIL_EN = {
 "Ekip, «Teslim Al» ile işe başlar, «Sonraki aşamaya taşı» ile bitirir; süreler yalnız işveren ve yönetici tarafından Ekip ekranında görülür. Ekibe önce eğitim verin. Süreler bu ayarı ilk açtığınız andan itibaren sayılır.":"The team starts a job with “Receive” and finishes it with “Move to next stage”; times are seen only by the employer and managers on the Team screen. Train the team first. Times count from the moment you first turn this setting on.",
 "Doktorlara işlerinin toplam süresini göster":"Show doctors the total time of their jobs",
 "Doktor, kendi tamamlanan işinde işin laboratuvarda toplam ne kadar sürdüğünü görür (örn. 2 gün 3 saat). Kişi adı, dakika ve bekleme gösterilmez. Kapalıyken hiçbir şey görünmez.":"On their own completed job, the doctor sees how long the job took in the laboratory in total (e.g. 2 days 3 hours). No names, minutes or waiting are shown. When off, nothing is shown.",
-"Toplam süre":"Total time"
+"Toplam süre":"Total time",
+"Çalışma saatleri ve tatiller":"Working hours and holidays",
+"Ekip ekranındaki süreler ve doktora gösterilen toplam süre yalnız aşağıdaki açık saatlere göre hesaplanır; hafta sonu, tatil ve mesai dışı süre sayılmaz. Tanımlamazsanız süreler takvim saatiyle (7/24) hesaplanır.":"Times on the Team screen and the total time shown to doctors are calculated only from the open hours below; weekends, holidays and off-hours are not counted. If you do not set them, times are calculated on calendar time (24/7).",
+"Çalışma saatlerini tanımla":"Set working hours",
+"Resmî tatillerde kapalı":"Closed on public holidays",
+"Türkiye resmî tatilleri (2026–2027) hazır tanımlıdır; arife yarım günleri dahil değildir. Başka ülkedeyseniz ya da özel bir güne ihtiyacınız varsa aşağıdan kendi günlerinizi ekleyin.":"Turkish public holidays (2026–2027) are predefined; half-day eves are not included. If you are in another country or need a special day, add your own days below.",
+"Özel günler":"Special days",
+"Kapalı gün":"Closed day",
+"Açık gün":"Open day",
+"Açık gün (tatilde çalışılır)":"Open day (we work on the holiday)",
+"Ad (örn. Köprü günü)":"Name (e.g. Bridge day)",
+"Özel gün ekle":"Add special day",
+"Pazartesi":"Monday",
+"Salı":"Tuesday",
+"Çarşamba":"Wednesday",
+"Perşembe":"Thursday",
+"Cuma":"Friday",
+"Cumartesi":"Saturday",
+"Pazar":"Sunday",
+"Tanımlı değil (7/24 sayılır)":"Not set (counted as 24/7)",
+"Hep kapalı":"Always closed",
+"Henüz özel gün yok.":"No special days yet.",
+"Özel gün":"Special day",
+"Önce bir tarih seçin.":"Pick a date first.",
+"Bu tarih zaten ekli.":"This date is already added.",
+"Çalışma saatleri kaydedildi.":"Working hours saved.",
+"Çalışma saatleri (isteğe bağlı)":"Working hours (optional)",
+"Çalışma saatleri ve tatiller: süreler nasıl hesaplanır?":"Working hours and holidays: how times are calculated",
+"sayfasında laboratuvarın yanındaki kalemle":"page, use the pencil next to the laboratory to open",
+"'yi açın,":", then go to",
+"'e girin (yalnız işveren ve yönetici). Bu adım isteğe bağlıdır.":"(owner and managers only). This step is optional.",
+"Tanımlamazsanız süreler takvim saatiyle (7/24) hesaplanır: Cuma 17:00'de gelen iş Pazartesi 10:00'da bitince 65 saat görünür. Çalışma saatlerini tanımlarsanız yalnız":"If you do not set them, times are calculated on calendar time (24/7): a job that arrives Friday 17:00 and finishes Monday 10:00 shows 65 hours. If you set working hours, only the",
+"açık saatler":"open hours",
+"sayılır. Örnek: Pazartesi–Cuma 09:00–18:00, Cumartesi 09:00–13:00 açıksa aynı iş Cuma 1 saat + Cumartesi 4 saat + Pazartesi 1 saat = 6 saat olur.":"are counted. Example: if Monday–Friday 09:00–18:00 and Saturday 09:00–13:00 are open, the same job counts as Friday 1 hour + Saturday 4 hours + Monday 1 hour = 6 hours.",
+"Resmî tatiller:":"Public holidays:",
+"Türkiye resmî tatilleri (2026–2027) hazırdır;":"Turkish public holidays (2026–2027) are predefined;",
+"anahtarını kapatırsanız tatil günleri de çalışılır sayılır. Köprü günü gibi kendi günlerinizi":"switch: if you turn it off, holidays also count as working days. Add your own days, such as bridge days, under",
+"'den ekleyin; bir resmî tatilde çalışıyorsanız o güne":"; if you work on a public holiday, add that day as",
+"olarak ekleyin. Arife yarım günleri listede yoktur, gerekirse özel gün ekleyin.":". Half-day eves are not in the list; add a special day if needed.",
+"Nerede etkiler:":"Where it applies:",
+"Ekip ekranındaki Çalışma Süreleri (kişi ve oda dakikası, bekleme, baştan sona) ve doktora gösterilen":"Work Times on the Team screen (minutes per person and room, waiting, end to end) and the",
+". Saatleri sonradan değiştirirseniz geçmiş işlerin süreleri de yeni saatlere göre yeniden hesaplanır.":"shown to doctors. If you change the hours later, the times of past jobs are recalculated with the new hours.",
+"çalışma saatlerine göre":"by working hours",
+"İş türü":"Work type"
 },
 "p":[
 [
@@ -4008,6 +4051,30 @@ window.ZK_DIL_EN = {
 [
 "^(\\d+) gün (\\d+) saat$",
 "$1 days $2 hours"
+],
+[
+"^1 gün açık$",
+"1 day open"
+],
+[
+"^(1) gün açık$",
+"$1 day open"
+],
+[
+"^(\\d+) gün açık$",
+"$1 days open"
+],
+[
+"^(.+): kapanış saati açılıştan sonra olmalı\\.$",
+"$1: closing time must be after opening time."
+],
+[
+"^Eklenemedi: (.+)$",
+"Could not add: $1"
+],
+[
+"^Silinemedi: (.+)$",
+"Could not delete: $1"
 ]
 ],
 "y":[
