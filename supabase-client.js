@@ -474,8 +474,15 @@
     // gitmeden bu doktora gerçekten iş gelip gelmediğini, kaç iş geldiğini görsün
     // (24 Eylül 2026, sahibinin bulduğu görünürlük boşluğu).
     listDoctorJobsSummary: function (doctorId) {
-      return client().from('jobs').select('id, job_number, restoration_type, unit_count, status, created_at')
-        .eq('doctor_id', doctorId).order('created_at', { ascending: false }).limit(10);
+      var tablo = function () {
+        return client().from('jobs').select('id, job_number, restoration_type, unit_count, status, created_at')
+          .eq('doctor_id', doctorId).order('created_at', { ascending: false }).limit(10);
+      };
+      // 14 Kasım 2026 (SATIS-A): önce DAR işlev (yalnız bu 6 sütun; hasta adı/klinik not hiç dönmez). İşlev henüz kurulu değilse ya da hata verirse
+      // eski doğrudan tablo sorgusuna düşer (SQL sırası fark etmez); tablo politikası kaldırıldığında (SATIS-B) bu yol işlevle sürer.
+      return client().rpc('zk_aday_dr_isleri', { p_doctor_id: doctorId }).then(function (r) {
+        return (r && !r.error && Array.isArray(r.data)) ? r : tablo();
+      });
     },
     // 30 Eylül 2026: fiyatlar ayrı tablolara taşındı (job_prices / job_item_prices /
     // price_list_item_prices — RLS: yalnız yönetici ve ilgili doktor okur; personelde
