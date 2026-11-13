@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
@@ -1476,9 +1476,10 @@
       var visible = isSales ? regions.filter(function (r) { return r.assigned_rep_id === myId; }) : regions;
       if (!visible.length) { el.innerHTML = '<p class="text-xs text-muted-foreground">' + (isSales ? 'Sana henüz bölge atanmadı.' : 'Henüz bölge yok.') + '</p>'; return; }
       var gruplar = {}, sirasiz = [];
-      visible.forEach(function (r) { if (r.side) { (gruplar[r.side] = gruplar[r.side] || []).push(r); } else { sirasiz.push(r); } });
+      // Bilinen yakası olmayan (ya da 'anadolu' gibi sonradan gelen) bölgeler görünmez kalmasın: 'anadolu' da gruplanır, tanınmayanlar sırasız listeye düşer
+      visible.forEach(function (r) { if (r.side && SIDE_LABELS[r.side]) { (gruplar[r.side] = gruplar[r.side] || []).push(r); } else { sirasiz.push(r); } });
       var html = sirasiz.map(regionRow).join('');
-      ['avrupa', 'asya'].forEach(function (side) {
+      ['avrupa', 'asya', 'anadolu'].forEach(function (side) {
         if (!gruplar[side]) return;
         html += '<p class="mt-3 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">' + SIDE_LABELS[side] + '</p>' +
           '<div class="mt-1.5 space-y-2">' + gruplar[side].map(regionRow).join('') + '</div>';
@@ -1882,14 +1883,16 @@
         errEl.classList.remove('hidden');
         return;
       }
+      var ilceSecili = zkIlceDeger('dt') || null;
       var payload = {
         full_name: fullName,
         clinic_name: document.getElementById('dt-clinicname').value.trim() || null,
         pipeline_stage: stage,
         priority: document.getElementById('dt-priority').value,
         lost_reason: stage === 'kayip' ? document.getElementById('dt-lost-reason').value : null,
-        il: zkIlDeger('dt') || null,
-        ilce: zkIlceDeger('dt') || null,
+        // Kayıtta il yokken ve ilçe seçilmediyse kutudaki varsayılan «İstanbul» sessizce yazılmaz
+        il: (ilceSecili || detailDoctor.il) ? (zkIlDeger('dt') || null) : null,
+        ilce: ilceSecili,
         mahalle: document.getElementById('dt-mahalle').value.trim() || null,
         assigned_rep_id: document.getElementById('dt-rep').value || null,
         phone: document.getElementById('dt-phone').value.trim() || null,
@@ -1905,7 +1908,10 @@
       };
       if (stage !== detailDoctor.pipeline_stage) payload.stage_changed_at = new Date().toISOString();
       zkResolveRegionId('dt').then(function (regionId) {
-        payload.region_id = regionId;
+        // Bölge ilçeden türetilir. İlçe boşken (eski kayıtlar ilçesiz olabilir) ya da çözümleme başarısızsa MEVCUT bölgeye dokunulmaz:
+        // önceden «Kaydet» bölgeyi sessizce siliyordu (otomatik görev atamasından düşüyordu). Bölge, yalnız kullanıcı ilçeyi bilerek boşalttıysa temizlenir.
+        if (regionId) payload.region_id = regionId;
+        else if (!ilceSecili && detailDoctor.ilce) payload.region_id = null;
         return ZirkonikData.updateDoctorPipeline(detailDoctor.id, payload);
       }).then(function (res) {
         if (res.error) { errEl.textContent = 'Kaydedilemedi: ' + res.error.message; errEl.classList.remove('hidden'); return; }

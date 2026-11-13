@@ -712,6 +712,9 @@
         client.from('payments').select('id, amount, currency, method, received_at, note, app_users:received_by(full_name)').eq('doctor_id', doctor.id).order('received_at', { ascending: false }).limit(300),
         client.rpc('zk_doktor_cari', { p_doctor_id: doctor.id })
       ]).then(function (res) {
+        // Sunucu hatasında «Bakiye kapalı / hareket yok» yazılmaz ve doğru önbellek boşla ezilmez
+        var hata = res[0].error || res[1].error || (res[2] && res[2].error);
+        if (hata) { zkToast('Cari yüklenemedi, lütfen tekrar deneyin.'); return; }
         var invs = res[0].data || [];
         var pays = res[1].data || [];
         var cari = (res[2] && res[2].data) || {};
@@ -746,7 +749,7 @@
       if (period === 'week') {
         var dayNames = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
         for (var i = 0; i < 7; i++) buckets.push({ label: dayNames[i], rows: [] });
-        keyFn = function (r) { return Math.round((new Date(r.date) - rangeStart) / 86400000); };
+        keyFn = function (r) { var g = new Date(r.date); g.setHours(0, 0, 0, 0); return Math.round((g - rangeStart) / 86400000); }; // yerel gün başı (öğleden sonraki işler ertesi sütuna kayıyordu)
       } else if (period === 'year') {
         var monthNames = (window.ZkDil && ZkDil.en ? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] : ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara']);   // İngilizcede ay kısaltması koddan (sözlükteki «Ara» = Arama düğmesi ile çakışmasın)
         for (var m = 0; m < 12; m++) buckets.push({ label: monthNames[m], rows: [] });
@@ -842,9 +845,11 @@
         var onb = ZKHiz.cachePeek(anahtar);
         if (onb) paintDocPerformance(onb, dpPeriod);
       }
+      var istekP = dpPeriod, istekO = dpOffset;
       ZirkonikData.getJobPerformancePeriod(dpPeriod, dpOffset).then(function (res) {
+        if (window.ZKHiz) ZKHiz.cachePut(anahtar, res);                 // doğru anahtara her zaman yazılır
+        if (istekP !== dpPeriod || istekO !== dpOffset) return;          // ama eski dönemin cevabı ekranı ezmez
         paintDocPerformance(res, dpPeriod);
-        if (window.ZKHiz) ZKHiz.cachePut(anahtar, res);
       }).catch(function (err) {
         zkToast('Performans yüklenemedi: ' + ((err && err.message) || 'bilinmeyen hata'));
       });
@@ -960,7 +965,9 @@
       // cevrilir. Onceden yalniz hic kalem yokken cevriliyordu; 3 kalem
       // ekleyip 4.'yu secip "Ekle"ye basmayi unutan kullanicinin secimi
       // sessizce kayboluyordu.
+      var kalemEklendi = false; // gönderim hata verirse bu kalem geri alınır (aksi hâlde tekrar basınca aynı kalem iki kez gider: 11,12 → 11,12,11,12)
       if (item && teeth.length) {
+        kalemEklendi = true;
         docItems.push({
           price_item_id: item.id,
           restoration_type: item.name,
@@ -997,6 +1004,7 @@
         note: document.getElementById('o-note').value.trim() || null
       }).then(function (res) {
         if (res.error) {
+          if (kalemEklendi) docItems.pop();
           btn.disabled = false;
           errEl.textContent = 'Gönderilemedi: ' + res.error.message;
           errEl.classList.remove('hidden');
@@ -1027,10 +1035,7 @@
         if (oStl) { oStl.kilitle(false); oStl.temizle(); }
         ZkWorkForm.render(document.getElementById('wf-container'));
         zkDocRenderItems();
-        ZkWorkForm.onTeethChange = function (teeth) {
-          if (teeth.length) document.getElementById('o-count').value = teeth.length;
-          zkDocRenderLegend();
-        };
+        // (onTeethChange burada yeniden atanıyordu: "adet" türlerinde adet kontrolünü atlayıp 2. siparişte adedi diş sayısına çıkarıyordu → ilk atama kalıcıdır, yeniden atanmaz)
         docItems = [];
         docColorIdx = 0;
         zkDocRenderColors();
@@ -1074,6 +1079,7 @@
         if (onb) paintMyPrices(onb.items, onb.ovs);
       }
       Promise.all([ZirkonikData.listPriceItems(), ZirkonikData.listPriceOverrides()]).then(function (results) {
+        if (results[0].error || results[1].error) { zkToast('Fiyatlar yüklenemedi, lütfen tekrar deneyin.'); return; }
         var itemsR = results[0].data || [];
         var ovs = results[1].data || [];
         paintMyPrices(itemsR, ovs);
@@ -1140,6 +1146,7 @@
               .eq('doctor_id', doctor.id).eq('status', 'active'),
         client.from('rooms').select('id, name, laboratory_id, sort_order').order('sort_order')
       ]).then(function (res) {
+        if (res[0].error || res[1].error) return; // hata: son bilinen petek kalır, önbellek bozulmaz
         var jobs = res[0].data || [];
         var rooms = res[1].data || [];
         processDoctorHive(jobs, rooms);
@@ -1305,6 +1312,7 @@
       document.getElementById('jd-sub').textContent = '';
       body.innerHTML = '<p class="text-xs text-muted-foreground">Yükleniyor…</p>';
       sheet.classList.remove('hidden');
+      var sira = (window.__zkDocJobSira = (window.__zkDocJobSira || 0) + 1); // ilk (yavaş) hastanın cevabı ikinci hastanın penceresini ezmesin
 
       var client = ZirkonikAuth.client();
       (isAsistan ? zkAsistanIsYukle(client, jobId) : Promise.all([
@@ -1321,6 +1329,7 @@
         // 23 Ekim 2026: "Teslim aldım" onayı. SQL gelmeden tablo yoksa hata döner → düğme gizli kalır.
         client.from('job_teslim_onaylari').select('received_at, kaynak').eq('job_id', jobId).maybeSingle()
       ])).then(function (res) {
+        if (sira !== window.__zkDocJobSira) return;
         if (res[0].error) {
           body.innerHTML = '<p class="text-xs text-destructive">Açılamadı: ' + escapeHtml(res[0].error.message) + '</p>';
           return;
@@ -1561,6 +1570,7 @@
         if (onb) paintOrders(onb);
       }
       ZirkonikData.listOrders({ doctorId: doctor.id, includePrice: !isAsistan }).then(function (r) {
+        if (r.error) { zkToast('Siparişler yüklenemedi, lütfen tekrar deneyin.'); return; } // «Henüz sipariş yok» yazılmaz, önbellek boşla ezilmez
         var list = r.data || [];
         paintOrders(list);
         if (window.ZKHiz) ZKHiz.cachePut('doc_orders', list);

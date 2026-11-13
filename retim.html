@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
@@ -553,6 +553,8 @@
         // Doktor Havuzu kartı: süreçteki (henüz aktif ya da kayıp olmamış) aday/doktor sayısı.
         client.from('doctors').select('id', { count: 'exact', head: true }).not('pipeline_stage', 'in', '(aktif,kayip)')
       ]).then(function (r) {
+        // Sorgulardan biri hata verdiyse (bağlantı/sunucu) sayaçlara yanlış «0» yazılmaz ve doğru önbellek bozulmaz: ekranda son bilinen değerler kalır.
+        if ([r[0], r[1], r[2], r[3], r[4], r[6], r[7]].some(function (x) { return x && x.error; })) return;
         var o = {
           active: r[0].count || 0, completed: r[1].count || 0, dueToday: r[2].count || 0, overdue: r[3].count || 0,
           qc: r[4].count || 0, bekleyen: r[5].bekleyen || {}, pendingOrders: r[6].count || 0,
@@ -930,7 +932,8 @@
       if (period === 'week') {
         var dayNames = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
         for (var i = 0; i < 7; i++) buckets.push({ label: dayNames[i], rows: [] });
-        keyFn = function (r) { return Math.round((new Date(r.date) - rangeStart) / 86400000); };
+        // Günün sütunu YEREL gün başından hesaplanır: önceden saatli zaman damgası Math.round ile yuvarlanıyordu → öğleden sonraki işler ertesi sütuna yazılıyor, Pazar öğleden sonrası işler grafikten siliniyordu.
+        keyFn = function (r) { var g = new Date(r.date); g.setHours(0, 0, 0, 0); return Math.round((g - rangeStart) / 86400000); };
       } else if (period === 'year') {
         var monthNames = (window.ZkDil && ZkDil.en ? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] : ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara']);   // İngilizcede ay kısaltması koddan (sözlükteki «Ara» = Arama düğmesi ile çakışmasın)
         for (var m = 0; m < 12; m++) buckets.push({ label: monthNames[m], rows: [] });
@@ -980,7 +983,9 @@
         var btn = document.getElementById('jp-' + p + '-btn');
         if (btn) btn.className = 'rounded-lg px-2.5 py-1.5 text-[10px] font-bold ' + (p === jpPeriod ? 'bg-card' : 'text-muted-foreground');
       });
+      var istekP = jpPeriod, istekO = jpOffset; // yavaş cevap, kullanıcı başka döneme geçtikten sonra gelirse atılır (hafta çizimine yıl rakamları basılıyordu)
       ZirkonikData.getJobPerformancePeriod(jpPeriod, jpOffset).then(function (res) {
+        if (istekP !== jpPeriod || istekO !== jpOffset) return;
         jpData = res;
         document.getElementById('jp-period-label').textContent = res.label;
         document.getElementById('jp-count').textContent = res.rows.length;
@@ -1192,6 +1197,9 @@
     function loadBoard() {
       var client = ZirkonikAuth.client();
       client.from('laboratories').select('id, name').order('created_at').then(function (r) {
+        // Bağlantı/sunucu hatası boş cevap sayılmaz: son bilinen pano ekranda kalır. («Önce laboratuvar ekleyin» yalnız liste GERÇEKTEN boşsa; önceden internet kopunca
+        // 30 sn'lik yenileme panoyu bu mesajla eziyordu ve kullanıcı verisinin silindiğini sanıyordu.)
+        if (r.error) return;
         boardLabs = r.data || [];
         if (!boardLabs.length) {
           document.getElementById('board-lab-switch-wrap').classList.add('hidden');
@@ -1308,6 +1316,7 @@
         // önceki odadan gelmekte olan işin YALNIZ numarasını bu RPC verir.
         (zkIsAdmin || zkLider) ? Promise.resolve({ data: [] }) : ZirkonikData.gelenIsNumaralari(lab.id)
       ]).then(function (results) {
+        if (results[0].error || results[1].error || results[2].error) return; // hata: son bilinen pano kalır, hatalı (boş) sonuç önbelleğe yazılmaz
         var rooms = results[0].data || [];
         hiveIncomingNumbers = {};
         (results[2].data || []).forEach(function (r) {
@@ -1356,7 +1365,10 @@
       });
     }
 
-    var hiveSections = [], hiveJobs = [], hiveConfirmedMap = {}, hiveIncomingMap = {}, hiveIncomingNumbers = {}, hiveSelectedIdx = 0, hiveContainer = null, hiveWaitRoomId = null, hiveUserSelId;
+    var hiveSections = [], hiveJobs = [], hiveConfirmedMap = {}, hiveIncomingMap = {}, hiveIncomingNumbers = {}, hiveSelectedIdx = 0, hiveContainer = null, hiveWaitRoomId = null;
+    // Seçili istasyon sayfa içinde (30 sn yenileme) korunuyordu ama bir işe girip GERİ gelince kayboluyordu (her iş sonrası istasyonu yeniden seçmek gerekiyordu):
+    // seçim sekme oturumunda saklanır (sessionStorage; çıkışta/sekme kapanınca kendiliğinden gider).
+    var hiveUserSelId = (function () { try { var s = sessionStorage.getItem('zk_hive_sel'); if (s) return JSON.parse(s).v; } catch (e) {} return undefined; })();
     // job_id -> true, eger o siparisin panoda birden cok kalemi varsa.
     // Kart uzerinde calisma turu/dis bilgisi YALNIZCA bu durumda gosteriliyor;
     // tek kalemli islerde gorunum bugunkuyle birebir ayni kaliyor.
@@ -1370,6 +1382,7 @@
     function zkHexSelect(idx) {
       hiveSelectedIdx = idx;
       hiveUserSelId = hiveSections[idx] ? hiveSections[idx].id : undefined;
+      try { sessionStorage.setItem('zk_hive_sel', JSON.stringify({ v: hiveUserSelId })); } catch (e) {}
       renderHive();
       // Seçilen istasyonun iş listesi kovanın altında — görünür alana kaydır.
       var lst = document.getElementById('hive-sel-jobs');

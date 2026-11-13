@@ -264,7 +264,11 @@
         });
       }
 
-      el.addEventListener('keydown', function (e) {
+      // render() aynı kapsayıcıya tekrar çağrılabilir (doktor siparişi gönderilince form baştan kurulur): eski dinleyiciler önce kaldırılır.
+      // Aksi hâlde her dokunuş iki kez işlenir (seçip hemen geri alır) ve 2. siparişte diş/renk/gingiva... seçilemez.
+      if (el.__zkWfKey) el.removeEventListener('keydown', el.__zkWfKey);
+      if (el.__zkWfClk) el.removeEventListener('click', el.__zkWfClk);
+      el.addEventListener('keydown', el.__zkWfKey = function (e) {
         if (e.key !== ' ' && e.key !== 'Enter') return;
         var t = e.target.closest ? e.target.closest('[data-tooth]') : null;
         if (!t) return;
@@ -279,7 +283,7 @@
         toggleTooth(t);
       });
 
-      el.addEventListener('click', function (e) {
+      el.addEventListener('click', el.__zkWfClk = function (e) {
         var t = e.target.closest('[data-tooth]');
         if (t) {
           // Baska bir kaleme verilmis dis secilemez ama hangi ise ait

@@ -169,7 +169,8 @@
     function notifTarget(n) {
       // Doktor iş detay sayfasını açamaz — kendi paneline döner.
       // 15 Ekim 2026: "Tasarım dosyanız hazır" bildirimi doktorun kendi panelinde o işi açar.
-      if (myRole === 'doktor') return (n.job_id && n.type === 'tasarim_3b') ? 'doktor-siparis.html?is=' + n.job_id : 'doktor-siparis.html';
+      // Doktor/asistan: iş bildirimi (prova hazır, işiniz tamamlandı, teslim aldınız mı, üretime alındı, tasarım dosyası...) o işi kendi panelinde açar (sayfa ?is= ile iş penceresini açıyor).
+      if (myRole === 'doktor') return n.job_id ? 'doktor-siparis.html?is=' + n.job_id : 'doktor-siparis.html';
       // 15 Ekim 2026: ortak laboratuvar istek/kabul/red bildirimleri Laboratuvarlar ekranına gider.
       if (n.type && n.type.indexOf('ortak_') === 0) return 'laboratuvarlar.html';
       if (n.job_id) return 'detay.html?id=' + n.job_id;
@@ -177,11 +178,19 @@
       if (n.type === 'sozlesme_duyuru') return 'veri-isleme-sozlesmesi.html';
       // Hata bildirimleri yalnız platform sahibine gider; dokununca hata günlüğü (Profil) açılır.
       if (n.type === 'hata_bildirimi' || n.type === 'hata_ozeti') return 'profil.html#pf-errors-section';
-      if (n.order_id && myRole === 'yonetici') return 'siparisler.html';
+      if (n.order_id && siparisAcik()) return 'siparisler.html';
       // 2 Kasım 2026: pazarlama (CRM) bildirimleri dokununca hiçbir yere gitmiyordu; Aday havuzunu açar.
       // YALNIZ pazarlama paketi (Plus/Tek) açıksa ve kişinin yetkisi varsa: Standart pakette sayfa Üretim'e geri atıyordu.
       if ((n.type === 'gunluk_ziyaret_taslagi' || n.type === 'gunluk_gorev_hatirlatma' || n.type === 'doktor_uyudu') && pazarlamaAcik()) return 'aday-havuzu.html';
       return null;
+    }
+    // Yeni sipariş bildirimi: Siparişler sayfasını açabilen herkes için dokunulabilir (yönetici, Lider Teknisyen, sipariş yetkili personel). Muhasebeci sayfayı açamaz.
+    function siparisAcik() {
+      if (myRole === 'yonetici') return true;
+      var g = null;
+      try { g = JSON.parse(localStorage.getItem('zk-guard') || 'null'); } catch (e) {}
+      if (!g || g.position === 'Muhasebeci') return false;
+      return g.position === 'Lider Teknisyen' || !!g.can_manage_orders;
     }
     // zk-guard anlık görüntüsü: plan bilinmiyorsa kapalı say (ölü bağlantıdan iyi). Yönetici serbest, personel için can_manage_prospects.
     function pazarlamaAcik() {

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
@@ -161,7 +161,7 @@
 
   <div id="add-lab-sheet" class="fixed inset-0 z-40 hidden">
     <div class="absolute inset-0 bg-black/40" onclick="zkCloseAddLab()"></div>
-    <div class="absolute bottom-0 left-0 w-full rounded-t-theme bg-card p-5 pb-8">
+    <div class="absolute bottom-0 left-0 w-full overflow-y-auto rounded-t-theme bg-card p-5 pb-8" style="max-height:90vh">
       <p class="font-heading text-lg font-bold">Laboratuvar ekle</p>
       <div class="mt-4 space-y-3">
         <input id="nl-name" type="text" placeholder="Laboratuvar adı *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
@@ -178,7 +178,7 @@
   <!-- Laboratuvarı düzenle sheet -->
   <div id="edit-lab-sheet" class="fixed inset-0 z-40 hidden">
     <div class="absolute inset-0 bg-black/40" onclick="zkCloseEditLab()"></div>
-    <div class="absolute bottom-0 left-0 w-full rounded-t-theme bg-card p-5 pb-8">
+    <div class="absolute bottom-0 left-0 w-full overflow-y-auto rounded-t-theme bg-card p-5 pb-8" style="max-height:90vh">
       <p class="font-heading text-lg font-bold">Laboratuvarı düzenle</p>
       <p class="mt-1 text-xs text-muted-foreground">İletişim bilgileri doktor panelinde görünür.</p>
       <div class="mt-4 space-y-3">
@@ -250,14 +250,14 @@
 
   <div id="add-room-sheet" class="fixed inset-0 z-40 hidden">
     <div class="absolute inset-0 bg-black/40" onclick="zkCloseAddRoom()"></div>
-    <div class="absolute bottom-0 left-0 w-full rounded-t-theme bg-card p-5 pb-8">
+    <div class="absolute bottom-0 left-0 w-full overflow-y-auto rounded-t-theme bg-card p-5 pb-8" style="max-height:90vh">
       <p class="font-heading text-lg font-bold">Oda ekle</p>
       <div class="mt-4 space-y-3">
         <input id="nr-name" type="text" placeholder="Oda adı * (Örn. Tasarım, Freze)" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         <label class="flex items-center gap-2 text-xs font-semibold"><input id="nr-qc" type="checkbox"> Kalite kontrol aşaması</label>
         <label class="flex items-center gap-2 text-xs font-semibold"><input id="nr-delivery" type="checkbox"> Teslimat aşaması</label>
         <label class="flex items-center gap-2 text-xs font-semibold"><input id="nr-3d" type="checkbox"> 3B dosya odası <span class="font-normal text-muted-foreground">(STL görür, exocad tasarımı yükler)</span></label>
-        <label class="flex items-center gap-2 text-xs font-semibold"><input id="er-prova" type="checkbox"> Prova odası <span class="font-normal text-muted-foreground">(buradaki işi doktora prova olarak gönderebilir)</span></label>
+        <label class="flex items-center gap-2 text-xs font-semibold"><input id="nr-prova" type="checkbox"> Prova odası <span class="font-normal text-muted-foreground">(buradaki işi doktora prova olarak gönderebilir)</span></label>
       </div>
       <p id="nr-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
       <button onclick="zkSubmitAddRoom()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
@@ -266,13 +266,14 @@
 
   <div id="edit-room-sheet" class="fixed inset-0 z-40 hidden">
     <div class="absolute inset-0 bg-black/40" onclick="zkCloseEditRoom()"></div>
-    <div class="absolute bottom-0 left-0 w-full rounded-t-theme bg-card p-5 pb-8">
+    <div class="absolute bottom-0 left-0 w-full overflow-y-auto rounded-t-theme bg-card p-5 pb-8" style="max-height:90vh">
       <p class="font-heading text-lg font-bold">Odayı düzenle</p>
       <div class="mt-4 space-y-3">
         <input id="er-name" type="text" placeholder="Oda adı *" class="h-12 w-full rounded-theme border border-border bg-input px-3.5 text-sm">
         <label class="flex items-center gap-2 text-xs font-semibold"><input id="er-qc" type="checkbox"> Kalite kontrol aşaması</label>
         <label class="flex items-center gap-2 text-xs font-semibold"><input id="er-delivery" type="checkbox"> Teslimat aşaması</label>
         <label class="flex items-center gap-2 text-xs font-semibold"><input id="er-3d" type="checkbox"> 3B dosya odası <span class="font-normal text-muted-foreground">(STL görür, exocad tasarımı yükler)</span></label>
+        <label class="flex items-center gap-2 text-xs font-semibold"><input id="er-prova" type="checkbox"> Prova odası <span class="font-normal text-muted-foreground">(buradaki işi doktora prova olarak gönderebilir)</span></label>
       </div>
       <p id="er-error" class="mt-2 hidden text-xs font-semibold text-destructive"></p>
       <button onclick="zkSubmitEditRoom()" class="mt-4 flex h-12 w-full items-center justify-center rounded-theme bg-primary text-sm font-bold text-primary-foreground">Kaydet</button>
@@ -312,7 +313,7 @@
   <!-- Yeni çalışma türü (fiyatsız; fiyat Finans'ta girilir) -->
   <div id="ct-sheet" class="fixed inset-0 z-50 hidden">
     <div class="absolute inset-0 bg-black/40" onclick="zkCloseWorkType()"></div>
-    <div class="absolute bottom-0 left-0 w-full rounded-t-2xl bg-card p-5 pb-8">
+    <div class="absolute bottom-0 left-0 w-full overflow-y-auto rounded-t-2xl bg-card p-5 pb-8" style="max-height:90vh">
       <h2 class="font-heading text-lg font-bold">Yeni çalışma türü</h2>
       <p class="mt-0.5 text-xs text-muted-foreground">Eklenince üretim rotasını seçersiniz. Fiyatı Finans &rsaquo; Fiyat listesinde girilir.</p>
       <div class="mt-4 space-y-3">
@@ -703,12 +704,15 @@
       var name = document.getElementById('nr-name').value.trim();
       if (!name) { errEl.textContent = 'Oda adı zorunludur.'; errEl.classList.remove('hidden'); return; }
       var client = ZirkonikAuth.client();
-      client.from('rooms').select('id', { count: 'exact', head: true }).eq('laboratory_id', activeLabForRoom.id).then(function (r) {
-        var nextOrder = (r.count || 0) + 1;
+      // Yeni odanın sırası = en büyük sıra + 1. Önceden «oda sayısı + 1» idi: bir oda silinince sıralarda boşluk kalıyor (1,3), sayı+1 mevcut bir sırayla (3) çakışıp
+      // «duplicate key ... rooms_laboratory_id_sort_order_key» hatasıyla oda eklenemiyordu.
+      client.from('rooms').select('sort_order').eq('laboratory_id', activeLabForRoom.id).then(function (r) {
+        var nextOrder = Math.max.apply(null, [0].concat((r.data || []).map(function (x) { return Number(x.sort_order) || 0; }))) + 1;
         return ZirkonikData.createRoom(activeLabForRoom.id, name, nextOrder, {
           isQualityControl: document.getElementById('nr-qc').checked,
           isDelivery: document.getElementById('nr-delivery').checked,
-          has3d: document.getElementById('nr-3d').checked
+          has3d: document.getElementById('nr-3d').checked,
+          hasProva: document.getElementById('nr-prova').checked
         });
       }).then(function (res) {
         if (res.error) throw res.error;
@@ -717,8 +721,10 @@
         document.getElementById('nr-qc').checked = false;
         document.getElementById('nr-delivery').checked = false;
         document.getElementById('nr-3d').checked = false;
+        document.getElementById('nr-prova').checked = false;
         zkToast('Oda eklendi.');
         loadLabs();
+        zkOdaDegisti();
       }).catch(function (err) {
         errEl.textContent = 'Eklenemedi: ' + err.message;
         errEl.classList.remove('hidden');
@@ -756,6 +762,8 @@
         zkCloseEditRoom();
         zkToast('Oda silindi.');
         loadRooms(activeLabForRoom);
+        loadLabs();
+        zkOdaDegisti();
       }).catch(function (err) {
         btn.disabled = false;
         errEl.textContent = 'Silinemedi: ' + (err && err.message ? err.message : err);
@@ -779,6 +787,7 @@
         zkCloseEditRoom();
         zkToast('Oda güncellendi.');
         loadRooms(activeLabForRoom);
+        zkOdaDegisti();
       }).catch(function (err) {
         errEl.textContent = 'Güncellenemedi: ' + err.message;
         errEl.classList.remove('hidden');
@@ -939,6 +948,8 @@
     /* ---------------- Üretim rotaları (7 Kasım 2026) ----------------
      * Çalışma türü listesi fiyat içermez (zk_calisma_turleri_listele); rota zk_rota_kaydet RPC'siyle yazılır (yönetici + Lider Teknisyen). */
     var rtItems = [], rtRooms = null, rtItemId = null, rtSeq = [];
+    // Oda eklenince/silinince/adı değişince «Çalışma türleri ve rotalar» bölümü eski oda listesiyle kalıyordu (rota satırlarında '?' çıkıyordu): oda önbelleği sıfırlanıp rotalar yeniden yüklenir.
+    function zkOdaDegisti() { rtRooms = null; try { var p = loadRoutes(); if (p && p.catch) p.catch(function () {}); } catch (e) {} }
     function rtOdaYukle() {
       if (rtRooms) return Promise.resolve(rtRooms);
       return ZirkonikAuth.client().from('rooms').select('id, name, sort_order, laboratories(id, name)').order('sort_order').then(function (r) {

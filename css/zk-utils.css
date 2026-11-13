@@ -943,3 +943,22 @@ body { animation: zkPageIn .2s ease both; }
 /* 7 Kasım 2026: statik Tailwind'de olmayan iki küçük yardımcı (bağlantı altı çizgisi, 3 sütun kaplama) */
 .underline { text-decoration: underline; }
 .col-span-3 { grid-column: span 3 / span 3; }
+
+/* ---- Sütun grafikleri (Üretim › İş ve Ciro Performansı › Yıl: 12 sütun; doktor Cari/İş Performansı; Ekip) dar kartta ----
+   SORUN: sütun üstündeki ham rakam (örn. 139150) her sütunu ~38 px'e zorluyordu (flex öğesi min-width:auto); 12 sütun dar kartta (telefon, ya da yeni tasarımda sol menü yüzünden 1280-1550 px)
+   sığmayıp kart dışına taşıyor, ay adları ise sütunlardan bağımsız eşit paylaştığı için YANLIŞ sütunun altında kalıyordu (yanlış ay okunabilir).
+   ÇÖZÜM: sütunlar ve etiketler küçülebilir (min-width:0), kart darsa boşluk daralır, çok sütunlu grafikte çok darsa rakamlar dikey yazılır. Kart genişliği KAPLA göre ölçülür (container query). */
+.zk-cols > .zk-col, .zk-cols-labels > span { min-width: 0; }
+*:has(> .zk-cols) { container-type: inline-size; container-name: zkgrafik; }
+@container zkgrafik (max-width: 620px) { .zk-cols, .zk-cols-labels { gap: 4px; } }
+@container zkgrafik (max-width: 540px) {
+  .zk-cols:has(> .zk-col:nth-child(8)) .zk-col-val { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 10px; }
+}
+
+/* Kapalı alt pencereler (-sheet): canlıda display:none DEĞİL, opacity:0 + pointer-events:none (açılış animasyonu için) → Tab odağı ve ekran okuyucu görünmeyen öğelere gidiyordu.
+   Kapanırken görünürlük solma bittikten sonra kapanır; açılırken hemen görünür (animasyon bozulmaz). */
+[id$="-sheet"] { transition: opacity .15s ease, visibility 0s linear 0s; }
+[id$="-sheet"].hidden { visibility: hidden; transition: opacity .15s ease, visibility 0s linear .15s; }
+
+/* 'Hareketi azalt': sıcak hücre parlaması hareket-azalt kapısının dışındaydı → reduce'ta da durur */
+@media (prefers-reduced-motion: reduce) { .zk-hex-hot { animation: none; } }

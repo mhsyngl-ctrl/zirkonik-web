@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
@@ -1247,32 +1247,35 @@
       var doc = new jsPDFCtor();
       // Türkçe karakterler (ı, ş, ğ, İ) için Unicode yazı tipi; yüklenemezse varsayılan kalır.
       var PF = (window.ZkPdfFont && ZkPdfFont.uygula(doc)) ? 'Roboto' : undefined;
+      // PDF metni sayfa metni olmadığından çeviri motoru göremez: İngilizce arayüzde etiketler ve tarihler elle (ZkDil.t / en-GB) yazılır → Türkçe başlık + İngilizce tarih karışık belge çıkmasın
+      var en = !!(window.ZkDil && window.ZkDil.en);
+      var zt = function (x) { return en && window.ZkDil.t ? window.ZkDil.t(x) : x; };
       var labName = j.laboratories ? j.laboratories.name : 'Zirkonik Laboratuvarı';
-      var fmt = function (iso) { return iso ? new Date(iso).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'; };
-      var desc = [j.restoration_type, j.unit_count ? (j.unit_count + ' diş') : null, j.teeth_numbers ? ('Diş no: ' + j.teeth_numbers) : null].filter(Boolean).join(' · ') || '—';
+      var fmt = function (iso) { return iso ? new Date(iso).toLocaleDateString(en ? 'en-GB' : 'tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'; };
+      var desc = [j.restoration_type, j.unit_count ? (j.unit_count + (en ? ' teeth' : ' diş')) : null, j.teeth_numbers ? ((en ? 'Tooth no.' : 'Diş no') + ': ' + j.teeth_numbers) : null].filter(Boolean).join(' · ') || '—';
 
       doc.setFontSize(16);
       doc.text(labName, 14, 18);
       doc.setFontSize(10);
       doc.setTextColor(120);
-      doc.text('İş Fişi — ' + j.job_number, 14, 25);
+      doc.text(zt('İş Fişi') + ' — ' + j.job_number, 14, 25);
 
       var doctorName = ZirkonikData.musteriAdi(j.doctors);
       var rows = [
-        ['İş tanımı', desc],
-        ['Doktor', doctorName],
-        ['Geliş tarihi', fmt(j.created_at)],
-        ['Çıkış tarihi', fmt(j.completed_at)]
+        [zt('İş tanımı'), desc],
+        [zt('Doktor'), doctorName],
+        [zt('Geliş tarihi'), fmt(j.created_at)],
+        [zt('Çıkış tarihi'), fmt(j.completed_at)]
       ];
       var wf = j.work_form || {};
-      if (wf.renk) rows.push(['Renk / Shade', wf.renk]);
-      if (wf.gingiva) rows.push(['Gingiva', wf.gingiva]);
-      if (wf.dvo) rows.push(['DVO', wf.dvo]);
-      if (wf.prova_final) rows.push(['Prova / Final', wf.prova_final]);
-      if (wf.dis_boyu) rows.push(['Diş boyu', wf.dis_boyu]);
-      if (wf.gulus) rows.push(['Gülüş tasarımı', wf.gulus]);
-      if (wf.materyaller && wf.materyaller.length) rows.push(['Materyaller', wf.materyaller.join(', ')]);
-      if (wf.ozel_istek) rows.push(['Özel istek', wf.ozel_istek]);
+      if (wf.renk) rows.push([zt('Renk / Shade'), wf.renk]);
+      if (wf.gingiva) rows.push([zt('Gingiva'), wf.gingiva]);
+      if (wf.dvo) rows.push([zt('DVO'), wf.dvo]);
+      if (wf.prova_final) rows.push([zt('Prova / Final'), wf.prova_final]);
+      if (wf.dis_boyu) rows.push([zt('Diş boyu'), wf.dis_boyu]);
+      if (wf.gulus) rows.push([zt('Gülüş tasarımı'), wf.gulus]);
+      if (wf.materyaller && wf.materyaller.length) rows.push([zt('Materyaller'), wf.materyaller.join(', ')]);
+      if (wf.ozel_istek) rows.push([zt('Özel istek'), wf.ozel_istek]);
 
       var y = 42;
       doc.setFontSize(11);
@@ -1290,14 +1293,14 @@
         doc.setFontSize(12);
         doc.setTextColor(20);
         doc.setFont(PF, 'bold');
-        doc.text('Üretim süreci', 14, y);
+        doc.text(zt('Üretim süreci'), 14, y);
         doc.setFont(PF, 'normal');
         doc.setFontSize(10);
         y += 8;
         historyRows.forEach(function (h) {
           var room = h.rooms ? h.rooms.name : '—';
           var who = h.app_users && h.app_users.full_name ? h.app_users.full_name : '';
-          var line = fmt(h.entered_at) + ' — ' + room + (who ? ' (' + who + ')' : '') + (h.exited_at ? ' → çıkış ' + fmt(h.exited_at) : ' (devam ediyor)');
+          var line = fmt(h.entered_at) + ' — ' + room + (who ? ' (' + who + ')' : '') + (h.exited_at ? ' → ' + zt('çıkış') + ' ' + fmt(h.exited_at) : ' (' + zt('devam ediyor') + ')');
           doc.setTextColor(60);
           doc.text(doc.splitTextToSize(line, 180), 14, y);
           y += 7;
@@ -1308,7 +1311,7 @@
       y += 8;
       doc.setFontSize(10);
       doc.setTextColor(120);
-      doc.text('Bizi tercih ettiğiniz için teşekkür ederiz.', 14, y);
+      doc.text(zt('Bizi tercih ettiğiniz için teşekkür ederiz.'), 14, y);
 
       var blob = doc.output('blob');
       var filename = String(j.job_number || 'is').replace(/[^a-zA-Z0-9-_]+/g, '-') + '-fis.pdf';
@@ -1487,7 +1490,7 @@
       }).then(function () {
         dosya3B.yukleniyor = false;
         ilerlemeEl.classList.add('hidden');
-        if (hatalar.length) { hataEl.textContent = 'Yüklenemeyen: ' + hatalar.join('; '); hataEl.classList.remove('hidden'); }
+        if (hatalar.length) { hataEl.textContent = 'Yüklenemeyen: ' + hatalar.join('; '); hataEl.classList.remove('hidden'); zkToast(hataEl.textContent); } // liste yenilenince kırmızı alan ~0,5 sn'de siliniyordu: hata ayrıca bildirim olarak da gösterilir
         if (basarili) zkToast(basarili > 1 ? basarili + ' dosya kaydedildi.' : (tekHtml ? 'Tasarım dosyası kaydedildi.' : 'Dosya kaydedildi.'));
         // exocad tasarımı tek dosyadır: kaydedince doktora gitsin mi diye sorulur (yalnız yetkili).
         if (tekHtml && y.gonder) {
@@ -1502,6 +1505,7 @@
         dosya3B.yukleniyor = false;
         ilerlemeEl.classList.add('hidden');
         hataEl.textContent = 'Yüklenemedi: ' + ((e && e.message) || e);
+        zkToast(hataEl.textContent);
         hataEl.classList.remove('hidden');
       }).then(function () { load3B(); });
     }
@@ -1533,6 +1537,7 @@
         if (sonuc.hatalar.length) {
           hataEl.textContent = 'Yüklenemeyen: ' + sonuc.hatalar.join('; ');
           hataEl.classList.remove('hidden');
+          zkToast(hataEl.textContent); // kırmızı alan liste yenilenince hemen siliniyordu
           if (dosya3B.secici) dosya3B.secici.kilitle(false);
         }
         if (sonuc.basarili) {
@@ -1556,6 +1561,7 @@
         if (dosya3B.secici) dosya3B.secici.kilitle(false);
         hataEl.textContent = 'Yüklenemedi: ' + ((e && e.message) || e);
         hataEl.classList.remove('hidden');
+        zkToast(hataEl.textContent);
       }).then(function () { load3B(); });
     }
 
@@ -1768,7 +1774,11 @@
       });
     }
 
+    // «Sonraki aşamaya taşı» iyimser arayüzde düğmeyi anında «Teslim Al»a çevirir; hızlı ikinci dokunuş (80-600 ms) sunucuya sırayla iki istek gönderip işi taşıyor VE sonraki odada
+    // «teslim alındı» yazıyordu: odadaki kişi işi hiç eline almadan teslim almış görünüyordu (iki taraflı teslim adımı atlanıyordu). Taşıma sürerken ve bitişinden ~1 sn sonra düğme kilitli.
+    var advanceKilit = false;
     document.getElementById('advance-btn').addEventListener('click', function () {
+      if (advanceKilit) return;
       var errEl = document.getElementById('advance-error');
       errEl.classList.add('hidden');
       // 4 Ekim 2026: sayfa veriyi yüklemeden gelen (hayalet/erken) dokunuş, oda
@@ -1854,6 +1864,7 @@
       // İyimser arayüz: aşama çubuğu hemen bir sonraki odaya geçer, sunucu arkadan;
       // hata olursa eski oda geri gelir ve uyarı çıkar.
       var eskiOda = zkCurRoom(), eskiStage2 = currentStage;
+      advanceKilit = true;
       ZKHiz.optimistic({
         label: 'İşlem başarısız',
         apply: function () {
@@ -1875,7 +1886,7 @@
           errEl.textContent = 'İşlem başarısız: ' + (err && err.message ? err.message : err);
           errEl.classList.remove('hidden');
         }
-      }).then(function (res) { if (!res.error && !res.kuyrukta) loadJob(); });
+      }).then(function (res) { setTimeout(function () { advanceKilit = false; }, 1000); if (!res.error && !res.kuyrukta) loadJob(); }, function () { advanceKilit = false; });
     });
   
     /* Yumusak tazeleme: sayfa verisi yalniz acilista cekiliyordu, baskasi

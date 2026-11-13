@@ -149,6 +149,8 @@
       // cihazdan silinir; ortak/kaybolan cihazda kalmasın. Gönderilmemiş BEKLEYEN işlemler
       // (ZKKuyruk) silinmez — kullanıcının yaptığı iş kaybolmasın, aynı hesapla girince gider.
       try { if (window.ZKCevrimdisi && window.ZKCevrimdisi.depo && window.ZKCevrimdisi.depo.bosalt) window.ZKCevrimdisi.depo.bosalt(); } catch (e) {}
+      // Hız hissi önbelleği (ZKHiz: hasta, iş ve cari cevapları) da çıkışta silinir; ortak bilgisayarda bir sonraki kullanıcı önceki kullanıcının verisini görmesin (KVKK).
+      try { if (window.ZKHiz && window.ZKHiz.clearCache) window.ZKHiz.clearCache(); } catch (e) {}
       // 15 Ekim 2026: 3B dosya önbelleği (STL/HTML, hasta işine ait) de çıkışta silinir.
       try { if (window.indexedDB) window.indexedDB.deleteDatabase('zk3b'); } catch (e) {}
       return client().auth.signOut().then(function () {
@@ -291,7 +293,9 @@
         laboratory_id: labId, name: name, sort_order: sortOrder,
         is_quality_control: !!opts.isQualityControl, is_delivery: !!opts.isDelivery,
         // 15 Ekim 2026: 3B dosya odası (STL görüntüler, exocad HTML yükler).
-        has_3d: !!opts.has3d
+        has_3d: !!opts.has3d,
+        // 14 Kasım 2026: «Oda ekle» penceresindeki Prova odası kutusu hiçbir şey kaydetmiyordu (kimliği düzenle formununkiyle karışmıştı)
+        has_prova: !!opts.hasProva
       }).select().single();
     },
     updateRoom: function (roomId, fields) {
@@ -1295,7 +1299,7 @@
       var docInvQ = c.from('invoices').select('id, amount, currency, due_date, doctor_id').neq('status', 'cancelled');
       var docPayQ = c.from('payments').select('invoice_id, amount, currency, doctor_id');
       // Kira/SGK/elektrik vb. sabit giderler — kullanıcı isteği, 22 Eylül 2026.
-      var recurQ = c.from('recurring_expenses').select('name, amount, currency, frequency, due_date').eq('is_active', true);
+      var recurQ = c.from('recurring_expenses').select('name, amount, currency, frequency, due_date, end_date').eq('is_active', true); // end_date: bitiş tarihi öngörüde yok sayılıyordu (sorguda yoktu)
 
       return Promise.all([staffQ, supInvQ, supPayQ, docInvQ, docPayQ, recurQ]).then(function (res) {
         var buckets = {};
@@ -1966,8 +1970,11 @@
       return new Intl.NumberFormat(REGION_LOCALE, {
         style: 'currency',
         currency: CURRENCY_CODES[sym],
+        // İngilizce biçimde (en-US) ₺ simgesi bilinmediğinden tutar «TRY 20,000» çıkıyordu (ve ISO kodu satırı uzatıp 390 px'te kesiyordu): dar simge kullanılır (₺20,000).
+        currencyDisplay: 'narrowSymbol',
         maximumFractionDigits: fractionDigits == null ? 0 : fractionDigits,
-        minimumFractionDigits: 0
+        // İki ondalık istenen yerde sondaki sıfır atılmaz (₺12,50; $12.50) — önceden 12,5 görünüyordu
+        minimumFractionDigits: fractionDigits === 2 ? 2 : 0
       }).format(Number(amount) || 0);
     },
 

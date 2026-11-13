@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
@@ -507,9 +507,9 @@
         document.getElementById('pf-earnings-list').innerHTML = rows.slice(0, 20).map(function (e) {
           var is = e.jobs || {};
           return '<div class="flex items-center justify-between rounded-theme border border-border bg-background px-3 py-2.5">' +
-            '<div class="min-w-0"><p class="truncate text-xs font-bold">' + (is.job_number || 'İş') + '</p>' +
-            '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + (is.restoration_type || '') +
-            ' · ' + e.tooth_count + ' diş/adet × ' + ZirkonikMoney.format(e.unit_rate, e.currency, 2) + ' · ' + (DURUM_ETIKET[e.status] || e.status) + '</p></div>' +
+            '<div class="min-w-0"><p class="truncate text-xs font-bold">' + escapeHtml(is.job_number || 'İş') + '</p>' +
+            '<p class="mt-0.5 truncate text-[11px] text-muted-foreground">' + escapeHtml(is.restoration_type || '') +
+            ' · ' + escapeHtml(e.tooth_count) + ' diş/adet × ' + ZirkonikMoney.format(e.unit_rate, e.currency, 2) + ' · ' + escapeHtml(DURUM_ETIKET[e.status] || e.status) + '</p></div>' +
             '<p class="shrink-0 text-sm font-bold tabular-nums">' + ZirkonikMoney.format(e.amount, e.currency, 2) + '</p></div>';
         }).join('');
       }).catch(function () {});
@@ -630,14 +630,16 @@
     function zkLoadAbonelik() {
       var sec = document.getElementById('pf-abonelik-section');
       if (!sec || !pfOrgId) return;
-      ZirkonikAuth.client().from('organizations').select('plan, trial_ends_at, subscription_status').eq('id', pfOrgId).maybeSingle()
+      ZirkonikAuth.client().from('organizations').select('plan, trial_ends_at, subscription_status, billing_period').eq('id', pfOrgId).maybeSingle()
         .then(function (r) {
           var o = r && r.data;
           if (!o) return;
           sec.classList.remove('hidden');
           document.getElementById('pf-abonelik-plan').textContent = PLAN_ETIKET[o.plan] || (o.plan || 'Paket');
           var paketEl = document.getElementById('pf-abonelik-paket');
-          if (paketEl) paketEl.textContent = 'Bu pakete sahipsiniz: ' + (PLAN_ETIKET[o.plan] || o.plan || '—') + '. ' + (PAKET_ACIKLAMA[o.plan] || '');
+          // Paket açıklaması İngilizcede de çevrilsin: «Bu pakete sahipsiniz» deseni cümlenin geri kalanını çevirmiyordu → açıklama ZkDil.t ile önceden çevrilir
+          var zt = function (x) { return (window.ZkDil && window.ZkDil.en && window.ZkDil.t) ? window.ZkDil.t(x) : x; };
+          if (paketEl) paketEl.textContent = 'Bu pakete sahipsiniz: ' + zt(PLAN_ETIKET[o.plan] || o.plan || '—') + '. ' + zt(PAKET_ACIKLAMA[o.plan] || '');
           var sure;
           if (o.subscription_status === 'canceled') {
             sure = 'Erişim kapalı. Devam etmek için bizimle iletişime geçin.';
@@ -647,9 +649,10 @@
             var bitis = new Date(o.trial_ends_at);
             var kalan = Math.ceil((bitis.getTime() - Date.now()) / 86400000);
             var tarih = bitis.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
-            sure = kalan > 0
-              ? 'Deneme süresi ' + tarih + ' tarihinde bitiyor (' + kalan + ' gün kaldı).'
-              : 'Deneme süresi ' + tarih + ' tarihinde sona erdi.';
+            // Yıllık ödeme yapmış kuruluşa «Deneme süresi…» yazılmıyordu (yanlıştı): trial_ends_at orada aboneliğin geçerlilik sonudur.
+            sure = o.billing_period === 'yillik'
+              ? (kalan > 0 ? 'Yıllık aboneliğiniz ' + tarih + ' tarihine kadar geçerli (' + kalan + ' gün kaldı).' : 'Yıllık aboneliğinizin süresi ' + tarih + ' tarihinde doldu.')
+              : (kalan > 0 ? 'Deneme süresi ' + tarih + ' tarihinde bitiyor (' + kalan + ' gün kaldı).' : 'Deneme süresi ' + tarih + ' tarihinde sona erdi.');
           }
           document.getElementById('pf-abonelik-sure').textContent = sure;
         }).catch(function () {});
@@ -946,7 +949,8 @@
       ZirkonikData.deleteMyAccount().then(function (res) {
         if (res.error) { zkToast('Hesap silinemedi: ' + res.error.message); return; }
         alert('Hesabınız silindi.');
-        window.location.href = 'giris.html';
+        // Cihazdaki oturum, yetki ve çevrimdışı önbellek de temizlenir (signOut giriş sayfasına yönlendirir); aksi hâlde giriş sayfası eski oturumla ana ekrana geri atabiliyordu.
+        ZirkonikAuth.signOut().catch(function () { window.location.href = 'giris.html'; });
       });
     }
 

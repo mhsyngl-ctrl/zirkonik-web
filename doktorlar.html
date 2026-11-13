@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
@@ -802,21 +802,25 @@
 
     // Bölge listesi, aday-havuzu.html'deki gibi Avrupa/Asya gruplu (24 Eylül 2026).
     var edRegions = [];
-    var ED_SIDE_LABELS = { avrupa: 'Avrupa Yakası', asya: 'Asya Yakası' };
+    var edRegionSecili = ''; // düzenlenen doktorun bölgesi: liste geç yüklense de seçim kaybolmaz (aksi hâlde kaydedince bölge boş yazılıyordu)
+    var ED_SIDE_LABELS = { avrupa: 'Avrupa Yakası', asya: 'Asya Yakası', anadolu: 'Anadolu Yakası' };
     function loadEdRegions() {
       ZirkonikData.listRegions().then(function (r) {
         edRegions = (r && r.data) || [];
         var html = '<option value="">Bölge</option>';
         var gruplar = {}, sirasiz = [];
-        edRegions.forEach(function (x) { if (x.side) { (gruplar[x.side] = gruplar[x.side] || []).push(x); } else { sirasiz.push(x); } });
+        // Bilinen yakası olmayanlar (ya da yeni bir yaka adı) sırasız listeye düşer: görünmez bölge olmasın
+        edRegions.forEach(function (x) { if (x.side && ED_SIDE_LABELS[x.side]) { (gruplar[x.side] = gruplar[x.side] || []).push(x); } else { sirasiz.push(x); } });
         sirasiz.forEach(function (x) { html += '<option value="' + x.id + '">' + escapeHtml(x.name) + '</option>'; });
-        ['avrupa', 'asya'].forEach(function (side) {
+        ['avrupa', 'asya', 'anadolu'].forEach(function (side) {
           if (!gruplar[side]) return;
           html += '<optgroup label="' + ED_SIDE_LABELS[side] + '">' + gruplar[side].map(function (x) {
             return '<option value="' + x.id + '">' + escapeHtml(x.name) + '</option>';
           }).join('') + '</optgroup>';
         });
-        document.getElementById('ed-region').innerHTML = html;
+        var sel = document.getElementById('ed-region');
+        sel.innerHTML = html;
+        sel.value = edRegionSecili; // seçenekler yeniden kurulunca seçim sıfırlanıyordu
       });
     }
 
@@ -832,8 +836,9 @@
       document.getElementById('ed-phone').value = d.phone || '';
       document.getElementById('ed-email').value = d.email || '';
       document.getElementById('ed-kdv').value = ZkKdv.ilk(d, kdvLab);
+      edRegionSecili = d.region_id || '';
       if (!edRegions.length) loadEdRegions();
-      document.getElementById('ed-region').value = d.region_id || '';
+      document.getElementById('ed-region').value = edRegionSecili;
       document.getElementById('ed-assistant-name').value = d.assistant_name || '';
       document.getElementById('ed-assistant-phone').value = d.assistant_phone || '';
       document.getElementById('ed-specialization').value = d.specialization || '';
@@ -870,7 +875,8 @@
         clinic_name: document.getElementById('ed-clinic').value.trim() || null,
         phone: document.getElementById('ed-phone').value.trim() || null,
         email: document.getElementById('ed-email').value.trim() || null,
-        region_id: document.getElementById('ed-region').value || null,
+        // Bölge listesi henüz yüklenmediyse (ya da yüklenemediyse) kutu boş görünür: mevcut bölgeyi SİLME
+        region_id: document.getElementById('ed-region').value || (edRegions.length ? null : (edRegionSecili || null)),
         assistant_name: document.getElementById('ed-assistant-name').value.trim() || null,
         assistant_phone: document.getElementById('ed-assistant-phone').value.trim() || null,
         specialization: document.getElementById('ed-specialization').value || null,
@@ -1213,7 +1219,7 @@
       if (period === 'week') {
         var dayNames = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
         for (var i = 0; i < 7; i++) buckets.push({ label: dayNames[i], rows: [] });
-        keyFn = function (r) { return Math.round((new Date(r.date) - rangeStart) / 86400000); };
+        keyFn = function (r) { var g = new Date(r.date); g.setHours(0, 0, 0, 0); return Math.round((g - rangeStart) / 86400000); }; // yerel gün başı (öğleden sonraki işler ertesi sütuna kayıyordu)
       } else if (period === 'year') {
         var monthNames = (window.ZkDil && ZkDil.en ? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] : ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara']);   // İngilizcede ay kısaltması koddan (sözlükteki «Ara» = Arama düğmesi ile çakışmasın)
         for (var m = 0; m < 12; m++) buckets.push({ label: monthNames[m], rows: [] });
@@ -1267,7 +1273,9 @@
     function loadDocCariPerformance() {
       if (!cariDoctorId) return;
       var period = cariPeriod === 'all' ? 'all' : cariPeriod;
+      var istekDoktor = cariDoctorId;
       ZirkonikData.getJobPerformancePeriod(period, 0, cariDoctorId).then(function (res) {
+        if (istekDoktor !== cariDoctorId || period !== (cariPeriod === 'all' ? 'all' : cariPeriod)) return; // eski dönem/doktor cevabı ekranı ezmez
         document.getElementById('dcp-count').textContent = res.rows.length;
         document.getElementById('dcp-total').textContent = ZirkonikMoney.totalText(res.rows, 'price', 'currency', 0);
 
@@ -1353,17 +1361,18 @@
     function zkIsBirim(j) {
       if (!j || j.unit_count == null) return '';
       var piece = j.price_list_items && j.price_list_items.pricing_unit === 'piece';
-      return j.unit_count + (piece ? ' adet' : ' diş');
+      var en = !!(window.ZkDil && window.ZkDil.en); // ekstre PDF/CSV sayfa metni değildir: birim eki dile göre burada yazılır
+      return j.unit_count + (piece ? (en ? ' pcs' : ' adet') : (en ? ' teeth' : ' diş'));
     }
 
     function buildStatementCsv(name, invoices, payments) {
-      var header = 'Tür,Tarih,Açıklama,Tutar\n';
+      var header = 'Tür,Tarih,Açıklama,Tutar,Para birimi\n'; // para birimi sütunu: ₺/$/€ tek 'Tutar' sütununda karışıyordu
       var invRows = invoices.map(function (inv) {
         var title = inv.jobs ? (inv.jobs.job_number + ' - ' + (inv.jobs.restoration_type || '') + (zkIsBirim(inv.jobs) ? ' (' + zkIsBirim(inv.jobs) + ')' : '') + (inv.vat_amount != null ? ' (KDV %' + Number(inv.vat_rate || 0) + ' dahil)' : '')) : 'İş kaydı';
-        return ['Fatura', (inv.issued_at || '').slice(0, 10), csvSafe(title), inv.amount].join(',');
+        return ['Fatura', (inv.issued_at || '').slice(0, 10), csvSafe(title), inv.amount, inv.currency || ''].join(',');
       }).join('\n');
       var payRows = payments.map(function (p) {
-        return ['Tahsilat', (p.received_at || '').slice(0, 10), csvSafe(p.method || 'Tahsilat'), p.amount].join(',');
+        return ['Tahsilat', (p.received_at || '').slice(0, 10), csvSafe(p.method || 'Tahsilat'), p.amount, p.currency || ''].join(',');
       }).join('\n');
       // 2026-09-12: BOM olmadan Excel dosyayı Windows-1254 sanıp Türkçe
       // karakterleri bozuk gösteriyordu.
@@ -1376,26 +1385,47 @@
       var doc = new jsPDFCtor();
       // Türkçe karakterler (ı, ş, ğ, İ) için Unicode yazı tipi; yüklenemezse varsayılan kalır.
       var PF = (window.ZkPdfFont && ZkPdfFont.uygula(doc)) ? 'Roboto' : undefined;
+      // PDF metni sayfa metni değildir: çeviri motoru göremez → İngilizcede başlıklar ZkDil.t ile elle çevrilir; tutardaki bölünmeyen boşluk (NBSP, 'TRY 1,201')
+      // gömülü yazı tipinde yok ve PDF kütüphanesi tutarı düşürüyordu → normal boşluğa çevrilir.
+      var en = !!(window.ZkDil && window.ZkDil.en);
+      var zt = function (x) { return en && window.ZkDil.t ? window.ZkDil.t(x) : x; };
+      var temiz = function (x) { return String(x).replace(/[\u00a0\u202f\u2009]/g, ' '); };
+      var para = function (v, cur) { return temiz(ZirkonikMoney.format(v, cur, 2)); };
       doc.setFontSize(14);
-      doc.text(name + ' — Cari Hesap Ekstresi', 14, 16);
+      doc.text(name + ' — ' + zt('Cari Hesap Ekstresi'), 14, 16);
       doc.setFontSize(9);
       doc.setTextColor(120);
-      doc.text('Oluşturulma tarihi: ' + new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }), 14, 22);
+      doc.text(zt('Oluşturulma tarihi') + ': ' + new Date().toLocaleDateString(en ? 'en-GB' : 'tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }), 14, 22);
 
       var rows = invoices.map(function (inv) {
         var title = inv.jobs ? (inv.jobs.job_number + ' — ' + (inv.jobs.restoration_type || '') + (zkIsBirim(inv.jobs) ? ' (' + zkIsBirim(inv.jobs) + ')' : '') + (inv.vat_amount != null ? ' (KDV %' + Number(inv.vat_rate || 0) + ' dahil)' : '')) : 'İş kaydı';
-        return [(inv.issued_at || '').slice(0, 10), 'Fatura', title, '-' + ZirkonikMoney.format(inv.amount, inv.currency, 0)];
+        return [(inv.issued_at || '').slice(0, 10), zt('Fatura'), title, '-' + para(inv.amount, inv.currency)];
       }).concat(payments.map(function (p) {
-        return [(p.received_at || '').slice(0, 10), 'Tahsilat', p.method || '', '+' + ZirkonikMoney.format(p.amount, p.currency, 0)];
+        return [(p.received_at || '').slice(0, 10), zt('Tahsilat'), p.method || '', '+' + para(p.amount, p.currency)];
       }));
 
       doc.autoTable({
         startY: 28,
-        head: [['Tarih', 'Tür', 'Açıklama', 'Tutar']],
-        body: rows.length ? rows : [['—', '—', 'Kayıt yok', '—']],
+        head: [[zt('Tarih'), zt('Tür'), zt('Açıklama'), zt('Tutar')]],
+        body: rows.length ? rows : [['—', '—', zt('Kayıt yok'), '—']],
         styles: Object.assign({ fontSize: 9 }, PF ? { font: PF } : {}),
         headStyles: { fillColor: [18, 59, 74] },
       });
+
+      // Para birimi başına toplam fatura / tahsilat / bakiye (önceden toplam satırı yoktu; tutarlar tam sayıya yuvarlanıyordu)
+      var toplam = {};
+      invoices.forEach(function (i) { var c = i.currency || ''; (toplam[c] = toplam[c] || { f: 0, t: 0 }).f += Number(i.amount) || 0; });
+      payments.forEach(function (p) { var c = p.currency || ''; (toplam[c] = toplam[c] || { f: 0, t: 0 }).t += Number(p.amount) || 0; });
+      var tRows = Object.keys(toplam).map(function (c) { var t = toplam[c]; return [c || '—', para(t.f, c), para(t.t, c), para(Math.round((t.f - t.t) * 100) / 100, c)]; });
+      if (tRows.length && rows.length) {
+        doc.autoTable({
+          startY: doc.lastAutoTable ? doc.lastAutoTable.finalY + 8 : 40,
+          head: [[zt('Para birimi'), zt('Toplam fatura'), zt('Toplam tahsilat'), zt('Bakiye')]],
+          body: tRows,
+          styles: Object.assign({ fontSize: 9 }, PF ? { font: PF } : {}),
+          headStyles: { fillColor: [18, 59, 74] },
+        });
+      }
 
       var blob = doc.output('blob');
       return { blob: blob, filename: name.replace(/[^a-zA-Z0-9-_]+/g, '-') + '-ekstre.pdf' };
@@ -1426,7 +1456,7 @@
       Promise.all([
         // 2026-09-12: iptal edilen fatura ekstreye girmez.
         client.from('invoices').select('amount, currency, issued_at, vat_rate, vat_amount, jobs!invoices_job_id_fkey(job_number, restoration_type, unit_count, price_list_items(pricing_unit))').eq('doctor_id', statementDoctorId).neq('status', 'cancelled').order('issued_at'),
-        client.from('payments').select('amount, method, received_at').eq('doctor_id', statementDoctorId).order('received_at'),
+        client.from('payments').select('amount, currency, method, received_at').eq('doctor_id', statementDoctorId).order('received_at'),
         client.from('doctors').select('email').eq('id', statementDoctorId).single()
       ]).then(function (results) {
         var invoices = results[0].data || [];
