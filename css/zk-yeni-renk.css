@@ -1,0 +1,111 @@
+/* ÜRETİLDİ (yeni-renk-uret.py): tailwind.css'teki sabit palet sınıfları, yeni tasarımda jetona bağlı. ELLE DÜZENLEME. */
+html[data-tasarim="yeni"] {
+  --zk-c-primary: 44 98 184;
+  --zk-c-accent: 156 92 0;
+  --zk-c-destructive: 194 53 47;
+  --zk-c-success: 8 112 76;
+  --zk-c-bg: 246 248 251;
+  --zk-c-muted: 242 245 249;
+  --zk-c-secondary: 238 242 248;
+  --zk-c-fg: 22 25 31;
+  --zk-c-mutedfg: 92 102 115;
+  --zk-c-border: 221 227 236;
+  --zk-c-secfg: 51 64 79;
+  --zk-c-card: 255 255 255;
+  --zk-c-onprimary: 255 255 255;
+  --zk-c-onaccent: 255 255 255;
+  --zk-c-ondestructive: 255 255 255;
+  --zk-c-onsuccess: 255 255 255;
+}
+
+html[data-tasarim="yeni"] .divide-border > :not([hidden]) ~ :not([hidden]) {--tw-divide-opacity: 1;
+  border-color: rgb(var(--zk-c-border) / var(--tw-divide-opacity, 1));}
+html[data-tasarim="yeni"] .border-accent {--tw-border-opacity: 1;
+  border-color: rgb(var(--zk-c-accent) / var(--tw-border-opacity, 1));}
+html[data-tasarim="yeni"] .border-accent\/20 {border-color: rgb(var(--zk-c-accent) / 0.2);}
+html[data-tasarim="yeni"] .border-accent\/25 {border-color: rgb(var(--zk-c-accent) / 0.25);}
+html[data-tasarim="yeni"] .border-accent\/30 {border-color: rgb(var(--zk-c-accent) / 0.3);}
+html[data-tasarim="yeni"] .border-accent\/40 {border-color: rgb(var(--zk-c-accent) / 0.4);}
+html[data-tasarim="yeni"] .border-accent\/60 {border-color: rgb(var(--zk-c-accent) / 0.6);}
+html[data-tasarim="yeni"] .border-border {--tw-border-opacity: 1;
+  border-color: rgb(var(--zk-c-border) / var(--tw-border-opacity, 1));}
+html[data-tasarim="yeni"] .border-destructive {--tw-border-opacity: 1;
+  border-color: rgb(var(--zk-c-destructive) / var(--tw-border-opacity, 1));}
+html[data-tasarim="yeni"] .border-destructive\/25 {border-color: rgb(var(--zk-c-destructive) / 0.25);}
+html[data-tasarim="yeni"] .border-destructive\/30 {border-color: rgb(var(--zk-c-destructive) / 0.3);}
+html[data-tasarim="yeni"] .border-destructive\/40 {border-color: rgb(var(--zk-c-destructive) / 0.4);}
+html[data-tasarim="yeni"] .border-foreground {--tw-border-opacity: 1;
+  border-color: rgb(var(--zk-c-fg) / var(--tw-border-opacity, 1));}
+html[data-tasarim="yeni"] .border-muted-foreground {--tw-border-opacity: 1;
+  border-color: rgb(var(--zk-c-mutedfg) / var(--tw-border-opacity, 1));}
+html[data-tasarim="yeni"] .border-primary {--tw-border-opacity: 1;
+  border-color: rgb(var(--zk-c-primary) / var(--tw-border-opacity, 1));}
+html[data-tasarim="yeni"] .border-primary\/15 {border-color: rgb(var(--zk-c-primary) / 0.15);}
+html[data-tasarim="yeni"] .border-primary\/30 {border-color: rgb(var(--zk-c-primary) / 0.3);}
+html[data-tasarim="yeni"] .border-primary\/40 {border-color: rgb(var(--zk-c-primary) / 0.4);}
+html[data-tasarim="yeni"] .border-success\/30 {border-color: rgb(var(--zk-c-success) / 0.3);}
+html[data-tasarim="yeni"] .border-success\/40 {border-color: rgb(var(--zk-c-success) / 0.4);}
+html[data-tasarim="yeni"] .bg-accent {--tw-bg-opacity: 1;
+  background-color: rgb(var(--zk-c-accent) / var(--tw-bg-opacity, 1));}
+html[data-tasarim="yeni"] .bg-accent\/10 {background-color: rgb(var(--zk-c-accent) / 0.1);}
+html[data-tasarim="yeni"] .bg-accent\/5 {background-color: rgb(var(--zk-c-accent) / 0.05);}
+html[data-tasarim="yeni"] .bg-background {--tw-bg-opacity: 1;
+  background-color: rgb(var(--zk-c-bg) / var(--tw-bg-opacity, 1));}
+html[data-tasarim="yeni"] .bg-card {--tw-bg-opacity: 1;
+  background-color: rgb(var(--zk-c-card) / var(--tw-bg-opacity, 1));}
+html[data-tasarim="yeni"] .bg-card\/95 {background-color: rgb(var(--zk-c-card) / 0.95);}
+html[data-tasarim="yeni"] .bg-destructive {--tw-bg-opacity: 1;
+  background-color: rgb(var(--zk-c-destructive) / var(--tw-bg-opacity, 1));}
+html[data-tasarim="yeni"] .bg-destructive\/10 {background-color: rgb(var(--zk-c-destructive) / 0.1);}
+html[data-tasarim="yeni"] .bg-destructive\/5 {background-color: rgb(var(--zk-c-destructive) / 0.05);}
+html[data-tasarim="yeni"] .bg-input {--tw-bg-opacity: 1;
+  background-color: rgb(var(--zk-c-card) / var(--tw-bg-opacity, 1));}
+html[data-tasarim="yeni"] .bg-muted {--tw-bg-opacity: 1;
+  background-color: rgb(var(--zk-c-muted) / var(--tw-bg-opacity, 1));}
+html[data-tasarim="yeni"] .bg-muted-foreground {--tw-bg-opacity: 1;
+  background-color: rgb(var(--zk-c-mutedfg) / var(--tw-bg-opacity, 1));}
+html[data-tasarim="yeni"] .bg-muted\/40 {background-color: rgb(var(--zk-c-muted) / 0.4);}
+html[data-tasarim="yeni"] .bg-primary {--tw-bg-opacity: 1;
+  background-color: rgb(var(--zk-c-primary) / var(--tw-bg-opacity, 1));}
+html[data-tasarim="yeni"] .bg-primary-foreground {--tw-bg-opacity: 1;
+  background-color: rgb(var(--zk-c-onprimary) / var(--tw-bg-opacity, 1));}
+html[data-tasarim="yeni"] .bg-primary\/10 {background-color: rgb(var(--zk-c-primary) / 0.1);}
+html[data-tasarim="yeni"] .bg-primary\/5 {background-color: rgb(var(--zk-c-primary) / 0.05);}
+html[data-tasarim="yeni"] .bg-secondary {--tw-bg-opacity: 1;
+  background-color: rgb(var(--zk-c-secondary) / var(--tw-bg-opacity, 1));}
+html[data-tasarim="yeni"] .bg-success {--tw-bg-opacity: 1;
+  background-color: rgb(var(--zk-c-success) / var(--tw-bg-opacity, 1));}
+html[data-tasarim="yeni"] .bg-success\/10 {background-color: rgb(var(--zk-c-success) / 0.1);}
+html[data-tasarim="yeni"] .bg-success\/5 {background-color: rgb(var(--zk-c-success) / 0.05);}
+html[data-tasarim="yeni"] .text-accent {--tw-text-opacity: 1;
+  color: rgb(var(--zk-c-accent) / var(--tw-text-opacity, 1));}
+html[data-tasarim="yeni"] .text-accent-foreground {--tw-text-opacity: 1;
+  color: rgb(var(--zk-c-onaccent) / var(--tw-text-opacity, 1));}
+html[data-tasarim="yeni"] .text-card-foreground {--tw-text-opacity: 1;
+  color: rgb(var(--zk-c-fg) / var(--tw-text-opacity, 1));}
+html[data-tasarim="yeni"] .text-destructive {--tw-text-opacity: 1;
+  color: rgb(var(--zk-c-destructive) / var(--tw-text-opacity, 1));}
+html[data-tasarim="yeni"] .text-destructive-foreground {--tw-text-opacity: 1;
+  color: rgb(var(--zk-c-ondestructive) / var(--tw-text-opacity, 1));}
+html[data-tasarim="yeni"] .text-foreground {--tw-text-opacity: 1;
+  color: rgb(var(--zk-c-fg) / var(--tw-text-opacity, 1));}
+html[data-tasarim="yeni"] .text-foreground\/60 {color: rgb(var(--zk-c-fg) / 0.6);}
+html[data-tasarim="yeni"] .text-muted-foreground {--tw-text-opacity: 1;
+  color: rgb(var(--zk-c-mutedfg) / var(--tw-text-opacity, 1));}
+html[data-tasarim="yeni"] .text-primary {--tw-text-opacity: 1;
+  color: rgb(var(--zk-c-primary) / var(--tw-text-opacity, 1));}
+html[data-tasarim="yeni"] .text-primary-foreground {--tw-text-opacity: 1;
+  color: rgb(var(--zk-c-onprimary) / var(--tw-text-opacity, 1));}
+html[data-tasarim="yeni"] .text-secondary-foreground {--tw-text-opacity: 1;
+  color: rgb(var(--zk-c-secfg) / var(--tw-text-opacity, 1));}
+html[data-tasarim="yeni"] .text-success {--tw-text-opacity: 1;
+  color: rgb(var(--zk-c-success) / var(--tw-text-opacity, 1));}
+html[data-tasarim="yeni"] .text-success-foreground {--tw-text-opacity: 1;
+  color: rgb(var(--zk-c-onsuccess) / var(--tw-text-opacity, 1));}
+html[data-tasarim="yeni"] .accent-primary {accent-color: rgb(var(--zk-c-primary) / 1);}
+html[data-tasarim="yeni"] .shadow-primary\/20 {--tw-shadow-color: rgb(var(--zk-c-primary) / 0.2);
+  --tw-shadow: var(--tw-shadow-colored);}
+html[data-tasarim="yeni"] .ring-secondary {--tw-ring-opacity: 1;
+  --tw-ring-color: rgb(var(--zk-c-secondary) / var(--tw-ring-opacity, 1));}
+html[data-tasarim="yeni"] .focus\:border-primary:focus {--tw-border-opacity: 1;
+  border-color: rgb(var(--zk-c-primary) / var(--tw-border-opacity, 1));}

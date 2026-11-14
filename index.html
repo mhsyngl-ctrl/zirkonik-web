@@ -25,6 +25,7 @@
   <script src="supabase-config.js"></script>
   <script src="js/net-guard.js"></script>
   <script src="supabase-client.js"></script>
+  <script>try{var m=/[?&]tasarim=(yeni|eski)\b/.exec(location.search);if(m)localStorage.setItem("zk-tasarim",m[1]);}catch(e){}</script>
   <script>
     ZirkonikAuth.getSession().then(function (session) {
       if (!session) { window.location.replace('giris.html'); return; }

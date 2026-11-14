@@ -1,0 +1,403 @@
+/* ÜRETİLDİ (yeni-kur.mjs): yeni-kaynak/css/NN-*.css birleşimi. ELLE DÜZENLEME. */
+/* ===== 00-kabuk.css ===== */
+/*
+ * Zirkonik — YENİ TASARIM katmanı (stil). 13 Kasım 2026.
+ * YALNIZ html[data-tasarim="yeni"] altında etkilidir (bayrak: js/zk-yeni.js, ?tasarim=yeni). Bayrak kapalıyken hiçbir kural eşleşmez,
+ * sayfalar canlıdakiyle birebir aynı kalır. Renk jetonları (--zk-c-*) css/zk-yeni-renk.css'te (üretilmiş dosya); koyu mod
+ * ileride yalnız bu jetonların değerlerini değiştirerek yapılır.
+ */
+
+/* ---------- Sol menü: bilgisayar genişliğinde; telefonda gizli (canlıdaki alt çubuk kalır) ---------- */
+.zk-y-kenar { display: none; }
+
+@media (min-width: 1100px) {
+  html[data-tasarim="yeni"][data-kabuk="aktif"] { --zk-kenar: 248px; }
+  html[data-tasarim="yeni"][data-kabuk="aktif"] body { padding-left: var(--zk-kenar); background: rgb(var(--zk-c-bg)); }
+  /* Canlıdaki sütun 100vw genişliğindeydi; menü payı kadar daralır. */
+  html[data-tasarim="yeni"][data-kabuk="aktif"] body > div.h-screen.w-screen { width: 100%; max-width: 1480px; box-shadow: none; }
+  /* Sabit alt çubuklar/butonlar içerik alanına ortalanır (menünün sağında). */
+  html[data-tasarim="yeni"][data-kabuk="aktif"] .fixed.left-0.w-full { left: var(--zk-kenar); right: 0; width: auto; max-width: 1480px; }
+  /* Alt sekme çubuğu yerine sol menü var; telefonda (menü yokken) canlıdaki çubuk aynen kalır. */
+  html[data-tasarim="yeni"][data-kabuk="aktif"] .zk-tabbar { display: none; }
+  html[data-tasarim="yeni"][data-kabuk="aktif"] [data-zk-above-tabbar] { bottom: 20px !important; }
+  /* Çevrimdışı «bekleyen işlem» rozeti (js/zk-cevrimdisi.js, satır içi left:16px) sol menünün üstüne biniyordu (Bildirimler/Ayarlar satırları tıklanamıyordu) → menünün sağına */
+  html[data-tasarim="yeni"][data-kabuk="aktif"] #zk-kuyruk-cip { left: calc(var(--zk-kenar) + 16px) !important; max-width: calc(100vw - var(--zk-kenar) - 32px); }
+
+  html[data-tasarim="yeni"][data-kabuk="aktif"] .zk-y-kenar {
+    display: flex; flex-direction: column; gap: 2px;
+    position: fixed; top: 0; bottom: 0; left: 0; width: var(--zk-kenar); z-index: 35; box-sizing: border-box;
+    padding: 16px 12px 14px; overflow-y: auto;
+    background: rgb(var(--zk-c-card)); border-right: 1px solid rgb(var(--zk-c-border));
+  }
+}
+
+.zk-y-marka { display: flex; align-items: center; gap: 10px; padding: 2px 6px 14px; text-decoration: none;
+  font-family: var(--font-heading, 'Plus Jakarta Sans', sans-serif); font-weight: 800; font-size: 19px; letter-spacing: -.01em; color: rgb(var(--zk-c-fg, 22 25 31)); }
+.zk-y-marka img { height: 36px; width: auto; display: block; }
+.zk-y-yeni { display: flex; align-items: center; justify-content: center; gap: 8px; height: 42px; margin: 2px 4px 8px; border-radius: 12px; text-decoration: none;
+  background: rgb(var(--zk-c-primary, 44 98 184)); color: rgb(var(--zk-c-onprimary, 255 255 255)); font-weight: 700; font-size: 14px; }
+.zk-y-yeni iconify-icon { font-size: 18px; }
+.zk-y-yeni:hover { filter: brightness(.94); }
+.zk-y-baslik { margin: 14px 10px 6px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgb(var(--zk-c-mutedfg, 92 102 115)); }
+.zk-y-menu { display: flex; align-items: center; gap: 11px; padding: 9px 10px; border-radius: 11px; text-decoration: none;
+  font-weight: 600; font-size: 14px; color: rgb(var(--zk-c-secfg, 51 64 79)); }
+.zk-y-menu iconify-icon { font-size: 19px; flex: none; }
+.zk-y-menu:hover { background: rgb(var(--zk-c-muted, 242 245 249)); }
+.zk-y-menu[aria-current="page"] { background: rgb(var(--zk-c-primary, 44 98 184) / .10); color: rgb(var(--zk-c-primary, 44 98 184)); }
+.zk-y-menu:focus-visible, .zk-y-yeni:focus-visible, .zk-y-marka:focus-visible { outline: 2px solid rgb(var(--zk-c-primary, 44 98 184)); outline-offset: 2px; }
+
+/* Klavye için "ana içeriğe geç": normalde ekran dışında, odaklanınca görünür. Atlanan <main> programatik odak alır; halka gösterilmez. */
+.zk-y-atla { position: absolute; left: -9999px; top: 8px; z-index: 60; padding: 8px 14px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 13px;
+  background: rgb(var(--zk-c-primary, 44 98 184)); color: rgb(var(--zk-c-onprimary, 255 255 255)); }
+.zk-y-atla:focus { left: 8px; }
+html[data-tasarim="yeni"] main[tabindex="-1"]:focus { outline: none; }
+
+/* Zorunlu renkler (Windows Yüksek Karşıtlık): arka plan renkleri sistem rengine çekilir; 'şu anki sayfa' ve 'Yeni iş' yalnız renkle ayırt ediliyordu → çizgi/çerçeve */
+@media (forced-colors: active) {
+  .zk-y-menu[aria-current="page"] { border-left: 4px solid Highlight; padding-left: 8px; }
+  .zk-y-yeni { border: 1px solid ButtonText; }
+}
+
+/* ===== 10-bilesen.css ===== */
+/*
+ * Yeni tasarım — ORTAK BİLEŞENLER (her ekran genişliğinde, bayrak açıkken). Renkler yalnız --zk-c-* jetonlarından (koyu mod bunları değiştirir).
+ */
+
+/* ---- Açılır pencereler (alt çekmece): geniş ekranda tüm genişliğe yayılmak yerine ortalı, okunur genişlikte ----
+   Canlıda panel .absolute.bottom-0.left-0.w-full (tüm genişlik). left/right + otomatik kenar boşluğu ile ortalanır (transform kullanılmaz:
+   sayfaların kendi açılış animasyonlarıyla çakışmasın). */
+@media (min-width: 720px) {
+  html[data-tasarim="yeni"] .fixed.inset-0 > .absolute.bottom-0.left-0.w-full,
+  html[data-tasarim="yeni"] .zk-picker-sheet {
+    right: 0; width: min(640px, calc(100% - 32px)); margin-left: auto; margin-right: auto;
+    box-shadow: 0 -18px 50px -20px rgba(8, 20, 40, .35);
+  }
+}
+
+/* ---- Pencere paneli ekrandan uzunsa: canlıda bazı alt çekmeceler (örn. "Laboratuvarı düzenle", 860–1220 px) yükseklik sınırı ve kaydırması olmadan alta yapışık duruyordu;
+   taşan üst kısım (ad/şehir/adres kutuları) ekranın DIŞINDA kalıp kaydırmayla bile ulaşılamıyordu (telefon + 13" dizüstü). Panele ekran yüksekliğine bağlı sınır + kendi içinde kaydırma.
+   Zaten max-h-* taşıyan paneller değişmez. Yeni görünümde ortalanan panel daha dar olduğu için içerik uzar; bu kural o taşmayı da kapatır. ---- */
+html[data-tasarim="yeni"] .fixed.inset-0 > .absolute.bottom-0.left-0.w-full:not([class*="max-h-"]):not([style*="max-height"]) {
+  max-height: 92dvh; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain;
+}
+
+/* ---- Klavye odağı: tüm etkileşimli öğelerde tutarlı, görünür halka (fareyle tıklayınca çıkmaz) ---- */
+html[data-tasarim="yeni"] a:focus-visible,
+html[data-tasarim="yeni"] button:focus-visible,
+html[data-tasarim="yeni"] summary:focus-visible,
+html[data-tasarim="yeni"] [role="button"]:focus-visible,
+html[data-tasarim="yeni"] [tabindex]:not([tabindex="-1"]):focus-visible {
+  outline: 2px solid rgb(var(--zk-c-primary)); outline-offset: 2px;
+}
+html[data-tasarim="yeni"] input:focus-visible,
+html[data-tasarim="yeni"] select:focus-visible,
+html[data-tasarim="yeni"] textarea:focus-visible {
+  outline: none; border-color: rgb(var(--zk-c-primary)); box-shadow: 0 0 0 3px rgb(var(--zk-c-primary) / .18);
+}
+
+/* ---- Fare olan cihazlarda ince detaylar ---- */
+@media (hover: hover) and (pointer: fine) {
+  html[data-tasarim="yeni"] button.bg-primary:hover:not(:disabled),
+  html[data-tasarim="yeni"] a.bg-primary:hover { filter: brightness(.93); }
+  html[data-tasarim="yeni"] ::-webkit-scrollbar { width: 10px; height: 10px; }
+  html[data-tasarim="yeni"] ::-webkit-scrollbar-thumb { background: rgb(var(--zk-c-border)); border-radius: 10px; border: 2px solid transparent; background-clip: padding-box; }
+  html[data-tasarim="yeni"] ::-webkit-scrollbar-thumb:hover { background: rgb(var(--zk-c-mutedfg) / .55); background-clip: padding-box; border: 2px solid transparent; }
+  html[data-tasarim="yeni"] ::-webkit-scrollbar-track { background: transparent; }
+}
+html[data-tasarim="yeni"] ::selection { background: rgb(var(--zk-c-primary) / .22); }
+
+/* ---- Kontrast düzeltmeleri (yeni-kontrast.mjs bulguları) ---- */
+/* Bildirim rozeti: canlıda #EF5350 üstüne beyaz yazı (oran 3,5) idi → jetondan (açıkta koyu kırmızı+beyaz, koyuda açık kırmızı+koyu yazı) */
+html[data-tasarim="yeni"] .zk-notif-badge { background: rgb(var(--zk-c-destructive)); color: rgb(var(--zk-c-ondestructive)); }
+/* Doktor Havuzu sekmelerindeki sayaç (opacity-70 ile soluklaşıyordu) */
+html[data-tasarim="yeni"] [data-page="aday-havuzu"] button span.opacity-70 { opacity: .92; }
+
+/* Açık temada kehribar jeton: canlıdaki #B9700C beyaz üstünde 3,9:1 idi → #9C5C00 (5,3:1). Canlı sayfa jetonu da aynı değere çekilir (zk-utils bileşenleri okur). */
+html[data-tasarim="yeni"][data-theme="light"] { --color-accent: #9C5C00; }
+/* Rota çipi sıra numarası (laboratuvarlar › Rota): beyaz yazı + bg-white/20 daire, seçili çipin mavisi üstünde 3,91:1 (canlıda da aynı) → daire koyulaşır (≈8:1). Yalnız açık tema (koyuda yazı zaten koyu). */
+html[data-tasarim="yeni"][data-theme="light"] .bg-white\/20 { background-color: rgba(0, 0, 0, .22); }
+/* Boş petek yazısı (açık tema): canlıda 3,0:1 */
+html[data-tasarim="yeni"][data-theme="light"] .zk-hex-empty .zk-hex-sub { color: rgb(var(--zk-c-mutedfg)); }
+/* JS'in satır içi yazdığı durum renkleri (ekip.html pazarlama kutuları: iyi/uyarı/kötü) → jeton (her iki temada okunur) */
+html[data-tasarim="yeni"] [style*="color:#eda100"] { color: rgb(var(--zk-c-accent)) !important; }
+html[data-tasarim="yeni"] [style*="color:#1baf7a"] { color: rgb(var(--zk-c-success)) !important; }
+html[data-tasarim="yeni"] [style*="color:#d64545"] { color: rgb(var(--zk-c-destructive)) !important; }
+
+/* ---- Sütun grafikleri (Üretim › İş ve Ciro Performansı › Yıl: 12 sütun; doktor Cari/İş Performansı; Ekip) dar kartta ----
+   SORUN: sütun üstündeki ham rakam (örn. 139150) her sütunu ~38 px'e zorluyordu (flex öğesi min-width:auto); 12 sütun dar kartta (telefon, ya da yeni tasarımda sol menü yüzünden 1280-1550 px)
+   sığmayıp kart dışına taşıyor, ay adları ise sütunlardan bağımsız eşit paylaştığı için YANLIŞ sütunun altında kalıyordu (yanlış ay okunabilir).
+   ÇÖZÜM: sütunlar ve etiketler küçülebilir (min-width:0), kart darsa boşluk daralır, çok sütunlu grafikte çok darsa rakamlar dikey yazılır. Kart genişliği KAPLA göre ölçülür (container query). */
+html[data-tasarim="yeni"] .zk-cols > .zk-col, html[data-tasarim="yeni"] .zk-cols-labels > span { min-width: 0; }
+html[data-tasarim="yeni"] *:has(> .zk-cols) { container-type: inline-size; container-name: zkgrafik; }
+@container zkgrafik (max-width: 620px) { html[data-tasarim="yeni"] .zk-cols, html[data-tasarim="yeni"] .zk-cols-labels { gap: 4px; } }
+@container zkgrafik (max-width: 540px) {
+  html[data-tasarim="yeni"] .zk-cols:has(> .zk-col:nth-child(8)) .zk-col-val { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 10px; }
+}
+
+/* Kapalı alt pencereler (-sheet): canlıda display:none DEĞİL, opacity:0 + pointer-events:none (açılış animasyonu için) → Tab odağı ve ekran okuyucu görünmeyen öğelere gidiyordu.
+   Kapanırken görünürlük solma bittikten sonra kapanır; açılırken hemen görünür (animasyon bozulmaz). */
+html[data-tasarim="yeni"] [id$="-sheet"] { transition: opacity .15s ease, visibility 0s linear 0s; }
+html[data-tasarim="yeni"] [id$="-sheet"].hidden { visibility: hidden; transition: opacity .15s ease, visibility 0s linear .15s; }
+
+/* Zorunlu renkler (Windows Yüksek Karşıtlık): giriş alanlarının odağı yalnız kenar rengi/gölgeyle gösteriliyordu → sistem rengiyle çerçeve */
+@media (forced-colors: active) {
+  html[data-tasarim="yeni"] input:focus-visible, html[data-tasarim="yeni"] select:focus-visible, html[data-tasarim="yeni"] textarea:focus-visible { outline: 2px solid Highlight; outline-offset: 1px; }
+}
+/* Canlı zk-utils.css «koyu tema türevleri» eski paletle !important yazılmıştı (jetonları eziyordu: koyuda eski mavi/turuncu) → jetonlara bağlanır */
+html[data-tasarim="yeni"] .bg-accent\/10 { background-color: rgb(var(--zk-c-accent) / .10) !important; }
+html[data-tasarim="yeni"] .bg-accent\/5 { background-color: rgb(var(--zk-c-accent) / .05) !important; }
+html[data-tasarim="yeni"] .bg-card\/95 { background-color: rgb(var(--zk-c-card) / .95) !important; }
+html[data-tasarim="yeni"] .bg-destructive\/10 { background-color: rgb(var(--zk-c-destructive) / .10) !important; }
+html[data-tasarim="yeni"] .bg-primary\/10 { background-color: rgb(var(--zk-c-primary) / .10) !important; }
+html[data-tasarim="yeni"] .bg-primary\/5 { background-color: rgb(var(--zk-c-primary) / .05) !important; }
+html[data-tasarim="yeni"] .bg-success\/10 { background-color: rgb(var(--zk-c-success) / .10) !important; }
+html[data-tasarim="yeni"] .border-accent\/20 { border-color: rgb(var(--zk-c-accent) / .20) !important; }
+html[data-tasarim="yeni"] .border-accent\/25 { border-color: rgb(var(--zk-c-accent) / .25) !important; }
+html[data-tasarim="yeni"] .border-accent\/30 { border-color: rgb(var(--zk-c-accent) / .30) !important; }
+html[data-tasarim="yeni"] .border-accent\/35 { border-color: rgb(var(--zk-c-accent) / .35) !important; }
+html[data-tasarim="yeni"] .border-destructive\/25 { border-color: rgb(var(--zk-c-destructive) / .25) !important; }
+html[data-tasarim="yeni"] .border-primary\/15 { border-color: rgb(var(--zk-c-primary) / .15) !important; }
+
+/* ===== 20-sayfalar.css ===== */
+/*
+ * Yeni tasarım — SAYFA DÜZENLERİ (bilgisayar, sol menü açıkken). Yalnız html[data-tasarim="yeni"][data-kabuk="aktif"] altında etkili.
+ * Canlıdaki masaüstü düzeni (css/zk-utils.css "Masaüstü" bölümleri) viewport genişliğine bakıyordu; sol menü içerik alanını daralttığı için
+ * burada içerik genişliğine uyan (auto-fill) ızgaralara çevrilir. Telefon/tablet (menü yok) etkilenmez.
+ */
+@media (min-width: 1100px) {
+  /* ---- Sayfa başlığı: telefondaki çentik payı (pt-12) ve tekrar eden logo kalkar ---- */
+  html[data-tasarim="yeni"][data-kabuk="aktif"] header.pt-12 { padding-top: 24px !important; position: relative; } /* sayfa başlığındaki satır içi çentik payı (padding-top) eziyordu */
+  html[data-tasarim="yeni"][data-kabuk="aktif"] .zk-logo-chip { display: none; }
+  /* Logo+eylem satırında logo gidince eylemler (bildirim/profil...) başlık satırının sağına çıkar; ayrı boş bir satır kalmaz */
+  html[data-tasarim="yeni"][data-kabuk="aktif"] header .zk-ust-satir { position: absolute; top: 20px; right: 20px; width: auto; z-index: 2; }
+  /* Üretim ekranı başlığındaki logo (sol menüde zaten var) */
+  html[data-tasarim="yeni"][data-kabuk="aktif"] [data-page="retim"] header img { display: none !important; } /* sayfanın logosu satır içi display:block taşır */
+
+  /* ---- Liste kapları: içerik genişliğine uyan ızgara (canlıda 840 px'e kilitli/iki sütundu) ---- */
+  html[data-tasarim="yeni"][data-kabuk="aktif"] #jobs-list,
+  html[data-tasarim="yeni"][data-kabuk="aktif"] #approved-list,
+  html[data-tasarim="yeni"][data-kabuk="aktif"] #pending-list,
+  html[data-tasarim="yeni"][data-kabuk="aktif"] #staff-list,
+  html[data-tasarim="yeni"][data-kabuk="aktif"] #labs-list,
+  html[data-tasarim="yeni"][data-kabuk="aktif"] [data-page="siparisler"] #orders-list {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; align-items: start;
+    max-width: none; margin-left: 0; margin-right: 0;
+  }
+  /* Boş / «Yükleniyor…» mesajı (ızgarada tek <p>) 340 px'lik hücreye sıkışmasın: tüm satırı kaplar */
+  html[data-tasarim="yeni"][data-kabuk="aktif"] #jobs-list > p:only-child,
+  html[data-tasarim="yeni"][data-kabuk="aktif"] #approved-list > p:only-child,
+  html[data-tasarim="yeni"][data-kabuk="aktif"] #pending-list > p:only-child,
+  html[data-tasarim="yeni"][data-kabuk="aktif"] #staff-list > p:only-child,
+  html[data-tasarim="yeni"][data-kabuk="aktif"] #labs-list > p:only-child,
+  html[data-tasarim="yeni"][data-kabuk="aktif"] #prospect-list > p:only-child,
+  html[data-tasarim="yeni"][data-kabuk="aktif"] [data-page="siparisler"] #orders-list > p:only-child { grid-column: 1 / -1; }
+  html[data-tasarim="yeni"][data-kabuk="aktif"] #jobs-list > *,
+  html[data-tasarim="yeni"][data-kabuk="aktif"] #approved-list > *,
+  html[data-tasarim="yeni"][data-kabuk="aktif"] #pending-list > *,
+  html[data-tasarim="yeni"][data-kabuk="aktif"] #staff-list > *,
+  html[data-tasarim="yeni"][data-kabuk="aktif"] #labs-list > *,
+  html[data-tasarim="yeni"][data-kabuk="aktif"] [data-page="siparisler"] #orders-list > * { margin-top: 0 !important; }
+
+  /* ---- Doktor/Laboratuvar Havuzu kartları: canlıda sütun sayısı PENCERE genişliğine bağlıydı (xl:grid-cols-4 ≥1280 px); sol menü içerik alanını daralttığı için
+         doktor adı 1 harfe kadar kısalıyordu (1280 px'te 64 → 11 px). İçerik genişliğine uyan ızgara: kart en az 340 px. ---- */
+  html[data-tasarim="yeni"][data-kabuk="aktif"] #prospect-list { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
+
+  /* ---- Doktor Havuzu: 11 aşama düğmesi dar içerik alanına sığmayıp yana kayıyordu (sağdakiler görünmüyordu) → bilgisayarda satır kırar ---- */
+  html[data-tasarim="yeni"][data-kabuk="aktif"] #stage-tabs { flex-wrap: wrap; overflow: visible; row-gap: 8px; }
+}
+
+/* Doktor Havuzu aşama sekmeleri: fareyle kullanılan cihazlarda (kaydırma çubuğu gizli olduğundan sağdakilere ulaşılamıyordu) her genişlikte satır kırar; dokunmatikte yana kaydırma kalır */
+@media (hover: hover) and (pointer: fine) {
+  html[data-tasarim="yeni"] [data-page="aday-havuzu"] #stage-tabs { flex-wrap: wrap; overflow: visible; row-gap: 8px; }
+}
+
+/* ===== 40-giris.css ===== */
+/*
+ * Yeni tasarım — GİRİŞ EKRANI. Bilgisayarda (≥960px) iki panel: solda marka + şematik örnek arı kovanı (js/zk-yeni-giris.js), sağda canlıdaki giriş formu.
+ * Telefon/tablette (<960px) canlıdaki tek sütun aynen kalır. Form HTML'ine dokunulmaz.
+ */
+.zk-y-giris-sol { display: none; }
+html[data-tasarim="yeni"] input[type="checkbox"] { accent-color: rgb(var(--zk-c-primary)) !important; } /* canlıda satır içi eski lacivert vardı */
+
+@media (min-width: 960px) {
+  html[data-tasarim="yeni"] body[data-page="giris"] > div.h-screen.w-screen {
+    display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); width: 100%; max-width: none; margin: 0; box-shadow: none; overflow: hidden;
+  }
+  /* Form sütunu: dikeyde ortalı; üstteki logo/slogan başlığı sol panelde olduğu için GÖRSEL olarak gizlenir (ekran okuyucu yine okur) */
+  html[data-tasarim="yeni"] body[data-page="giris"] > div.h-screen.w-screen > div.min-h-screen { display: flex; flex-direction: column; justify-content: center; justify-content: safe center; overflow-y: auto; height: 100vh; height: 100dvh; padding: 24px 0; box-sizing: border-box; }
+  /* Form sütunu 2. sütuna SABİTLENİR: sol panel (js/zk-yeni-giris.js geç yüklenir) gelince form sağa zıplıyordu (CLS 0,5) */
+  html[data-tasarim="yeni"] body[data-page="giris"] > div.h-screen.w-screen > div.min-h-screen { grid-column: 2; grid-row: 1; }
+  html[data-tasarim="yeni"] .zk-y-giris-sol { grid-column: 1; grid-row: 1; }
+  html[data-tasarim="yeni"] body[data-page="giris"] header { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; padding: 0; }
+  html[data-tasarim="yeni"] body[data-page="giris"] main > div.max-w-sm { max-width: 400px; }
+
+  .zk-y-giris-sol {
+    display: flex; flex-direction: column; gap: 18px; height: 100vh; height: 100dvh; align-self: start; position: sticky; top: 0; box-sizing: border-box;
+    padding: 36px 48px; overflow: hidden;
+    color: rgb(var(--zk-c-fg, 22 25 31));
+    background: linear-gradient(150deg, rgb(var(--zk-c-card, 255 255 255)), rgb(var(--zk-c-muted, 242 245 249)) 70%);
+    border-right: 1px solid rgb(var(--zk-c-border, 221 227 236));
+  }
+}
+.zk-y-giris-logo { height: 92px; width: auto; align-self: flex-start; flex: none; }
+.zk-y-giris-metin { flex: none; }
+.zk-y-giris-metin h2 { margin: 0; font-family: var(--font-heading, 'Plus Jakarta Sans', sans-serif); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; font-size: clamp(26px, 3.6vh, 34px); max-width: 15em; }
+.zk-y-giris-metin p { margin: 10px 0 0; font-size: clamp(14px, 1.9vh, 16px); color: rgb(var(--zk-c-mutedfg, 92 102 115)); }
+.zk-y-giris-alan { flex: 1; min-height: 0; display: grid; grid-template-rows: auto 1fr auto; justify-items: center; align-items: center; row-gap: 6px; overflow: hidden; }
+.zk-y-giris-sarmal { position: relative; flex: none; }
+.zk-y-giris-kovan { width: max-content; transform-origin: 0 0; pointer-events: none; cursor: default; }
+.zk-y-giris-kovan .zk-hex { pointer-events: none; cursor: default; }
+.zk-y-giris-alan.dar .zk-y-giris-akis, .zk-y-giris-alan.dar .zk-y-giris-etiket, .zk-y-giris-alan.dar .zk-y-giris-sarmal { visibility: hidden; }
+.zk-y-giris-sarmal { }
+.zk-y-giris-etiket { justify-self: start; display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 650; letter-spacing: .04em; color: rgb(var(--zk-c-mutedfg, 92 102 115)); }
+.zk-y-giris-nokta { width: 8px; height: 8px; border-radius: 50%; background: rgb(var(--zk-c-success, 10 124 85)); animation: zk-y-nabiz 2s ease-out infinite; }
+@keyframes zk-y-nabiz { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, .45); } 70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
+.zk-y-giris-akis { justify-self: start; min-height: 20px; font-size: 13px; font-weight: 650; color: rgb(var(--zk-c-fg, 22 25 31)); }
+.zk-y-giris-akis span { display: inline-block; transition: opacity .35s ease; }
+.zk-y-giris-alt { margin: 0; opacity: .7; font-size: 13px; flex: none; }
+@media (min-width: 960px) and (max-height: 780px) {
+  .zk-y-giris-sol { padding: 28px 44px; gap: 12px; }
+  .zk-y-giris-logo { height: 70px; }
+  .zk-y-giris-metin h2 { font-size: 24px; }
+  .zk-y-giris-metin p { display: none; }
+}
+@media (min-width: 960px) and (max-height: 640px) {
+  .zk-y-giris-sol { padding: 22px 40px; gap: 8px; }
+  .zk-y-giris-logo { height: 52px; }
+  .zk-y-giris-metin h2 { font-size: 20px; max-width: none; }
+}
+@media (prefers-reduced-motion: reduce) { .zk-y-giris-nokta { animation: none; } }
+
+/* 'Hareketi azalt' açıkken sıcak hücre parlaması da durur (canlı zk-utils.css'te .zk-hex-hot animasyonu hareket-azalt kapısının DIŞINDA) */
+@media (prefers-reduced-motion: reduce) { html[data-tasarim="yeni"] .zk-hex-hot { animation: none; } }
+
+/* ===== 50-yasal.css ===== */
+/*
+ * Yeni tasarım — YASAL / TEK SAYFALIK EKRANLAR: gizlilik politikası, veri işleme sözleşmesi, hesap silme, KVKK onayı (onay.html).
+ * Bu sayfalar canlıda kendi küçük renk değişkenlerini (--bg --card --line --fg --muted --blue --amber --red --ok) taşır ve hep KOYUDUR.
+ * Yeni tasarımda aynı değişkenler uygulamanın jetonlarına bağlanır → açık/koyu temayı izlerler. Sayfaların HTML'i değişmez.
+ */
+html[data-tasarim="yeni"][data-sayfa="gizlilik-politikasi"],
+html[data-tasarim="yeni"][data-sayfa="veri-isleme-sozlesmesi"],
+html[data-tasarim="yeni"][data-sayfa="hesap-silme"],
+html[data-tasarim="yeni"][data-sayfa="onay"] {
+  --bg: rgb(var(--zk-c-bg)); --card: rgb(var(--zk-c-card)); --line: rgb(var(--zk-c-border)); --fg: rgb(var(--zk-c-fg)); --muted: rgb(var(--zk-c-mutedfg));
+  --blue: rgb(var(--zk-c-primary)); --amber: rgb(var(--zk-c-accent)); --red: rgb(var(--zk-c-destructive)); --ok: rgb(var(--zk-c-success));
+}
+/* Renkli zemin üstündeki düğme yazısı (canlıda beyazdı; koyu temada açık mavi zemin → koyu yazı) */
+html[data-tasarim="yeni"][data-sayfa="veri-isleme-sozlesmesi"] .btn,
+html[data-tasarim="yeni"][data-sayfa="hesap-silme"] .btn,
+html[data-tasarim="yeni"][data-sayfa="onay"] .evet { color: rgb(var(--zk-c-onprimary)); }
+html[data-tasarim="yeni"][data-sayfa="veri-isleme-sozlesmesi"] .ok { color: rgb(var(--zk-c-success)); }
+
+/* Başlıktaki beyaz yazılı logo koyu zemin içindi: açık temada koyu yazılı marka görseline (brand/wordmark.png) geçilir */
+html[data-tasarim="yeni"][data-theme="light"][data-sayfa="gizlilik-politikasi"] .brand img,
+html[data-tasarim="yeni"][data-theme="light"][data-sayfa="veri-isleme-sozlesmesi"] .brand img,
+html[data-tasarim="yeni"][data-theme="light"][data-sayfa="hesap-silme"] .brand img { display: none; }
+html[data-tasarim="yeni"][data-theme="light"][data-sayfa="gizlilik-politikasi"] .brand::before,
+html[data-tasarim="yeni"][data-theme="light"][data-sayfa="veri-isleme-sozlesmesi"] .brand::before,
+html[data-tasarim="yeni"][data-theme="light"][data-sayfa="hesap-silme"] .brand::before {
+  content: ""; display: block; height: 26px; width: 186px; background: url("../brand/wordmark.png") no-repeat left center / contain;
+}
+
+/* Sözleşme kabul hatası satırı: canlıda satır içi #ff8a8a (koyu zemin için); açık zeminde 2,13:1 → temanın hata jetonu (her iki temada okunur) */
+html[data-tasarim="yeni"][data-sayfa="veri-isleme-sozlesmesi"] #kabul-hata { color: rgb(var(--zk-c-destructive)) !important; }
+/* Gizlilik politikası, bölüm 2 tablosu: 320 px'te (küçük telefon) sayfa yana kayıyordu (sözleşme sayfasında bunun kuralı var) */
+html[data-tasarim="yeni"][data-sayfa="gizlilik-politikasi"] th,
+html[data-tasarim="yeni"][data-sayfa="gizlilik-politikasi"] td { overflow-wrap: anywhere; }
+
+/* 3B görüntüleyici: sahne zemini temayı izler (canlıda yalnız işletim sisteminin koyu tercihine bakan bir kural vardı) */
+html[data-tasarim="yeni"][data-theme="light"] #sahne { background: #e9edf1; }
+html[data-tasarim="yeni"][data-theme="dark"] #sahne { background: #1a1f26; }
+
+/* ===== 80-bosluk.css ===== */
+/*
+ * Yeni tasarım — GEREKSİZ BOŞLUK DÜZENLEMELERİ (Murat: "tüm sayfalarda çok boşuna boşluklar olmasın, ama kontrollü").
+ * KONTROLLÜ: her kural bosluk-olc.mjs ölçümüne dayanır (önce/sonra rakamlarla), yalnız BİLGİSAYAR genişliğinde (sol menü açıkken ve ≥1400px) uygulanır,
+ * yalnız okunurluğu bozmayan yapısal boşlukları hedefler (veriye bağlı seyrek görünümlere dokunulmaz). Beğenilmezse BU DOSYA silinince (yeni-kur.mjs yeniden) hepsi kalkar.
+ */
+@media (min-width: 1400px) {
+  /* ---- Ekip: performans bölümleri canlıda satır içi max-width:720px'e kilitliydi → sağda ~450 px'lik boş sütun.
+         Sol sütun: personel listesi, maaş hesabı, doktor üyelikleri · sağ sütun: ekip performansı (+ çalışma süreleri) ---- */
+  html[data-tasarim="yeni"][data-kabuk="aktif"] [data-page="ekip"] main {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 720px); column-gap: 28px; row-gap: 0; align-items: start;
+  }
+  html[data-tasarim="yeni"][data-kabuk="aktif"] [data-page="ekip"] main > section { grid-column: 1; }
+  html[data-tasarim="yeni"][data-kabuk="aktif"] [data-page="ekip"] main > #team-performance-section { grid-column: 2; grid-row: 1 / span 99; max-width: none !important; }
+  html[data-tasarim="yeni"][data-kabuk="aktif"] [data-page="ekip"] main > #calisma-sure-section { grid-column: 2; max-width: none !important; }
+
+  /* ---- Profil: tek uzun sütun (3000+ px kaydırma, iki yanda boş şerit) → iki sütunlu kartlar (üstten alta, soldan sağa okunur) ---- */
+  html[data-tasarim="yeni"][data-kabuk="aktif"] [data-page="profil"] main { max-width: none; margin-left: 0; margin-right: 0; column-count: 2; column-gap: 24px; }
+  html[data-tasarim="yeni"][data-kabuk="aktif"] [data-page="profil"] main > section { break-inside: avoid; margin-top: 0 !important; margin-bottom: 20px; }
+
+  /* ---- Üretim: alttaki dört grafik/özet bölümü iki sütunlu ızgarada ÇİFTLER hâlinde (satır yüksekliği = en uzun bölüm) sıralanıyordu → kısa bölümün altında 300+ px boşluk.
+         Sütun akışına geçince bölümler sırayla dolar, boşluk kalmaz (ölçüm: 1.106 px → ~930 px, boşluk 633 → 275 px). ---- */
+  html[data-tasarim="yeni"][data-kabuk="aktif"] [data-page="retim"] .zk-charts-row { display: block; column-count: 2; column-gap: 0; }
+  html[data-tasarim="yeni"][data-kabuk="aktif"] [data-page="retim"] .zk-charts-row > section { break-inside: avoid; }
+}
+
+/* ===== 90-karanlik.css ===== */
+/*
+ * Yeni tasarım — KOYU TEMA. Yalnız html[data-tasarim="yeni"][data-theme="dark"] altında etkili; varsayılan Açık'tır (Profil › Görünüm: Açık / Koyu / Otomatik).
+ * Mantık: (1) --zk-c-* jetonları (css/zk-yeni-renk.css'te üretilen sabit-renkli Tailwind sınıflarını sürer), (2) canlıdaki sayfa jetonları --color-* (sayfa içi :root +
+ * zk-utils.css'teki bileşen kuralları), (3) jetondan beslenmeyen yerler için tek tek düzeltmeler. Canlı dosyalara DOKUNULMAZ.
+ */
+html[data-tasarim="yeni"][data-theme="dark"] {
+  color-scheme: dark;
+  /* --- Tailwind sınıfı jetonları --- */
+  --zk-c-bg: 15 19 26;          /* #0F131A sayfa zemini */
+  --zk-c-card: 23 28 38;        /* #171C26 kart / giriş alanı */
+  --zk-c-muted: 27 34 48;       /* #1B2230 */
+  --zk-c-secondary: 34 43 60;   /* #222B3C */
+  --zk-c-border: 42 51 69;      /* #2A3345 */
+  --zk-c-fg: 238 241 246;       /* #EEF1F6 */
+  --zk-c-mutedfg: 163 174 191;  /* #A3AEBF */
+  --zk-c-secfg: 200 208 221;    /* #C8D0DD */
+  --zk-c-primary: 108 155 234;  /* #6C9BEA */
+  --zk-c-accent: 240 179 91;    /* #F0B35B */
+  --zk-c-destructive: 255 138 130; /* #FF8A82 */
+  --zk-c-success: 79 209 160;   /* #4FD1A0 */
+  --zk-c-onprimary: 15 19 26;   /* açık renkli zemin üstünde koyu yazı (kontrast ≥ 4.5) */
+  --zk-c-onaccent: 26 18 5;
+  --zk-c-ondestructive: 42 10 8;
+  --zk-c-onsuccess: 4 40 28;
+  /* --- Canlı sayfa jetonları (sayfa içi :root ve zk-utils bileşen kuralları bunları okur) --- */
+  --color-background: #0F131A; --color-foreground: #EEF1F6;
+  --color-primary: #6C9BEA; --color-primary-foreground: #0F131A;
+  --color-secondary: #222B3C; --color-secondary-foreground: #C8D0DD;
+  --color-accent: #F0B35B; --color-accent-foreground: #1A1205;
+  --color-muted: #1B2230; --color-muted-foreground: #A3AEBF;
+  --color-card: #171C26; --color-card-foreground: #EEF1F6;
+  --color-border: #2A3345; --color-input: #1B2230;
+  --color-destructive: #FF8A82; --color-destructive-foreground: #2A0A08;
+  --color-success: #4FD1A0; --color-success-foreground: #04281C;
+  --color-chart1: #6C9BEA; --color-chart2: #4FD1A0; --color-chart3: #F0B35B; --color-chart4: #A78BFA; --color-chart5: #7FA6C4;
+}
+
+/* ---- Logo: lacivert harfler koyu zeminde kaybolmasın → açık renkli rozetin içinde ---- */
+html[data-tasarim="yeni"][data-theme="dark"] .zk-y-marka img { background: #F3F5F9; border-radius: 10px; padding: 3px 5px; box-sizing: content-box; height: 34px; }
+html[data-tasarim="yeni"][data-theme="dark"] .zk-y-giris-logo { background: #F3F5F9; border-radius: 16px; padding: 10px 16px; box-sizing: content-box; height: 72px; }
+html[data-tasarim="yeni"][data-theme="dark"] body[data-page="giris"] header img,
+html[data-tasarim="yeni"][data-theme="dark"] [data-page="retim"] header img { background: #F3F5F9; border-radius: 14px; padding: 6px 8px; box-sizing: content-box; }
+
+/* ---- Koyu tema: kontrast düzeltmeleri ---- */
+html[data-tasarim="yeni"][data-theme="dark"] .zk-hex-empty .zk-hex-sub,
+html[data-tasarim="yeni"][data-theme="dark"] .zk-hex-empty .zk-hex-count { color: rgba(255, 255, 255, .62); }
+html[data-tasarim="yeni"][data-theme="dark"] [data-page="doktor-siparis"] header img { background: #F3F5F9; border-radius: 10px; padding: 3px 5px; box-sizing: content-box; }
+
+/* ---- Koyu tema: kodun içine gömülü SATIR İÇİ sabit renkli parçalar (denetim: gorsel-tema) ---- */
+/* Çevrimdışı «Bekleyen işlemler» paneli (js/zk-cevrimdisi.js): beyaz zemin/siyah yazı → jetonlar */
+html[data-tasarim="yeni"][data-theme="dark"] #zk-kuyruk-liste > div { background: rgb(var(--zk-c-card)) !important; color: rgb(var(--zk-c-fg)) !important; }
+html[data-tasarim="yeni"][data-theme="dark"] #zk-kuyruk-liste [style*="border-bottom:1px solid #eee"] { border-bottom-color: rgb(var(--zk-c-border)) !important; }
+html[data-tasarim="yeni"][data-theme="dark"] #zk-kuyruk-liste [style*="color:#666"] { color: rgb(var(--zk-c-mutedfg)) !important; }
+html[data-tasarim="yeni"][data-theme="dark"] #zk-kuyruk-liste [style*="color:#B42318"] { color: rgb(var(--zk-c-destructive)) !important; }
+html[data-tasarim="yeni"][data-theme="dark"] #zk-kuyruk-liste [style*="color:#B54708"] { color: rgb(var(--zk-c-accent)) !important; }
+html[data-tasarim="yeni"][data-theme="dark"] #zk-kuyruk-liste button[style*="background:#111"] { background: rgb(var(--zk-c-primary)) !important; color: rgb(var(--zk-c-onprimary)) !important; }
+html[data-tasarim="yeni"][data-theme="dark"] #zk-kuyruk-liste button[style*="background:#fff"] { background: rgb(var(--zk-c-muted)) !important; color: rgb(var(--zk-c-fg)) !important; border-color: rgb(var(--zk-c-border)) !important; }
+html[data-tasarim="yeni"][data-theme="dark"] #zk-kuyruk-liste #zk-kuyruk-kapat { color: rgb(var(--zk-c-fg)) !important; }
+/* Bildirim kutusu (toast): sabit #17242C koyu sayfa/kart zeminiyle ~1,1:1 idi → kenarlıklı, bir ton açık */
+html[data-tasarim="yeni"][data-theme="dark"] #zk-toast { background: #2B3548 !important; box-shadow: 0 0 0 1px rgba(255, 255, 255, .16), 0 10px 30px rgba(0, 0, 0, .45) !important; }
+/* Yasal sayfalar: koyuda başlık logosu soluktu (açıkta koyu yazılı marka görseline geçiliyor) → diğer ekranlardaki gibi açık rozet */
+html[data-tasarim="yeni"][data-theme="dark"][data-sayfa="gizlilik-politikasi"] .brand img,
+html[data-tasarim="yeni"][data-theme="dark"][data-sayfa="veri-isleme-sozlesmesi"] .brand img,
+html[data-tasarim="yeni"][data-theme="dark"][data-sayfa="hesap-silme"] .brand img { background: #F3F5F9; border-radius: 10px; padding: 4px 8px; box-sizing: content-box; }
