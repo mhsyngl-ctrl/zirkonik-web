@@ -1303,7 +1303,7 @@
       // dahil edilmemeli (teknik inceleme bulgusu, 22 Eylül 2026).
       var supInvQ = c.from('supplier_invoices').select('amount, currency, due_date, status').not('due_date', 'is', null).lte('due_date', horizonEndStr).neq('status', 'paid');
       var supPayQ = c.from('supplier_payments').select('amount, currency');
-      var docInvQ = c.from('invoices').select('id, amount, currency, due_date, doctor_id').neq('status', 'cancelled');
+      var docInvQ = c.from('invoices').select('id, amount, currency, due_date, doctor_id, issued_at').neq('status', 'cancelled');   // issued_at: havuz ödemesi faturalara bu sırayla dağıtılır
       var docPayQ = c.from('payments').select('invoice_id, amount, currency, doctor_id');
       // Kira/SGK/elektrik vb. sabit giderler — kullanıcı isteği, 22 Eylül 2026.
       var recurQ = c.from('recurring_expenses').select('name, amount, currency, frequency, due_date, end_date').eq('is_active', true); // end_date: bitiş tarihi öngörüde yok sayılıyordu (sorguda yoktu)
@@ -1388,17 +1388,32 @@
         // yansır. Vadesiz faturalar yukarıdaki toplam bekleyen tahsilata
         // dahil ama aylara dağıtılamadığı için buraya girmiyor — kullanıcı
         // isteği: "gelecek geliri de görelim", 23 Eylül 2026.
+        // Mahsup, sunucunun recalc_doctor_invoice_status kuralıyla AYNI: tahsilat doktorun genel carisine (faturasız «havuz» ödeme) yazılır;
+        // havuz, doktor + para birimi bazında faturalara issued_at sırasıyla (en eskiden) dağıtılır, faturaya bağlı ödeme kendi faturasından düşer.
+        // Eskiden yalnız bağlı ödemeler düşülüyordu: tamamen ödenmiş fatura bile «beklenen gelir»de tam tutarla görünüyordu (14 Kasım denetimi #181).
         var paidByInvoice = {};
+        var payPool = {};
         (res[4].data || []).forEach(function (pay) {
-          if (!pay.invoice_id) return;
-          paidByInvoice[pay.invoice_id] = (paidByInvoice[pay.invoice_id] || 0) + (Number(pay.amount) || 0);
+          var pAmt = Number(pay.amount) || 0;
+          if (pay.invoice_id) { paidByInvoice[pay.invoice_id] = (paidByInvoice[pay.invoice_id] || 0) + pAmt; return; }
+          var pk = pay.doctor_id + '|' + window.ZirkonikMoney.normalize(pay.currency);
+          payPool[pk] = (payPool[pk] || 0) + pAmt;
         });
         var incomeDueTotal = {};
-        (res[3].data || []).forEach(function (inv) {
-          if (!inv.due_date) return;
+        (res[3].data || []).slice().sort(function (a, b) {
+          var x = a.issued_at || '', y = b.issued_at || '';
+          return x < y ? -1 : x > y ? 1 : (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+        }).forEach(function (inv) {
           var remaining = (Number(inv.amount) || 0) - (paidByInvoice[inv.id] || 0);
-          if (remaining <= 0) return;
           var cur = window.ZirkonikMoney.normalize(inv.currency);
+          if (remaining > 0) {
+            var poolKey = inv.doctor_id + '|' + cur;
+            var used = Math.min(payPool[poolKey] || 0, remaining);   // vadesiz faturalar da havuzu tüketir (sunucudaki sıra bozulmasın)
+            payPool[poolKey] = (payPool[poolKey] || 0) - used;
+            remaining -= used;
+          }
+          remaining = Math.round(remaining * 100) / 100;
+          if (remaining <= 0 || !inv.due_date) return;
           var dueKey = inv.due_date < todayStr ? currentKey : inv.due_date.slice(0, 7);
           incomeDueTotal[cur] = (incomeDueTotal[cur] || 0) + remaining;
           if (!buckets[dueKey]) return;
