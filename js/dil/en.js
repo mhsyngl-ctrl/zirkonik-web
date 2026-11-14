@@ -2622,7 +2622,10 @@ window.ZK_DIL_EN = {
 "Bizi tercih ettiğiniz için teşekkür ederiz.":"Thank you for choosing us.",
 "Web sitesinde de (app.zirkonik.com), telefon uygulamasında da":"On the website (app.zirkonik.com) as well as in the phone app,",
 "internetsiz çalışma vardır.":"offline work is available.",
-"Zirkonik'i kullanmaya devam edebilmek için aşağıdaki metinleri okumanız ve beyanları onaylamanız gerekir. Kabul ettiğinizde bu soru, metinler değişmedikçe bir daha sorulmaz.":"To continue using Zirkonik you need to read the texts below and confirm the statements. Once you accept, this question is not asked again unless the texts change."
+"Zirkonik'i kullanmaya devam edebilmek için aşağıdaki metinleri okumanız ve beyanları onaylamanız gerekir. Kabul ettiğinizde bu soru, metinler değişmedikçe bir daha sorulmaz.":"To continue using Zirkonik you need to read the texts below and confirm the statements. Once you accept, this question is not asked again unless the texts change.",
+"Fiyat eksi olamaz.":"Price cannot be negative.",
+"Yazdırma/paylaşma yalnızca iOS ve Android uygulamasında çalışır.":"Printing/sharing works only in the iOS and Android apps.",
+"Rapor paylaşımı yalnızca iOS ve Android uygulamasında çalışır.":"Sharing reports works only in the iOS and Android apps."
 },
 "p":[
 [
@@ -4204,6 +4207,14 @@ window.ZK_DIL_EN = {
 [
 "^Aylık maaş: (.+) · Diş başına: (.+)$",
 "Monthly salary: $1 · Per tooth: $2"
+],
+[
+"^Rapor paylaşılamadı: (.*)$",
+"Could not share the report: $1"
+],
+[
+"^Paylaşılamadı: (.*)$",
+"Could not share: $1"
 ]
 ],
 "y":[

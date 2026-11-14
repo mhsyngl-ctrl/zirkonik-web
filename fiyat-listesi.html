@@ -323,6 +323,9 @@
             var inp = main.querySelector('[data-price-for="' + id + '"]');
             var sel = main.querySelector('[data-currency-for="' + id + '"]');
             var val = (!inp || inp.value === '') ? null : Number(inp.value);
+            // 14 Kasım denetimi #165: eksi/geçersiz fiyat engellenir, kuruşa yuvarlanır
+            if (val !== null && (!isFinite(val) || val < 0)) { zkToast('Fiyat eksi olamaz.'); loadList(); return; }
+            if (val !== null) val = Math.round(val * 100) / 100;
             var cur = sel ? sel.value : null;
             // Doktora/lokasyona özel fiyat — boş bırakmak genel listeye döndürür.
             ZirkonikData.setPriceOverride(orgId, id, scopeDoctorId, scopeLabId, val, cur).then(function (res) {
@@ -356,6 +359,8 @@
             inp.addEventListener('change', function () {
               var id = inp.getAttribute('data-price-for');
               var val = inp.value === '' ? null : Number(inp.value);
+              if (val !== null && (!isFinite(val) || val < 0)) { zkToast('Fiyat eksi olamaz.'); loadList(); return; }   // #165
+              if (val !== null) val = Math.round(val * 100) / 100;
               if (scopeDoctorId || scopeLabId) {
                 anlasmaKaydet(id);
                 return;

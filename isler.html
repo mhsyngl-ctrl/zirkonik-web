@@ -126,6 +126,14 @@
 
   <div id="zk-toast" style="position:fixed;left:50%;bottom:96px;transform:translate(-50%,16px);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;background:#17242C;color:#fff;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;padding:10px 16px;border-radius:12px;z-index:9999;max-width:86%;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.18);"></div>
   <script>
+    // Android kabuğu (Capacitor): PDF önbelleğe yazılır, sistem paylaşım penceresi açılır. iOS'ta kabuk köprüsü (nativeShare) kullanılır; ikisi de yoksa null döner (14 Kasım denetimi #168).
+    function zkAndroidPaylas(dosyaAdi, base64) {
+      var cap = window.Capacitor, P = cap && cap.Plugins;
+      if (!(cap && cap.getPlatform && cap.getPlatform() === 'android' && P && P.Filesystem && P.Share)) return null;
+      return P.Filesystem.writeFile({ path: dosyaAdi, data: base64, directory: 'CACHE' }).then(function (r) {
+        return P.Share.share({ title: dosyaAdi, url: r.uri, dialogTitle: 'Paylaş' });
+      });
+    }
     function zkToast(msg){
       var el = document.getElementById('zk-toast');
       if(!el) return;
@@ -449,7 +457,9 @@
         if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.nativeShare) {
           window.webkit.messageHandlers.nativeShare.postMessage({ filename: filename, base64: base64, mimeType: 'application/pdf' });
         } else {
-          zkToast('Rapor paylaşımı yalnızca iOS uygulamasında çalışır.');
+          var and = zkAndroidPaylas(filename, base64);
+          if (and) and.catch(function (e) { var m = String((e && e.message) || e || ''); if (!/cancel/i.test(m)) zkToast('Rapor paylaşılamadı: ' + m); });
+          else zkToast('Rapor paylaşımı yalnızca iOS ve Android uygulamasında çalışır.');
         }
       };
       reader.readAsDataURL(blob);

@@ -75,14 +75,14 @@
           <label class="block">
             <span class="mb-1.5 block text-xs font-bold text-card-foreground">Yeni şifre</span>
             <div class="relative">
-              <input id="rs-password" name="new-password" autocomplete="new-password" type="password" minlength="6" required class="h-12 w-full rounded-theme border border-border bg-input pl-3.5 pr-20 text-sm" placeholder="En az 6 karakter">
+              <input id="rs-password" name="new-password" autocomplete="new-password" type="password" minlength="8" required class="h-12 w-full rounded-theme border border-border bg-input pl-3.5 pr-20 text-sm" placeholder="En az 6 karakter">
               <button type="button" onclick="zkTogglePassword('rs-password', this)" class="absolute right-1 top-1 flex h-10 items-center rounded-lg px-3 text-xs font-bold text-primary">Göster</button>
             </div>
           </label>
           <label class="block">
             <span class="mb-1.5 block text-xs font-bold text-card-foreground">Yeni şifre (tekrar)</span>
             <div class="relative">
-              <input id="rs-password2" name="new-password" autocomplete="new-password" type="password" minlength="6" required class="h-12 w-full rounded-theme border border-border bg-input pl-3.5 pr-20 text-sm" placeholder="Şifreyi tekrar girin">
+              <input id="rs-password2" name="new-password" autocomplete="new-password" type="password" minlength="8" required class="h-12 w-full rounded-theme border border-border bg-input pl-3.5 pr-20 text-sm" placeholder="Şifreyi tekrar girin">
               <button type="button" onclick="zkTogglePassword('rs-password2', this)" class="absolute right-1 top-1 flex h-10 items-center rounded-lg px-3 text-xs font-bold text-primary">Göster</button>
             </div>
           </label>
@@ -162,7 +162,7 @@
       errEl.classList.add('hidden');
       var p1 = document.getElementById('rs-password').value;
       var p2 = document.getElementById('rs-password2').value;
-      if (p1.length < 6) { errEl.textContent = 'Şifre en az 6 karakter olmalı.'; errEl.classList.remove('hidden'); return; }
+      if (p1.length < 8) { errEl.textContent = 'Şifre en az 8 karakter olmalı.'; errEl.classList.remove('hidden'); return; }
       if (p1 !== p2) { errEl.textContent = 'Şifreler eşleşmiyor.'; errEl.classList.remove('hidden'); return; }
 
       // 2026-09-12: kilitsizdi; arka arkaya gönderimde şifre iki kez yazılıyordu.

@@ -1,8 +1,8 @@
 /*
  * Zirkonik — YENİ TASARIM katmanı (kabuk). 13 Kasım 2026.
  *
- * BAYRAK KAPALIYKEN BU DOSYA HİÇBİR ŞEY YAPMAZ: sayfa canlıdakiyle birebir aynı kalır.
- * Açma/kapama: adrese ?tasarim=yeni  /  ?tasarim=eski ekle (tercih bu cihazda saklanır).
+ * 14 Kasım 2026: VARSAYILAN YENİ (sahibinin kararı). Cihazda açıkça «eski» seçilmişse bu dosya HİÇBİR ŞEY YAPMAZ: sayfa eski haliyle kalır.
+ * Geçiş: adrese ?tasarim=yeni  /  ?tasarim=eski ekle (tercih bu cihazda saklanır). Acil geri alma: aşağıdaki VARSAYILAN'ı 'eski' yap.
  * Tek bir yerden (zk-yeni.css + bu dosya) bütün sayfalara giydirilir; sayfaların HTML'i, kimlikleri,
  * işleyicileri ve veri çağrıları DEĞİŞMEZ (tamlik-testi bunu doğrular).
  *
@@ -29,9 +29,11 @@
     try { localStorage.setItem(KEY, v); return; } catch (e) {}
     try { window.name = (window.name || '').replace(/(?:^|;)zk-tasarim=\w+/, '') + ';zk-tasarim=' + v; } catch (e) {}
   }
+  var VARSAYILAN = 'yeni'; // kimse seçim yapmadıysa görünen tasarım (14 Kasım 2026)
+  function tercih() { var v = oku(); return v === 'yeni' || v === 'eski' ? v : VARSAYILAN; }
   var q = /[?&]tasarim=(yeni|eski)\b/.exec(location.search);
   if (q) yaz(q[1]);
-  if ((q ? q[1] : oku()) !== 'yeni') return; // BAYRAK KAPALI: hiçbir şey yapma
+  if ((q ? q[1] : tercih()) !== 'yeni') return; // tercih «eski»: hiçbir şey yapma
   H.setAttribute('data-tasarim', 'yeni');
 
   function sayfa() { return (location.pathname.split('/').pop() || 'index.html').toLowerCase().replace('.html', '') || 'index'; }
@@ -39,6 +41,8 @@
   /** İki dilli metin: İngilizce seçiliyse en, değilse tr. (zk-dil.js bu dosyadan SONRA yüklenir; çağrı anında ZkDil hazırdır.) */
   function T(tr, en) { return window.ZkDil && window.ZkDil.en ? en : tr; }
   window.__zkYeniT = T; // giriş modülü de kullanır
+  /** Etiketi yazar ve çeviri motoruna (js/dil/motor.js) «bunu ben yazdım, dili doğru» der: motor kendi yazdığı öznitelikleri `_zk_<ad>` ile tanır; yoksa T() ile yazılan İngilizce etiketi «çevrilmemiş» sayar. */
+  function etiket(el, ad, deger) { el.setAttribute(ad, deger); el['_zk_' + ad] = deger; }
 
   // ---------- Tema: Açık (VARSAYILAN) / Koyu / Otomatik (cihazın ayarına uyar) ----------
   // Canlıdaki js/zk-tema.js data-theme="light"ı koşulsuz yazar; bu dosya ondan SONRA yüklenir ve (yalnız yeni tasarımda) tercihe göre geçersiz kılar.
@@ -66,7 +70,7 @@
   // Geri/ileri tuşuyla önbellekten (bfcache) dönen sayfada betikler yeniden çalışmaz: tercih bu arada değiştiyse (başka sayfada tema ya da ?tasarim=eski) burada da güncellenir.
   window.addEventListener('pageshow', function (e) {
     if (!e.persisted) return;
-    if (oku() !== 'yeni') { location.reload(); return; }   // tasarım kapatılmış: sayfayı eski haliyle baştan aç
+    if (tercih() !== 'yeni') { location.reload(); return; }   // «eski» seçilmiş: sayfayı eski haliyle baştan aç
     temaUygula(); temaKartiDurum(); kur();
   });
 
@@ -85,8 +89,8 @@
     var dil = document.getElementById('pf-dil'); if (!dil || !dil.parentNode) return;
     var k = document.createElement('section');
     k.id = 'zk-y-tema'; k.className = 'mt-5 rounded-theme border border-border bg-card p-4'; k.setAttribute('data-zk-cevirme', '1');
-    k.innerHTML = '<p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">' + T('Görünüm', 'Appearance') + '</p>' +
-      '<div class="mt-3 grid grid-cols-3 gap-2" role="group" aria-label="' + T('Görünüm', 'Appearance') + '">' +
+    k.innerHTML = '<p id="zk-y-tema-ad" class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">' + T('Görünüm', 'Appearance') + '</p>' +
+      '<div class="mt-3 grid grid-cols-3 gap-2" role="group" aria-labelledby="zk-y-tema-ad">' +
       TEMA_SEC.map(function (s) { return '<button type="button" data-tema="' + s[0] + '" class="' + DUGME_PASIF + '"><iconify-icon icon="' + s[3] + '"></iconify-icon><span>' + T(s[1], s[2]) + '</span></button>'; }).join('') + '</div>' +
       '<p class="mt-2 text-[11px] leading-4 text-muted-foreground">' + T('Açık görünüm varsayılandır. «Otomatik», telefonun veya bilgisayarın ayarına uyar. Seçim bu cihazda saklanır.',
         'Light is the default. “Automatic” follows your device setting. Your choice is saved on this device.') + '</p>';
@@ -188,7 +192,7 @@
       h += '<a class="zk-y-menu" href="' + m[0] + '.html" data-zk-y="' + m[0] + '"' + (m[0] === aktif ? ' aria-current="page"' : '') + '><iconify-icon icon="' + m[3] + '"></iconify-icon><span>' + ad + '</span></a>';
     }
     var el = document.createElement('nav'); // landmark: menü <nav> (önceden <aside>)
-    el.className = 'zk-y-kenar'; el.setAttribute('lang', dil); el.setAttribute('aria-label', T('Ana menü', 'Main menu')); el.setAttribute('data-imza', imza); el.setAttribute('data-zk-cevirme', '1'); el.innerHTML = h;
+    el.className = 'zk-y-kenar'; el.setAttribute('lang', dil); etiket(el, 'aria-label', T('Ana menü', 'Main menu')); el.setAttribute('data-imza', imza); el.setAttribute('data-zk-cevirme', '1'); el.innerHTML = h;
     document.body.insertBefore(el, document.body.firstChild);
     H.setAttribute('data-kabuk', 'aktif');
   }
@@ -210,7 +214,12 @@
       var p = panel(sh); if (!p) return;
       if (!p.getAttribute('role')) p.setAttribute('role', 'dialog');
       p.setAttribute('aria-modal', 'true');
-      var b = p.querySelector('p.font-heading, h1, h2, h3'); if (b && !p.getAttribute('aria-label') && !p.getAttribute('aria-labelledby')) p.setAttribute('aria-label', (b.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 80));
+      // Ad başlıktan KOPYALANMAZ, başlığa bağlanır: başlık/çeviri sonradan değişince etiket bayat kalmaz ve çeviri motoru kopyayı «çevrilmemiş» saymaz.
+      var b = p.querySelector('p.font-heading, h1, h2, h3');
+      if (b && !p.getAttribute('aria-label') && !p.getAttribute('aria-labelledby')) {
+        if (!b.id) { var bid = (sh.id || 'pencere') + '-baslik'; if (!document.getElementById(bid)) b.id = bid; }
+        if (b.id) p.setAttribute('aria-labelledby', b.id);
+      }
     }
     function acildi(sh) {
       isaretle(sh);

@@ -134,6 +134,10 @@
       low_stock: 'lucide:package-x',
       system: 'lucide:bell-ring',
       gunluk_ziyaret_listesi: 'lucide:map-pin',
+      gunluk_ziyaret_taslagi: 'lucide:map-pin',
+      gunluk_gorev_hatirlatma: 'lucide:clipboard-list',
+      doktor_uyudu: 'lucide:bell-ring',
+      deneme_vakasi_uyari: 'lucide:alert-triangle',
       hata_bildirimi: 'lucide:bug',
       hata_ozeti: 'lucide:clipboard-list',
       otomatik_onay_takildi: 'lucide:alert-triangle',
@@ -152,6 +156,10 @@
       low_stock: 'text-destructive',
       system: 'text-primary',
       gunluk_ziyaret_listesi: 'text-primary',
+      gunluk_ziyaret_taslagi: 'text-primary',
+      gunluk_gorev_hatirlatma: 'text-primary',
+      doktor_uyudu: 'text-accent',
+      deneme_vakasi_uyari: 'text-accent',
       hata_bildirimi: 'text-destructive',
       hata_ozeti: 'text-primary',
       otomatik_onay_takildi: 'text-destructive',
@@ -184,7 +192,7 @@
       if (n.order_id && siparisAcik()) return 'siparisler.html';
       // 2 Kasım 2026: pazarlama (CRM) bildirimleri dokununca hiçbir yere gitmiyordu; Aday havuzunu açar.
       // YALNIZ pazarlama paketi (Plus/Tek) açıksa ve kişinin yetkisi varsa: Standart pakette sayfa Üretim'e geri atıyordu.
-      if ((n.type === 'gunluk_ziyaret_taslagi' || n.type === 'gunluk_gorev_hatirlatma' || n.type === 'doktor_uyudu') && pazarlamaAcik()) return 'aday-havuzu.html';
+      if ((n.type === 'gunluk_ziyaret_taslagi' || n.type === 'gunluk_gorev_hatirlatma' || n.type === 'doktor_uyudu' || n.type === 'deneme_vakasi_uyari') && pazarlamaAcik()) return 'aday-havuzu.html';
       return null;
     }
     // Yeni sipariş bildirimi: Siparişler sayfasını açabilen herkes için dokunulabilir (yönetici, Lider Teknisyen, sipariş yetkili personel). Muhasebeci sayfayı açamaz.
@@ -239,7 +247,8 @@
           '<div class="flex items-center justify-between gap-2">' +
           '<p class="text-sm font-bold">' + escapeHtml(n.title) + (unread ? ' <span class="ml-1 inline-block h-2 w-2 rounded-full bg-primary align-middle"></span>' : '') + '</p>' +
           '<span class="shrink-0 text-[10px] text-muted-foreground">' + timeAgo(n.created_at) + '</span></div>' +
-          (n.body ? '<p class="mt-0.5 text-xs text-muted-foreground">' + escapeHtml(n.body) + '</p>' : '') +
+          (n.body ? '<p class="mt-0.5 text-xs text-muted-foreground">' + escapeHtml(String(n.body).replace(/\s*\[ref:[^\]]*\]/g, '')) + '</p>' : '') +   // sunucu bazı bildirimlerin sonuna tekrarı önlemek için «[ref:…]» ekler: kullanıcıya gösterilmez (14 Kasım denetimi #69)
+          
           '</div></div>';
       }).join('');
     }
